@@ -50,7 +50,7 @@ npm run check
 - `src/engine.js`：纯函数状态机。入口 `createGame(name, gender)`；动作入口 `reduce(state, action)`，返回 `{state, message, kind, changed}`。不直接访问 DOM、网络或存储。
 - `src/app.js`：页面渲染、按钮、确认弹窗、浏览器存档与导入导出。所有导入存档显示文本必须转义。
 - `src/style.css`：手机优先响应式 UI。当前主色为海松绿、米白、橄榄与赤陶。
-- `assets/`：原创建模式矢量标记；人物和场景目前是程序生成的占位视觉，不是最终商业美术。
+- `assets/`：原创建模式矢量标记；已接入港口工作室场景与周屿、林知夏两张原创生成插画；其余人物仍是矢量占位，不是最终商业美术。
 - `tests/engine.test.mjs`：业务、恋爱边界、存档、异常路径及连续模拟测试。
 - `scripts/serve.mjs`：仅用于本地开发的静态服务器，默认只监听回环地址。
 

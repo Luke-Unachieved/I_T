@@ -17,7 +17,7 @@ export const TACTICS = [
 ];
 export const FACTORIES = [
  {id:'steady', name:'恒成五金', label:'稳定合作', detail:'批次稳定，正常付款；没有额外费用。', cost:0, credit:0, quality:1},
- {id:'credit', name:'远桥制造', label:'友好账期', detail:'部分货款到回款后再付；利润减少 ¥150，垫资减少 ¥600。', cost:150, credit:600, quality:1},
+ {id:'credit', name:'远桥制造', label:'友好账期', detail:'¥600 货款延至回款后再付，另有 ¥150 账期费用。', cost:150, credit:600, quality:1},
  {id:'value', name:'新源工坊', label:'新厂试做', detail:'成本降低 ¥350；建议出货前加做验货。', cost:-350, credit:0, quality:0}
 ];
 export const SHIPMENTS = [
