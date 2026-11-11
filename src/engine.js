@@ -1,4 +1,4 @@
-import {PEOPLE, PRODUCTS, TACTICS, FACTORIES, SHIPMENTS} from './content.js';
+import {PEOPLE, PRODUCTS, TACTICS, FACTORIES, SHIPMENTS, CHAT_REPLIES} from './content.js';
 export const VERSION = 1;
 export const clone = x => JSON.parse(JSON.stringify(x));
 export const person = id => PEOPLE.find(p => p.id === id);
@@ -20,6 +20,7 @@ export function quote(s, factoryId=s.active?.factory, shipmentId='normal') {
  return {revenue,cost,deposit,reserve:Math.max(0,cost-ship.cost-deposit-f.credit),profit:revenue-cost,matched,quality:f.quality+ship.quality+(s.staff.some(id=>person(id).specialty==='quality')?1:0)};
 }
 export function canStart(s){return s.stage==='employee'&&s.completed>=3&&s.rep>=6&&s.cash>=5000&&!s.active&&s.phase==='day';}
+export function chatScene(s,id){const p=person(id);if(!p)return null;const i=s.relations[id].chats%p.chats.length;return {scene:p.chats[i],choices:CHAT_REPLIES[id][i]};}
 export function canDate(s,id){const p=person(id),r=s.relations[id];return !!p&&p.gender!==s.gender&&r.status!=='closed'&&r.trust>=2&&(p.recruit||s.stage==='founder');}
 export function hasEnding(s){return s.stage==='founder'&&s.startupOrders>=3&&(s.staff.length>0||s.warehouse>1||s.logistics>0);}
 export function chapter(s){return s.stage==='employee'?(s.completed<3?'01 · 第一笔回声':'02 · 自己的方向'):(s.startupOrders<3?'03 · 向海而生':'04 · 并肩向前');}
@@ -52,8 +53,8 @@ export function reduce(input,action){
   const q=quote(s,s.active.factory,action.id);const extra=action.id==='express'&&s.active.need==='speed';
   const gain=s.stage==='employee'?Math.floor(q.profit*.3):q.profit;
   s.cash+=s.active.reserve+gain;s.completed++;if(s.stage==='founder')s.startupOrders++;
-  const rep=(q.matched?2:1)+(q.quality>0?1:0)+(extra?1:0);s.rep+=rep;s.ap--;
-  message=`${s.active.buyer} 已签收并结清尾款。${s.stage==='employee'?'提成':'净利润'} +¥${gain}，口碑 +${rep}。${q.quality===0?'新厂批次有轻微瑕疵，客户建议下次加验货。':'这次交付，让合作更近了一步。'}`;
+  const planPoints=q.matched?2:1,qualityPoints=q.quality>0?1:-1,speedPoints=extra?1:0;const rep=planPoints+qualityPoints+speedPoints;s.rep+=rep;s.ap--;
+  message=`${s.active.buyer} 已签收并结清尾款。${s.stage==='employee'?'提成':'净利润'} +¥${gain}，口碑 +${rep}（方案 +${planPoints}，${qualityPoints>0?'品质 +1':'轻微瑕疵 −1'}${extra?'，提前交付 +1':''}）。${q.quality===0?'新厂批次有轻微瑕疵；下次验货或安排质检同事，可以避免这项扣分。':'这次交付，让合作更近了一步。'}`;
   note(s,`${s.active.name} · 顺利收款`,message);s.usedOffers.push(s.active.id);s.active=null;break;
  }
  case 'cancel': {
@@ -77,7 +78,7 @@ export function reduce(input,action){
  }
  case 'chat': {
   const p=person(action.id);if(!p||s.phase!=='evening'||s.eveningUsed)return fail('每晚留一段完整的相处时间，或选择自己休息。');
-  const r=s.relations[p.id];message=p.chats[r.chats%p.chats.length];r.chats++;r.trust=Math.min(12,r.trust+1);s.eveningUsed=true;note(s,`和${p.name}聊了一会儿`,message);break;
+  const r=s.relations[p.id],scene=chatScene(s,p.id),answer=action.response??0;if(!Number.isInteger(answer)||!scene.choices[answer])return fail('请选择一个有效回应。');const choice=scene.choices[answer];message=scene.scene+'\n\n你：“'+choice.line+'”\n'+p.name+'：'+choice.reply;r.chats++;r.trust=Math.min(12,r.trust+1);s.eveningUsed=true;note(s,`和${p.name}聊了一会儿`,message);break;
  }
  case 'date': {
   if(s.phase!=='evening'||s.eveningUsed||!canDate(s,action.id))return fail('约会需要双方熟悉、明确同意，且不存在直接上下级关系。');

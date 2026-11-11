@@ -1,5 +1,5 @@
 import {PEOPLE, TACTICS, FACTORIES, SHIPMENTS} from './content.js';
-import {createGame,reduce,offers,quote,canStart,canDate,chapter,hasEnding,parseSave} from './engine.js';
+import {createGame,reduce,offers,quote,canStart,canDate,chapter,hasEnding,parseSave,chatScene} from './engine.js';
 const KEY='trade-tycoon:v1';const app=document.querySelector('#app');const dialog=document.querySelector('#dialog');
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=v=>'¥'+v.toLocaleString('zh-CN');let state=null,tab='desk',startGender='female',notice='',noticeType='success',saveWarning='',timer;
@@ -17,6 +17,11 @@ function act(action){const result=reduce(state,action);if(result.changed){state=
 function modal(title,html,onConfirm,label='确认',danger=false){
  dialog.innerHTML=`<form method="dialog"><div class="modal-top"><span class="eyebrow">由你决定</span><button value="cancel" class="close" aria-label="关闭">×</button></div><h2 id="dialog-title">${esc(title)}</h2><div class="modal-copy">${html}</div><div class="modal-actions"><button value="cancel" class="button secondary">再想想</button><button value="confirm" class="button ${danger?'danger':''}" id="confirm-action">${esc(label)}</button></div></form>`;
  dialog.onclose=()=>{if(dialog.returnValue==='confirm')onConfirm();dialog.onclose=null;};dialog.returnValue='';dialog.showModal();
+}
+function conversation(id){
+ const p=PEOPLE.find(p=>p.id===id),scene=chatScene(state,id);if(!p||!scene)return;
+ dialog.innerHTML=`<form method="dialog"><div class="modal-top"><span class="eyebrow">下班 · 一段相处时光</span><button value="cancel" class="close" aria-label="关闭">×</button></div><div class="conversation-speaker">${portrait(p)}<div><small class="muted">${p.role}</small><h2 id="dialog-title">${p.name}</h2></div></div><p class="conversation-scene">${esc(scene.scene)}</p><span class="field-label">你想怎么回应？</span><div class="conversation-choices">${scene.choices.map((c,i)=>`<button value="reply-${i}" class="choice"><span>${esc(c.line)}</span><span>→</span></button>`).join('')}</div><button value="cancel" class="text-button small">今晚先不聊，改天再说</button></form>`;
+ dialog.onclose=()=>{const chosen=dialog.returnValue;if(chosen==='reply-0'||chosen==='reply-1')act({type:'chat',id,response:Number(chosen.slice(-1))});dialog.onclose=null;};dialog.returnValue='';dialog.showModal();
 }
 function renderStart(){
  app.innerHTML=`<main class="welcome"><div class="welcome-art"><div class="wordmark light"><img src="assets/mark.svg" alt="">外贸大亨<span>TRADE TYCOON</span></div><div class="welcome-title"><span class="eyebrow">一间小公司，一段大人生</span><h1>向海而生<br>由你掌舵。</h1><p>从第一封询盘开始，<br>把生意做成自己的样子。</p></div>${scene()}<span class="version">可玩原型 v0.1 · 非商业成品</span></div><section class="welcome-form"><span class="eyebrow">你的故事，从这里开始</span><h2>你好，新同事。</h2><p class="muted">上午认真谈一笔生意，晚上留一盏灯给生活。<br>成长与恋爱，都有你自己的节奏。</p>${saveWarning?`<p class="warning">${esc(saveWarning)}</p>${button('导出原存档','export','','text-button')}`:''}<form id="start-form"><label class="field-label" for="player-name">怎么称呼你</label><input id="player-name" name="name" maxlength="12" value="小满" autocomplete="off" required><span class="field-label">选择主角</span><div class="gender-options">${['female','male'].map(g=>`<button type="button" class="gender-choice ${g===startGender?'selected':''}" data-action="gender" data-id="${g}" aria-pressed="${g===startGender}">${portrait({gender:g,color:g==='female'?'#b97857':'#688e99'})}<span>${g==='female'?'女主角':'男主角'}</span><small>相同事业线 · 异性恋爱路线</small></button>`).join('')}</div><button class="button full start-button" type="submit">开始第一天 <span>↗</span></button></form><div class="welcome-points"><span>◌ 恋爱完全自愿</span><span>◌ 自动保存在当前浏览器</span><span>◌ 不用读复杂报表</span></div></section></main>`;
@@ -47,6 +52,7 @@ app.addEventListener('click',e=>{
  if(type==='import'){document.querySelector('#import-file').click();return;}
  if(type==='reset'){modal('重新开始一段故事？','<p>这会替换当前浏览器的进度。若想保留，请先取消并导出存档。</p>',()=>{try{localStorage.removeItem(KEY);}catch{}state=null;tab='desk';notice='';render();},'重新开始',true);return;}
  if(type==='startup'){modal('创立向海贸易',`<p>完成交接，支付启动费用 <strong>¥3,000</strong>，剩余周转资金 <strong>${money(state.cash-3000)}</strong>。</p><p>此后自行垫资并获得全部净利润，不再领取员工日薪。朋友和恋人仍然可以在下班后见面。</p>`,()=>act({type}),'带着准备出发');return;}
+ if(type==='chat'){conversation(id);return;}
  if(type==='date'){const p=PEOPLE.find(p=>p.id===id);modal(`邀请${p.name}约会`, '<p>这是一场明确带有恋爱意向的邀请。对方愿意与你慢慢了解。</p><p>你随时可以保持朋友关系。约会不会带来业务加成，也不影响对方的工作决定。</p>',()=>act({type,id}),'邀请约会');return;}
  if(type==='boundary'){const p=PEOPLE.find(p=>p.id===id);modal('把关系说清楚',`<p>告诉${p.name}你希望保持朋友与合作关系。此后不会主动出现恋爱推进，工作收益与信任不受影响。</p>`,()=>act({type,id}),'保持朋友关系');return;}
  if(type==='cancel'){modal('暂缓这笔订单？','<p>本原型会退回已预留的垫资，不收取消费。已经使用的工作步骤不会返还，今天不再显示这笔询盘。</p>',()=>act({type}),'暂缓订单');return;}

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createGame,reduce,offers,quote,canStart,canDate,hasEnding,parseSave} from '../src/engine.js';
-import {PEOPLE} from '../src/content.js';
+import {PEOPLE,CHAT_REPLIES} from '../src/content.js';
 function doAction(s,type,id){const r=reduce(s,{type,id});assert.equal(r.changed,true,`${type}: ${r.message}`);return r.state;}
 function next(s){return doAction(doAction(s,'evening'),'rest');}
 function order(s,factory='steady',ship='normal'){const o=offers(s)[0];s=doAction(s,'accept',o.id);s=doAction(s,'tactic',o.need);s=doAction(s,'factory',factory);return doAction(s,'ship',ship);}
@@ -25,3 +25,7 @@ test('upgrades and crew bonuses change business values with repeat guards',()=>{
 test('save roundtrip survives all gameplay stages and rejects malformed state',()=>{let s=createGame('<测试>');for(const type of ['accept','tactic','factory','ship']){const id={accept:offers(s)[0].id,tactic:'quality',factory:'steady',ship:'normal'}[type];s=doAction(s,type,id);assert.deepEqual(parseSave(JSON.stringify(s)),s);}for(const raw of ['{}','null','nope',JSON.stringify({...s,cash:-2}),JSON.stringify({...s,ap:9}),JSON.stringify({...s,version:99}),JSON.stringify({...s,staff:['lu']})])assert.throws(()=>parseSave(raw));});
 test('same-gender dating cannot be introduced through save import',()=>{const s=createGame();s.relations.xia.status='dating';assert.throws(()=>parseSave(JSON.stringify(s)));});
 test('100-day simulation stays finite and game state remains serializable',()=>{let s=createGame();for(let i=0;i<100;i++){if(canStart(s))s=doAction(s,'startup');if(s.stage==='founder'&&s.cash<1500)s=doAction(s,'bridge');else s=order(s,i%2?'credit':'steady',i%3?'normal':'qc');s=next(s);assert.ok(Number.isSafeInteger(s.cash)&&s.cash>=0);assert.deepEqual(parseSave(JSON.stringify(s)),s);}assert.equal(s.day,101);assert.ok(s.cash>100000);});
+test('new-factory defects have explicit reputation cost and inspection prevents it',()=>{let s=createGame();const o=offers(s)[2];s=doAction(s,'accept',o.id);s=doAction(s,'tactic','speed');s=doAction(s,'factory','value');const result=reduce(s,{type:'ship',id:'express'});assert.equal(result.state.rep,2);assert.match(result.message,/轻微瑕疵 −1/);assert.match(result.message,/提前交付 \+1/);const inspected=reduce(s,{type:'ship',id:'qc'});assert.equal(inspected.state.rep,3);assert.match(inspected.message,/品质 \+1/);});
+test('chat replies change the scene response, not romance or business resources',()=>{const s=doAction(createGame(),'evening');const a=reduce(s,{type:'chat',id:'zhou',response:0});const b=reduce(s,{type:'chat',id:'zhou',response:1});assert.ok(a.changed&&b.changed);assert.notEqual(a.message,b.message);assert.equal(a.state.cash,b.state.cash);assert.equal(a.state.relations.zhou.trust,b.state.relations.zhou.trust);assert.equal(a.state.relations.zhou.status,'friend');assert.equal(reduce(s,{type:'chat',id:'zhou',response:99}).changed,false);});
+
+test('every authored chat scene has two complete distinct responses',()=>{for(const p of PEOPLE){assert.equal(CHAT_REPLIES[p.id].length,p.chats.length);for(const pair of CHAT_REPLIES[p.id]){assert.equal(pair.length,2);assert.notEqual(pair[0].line,pair[1].line);for(const c of pair){assert.ok(c.line.length>0&&c.reply.length>0);}}}});
