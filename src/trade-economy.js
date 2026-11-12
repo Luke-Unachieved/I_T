@@ -26,6 +26,18 @@ export const UPGRADES = [
 export const MARKETS = [
   {id:'asia',name:'东南亚',needed:0}, {id:'middle',name:'中东',needed:3}, {id:'europe',name:'欧洲',needed:8},
 ];
+export const PAYMENT_TERMS=[
+ {id:'standard',name:'按原条件',priceAdjustment:0,depositChange:0,payLagChangeDays:0},
+ {id:'cashflow',name:'让价换快回款',priceAdjustment:-4,depositChange:20,payLagChangeDays:-14},
+ {id:'growth',name:'给账期换高价',priceAdjustment:5,depositChange:-20,payLagChangeDays:14},
+];
+const termsAcceptance={quick:{cashflow:-8,growth:-12},long:{cashflow:-12,growth:4},rush:{cashflow:-4,growth:-8}};
+function paymentProposal(offer,id='standard'){
+ const t=idOf(PAYMENT_TERMS,id);
+ if(!t||((offer.currency!=='USD'||offer.kind==='flagship')&&id!=='standard'))return null;
+ return {id:t.id,name:t.name,depositRate:id==='standard'?offer.depositRate:clamp(offer.depositRate+t.depositChange,5,90),payLagDays:Math.max(0,(offer.payLagDays??offer.payLag*7)+t.payLagChangeDays),priceAdjustment:t.priceAdjustment,acceptanceAdjustment:id==='standard'?0:termsAcceptance[offer.kind]?.[id]??0};
+}
+const contractUsd=(offer,markup,terms)=>round(offer.quantity*offer.usdUnitCents*(1+terms.priceAdjustment/100)*(1+markup/100));
 const kinds=[
  {id:'quick',name:'稳健回款',depositRate:70,payLag:0,deadline:5,quality:75,factor:138},
  {id:'long',name:'大额账期',depositRate:20,payLag:4,deadline:6,quality:90,factor:170},
@@ -76,21 +88,23 @@ export function quoteOrder(s,offerId,options={}){
  const offer=s.offers.find(x=>x.id===offerId);const supplier=idOf(SUPPLIERS,options.supplier||'reliable'),shipping=idOf(SHIPPING,options.shipping||'sea');
  const markup=options.markup??0;
  if(!offer||!supplier||!shipping||!Number.isInteger(markup)||markup < -10 || markup > 15)return {valid:false,reason:'报价方案无效'};
+ const paymentTerms=paymentProposal(offer,options.paymentTerms??'standard');
+ if(!paymentTerms)return {valid:false,reason:'此询盘不支持该付款提案'};
  const cost=round(offer.quantity*s.prices[offer.product]*supplier.cost/100*(1-s.upgrades.sourcing*0.05));
  const freight=round(offer.quantity*PRODUCTS.find(p=>p.id===offer.product).base*shipping.rate/100*(1-s.upgrades.logistics*0.15));
- const usdCents=offer.currency==='USD'?round(offer.quantity*offer.usdUnitCents*(1+markup/100)):0;
+ const usdCents=offer.currency==='USD'?contractUsd(offer,markup,paymentTerms):0;
  const signRate=fxRateAt(s.week),revenue=usdCents?convertUsd(usdCents,signRate):round(offer.quantity*offer.price*(1+markup/100));
- const deposit=round(revenue*offer.depositRate/100),procurement=round(cost*0.4),balance=cost-procurement;
+ const deposit=round(revenue*paymentTerms.depositRate/100),procurement=round(cost*0.4),balance=cost-procurement;
  const weeks=supplier.weeks+shipping.weeks,quality=Math.min(100,supplier.quality+s.upgrades.quality*10);
  const late=Math.max(0,weeks-offer.deadline),shortfall=Math.max(0,offer.quality-quality);
  const penalty=round(revenue*Math.min(.25,late*.06+shortfall*.003));
- const chance=clamp(round(88-markup*2.3+Math.min(offer.repeat,5)*2+Math.min(s.reputation,20)*0.3-late*12-shortfall*.5),5,98);
+ const chance=clamp(round(88-markup*2.3+paymentTerms.acceptanceAdjustment+Math.min(offer.repeat,5)*2+Math.min(s.reputation,20)*0.3-late*12-shortfall*.5),5,98);
  let fx=null;
  if(offer.currency==='USD'){
   const mode=options.fxMode??'locked';
   if(!['locked','spot'].includes(mode))return {valid:false,reason:'结汇方式无效'};
   // Contract deductions are fixed at signing; only the remaining USD balance floats.
-  const tailUsdCents=Math.max(0,usdCents-round(usdCents*offer.depositRate/100)-round(penalty*1000000/signRate));
+  const tailUsdCents=Math.max(0,usdCents-round(usdCents*paymentTerms.depositRate/100)-round(penalty*1000000/signRate));
   const estimatedTail=convertUsd(tailUsdCents,signRate);
   const fee=mode==='locked'?Math.ceil(estimatedTail*.006):0;
   fx={mode,usdCents,tailUsdCents,signRate,lockedRate:signRate,fee,estimatedTail};
@@ -98,10 +112,10 @@ export function quoteOrder(s,offerId,options={}){
  }
  const fee=fx?.fee||0;
  const cashRequired=Math.max(0,procurement+fee-deposit),profit=(fx?deposit+fx.estimatedTail:revenue-penalty)-cost-freight-fee;
- const days=supplier.days+shipping.days,productionDays=supplier.days,payLagDays=offer.payLagDays,lateDays=Math.max(0,days-offer.deadlineDays);
+ const days=supplier.days+shipping.days,productionDays=supplier.days,payLagDays=paymentTerms.payLagDays,lateDays=Math.max(0,days-offer.deadlineDays);
  const settlementDay=s.day+days+payLagDays,settlementWeek=dayToWeek(settlementDay);
- let reason='';if(offer.expiresDay<s.day)reason='询盘已过期';else if(s.active.length>=capacity(s))reason='并行订单已满，交付后释放名额';else if(s.cash<cashRequired)reason=`还需垫资 ¥${cashRequired-s.cash}`;
- return {valid:!reason,reason,offer,fx,supplier:supplier.id,shipping:shipping.id,markup,revenue,cost,freight,deposit,procurement,balance,profit,margin:round(profit/revenue*100),chance,weeks,days,productionDays,payLagDays,lateDays,payLag:offer.payLag,capacity:1,quality,late,penalty,cashRequired,settlementWeek,settlementDay,steps:[{day:s.day,week:s.week,label:'签约净收付',amount:deposit-procurement-fee},{day:s.day+productionDays,week:dayToWeek(s.day+productionDays),label:'工厂尾款与出运',amount:-balance-freight},{day:settlementDay,week:settlementWeek,label:'客户尾款',amount:fx?fx.estimatedTail:revenue-deposit-penalty}],productionWeeks:supplier.weeks};
+ let reason='';if(penalty>revenue-deposit)reason='预计赔付超过未付尾款，请降低订金提案或改善品质与交期';else if(offer.expiresDay<s.day)reason='询盘已过期';else if(s.active.length>=capacity(s))reason='并行订单已满，交付后释放名额';else if(s.cash<cashRequired)reason=`还需垫资 ¥${cashRequired-s.cash}`;
+ return {valid:!reason,reason,offer,fx,paymentTerms,supplier:supplier.id,shipping:shipping.id,markup,revenue,cost,freight,deposit,procurement,balance,profit,margin:round(profit/revenue*100),chance,weeks,days,productionDays,payLagDays,lateDays,payLag:payLagDays/7,capacity:1,quality,late,penalty,cashRequired,settlementWeek,settlementDay,steps:[{day:s.day,week:s.week,label:'签约净收付',amount:deposit-procurement-fee},{day:s.day+productionDays,week:dayToWeek(s.day+productionDays),label:'工厂尾款与出运',amount:-balance-freight},{day:settlementDay,week:settlementWeek,label:'客户尾款',amount:fx?fx.estimatedTail:revenue-deposit-penalty}],productionWeeks:supplier.weeks};
 }
 function projected(s,quote){
  const events=[];
@@ -132,7 +146,7 @@ function finish(s,o){
  const c=s.customers[o.offer.customerId]||{orders:0,revenue:0,market:o.offer.market,name:o.offer.customer};c.orders++;c.revenue+=o.fx?o.deposit+o.fx.estimatedTail:o.revenue-o.penalty;if(o.offer.kind==='flagship'&&o.late===0&&o.quality>=o.offer.quality)c.qualified=true;s.customers[o.offer.customerId]=c;
  const amount=o.fx?o.fx.estimatedTail:o.revenue-o.deposit-o.penalty;
  if(o.dueDay<=s.day){s.cash+=settleFx(s,amount,o.fx,o.offer.customerId);log(s,`${o.offer.customer}尾款 ¥${o.fx?tailValue(o.fx,fxRateAt(s.week)):amount} 到账。`,'cash');}
- else{s.receivables.push({id:o.id,customer:o.offer.customer,amount,currency:o.fx?'USD':'CNY',fx:o.fx,customerId:o.offer.customerId,dueDay:o.dueDay,dueWeek:o.dueWeek});}
+ else{s.receivables.push({id:o.id,customer:o.offer.customer,amount,currency:o.fx?'USD':'CNY',fx:o.fx??null,...(o.paymentTerms?{paymentTerms:o.paymentTerms}:{}),customerId:o.offer.customerId,dueDay:o.dueDay,dueWeek:o.dueWeek});}
  log(s,`${o.offer.customer}收货：本单利润${deliveryEstimated(s,o)?'（浮动尾款未收，暂估）':''} ¥${deliveryProfit(s,o)}${o.penalty?`，含赔付 ¥${o.penalty}`:''}。${o.late?'交期延误':'准时交付'}，复购记录 +1。`,'success');
 }
 function settleFx(s,estimated,fx,customerId){
@@ -166,7 +180,7 @@ export function reduceTrade(state,action){
   if(hash(q.offer.id+'|'+q.offer.customerId)%100>=q.chance){s.metrics.rejected++;log(s,`${q.offer.customer}未接受报价，本次询盘关闭。`);return result(s,`客户未接受这份报价（成交率 ${q.chance}%）。可选择另一笔询盘。`,true);}
   s.cash+=q.deposit-q.procurement-(q.fx?.fee||0);
   s.active.push({...q,id:q.offer.id,acceptedDay:s.day,acceptedWeek:s.week,shipDay:s.day+q.productionDays,shipWeek:dayToWeek(s.day+q.productionDays),deliveryDay:s.day+q.days,deliveryWeek:dayToWeek(s.day+q.days),dueDay:q.settlementDay,dueWeek:q.settlementWeek,paidShipping:false});
-  log(s,`${q.offer.customer}签约 ${q.fx?'USD '+(q.fx.usdCents/100).toFixed(2):'¥'+q.revenue}，订金 ¥${q.deposit} / 工厂首付 ¥${q.procurement}${q.fx?' / 锁汇费 ¥'+q.fx.fee:''}。`,'success');return result(s,`签约成功，预计利润 ¥${q.profit}，第 ${q.settlementDay} 天收齐货款。`,true);
+  log(s,`${q.offer.customer}签约 ${q.fx?'USD '+(q.fx.usdCents/100).toFixed(2):'¥'+q.revenue}，订金 ¥${q.deposit} / 工厂首付 ¥${q.procurement}${q.fx?' / 锁汇费 ¥'+q.fx.fee:''}。${q.paymentTerms?'付款提案：'+q.paymentTerms.name+'，订金'+q.paymentTerms.depositRate+'%，交付后'+q.paymentTerms.payLagDays+'天收尾款。':''}`,'success');return result(s,`签约成功，预计利润 ¥${q.profit}，第 ${q.settlementDay} 天收齐货款。`,true);
  }
  if(['NEXT_DAY','NEXT_WEEK','ADVANCE_DAYS','ADVANCE'].includes(action.type)){
   const requestedDays=action.type==='NEXT_DAY'?1:action.type==='NEXT_WEEK'?7:action.days;
@@ -254,14 +268,19 @@ export function parseTradeSave(raw){
  if(daily&&s.offers.some(o=>o.expiresDay<s.day))fail();
  const allIds=[...s.offers.map(o=>o.id),...s.active.map(o=>o.id),...s.receivables.map(r=>r.id)];if(new Set(allIds).size!==allIds.length)fail();
  for(const o of s.active){
+  const terms=o.offer&&paymentProposal(o.offer,o.paymentTerms?.id??'standard');
+  if(!terms)fail();
+  if(o.paymentTerms!==undefined){
+   if(!o.paymentTerms||Object.keys(terms).some(k=>o.paymentTerms[k]!==terms[k])||(daily&&o.payLagDays!==terms.payLagDays)||o.payLag!==terms.payLagDays/7)fail();
+  }
   if(o.offer?.currency==='USD'){
-   if(!fxValid(o.fx)||o.fx.signRate!==fxRateAt(o.acceptedWeek)||o.fx.usdCents!==round(o.offer.quantity*o.offer.usdUnitCents*(1+o.markup/100))||o.revenue!==convertUsd(o.fx.usdCents,o.fx.signRate)||o.deposit!==round(o.revenue*o.offer.depositRate/100)||o.fx.tailUsdCents!==Math.max(0,o.fx.usdCents-round(o.fx.usdCents*o.offer.depositRate/100)-round(o.penalty*1000000/o.fx.signRate)))fail();
+   if(!fxValid(o.fx)||o.fx.signRate!==fxRateAt(o.acceptedWeek)||o.fx.usdCents!==contractUsd(o.offer,o.markup,terms)||o.revenue!==convertUsd(o.fx.usdCents,o.fx.signRate)||o.deposit!==round(o.revenue*terms.depositRate/100)||o.fx.tailUsdCents!==Math.max(0,o.fx.usdCents-round(o.fx.usdCents*terms.depositRate/100)-round(o.penalty*1000000/o.fx.signRate)))fail();
    if(o.steps?.[0]?.amount!==o.deposit-o.procurement-o.fx.fee||o.steps?.[1]?.amount!==-o.balance-o.freight||o.steps?.[2]?.amount!==o.fx.estimatedTail)fail();
   }else if(o.fx!=null)fail();
   if(!offerValid(o.offer)||o.id!==o.offer.id||!idOf(SUPPLIERS,o.supplier)||!idOf(SHIPPING,o.shipping)||typeof o.paidShipping!=='boolean')fail();
   for(const k of ['revenue','cost','freight','deposit','procurement','balance','penalty','cashRequired'])if(!integer(o[k]))fail();
   for(const k of ['acceptedWeek','shipWeek','deliveryWeek','dueWeek'])if(!integer(o[k],1,550))fail();
-  if(!Array.isArray(o.steps)||o.steps.length!==3||!o.steps.every(x=>integer(x.week,1,550)&&text(x.label,80)&&integer(x.amount,-1000000000))||!integer(o.weeks,1,6)||!integer(o.productionWeeks,1,3)||!integer(o.payLag,0,12)||!integer(o.margin,-100,100)||o.capacity!==1)fail();
+  if(!Array.isArray(o.steps)||o.steps.length!==3||!o.steps.every(x=>integer(x.week,1,550)&&text(x.label,80)&&integer(x.amount,-1000000000))||!integer(o.weeks,1,6)||!integer(o.productionWeeks,1,3)||!integer(o.payLag,0,14)||!integer(o.margin,-100,100)||o.capacity!==1)fail();
   if(!integer(o.profit,-1000000000)||!integer(o.markup,-10,15)||!integer(o.quality,0,100)||!integer(o.late,0,20)||!integer(o.chance,0,100)||o.deposit>o.revenue||o.penalty>o.revenue-o.deposit||o.cost!==o.procurement+o.balance||o.profit!==(o.fx?o.deposit+o.fx.estimatedTail-o.cost-o.freight-o.fx.fee:o.revenue-o.cost-o.freight-o.penalty)||o.acceptedWeek>s.week||o.shipWeek<o.acceptedWeek||o.deliveryWeek<o.shipWeek||o.dueWeek<o.deliveryWeek)fail();
   if(!daily&&o.deliveryWeek<=s.week)fail();
   if(daily){
@@ -269,6 +288,10 @@ export function parseTradeSave(raw){
    if(o.acceptedDay>s.day||o.deliveryDay<=s.day||o.days!==o.weeks*7||o.productionDays!==o.productionWeeks*7||o.payLagDays!==o.payLag*7||o.lateDays!==o.late*7||o.shipDay!==o.acceptedDay+o.productionDays||o.deliveryDay!==o.acceptedDay+o.days||o.dueDay!==o.deliveryDay+o.payLagDays||o.settlementDay!==o.dueDay||o.paidShipping!==(o.shipDay<=s.day))fail();
    if(!o.steps.every(x=>dateValid(x,'day','week'))||o.steps[0].day!==o.acceptedDay||o.steps[1].day!==o.shipDay||o.steps[2].day!==o.dueDay)fail();
   }
+ }
+ for(const r of s.receivables)if(r.paymentTerms!==undefined){
+  const t=r.paymentTerms,config=t&&idOf(PAYMENT_TERMS,t.id),kind=r.customerId?.split('-')[1];
+  if(!config||t.name!==config.name||t.priceAdjustment!==config.priceAdjustment||!integer(t.depositRate,0,100)||!integer(t.payLagDays,0,98)||t.payLagDays%7!==0||t.acceptanceAdjustment!==(t.id==='standard'?0:termsAcceptance[kind]?.[t.id])||(kind==='flagship'&&t.id!=='standard'))fail();
  }
  for(const r of s.receivables)if((r.currency!==undefined&&!['USD','CNY'].includes(r.currency))||(r.currency==='USD'&&!r.fx)||(r.currency==='CNY'&&r.fx!=null)||(r.fx!=null&&(!fxValid(r.fx)||r.amount!==r.fx.estimatedTail||!text(r.customerId)||!s.customers[r.customerId]))||!text(r.id)||!text(r.customer)||!integer(r.amount)||!integer(r.dueWeek,daily?s.week:s.week+1,550)||(daily&&!dateValid(r,'dueDay','dueWeek',s.day+1)))fail();
  for(const h of s.history)if(!integer(h.week,1,s.week)||!integer(h.cash)||!integer(h.netWorth,-1000000000)||!integer(h.revenue)||!integer(h.profit,-1000000000)||(daily&&!dateValid(h,'day','week',1,s.day)))fail();

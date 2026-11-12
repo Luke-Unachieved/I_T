@@ -38,3 +38,7 @@ dialog{border-radius:5px;border-top:4px solid #d16a32;box-shadow:0 24px 100px #0
 .fx-market .chart{max-height:120px}
 
 .fx-field{grid-column:1/-1}
+
+.terms-field,.terms-summary{grid-column:1/-1}
+.terms-summary{font-size:12px;line-height:1.55;margin-bottom:8px;overflow-wrap:anywhere}
+.terms-summary small{display:block;color:var(--muted)}

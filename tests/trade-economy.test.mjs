@@ -352,3 +352,74 @@ test('long spot delivery is estimated, its later FX adjustment is not labeled as
  assert.equal(r.summary.profit,0);assert.equal(r.summary.deliveries,0);assert.equal(r.summary.fxAdjustment,delta);
  assert.match(r.message,/此前应收结汇损益调整/);assert.doesNotMatch(r.message,/交付订单利润/);
 });
+
+test('payment proposals expose final deposit, lag and stacked USD pricing without mutating inquiry',()=>{
+ const s=createFxGame(),before=copy(s.offers),o=s.offers[1];
+ const expected={standard:[20,28,0,0],cashflow:[40,14,-4,-12],growth:[5,42,5,4]};
+ for(const [id,[depositRate,payLagDays,priceAdjustment,acceptanceAdjustment]] of Object.entries(expected)){
+  const q=quoteOrder(s,o.id,{paymentTerms:id,markup:7});
+  assert.deepEqual(q.paymentTerms,{id,name:{standard:'按原条件',cashflow:'让价换快回款',growth:'给账期换高价'}[id],depositRate,payLagDays,priceAdjustment,acceptanceAdjustment});
+  assert.equal(q.fx.usdCents,Math.round(o.quantity*o.usdUnitCents*(1+priceAdjustment/100)*1.07));
+  assert.equal(q.deposit,Math.round(q.revenue*depositRate/100));
+  assert.equal(q.payLag,payLagDays/7);assert.equal(q.settlementDay,1+q.days+payLagDays);
+ }
+ assert.deepEqual(s.offers,before);assert.equal(quoteOrder(s,o.id,{paymentTerms:'invalid'}).valid,false);
+});
+test('customer payment preferences differ and higher profit costs liquidity or acceptance',()=>{
+ const s=createFxGame();
+ for(const [kind,cashChanceDelta,growthChanceDelta] of [['quick',-8,-12],['long',-12,4],['rush',-4,-8]]){
+  const o=s.offers.find(o=>o.kind===kind),opts={supplier:'express',shipping:'air',fxMode:'spot'};
+  const a=quoteOrder(s,o.id,opts),b=quoteOrder(s,o.id,{...opts,paymentTerms:'cashflow'}),c=quoteOrder(s,o.id,{...opts,paymentTerms:'growth'});
+  assert.equal(b.chance-a.chance,cashChanceDelta);assert.equal(c.chance-a.chance,growthChanceDelta);
+  assert.ok(b.profit<a.profit&&a.profit<c.profit);assert.ok(b.deposit>a.deposit&&a.deposit>c.deposit);
+  assert.ok(b.settlementDay<=a.settlementDay&&a.settlementDay<c.settlementDay);
+ }
+ // Same long inquiry: liquidity-first proposal is affordable where the high-price proposal is not.
+ s.cash=4500;const o=s.offers[1];
+ const fast=quoteOrder(s,o.id,{paymentTerms:'cashflow',fxMode:'spot'}),rich=quoteOrder(s,o.id,{paymentTerms:'growth',fxMode:'spot'});
+ assert.ok(forecastCash(s,fast).stressMinimum>=0);assert.ok(forecastCash(s,rich).stressMinimum<0);
+ const blocked=reduceTrade(s,{type:'ACCEPT',offerId:o.id,paymentTerms:'growth',fxMode:'spot'});
+ assert.equal(blocked.changed,false);assert.deepEqual(blocked.state,s);
+});
+test('legacy RMB and flagship inquiries cannot change payment terms or evade penalties',()=>{
+ const legacy=createTradeGame();for(const id of ['cashflow','growth'])assert.equal(quoteOrder(legacy,legacy.offers[0].id,{paymentTerms:id}).valid,false);
+ const f=flagshipState().state,o=f.offers.find(o=>o.kind==='flagship');
+ for(const id of ['cashflow','growth'])assert.equal(quoteOrder(f,o.id,{paymentTerms:id}).valid,false);
+ assert.equal(quoteOrder(f,o.id).paymentTerms.depositRate,15);assert.equal(quoteOrder(f,o.id).paymentTerms.payLagDays,21);
+ const s=createFxGame(),quick=s.offers[0];
+ // Synthetic visible deadline/quality constraint: 90% advance cannot make a known 18% penalty disappear.
+ quick.deadline=1;quick.deadlineDays=7;quick.quality=100;
+ const q=quoteOrder(s,quick.id,{paymentTerms:'cashflow'});
+ assert.ok(q.penalty>q.revenue-q.deposit);assert.equal(q.valid,false);assert.match(q.reason,/赔付超过未付尾款/);
+ assert.equal(reduceTrade(s,{type:'ACCEPT',offerId:quick.id,paymentTerms:'cashflow'}).changed,false);
+});
+test('negotiated terms stay locked through weekly updates, delivery and receivable serialization',()=>{
+ let s=acceptAny(createFxGame(),'long',{paymentTerms:'growth',fxMode:'spot'}),o=copy(s.active[0]);
+ assert.equal(o.paymentTerms.id,'growth');assert.equal(o.payLagDays,42);
+ s=days(s,7);assert.deepEqual(s.active[0],o);assert.deepEqual(parseTradeSave(s),s);
+ s=days(s,o.deliveryDay-s.day);const r=s.receivables[0];
+ assert.deepEqual(r.paymentTerms,o.paymentTerms);assert.equal(r.dueDay,o.deliveryDay+42);assert.deepEqual(parseTradeSave(s),s);
+ const before=s.metrics.profit;s=days(s,o.dueDay-s.day);
+ assert.equal(s.metrics.profit,before+Math.round(o.fx.tailUsdCents*fxRateAt(s.week)/1000000)-o.fx.estimatedTail);
+ assert.equal(s.cash,18000+s.metrics.profit-(s.week-1)*120);
+});
+test('pre-negotiation USD and RMB contracts with missing terms keep original settlement and parse after delivery',()=>{
+ for(const create of [createFxGame,createTradeGame]){
+  let s=acceptAny(create(),'long'),o=copy(s.active[0]);delete s.active[0].paymentTerms;
+  const saved=copy(s);s=parseTradeSave(s);assert.deepEqual(s,saved);
+  s=days(s,o.deliveryDay-s.day);assert.equal(s.receivables[0].paymentTerms,undefined);assert.equal(s.receivables[0].dueDay,o.dueDay);assert.deepEqual(parseTradeSave(s),s);
+  s=days(s,o.dueDay-s.day);assert.equal(s.receivables.length,0);assert.equal(s.metrics.profit,o.profit);
+ }
+});
+test('malformed or rewritten signed payment proposals cannot alter dollar amount or settlement date',()=>{
+ const signed=acceptAny(createFxGame(),'long',{paymentTerms:'cashflow'});
+ for(const mutate of [
+ x=>x.active[0].paymentTerms.id='growth',x=>x.active[0].paymentTerms.depositRate++,
+ x=>x.active[0].paymentTerms.payLagDays+=7,x=>x.active[0].paymentTerms.priceAdjustment++,
+ x=>x.active[0].paymentTerms.acceptanceAdjustment++,x=>delete x.active[0].paymentTerms,
+ x=>x.active[0].payLag++,x=>x.active[0].dueDay++
+ ]){const bad=copy(signed);mutate(bad);assert.throws(()=>parseTradeSave(bad));}
+ const delivered=days(signed,signed.active[0].deliveryDay-signed.day);
+ for(const mutate of [x=>x.receivables[0].paymentTerms.name='fake',x=>x.receivables[0].paymentTerms.payLagDays=2,x=>x.receivables[0].paymentTerms.acceptanceAdjustment=999]){
+ const bad=copy(delivered);mutate(bad);assert.throws(()=>parseTradeSave(bad));}
+});
