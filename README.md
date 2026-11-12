@@ -1,3 +1,9 @@
+> **当前网页版：2.0 数据经营**  
+> [开始游戏](https://luke-unachieved.github.io/I_T/) · [继续原版故事存档](https://luke-unachieved.github.io/I_T/classic.html)  
+> 新版以报价、履约、现金流与市场扩张为核心。原版和旧存档保留，以下原始策划未删除。  
+> 本地运行 `npm start`；完整检查 `npm run check`；部署构建 `npm run build`，上传 `artifacts/data-v2/` 中全部文件，尤其保留 `classic.html`。  
+> [2.0 验收与界限](docs/rework/RELEASE_QA.md)。网页可玩不等于商店上架或真实玩家留存已验收。
+
 # 外贸达人养成记 · 向海而生
 
 当前完整内容版本：**v1.0.1**。轻经营与自愿关系剧情的离线浏览器游戏。3种五金产品、9组轮换询盘、8个经营章节、2个事业结局、8位成年角色关系线、24段工作日常、双休日与46张插画。男女主经营能力相同，恋爱并非通关条件。
@@ -100,6 +106,6 @@ npm run build
 
 
 
-## 2026-11-13 数据经营回炉候选
+## 2026-11-13 数据经营回炉版
 
-最新候选见 `docs/rework/DATA_REWORK.md`。本分支根页面为紧凑经营模式，原版故事保留在 `classic.html`，两种存档互不覆盖。运行 `npm run check` 后用 `npm run build:data` 生成可部署目录 `artifacts/data-v2/`，其中包含新版 `index.html` 与旧版 `classic.html`。必须一起部署，勿只传新版而丢失旧档入口。旧策划原文以上全部保留。
+新版设计见 `docs/rework/DATA_REWORK.md`。本分支根页面为紧凑经营模式，原版故事保留在 `classic.html`，两种存档互不覆盖。运行 `npm run check` 后用 `npm run build:data` 生成可部署目录 `artifacts/data-v2/`，其中包含新版 `index.html` 与旧版 `classic.html`。必须一起部署，勿只传新版而丢失旧档入口。旧策划原文以上全部保留。

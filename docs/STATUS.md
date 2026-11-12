@@ -65,3 +65,7 @@
 ## 2026-11-13 新候选
 
 数据经营回炉已在 `rework/data-trade-v2` 独立实现：`trade.html` / `src/trade-*`。旧版基线保留，线上未覆盖。实现范围、存档策略和仍待验证项目以 `docs/rework/DATA_REWORK.md` 为准，不应把上面的 v0.1 历史状态当作今天状态。
+
+## 2026-11-13 2.0 已发布
+
+数据经营模式已成为默认入口并更新GitHub Pages；`classic.html`保留完全相同的原版游戏和独立旧档。最终代码31707202，Pages8dcddc07，公开HTML摘要与构建一致。261项检查通过，四模拟画像分阶段UI通关和回归记录见 `docs/rework/RELEASE_QA.md`。真机Safari、全国免VPN网络、付费留存与上架合规仍未验收。

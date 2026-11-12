@@ -35,3 +35,13 @@
 - 没有真实用户留存、付费或市场验证，不可据此宣称可售成品。
 - 没有iPhone Safari真机、微信内置浏览器、全国网络运营商免VPN可达性验证。
 - 发布后还需核对远端主分支、Pages实际返回的最终HTML和原版入口。二维码只要URL不变，无需重做。
+
+## 已发布核验
+
+- 现行地址：https://luke-unachieved.github.io/I_T/ ，URL不变。
+- 对应代码提交：31707202af0551421d6ae1585774baf8f8c0482d。
+- Pages发布提交：8dcddc076f25f2207a967d1948442559a314b472；[Pages构建](https://github.com/Luke-Unachieved/I_T/actions/runs/43266469479) 已成功。
+- 实际公网返回200，入口63,214字节，SHA256 `8e409582dac186cc9e016a8b07a896edbf1230cfc8ddaac3e23d47c141823032`，与最终构建完全一致。
+- 原版入口 `classic.html` 返回200，10,735,510字节，SHA256 `287ed790daf75aaa558abef3922c7b365e916907283141d6c77dd4dbde486b92`，与更新前完全相同。
+- 云浏览器公开地址实际显示新经营开场及原版存档入口。未在公开站注入或覆盖任何存档。
+- 更新前源码与Pages分别保存到 `archive/story-1.0.1-before-data`、`archive/pages-1.0.1-before-data`，更新为非强制快进，无丢弃其他提交。
