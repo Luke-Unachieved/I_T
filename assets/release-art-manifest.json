@@ -1,0 +1,761 @@
+{
+  "scope": "46/46 integrated artwork reviews complete; platform limits in docs/RELEASE_QA_1.0.0.md",
+  "rasterAssets": [
+    {
+      "id": "portrait-xia",
+      "path": "assets/art/lin-zhixia-v1.webp",
+      "kind": "portrait",
+      "integration": "verified-existing",
+      "reviewed": true
+    },
+    {
+      "id": "portrait-zhou",
+      "path": "assets/art/zhou-yu-v1.webp",
+      "kind": "portrait",
+      "integration": "verified-existing",
+      "reviewed": true
+    },
+    {
+      "id": "portrait-tang",
+      "path": "assets/art/tang-che-v1.webp",
+      "kind": "portrait",
+      "integration": "verified-existing",
+      "reviewed": true
+    },
+    {
+      "id": "portrait-shen",
+      "path": "assets/art/shen-zhaowan-v1.webp",
+      "kind": "portrait",
+      "integration": "verified-existing",
+      "reviewed": true
+    },
+    {
+      "id": "portrait-lu",
+      "path": "assets/art/lu-yanzhou-v1.webp",
+      "kind": "portrait",
+      "integration": "verified-existing",
+      "reviewed": true
+    },
+    {
+      "id": "office",
+      "path": "assets/art/harbor-office-v1.webp",
+      "kind": "environment",
+      "integration": "verified-existing",
+      "reviewed": true
+    },
+    {
+      "id": "cafe",
+      "path": "assets/art/evening-cafe-v1.webp",
+      "kind": "environment",
+      "integration": "verified-existing",
+      "reviewed": true
+    },
+    {
+      "id": "seaside",
+      "path": "assets/art/seaside-evening-v1.webp",
+      "kind": "environment",
+      "integration": "verified-existing",
+      "reviewed": true
+    },
+    {
+      "id": "portrait-xu",
+      "path": "assets/art/expansion/xu-qingchuan-v1.webp",
+      "kind": "portrait",
+      "integration": "verified",
+      "reviewed": true,
+      "reviewScope": "Original and WebP inspected; actual 390px in-game UI observed. Exact build and scoped evidence: docs/BROWSER_QA_V09_ART22.json. Not physical-phone acceptance.",
+      "width": 1024,
+      "height": 1536,
+      "bytes": 154042,
+      "sha256": "90121449609cb2d7eaedc4cbafd1ff9d4b1aa417d5c9ddecaced7748e6af4504",
+      "originalBytes": 3015005,
+      "originalSha256": "0f5dd7e31d55026cfee5531710b5fe8e7c495393cdb257236d9c08f50e30d0b9"
+    },
+    {
+      "id": "portrait-gu",
+      "path": "assets/art/expansion/gu-yuning-v1.webp",
+      "kind": "portrait",
+      "integration": "verified",
+      "reviewed": true,
+      "width": 1024,
+      "height": 1536,
+      "bytes": 127520,
+      "sha256": "06b73cf697f59b9bf60920312adbafa93bf6586763788e5b480c082297a6c309",
+      "originalBytes": 2907105,
+      "originalSha256": "dc7cd3506b0cd0947d8114173f2b40d6ae3c38db030fab4770f3b66c9dfc5162",
+      "reviewScope": "Original and WebP inspected; actual 390px in-game UI observed. Exact build and scoped evidence: docs/BROWSER_QA_V09_ART22.json. Not physical-phone acceptance."
+    },
+    {
+      "id": "portrait-cheng",
+      "path": "assets/art/expansion/cheng-jianshan-v1.webp",
+      "kind": "portrait",
+      "integration": "verified",
+      "reviewed": true,
+      "width": 1024,
+      "height": 1536,
+      "bytes": 121338,
+      "sha256": "1710e1149ced39b769a9132dac21e40b47d0fcefffcf7e6fe3aed11dc67128d3",
+      "originalBytes": 2843777,
+      "originalSha256": "8001aa19916625b91ec87d6f93636c2578a1d71aa563830800c2afb3cd4226ed",
+      "reviewScope": "Original and WebP inspected; actual 390px in-game UI observed. Exact build and scoped evidence: docs/BROWSER_QA_V09_ART22.json. Not physical-phone acceptance."
+    },
+    {
+      "id": "shared-office-presentation",
+      "path": "assets/art/expansion/shared-office-presentation-v1.webp",
+      "kind": "career",
+      "integration": "verified",
+      "reviewed": true,
+      "width": 1536,
+      "height": 1024,
+      "bytes": 228074,
+      "sha256": "5e77bcca905026965bf75762c3ccf8faf1ef4553716f9be3a37319070a31c0eb",
+      "originalBytes": 3271032,
+      "originalSha256": "f79ca56df0e902faf6fb808260691a9a7c9d4c33a14434a13dd023b4f06957e6",
+      "reviewScope": "Original and WebP inspected; actual 390px in-game UI observed. Exact build and scoped evidence: docs/BROWSER_QA_V09_ART22.json. Not physical-phone acceptance."
+    },
+    {
+      "id": "product-quality-table",
+      "path": "assets/art/expansion/product-quality-table-v1.webp",
+      "kind": "career",
+      "integration": "verified",
+      "reviewed": true,
+      "width": 1536,
+      "height": 1024,
+      "bytes": 230130,
+      "sha256": "1aefb8818ce8f5da171b056529fc94421e0ecaba9610d8b1a4691972000c5638",
+      "originalBytes": 3210056,
+      "originalSha256": "173ec4db02ed43d000ffa892552bb155ecb6c8c3eb319d0a450189fdd1464cdc",
+      "reviewScope": "Normal boutique choice saved; chapter 3 and earned growth card actually displayed on build 8b6ab992f524432d7e460c71804b31d62f2d8378a25908419042df383b054f86. Wide UI only; inline career image has no independent viewer.",
+      "ui_evidence": "docs/BROWSER_QA_V09_V1_BOUTIQUE.md"
+    },
+    {
+      "id": "brand-packaging-series",
+      "path": "assets/art/expansion/brand-packaging-series-v1.webp",
+      "kind": "career",
+      "integration": "verified",
+      "reviewed": true,
+      "width": 1536,
+      "height": 1024,
+      "bytes": 190332,
+      "sha256": "1b90b7c5fe914ec6606e01f7cbb3b0fd04d2b6b09661114a7c405b2e8097470b",
+      "originalBytes": 3009735,
+      "originalSha256": "622736989b3743c6079041ae2967a9ae99e25975afa24e6bee5f658e39230175",
+      "reviewScope": "Original and WebP inspected; actual 390px in-game UI observed. Exact build and scoped evidence: docs/BROWSER_QA_V09_ART22.json. Not physical-phone acceptance."
+    },
+    {
+      "id": "aftercare-verification-desk",
+      "path": "assets/art/expansion/aftercare-verification-desk-v1.webp",
+      "kind": "career",
+      "integration": "verified",
+      "reviewed": true,
+      "width": 1536,
+      "height": 1024,
+      "bytes": 213602,
+      "sha256": "8a25e1942caeca3440095a8d01ae0ead91586cc9e4fedc727e5388a6ebd63c26",
+      "originalBytes": 3145402,
+      "originalSha256": "9c5f2a812bca05a62d55d89f5b5dbcc649574c0b978640b875145d0bf5c67e0f",
+      "reviewScope": "Normal chapters 7/8 and earned growth card displayed after free general-guidance choice on build 8b6ab992f524432d7e460c71804b31d62f2d8378a25908419042df383b054f86. Paid service untested; wide UI only.",
+      "ui_evidence": "docs/BROWSER_QA_V09_V1_BOUTIQUE.md"
+    },
+    {
+      "id": "expression-xia",
+      "path": "assets/art/expressions/xia-expression-v1.webp",
+      "kind": "expression",
+      "integration": "verified",
+      "reviewed": true,
+      "reviewScope": "Integrator verified actual cloud Chromium 390×844 UI on frozen26-art HTML SHA256 eb128671f3f001747ac7f1af78bc54f7d6099ddaec973fd03fb56c2543c82c67. Male protagonist unlocked both familiar portraits through3normal chats each with0dates; Zhou unavailable after2chats and available after3. Original/familiar switches work; both1024×1536 images viewed at286×429 with full head, hands and props. Cash6239/rep30/5deliveries unchanged by viewing. Not physical-phone validation.",
+      "width": 1024,
+      "height": 1536,
+      "bytes": 77442,
+      "sha256": "217a807c553c70ecbfe5dc516101a0f9b4054262bad3151ed46b6678fc6b93eb",
+      "originalBytes": 2326245,
+      "originalSha256": "1f1ab55e7130f7e931a8a3b18134bf0e87e5b14cf122f459efa1de4e774568df",
+      "referenced_image_paths": [
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/lin-zhixia-v1.webp"
+      ],
+      "referenceSha256": {
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/lin-zhixia-v1.webp": "27f8399eb1c0de654963c121ba00b014c350d482f9e3bcd675a095ff3a800916"
+      },
+      "uiEvidence": "docs/BROWSER_QA_V09_EXPRESSIONS2.json",
+      "uiArtifactSha256": "eb128671f3f001747ac7f1af78bc54f7d6099ddaec973fd03fb56c2543c82c67"
+    },
+    {
+      "id": "memory-xia-0",
+      "path": "assets/art/relationships/xia-key-memory-0-v1.webp",
+      "kind": "relationship",
+      "integration": "verified",
+      "reviewed": true,
+      "sourceCondition": "dialogueMemories.xia.date[2].branch === date:xia:0; no reconstruction from first response",
+      "reviewScope": "Generated PNG and exported WebP visually inspected against original character and actual branch moment. In-game UI review pending.",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 195024,
+      "sha256": "057008f91e58316b2eb727ee0a26497eefbcee0b6d573e97b99c43a07c18f50d",
+      "originalBytes": 2965181,
+      "originalSha256": "09f9621e4c7283aeade0439699eb6050061d9ab2b403ce329bcc582a58a6709d",
+      "referenced_image_paths": [
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/lin-zhixia-v1.webp"
+      ],
+      "referenceSha256": {
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/lin-zhixia-v1.webp": "27f8399eb1c0de654963c121ba00b014c350d482f9e3bcd675a095ff3a800916"
+      },
+      "characterReferencePaths": [
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/lin-zhixia-v1.webp"
+      ],
+      "uiEvidence": "Native Chrome file:// v1 SHA256 8b6ab992f524432d7e460c71804b31d62f2d8378a25908419042df383b054f86; 2026-11-12 normal male QA date3, inline/full/zoom/back/close; D6 5205/8/2 unchanged. See docs/QA_NATIVE_CG_HINT_20261112.md"
+    },
+    {
+      "id": "memory-xia-1",
+      "path": "assets/art/relationships/xia-key-memory-1-v1.webp",
+      "kind": "relationship",
+      "integration": "verified",
+      "reviewed": true,
+      "sourceCondition": "dialogueMemories.xia.date[2].branch === date:xia:1; no reconstruction from first response",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 169266,
+      "sha256": "3ada593f311df1546a4c29a42e3427a7568060bdaf20c55fabbda91491d97503",
+      "originalBytes": 2924382,
+      "originalSha256": "8a83e630dfbe76060d51a1fe40768ebacebab53d0838f529808b1fbf13f84614",
+      "reviewScope": "Actual player-visible UI route, full image, zoom and return verified 2026-11-12 by parallel playtest workers. See docs/RELEASE_QA_1.0.0.md; old v1 artwork unchanged."
+    },
+    {
+      "id": "expression-zhou",
+      "path": "assets/art/expressions/zhou-expression-v1.webp",
+      "kind": "expression",
+      "integration": "verified",
+      "reviewed": true,
+      "reviewScope": "Integrator verified actual cloud Chromium 390×844 UI on frozen26-art HTML SHA256 eb128671f3f001747ac7f1af78bc54f7d6099ddaec973fd03fb56c2543c82c67. Male protagonist unlocked both familiar portraits through3normal chats each with0dates; Zhou unavailable after2chats and available after3. Original/familiar switches work; both1024×1536 images viewed at286×429 with full head, hands and props. Cash6239/rep30/5deliveries unchanged by viewing. Not physical-phone validation.",
+      "width": 1024,
+      "height": 1536,
+      "bytes": 83444,
+      "sha256": "11a5428c720c373ffecf480027048fb5ac210de64374cc9a3fb4dec2eae8261c",
+      "originalBytes": 2428826,
+      "originalSha256": "c411205c0ce356c6bc65bfd94fa62da5bad358220aa5dbb31cceeb572f544be8",
+      "referenced_image_paths": [
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/zhou-yu-v1.webp"
+      ],
+      "referenceSha256": {
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/zhou-yu-v1.webp": "28ea0cb3002f2b261e634638a4b0746949099282cf613a8e9d1533f7dd641ead"
+      },
+      "uiEvidence": "docs/BROWSER_QA_V09_EXPRESSIONS2.json",
+      "uiArtifactSha256": "eb128671f3f001747ac7f1af78bc54f7d6099ddaec973fd03fb56c2543c82c67"
+    },
+    {
+      "id": "memory-zhou-0",
+      "path": "assets/art/relationships/zhou-key-memory-0-v1.webp",
+      "kind": "relationship",
+      "integration": "verified",
+      "reviewed": true,
+      "sourceCondition": "dialogueMemories.zhou.date[2].branch === date:zhou:0; no reconstruction from first response",
+      "reviewScope": "PNG/WebP reviewed; normal third-date unlock and return checked; fixed wide full view visually checked. 390px final screenshot unavailable, no mobile visual pass claimed.",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 193882,
+      "sha256": "6b3132187f7205df2e17baf6f088a39d6f2269bc9095edba13f2758892501af9",
+      "originalBytes": 3044687,
+      "originalSha256": "8c2eea545ada0c44ba62eaf5a4506d33e8f34e4a5ecee90454802b1940b0283a",
+      "referenced_image_paths": [
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/zhou-yu-v1.webp"
+      ],
+      "referenceSha256": {
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/zhou-yu-v1.webp": "28ea0cb3002f2b261e634638a4b0746949099282cf613a8e9d1533f7dd641ead"
+      },
+      "characterReferencePaths": [
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/zhou-yu-v1.webp"
+      ],
+      "ui_evidence": "docs/BROWSER_QA_V09_MALE_CG.md: normal female playthrough, earned third-date branch, full art and read-only return; recovered completed report, not a new desktop run."
+    },
+    {
+      "id": "memory-zhou-1",
+      "path": "assets/art/relationships/zhou-key-memory-1-v1.webp",
+      "kind": "relationship",
+      "integration": "verified",
+      "reviewed": true,
+      "sourceCondition": "dialogueMemories.zhou.date[2].branch === date:zhou:1; no reconstruction from first response",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 182660,
+      "sha256": "3bc0f872577efc739b901ce7e75d031afe262305bd0ade3bb13507cd1b39224b",
+      "originalBytes": 3034408,
+      "originalSha256": "d2cdb800b20622903b3232a35beb38af942b6498e8bc0c8bc117916339092884",
+      "reviewScope": "Normal first-date short-walk branch and third-date unlock; small/full/detail/back checked on build 8b6ab992f524432d7e460c71804b31d62f2d8378a25908419042df383b054f86. Full head visible; resources and relationship unchanged. Only top reading position checked, no mobile or arbitrary-depth claim.",
+      "ui_evidence": "docs/BROWSER_QA_V09_V1_BOUTIQUE.md"
+    },
+    {
+      "id": "expression-tang",
+      "path": "assets/art/expressions/tang-expression-v1.webp",
+      "kind": "expression",
+      "integration": "verified",
+      "reviewed": true,
+      "reviewScope": "Original portrait reference, generated PNG and exported WebP visually inspected. Full familiar portrait actually viewed after three ordinary chats; see ui_evidence for exact build and scope.",
+      "width": 1024,
+      "height": 1536,
+      "bytes": 75288,
+      "sha256": "7fb8f00f1f6accae7f77c047450d34b5f17f6c50387544ce3a4afebaecb19fac",
+      "originalBytes": 2370665,
+      "originalSha256": "c646af649e270e5aaddb62b16f5ec1cd120ac46864b5cf6c699ed6519e7878d7",
+      "referenced_image_paths": [
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/tang-che-v1.webp"
+      ],
+      "referenceSha256": {
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/tang-che-v1.webp": "3fe681184630c987404b9e536fce38a7c3e9a881913b03e6e6f02453208ffe08"
+      },
+      "ui_evidence": "docs/playtest-v09/persona-b-feedback-verification.md: normal chats0→3, earned notice→full familiar portrait inspected in390px, no romance or progress side effects."
+    },
+    {
+      "id": "memory-tang-0",
+      "path": "assets/art/relationships/tang-key-memory-0-v1.webp",
+      "kind": "relationship",
+      "integration": "verified",
+      "reviewed": true,
+      "sourceCondition": "dialogueMemories.tang.date[2].branch === date:tang:0; no reconstruction from first response",
+      "reviewScope": "PNG/WebP reviewed; normal third-date unlock and return checked; fixed full view and centered zoom visually checked at 390px iframe. Not a real phone.",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 166324,
+      "sha256": "1363c580319634d544fa550b74f376a8e2e1315ed8aac072194249fa3af92673",
+      "originalBytes": 2881845,
+      "originalSha256": "6e9264129c684165e4bc7dee2f733c3906d4b082126858d70a24d2e41924c6f7",
+      "referenced_image_paths": [
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/tang-che-v1.webp"
+      ],
+      "referenceSha256": {
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/tang-che-v1.webp": "3fe681184630c987404b9e536fce38a7c3e9a881913b03e6e6f02453208ffe08"
+      },
+      "characterReferencePaths": [
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/tang-che-v1.webp"
+      ],
+      "ui_evidence": "docs/BROWSER_QA_V09_MALE_CG.md: normal female playthrough, earned third-date branch, full art and read-only return; recovered completed report, not a new desktop run."
+    },
+    {
+      "id": "memory-tang-1",
+      "path": "assets/art/relationships/tang-key-memory-1-v1.webp",
+      "kind": "relationship",
+      "integration": "verified",
+      "reviewed": true,
+      "sourceCondition": "dialogueMemories.tang.date[2].branch === date:tang:1; no reconstruction from first response",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 205936,
+      "sha256": "589b06a7120478da29c951b56be293da9368c98781ea20e91a1ffcdb5ccd303c",
+      "originalBytes": 3017995,
+      "originalSha256": "854012d607e99040fa7087c791213db3e2357a0c5dc22981a23038a8b9390b0a",
+      "reviewScope": "Actual player-visible UI route, full image, zoom and return verified 2026-11-12 by parallel playtest workers. See docs/RELEASE_QA_1.0.0.md; old v1 artwork unchanged."
+    },
+    {
+      "id": "expression-shen",
+      "path": "assets/art/expressions/shen-expression-v1.webp",
+      "kind": "expression",
+      "integration": "verified",
+      "reviewed": true,
+      "reviewScope": "Original PNG/WebP reviewed; full familiar portrait actually viewed after three ordinary chats in390px, without romance. See ui_evidence.",
+      "width": 1024,
+      "height": 1536,
+      "bytes": 57198,
+      "sha256": "88db9c9552ffd105756cc4a2a66890005872776e69c0ae9e0c73ff595223bcbd",
+      "originalBytes": 2262538,
+      "originalSha256": "7c5afa2bd30f9b9ad6af71a677a6749838dbe15e80cdb60ec1eb6c8f2b9e6161",
+      "referenced_image_paths": [
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/shen-zhaowan-v1.webp"
+      ],
+      "referenceSha256": {
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/shen-zhaowan-v1.webp": "16174f2b53166e044a8de72d72814c1959619f37fc5cb8b3d92880e0521e394c"
+      },
+      "ui_evidence": "docs/BROWSER_QA_V09_FAMILIAR_REMAINING.md: expression-shen, day20–22 normalchat0→3, fullviewer/close/resourcecheck."
+    },
+    {
+      "id": "memory-shen-0",
+      "path": "assets/art/relationships/shen-key-memory-0-v1.webp",
+      "kind": "relationship",
+      "integration": "verified",
+      "reviewed": true,
+      "sourceCondition": "dialogueMemories.shen.date[2].branch === date:shen:0; no reconstruction from first response",
+      "reviewScope": "Original and WebP inspected. Full CG and earned branch actually checked in 390px after three normal dates; read-only return and unchanged progress verified. Centered zoom improvement tracked separately.",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 181062,
+      "sha256": "cadb1803925c264a68f2fc401aaaeedd4ccf08492de3931d1e48c28c9317cfea",
+      "originalBytes": 2945809,
+      "originalSha256": "a37babadca4ce1f336f81d37d63a7ee4ff7fc219a46492abd227eb6e461c21b6",
+      "referenced_image_paths": [
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/shen-zhaowan-v1.webp"
+      ],
+      "referenceSha256": {
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/shen-zhaowan-v1.webp": "16174f2b53166e044a8de72d72814c1959619f37fc5cb8b3d92880e0521e394c"
+      },
+      "characterReferencePaths": [
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/shen-zhaowan-v1.webp"
+      ],
+      "ui_evidence": "docs/BROWSER_QA_V09_FEMALE_CG.md: memory-shen-0, day32–34 normal dates 0→3, matching scene/full viewer/return/resources."
+    },
+    {
+      "id": "memory-shen-1",
+      "path": "assets/art/relationships/shen-key-memory-1-v1.webp",
+      "kind": "relationship",
+      "integration": "verified",
+      "reviewed": true,
+      "sourceCondition": "dialogueMemories.shen.date[2].branch === date:shen:1; no reconstruction from first response",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 215686,
+      "sha256": "9f00603d8d3c16a4b62354f9d6324ecda455a353ff0e8e7d5f389f010c09f6d1",
+      "originalBytes": 3014539,
+      "originalSha256": "3fb334a1ac956041766299f34e1f0e304b64d4ad9d318eea9a2c99a086669121",
+      "reviewScope": "Actual player-visible UI route, full image, zoom and return verified 2026-11-12 by parallel playtest workers. See docs/RELEASE_QA_1.0.0.md; old v1 artwork unchanged."
+    },
+    {
+      "id": "expression-lu",
+      "path": "assets/art/expressions/lu-expression-v1.webp",
+      "kind": "expression",
+      "integration": "verified",
+      "reviewed": true,
+      "reviewScope": "Original PNG/WebP reviewed; full familiar portrait actually viewed after three ordinary friendship chats in390px. See ui_evidence.",
+      "width": 1024,
+      "height": 1536,
+      "bytes": 66800,
+      "sha256": "ba71a154e883a8be9a3a59ca03e52fc3e0c2e48bd97ca1aaea1dc12ebadecd16",
+      "originalBytes": 2432205,
+      "originalSha256": "4f1da1a1f75a9ac3524f8b1c1ae01de23a9e049850ca919f33f959ae9f4aa4bb",
+      "referenced_image_paths": [
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/lu-yanzhou-v1.webp"
+      ],
+      "referenceSha256": {
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/lu-yanzhou-v1.webp": "d21d0bdf4d1bdad0b82b340e50b0066598f2f1a2b185ec018c1c2f4c4051ea0a"
+      },
+      "ui_evidence": "docs/BROWSER_QA_V09_FAMILIAR_REMAINING.md: expression-lu, day23–25 normal male-friend chats0→3, fullviewer/close/resources."
+    },
+    {
+      "id": "memory-lu-0",
+      "path": "assets/art/relationships/lu-key-memory-0-v1.webp",
+      "kind": "relationship",
+      "integration": "verified",
+      "reviewed": true,
+      "sourceCondition": "dialogueMemories.lu.date[2].branch === date:lu:0; no reconstruction from first response",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 155464,
+      "sha256": "8d24a670aa2efec5f7d12dd1b3a6624bcb8237fd68d971cd8971119bcbb12b65",
+      "originalBytes": 2787595,
+      "originalSha256": "9d31c20c8197456adc90c25d4c5229b46cf288bb5b386265ad435ce01daa672f",
+      "reviewScope": "Actual player-visible UI route, full image, zoom and return verified 2026-11-12 by parallel playtest workers. See docs/RELEASE_QA_1.0.0.md; old v1 artwork unchanged."
+    },
+    {
+      "id": "memory-lu-1",
+      "path": "assets/art/relationships/lu-key-memory-1-v1.webp",
+      "kind": "relationship",
+      "integration": "verified",
+      "reviewed": true,
+      "sourceCondition": "dialogueMemories.lu.date[2].branch === date:lu:1; no reconstruction from first response",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 170576,
+      "sha256": "058506958f5429381c2c4acd6e84eb978e8b36f54e0422ffc440d8b6270a8ba6",
+      "originalBytes": 2934980,
+      "originalSha256": "679e561aec69c08d4a085282e6be9a1606e1068358ff6ddd0168bd898e62edf1",
+      "reviewScope": "Same adult identity as branch0. Outside a small restaurant, illustrated menu and open invitation gesture preserve choice. No prebooked dinner, legible text or player body. Original PNG and exported WebP independently viewed. No crop or resize. Actual in-game UI acceptance pending.",
+      "uiEvidence": "2026-11-12 romance-assisted REPORT.md: v1 8b6ab992f524432d7e460c71804b31d62f2d8378a25908419042df383b054f86; normal D12-D16 route first date walk, 2 chats/3 dates, green suit street-menu CG full/zoom/back, cash6749 rep24 orders5 unchanged. QA export lu-walk-day16.json sha256 b7a83beca1aad9a9951d76dff3994ebe3912a4b6aab89c15166c306b9a6e5cfc. Only branch1."
+    },
+    {
+      "id": "expression-xu",
+      "path": "assets/art/expressions/xu-expression-v1.webp",
+      "kind": "expression",
+      "integration": "verified",
+      "reviewed": true,
+      "reviewScope": "Original portrait reference, generated PNG and exported WebP visually inspected. Full familiar portrait actually viewed after three ordinary chats; see ui_evidence for exact build and scope.",
+      "width": 1024,
+      "height": 1536,
+      "bytes": 113762,
+      "sha256": "63b8aee00e0e4eec7e8efcd4079d795d7f8526ee44bf5ab30c424e8fd2dbb6c3",
+      "originalBytes": 2655616,
+      "originalSha256": "aa76eb8735b60b70b714f5600c7dac1785b5bd922d19ea537a562991f9e232dd",
+      "referenced_image_paths": [
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/expansion/xu-qingchuan-v1.webp"
+      ],
+      "referenceSha256": {
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/expansion/xu-qingchuan-v1.webp": "90121449609cb2d7eaedc4cbafd1ff9d4b1aa417d5c9ddecaced7748e6af4504"
+      },
+      "ui_evidence": "docs/playtest-v09/persona-b-art-followup.md: normal chat2→3, full familiar portrait inspected in390px, no romance."
+    },
+    {
+      "id": "memory-xu-0",
+      "path": "assets/art/relationships/xu-key-memory-0-v1.webp",
+      "kind": "relationship",
+      "integration": "verified",
+      "reviewed": true,
+      "sourceCondition": "dialogueMemories.xu.date[2].branch === date:xu:0; no reconstruction from first response",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 226866,
+      "sha256": "89b7334267d90dd976b3a2bfa5e19df45565c2c147b35ae3f8cdd63b40472f4a",
+      "originalBytes": 3136178,
+      "originalSha256": "4daf0e21e4d05135fdb172749d0fbd05689e5381ae50b0f505ee8cf9d6689b9f",
+      "reviewScope": "Integrator verified actual cloud Chromium 390×844 UI on frozen 24-art HTML SHA256 c0a04c5dfdd0b3ca13fc2461a98569cea8fbfd68a88428d601bbe8d8fe415df3. Canceling third Xu scene does not unlock CG; completing chosen response unlocks read-only review. Original1536×1024 shown284×189 with face, hands and glass box uncropped. Refresh preserves earned review and cash6239/rep30/5deliveries. Not physical-phone or offline validation.",
+      "uiEvidence": "docs/BROWSER_QA_V09_CG2.json",
+      "uiArtifactSha256": "c0a04c5dfdd0b3ca13fc2461a98569cea8fbfd68a88428d601bbe8d8fe415df3"
+    },
+    {
+      "id": "memory-xu-1",
+      "path": "assets/art/relationships/xu-key-memory-1-v1.webp",
+      "kind": "relationship",
+      "integration": "verified",
+      "reviewed": true,
+      "sourceCondition": "dialogueMemories.xu.date[2].branch === date:xu:1; no reconstruction from first response",
+      "reviewScope": "Actual player-visible UI route, full image, zoom and return verified 2026-11-12 by parallel playtest workers. See docs/RELEASE_QA_1.0.0.md; old v1 artwork unchanged.",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 164956,
+      "sha256": "002940525d6b19b0b75b54cd3825fec6e49b93c4970730931c8e16110aa35f57",
+      "originalBytes": 2862112,
+      "originalSha256": "60b7bff8b02e339b75c39c7610b15b710658d1030bfaf376a79b090c9d950322",
+      "referenced_image_paths": [
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/expansion/xu-qingchuan-v1.webp"
+      ],
+      "referenceSha256": {
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/expansion/xu-qingchuan-v1.webp": "90121449609cb2d7eaedc4cbafd1ff9d4b1aa417d5c9ddecaced7748e6af4504"
+      }
+    },
+    {
+      "id": "expression-gu",
+      "path": "assets/art/expressions/gu-expression-v1.webp",
+      "kind": "expression",
+      "integration": "verified",
+      "reviewed": true,
+      "reviewScope": "Original PNG/WebP reviewed; full familiar portrait actually viewed after three ordinary chats in390px, without romance. See ui_evidence.",
+      "width": 1024,
+      "height": 1536,
+      "bytes": 91526,
+      "sha256": "ded63846292c95e3091b5f5f85fa7ca65d0b6440cbbe2f3678e37491fdacdf26",
+      "originalBytes": 2451106,
+      "originalSha256": "7e13d228e662bb49d656e2bac0dfe42bf2dfc156e2077b33c378f817f4baade5",
+      "referenced_image_paths": [
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/expansion/gu-yuning-v1.webp"
+      ],
+      "referenceSha256": {
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/expansion/gu-yuning-v1.webp": "06b73cf697f59b9bf60920312adbafa93bf6586763788e5b480c082297a6c309"
+      },
+      "ui_evidence": "docs/BROWSER_QA_V09_FAMILIAR_REMAINING.md: expression-gu, day26–28 normalchat0→3, fullviewer/close/resources."
+    },
+    {
+      "id": "memory-gu-0",
+      "path": "assets/art/relationships/gu-key-memory-0-v1.webp",
+      "kind": "relationship",
+      "integration": "verified",
+      "reviewed": true,
+      "sourceCondition": "dialogueMemories.gu.date[2].branch === date:gu:0; no reconstruction from first response",
+      "reviewScope": "Actual player-visible UI route, full image, zoom and return verified 2026-11-12 by parallel playtest workers. See docs/RELEASE_QA_1.0.0.md; old v1 artwork unchanged.",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 149410,
+      "sha256": "305a8454cfbfe3616c2fd9497ec1c215a15eba944e0a3291d4a4a26c4ddd9e05",
+      "originalBytes": 2864940,
+      "originalSha256": "b1fc75856658be227b357e7bee1643e83bf8452086403cbdd1d5457376a0c4d7",
+      "referenced_image_paths": [
+        "/workspace/scratch/91fc7ee3b2c6/generated_images/exec-4eec542a-5cb0-4abf-8a7e-1eaca5f6ec57.png"
+      ],
+      "referenceSha256": {
+        "/workspace/scratch/91fc7ee3b2c6/generated_images/exec-4eec542a-5cb0-4abf-8a7e-1eaca5f6ec57.png": "eb24c3751ff8e15a284c38df0c006cfd79bb2eb370041ca147063b7a561ca72c"
+      },
+      "characterReferencePaths": [
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/expansion/gu-yuning-v1.webp"
+      ],
+      "revisionOfSourcePath": "/workspace/scratch/91fc7ee3b2c6/generated_images/exec-4eec542a-5cb0-4abf-8a7e-1eaca5f6ec57.png"
+    },
+    {
+      "id": "memory-gu-1",
+      "path": "assets/art/relationships/gu-key-memory-1-v1.webp",
+      "kind": "relationship",
+      "integration": "verified",
+      "reviewed": true,
+      "sourceCondition": "dialogueMemories.gu.date[2].branch === date:gu:1; no reconstruction from first response",
+      "reviewScope": "Actual player-visible UI route, full image, zoom and return verified 2026-11-12 by parallel playtest workers. See docs/RELEASE_QA_1.0.0.md; old v1 artwork unchanged.",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 181694,
+      "sha256": "dd5bc50debf416d99d0ead29fd2435da9a84c9bce497e313343a626a96b784a7",
+      "originalBytes": 2895676,
+      "originalSha256": "dd28c0e566f60141f2b42f4676b29718bb0fe3f05a93b7b3304fd5f09e94a675",
+      "referenced_image_paths": [
+        "/workspace/scratch/91fc7ee3b2c6/generated_images/exec-dc2dd063-eb90-4472-9c76-331fd2a39708.png"
+      ],
+      "referenceSha256": {
+        "/workspace/scratch/91fc7ee3b2c6/generated_images/exec-dc2dd063-eb90-4472-9c76-331fd2a39708.png": "3f9a15f436d9ae4d77be6b280223db5b44effe1b9d24b1c4bc1216958a4e4eb1"
+      },
+      "characterReferencePaths": [
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/expansion/gu-yuning-v1.webp"
+      ],
+      "revisionOfSourcePath": "/workspace/scratch/91fc7ee3b2c6/generated_images/exec-dc2dd063-eb90-4472-9c76-331fd2a39708.png"
+    },
+    {
+      "id": "expression-cheng",
+      "path": "assets/art/expressions/cheng-expression-v1.webp",
+      "kind": "expression",
+      "integration": "verified",
+      "reviewed": true,
+      "reviewScope": "Original PNG/WebP reviewed; full familiar portrait actually viewed after three ordinary chats in 390px, without romance. See ui_evidence.",
+      "width": 1024,
+      "height": 1536,
+      "bytes": 96766,
+      "sha256": "da7ea5d29fecfec92ee282d78ff27c9479aba2d2ac96e60919a2ef84f6eae78f",
+      "originalBytes": 2537261,
+      "originalSha256": "6131216fa45ac8e610bb88c0a21c07503b27c2c641deb665b61a2907259e4174",
+      "referenced_image_paths": [
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/expansion/cheng-jianshan-v1.webp"
+      ],
+      "referenceSha256": {
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/expansion/cheng-jianshan-v1.webp": "1710e1149ced39b769a9132dac21e40b47d0fcefffcf7e6fe3aed11dc67128d3"
+      },
+      "ui_evidence": "docs/BROWSER_QA_V09_FAMILIAR_REMAINING.md: expression-cheng, day29–31 normal chat 0→3, full viewer/close/resources."
+    },
+    {
+      "id": "memory-cheng-0",
+      "path": "assets/art/relationships/cheng-key-memory-0-v1.webp",
+      "kind": "relationship",
+      "integration": "verified",
+      "reviewed": true,
+      "sourceCondition": "dialogueMemories.cheng.date[2].branch === date:cheng:0; no reconstruction from first response",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 200440,
+      "sha256": "008937cda6f8f29b6d60090192189d9e37cba58a40f5ccc5e21dcdd1ca212f42",
+      "originalBytes": 3122417,
+      "originalSha256": "3649c7774d72451d2d6a378f3a754a00506ab4d9ae3895d1782165b8a4e97fcb",
+      "reviewScope": "Actual player-visible UI route, full image, zoom and return verified 2026-11-12 by parallel playtest workers. See docs/RELEASE_QA_1.0.0.md; old v1 artwork unchanged."
+    },
+    {
+      "id": "memory-cheng-1",
+      "path": "assets/art/relationships/cheng-key-memory-1-v1.webp",
+      "kind": "relationship",
+      "integration": "verified",
+      "reviewed": true,
+      "sourceCondition": "dialogueMemories.cheng.date[2].branch === date:cheng:1; no reconstruction from first response",
+      "reviewScope": "Generated PNG and exported WebP visually inspected against original character and actual branch moment. In-game UI review pending.",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 205760,
+      "sha256": "b1781e31f5cb8c442f746365e55496b3c10e8124f751e5a2be4cb1824c62ed10",
+      "originalBytes": 3026058,
+      "originalSha256": "10018d3a8a987c33887613bc1ff3902d3329a9d3529a726103cd61ab0729f335",
+      "referenced_image_paths": [
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/expansion/cheng-jianshan-v1.webp"
+      ],
+      "referenceSha256": {
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon/assets/art/expansion/cheng-jianshan-v1.webp": "1710e1149ced39b769a9132dac21e40b47d0fcefffcf7e6fe3aed11dc67128d3"
+      },
+      "uiEvidence": "2026-11-12 independent romance-assisted UI report /workspace/shared/trade-playtest/romance-midgame-20261112/REPORT.md; HTML 8b6ab992f524432d7e460c71804b31d62f2d8378a25908419042df383b054f86, D11 female Xiaoman, first date market, 2 chats/3 dates, inline/full/zoom/fit/back to people verified. Only branch1."
+    },
+    {
+      "id": "startup-studio",
+      "path": "assets/art/scenes/startup-studio-v1.webp",
+      "kind": "environment",
+      "integration": "verified",
+      "reviewed": true,
+      "reviewScope": "Original and WebP inspected; actual 390px in-game UI observed. Exact build and scoped evidence: docs/BROWSER_QA_V09_ART22.json. Not physical-phone acceptance.",
+      "rejectedAssetPaths": [
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon_art_review_v09/rejected-studios/startup-studio-v1.png",
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon_art_review_v09/rejected-studios/startup-studio-v1.webp"
+      ],
+      "width": 1536,
+      "height": 1024,
+      "bytes": 163776,
+      "sha256": "d061aeedf99d8d31d3bddbd4f8fc333440a9c314c80d0029caf8e84e64bcf192",
+      "originalBytes": 2881389,
+      "originalSha256": "3d4a0f3880c7adb45535383978abe8b941fedd809ba28657c7d69f83b2c9db88",
+      "revisionSourcePath": "/workspace/scratch/91fc7ee3b2c6/generated_images/exec-52e89741-f7e2-4674-b3b4-0f4cbf97ee42.png"
+    },
+    {
+      "id": "expanded-studio",
+      "path": "assets/art/scenes/expanded-studio-v1.webp",
+      "kind": "environment",
+      "integration": "verified",
+      "reviewed": true,
+      "reviewScope": "Original and WebP inspected; actual 390px in-game UI observed. Exact build and scoped evidence: docs/BROWSER_QA_V09_ART22.json. Not physical-phone acceptance.",
+      "rejectedAssetPaths": [
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon_art_review_v09/rejected-studios/expanded-studio-v1.png",
+        "/workspace/scratch/91fc7ee3b2c6/trade_tycoon_art_review_v09/rejected-studios/expanded-studio-v1.webp"
+      ],
+      "width": 1536,
+      "height": 1024,
+      "bytes": 244186,
+      "sha256": "5e136531455145e54a40688c37e9ce94e364e5323cb636559b97aab065d20882",
+      "originalBytes": 3214862,
+      "originalSha256": "5c028e60ff48a6c1a2ae485d5edd20bf00cb021ecbab8e75fa84fc88744e304b",
+      "revisionSourcePath": "/workspace/scratch/91fc7ee3b2c6/generated_images/exec-a4a9812b-1fdd-446e-aedf-99e429de630e.png"
+    },
+    {
+      "id": "weekend-street",
+      "path": "assets/art/scenes/weekend-street-v1.webp",
+      "kind": "environment",
+      "integration": "verified",
+      "reviewed": true,
+      "reviewScope": "Original and WebP inspected; actual 390px in-game UI observed. Exact build and scoped evidence: docs/BROWSER_QA_V09_ART22.json. Not physical-phone acceptance.",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 389592,
+      "sha256": "d8aa8ee681d40d58947bce380095926fe67a5dd0f6ab0a119eaa8ac7e177031a",
+      "originalBytes": 3706255,
+      "originalSha256": "77c2ffc8bc7d4efc2d9e0f8f4750e9748e5c224978624499e24f6454530bcd2a"
+    },
+    {
+      "id": "home-rest",
+      "path": "assets/art/scenes/home-rest-v1.webp",
+      "kind": "environment",
+      "integration": "verified",
+      "reviewed": true,
+      "reviewScope": "Original and WebP inspected; actual 390px in-game UI observed. Exact build and scoped evidence: docs/BROWSER_QA_V09_ART22.json. Not physical-phone acceptance.",
+      "width": 1536,
+      "height": 1024,
+      "bytes": 207502,
+      "sha256": "5b463ce6f9656cbb450d3ae482a3539613723fd5c99514b4addfd5dd14195a11",
+      "originalBytes": 3137074,
+      "originalSha256": "51ff7b44631a15391e810081012d63a2dd138267cf85881302303c791ceb011d"
+    },
+    {
+      "id": "product-hinge",
+      "path": "assets/art/products/hinge-v1.webp",
+      "kind": "product",
+      "integration": "verified",
+      "reviewed": true,
+      "reviewScope": "Original and WebP inspected; actual 390px in-game UI observed. Exact build and scoped evidence: docs/BROWSER_QA_V09_ART22.json. Not physical-phone acceptance.",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 107956,
+      "sha256": "1c64a347a0c336c2a5baae698193d872928ddc2666f8a0652aafe2cf3b244dbd",
+      "originalBytes": 2691477,
+      "originalSha256": "430207e23593d2f8c890dd2552761d1d4cf81958dd72e36a8541beb915930fc3"
+    },
+    {
+      "id": "product-tool",
+      "path": "assets/art/products/tool-v1.webp",
+      "kind": "product",
+      "integration": "verified",
+      "reviewed": true,
+      "reviewScope": "Original and WebP inspected; actual 390px in-game UI observed. Exact build and scoped evidence: docs/BROWSER_QA_V09_ART22.json. Not physical-phone acceptance.",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 126340,
+      "sha256": "99f723953f9229b09f0322bb51557baaa3ca012de5983b1fc4df5be5b33b658d",
+      "originalBytes": 2841333,
+      "originalSha256": "3fbad6ec175c8428a42e9a19e8341beade87968938e70084e7e67f8ee56ca00b"
+    },
+    {
+      "id": "product-handle",
+      "path": "assets/art/products/handle-v1.webp",
+      "kind": "product",
+      "integration": "verified",
+      "reviewed": true,
+      "reviewScope": "Original and WebP inspected; actual 390px in-game UI observed. Exact build and scoped evidence: docs/BROWSER_QA_V09_ART22.json. Not physical-phone acceptance.",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 102562,
+      "sha256": "cc4e4558869320d44bcafe706b2bf3bf0f5ce976e5132c3c7c10c87e14d2dcc1",
+      "originalBytes": 2680972,
+      "originalSha256": "aa30ed7952f01ec5381636a33db3563d0885a7453cf554e2cd17c43e1abc28b6"
+    }
+  ],
+  "codeNativeIcons": {
+    "module": "src/icons.js",
+    "count": 12,
+    "separateFromRaster": true
+  }
+}
