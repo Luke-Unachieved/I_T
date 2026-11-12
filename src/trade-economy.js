@@ -39,7 +39,7 @@ const hash=s=>{let n=2166136261;for(const c of s)n=Math.imul(n^c.charCodeAt(0),1
 const pricesAt=week=>Object.fromEntries(PRODUCTS.map((p,i)=>[p.id,round(p.base*(1+0.13*Math.sin(week*0.61+i*1.7)+0.07*Math.cos(week*0.27+i)))]));
 export const capacity=s=>2+s.upgrades.team;
 export const weeklyCost=s=>120+s.upgrades.team*120+s.upgrades.quality*60+s.upgrades.logistics*30+s.upgrades.sourcing*40+Math.ceil(s.debt*0.008);
-export const netWorth=s=>s.cash-s.debt+s.receivables.reduce((a,r)=>a+r.amount,0)+s.active.reduce((a,o)=>a+o.revenue-o.deposit-(o.paidShipping?0:o.balance+o.freight)-o.penalty,0);
+export const netWorth=s=>s.cash-s.debt+s.receivables.reduce((a,r)=>a+r.amount,0)+s.active.reduce((a,o)=>a+(o.paidShipping?o.cost+o.freight:o.procurement)-o.deposit,0);
 export const upgradeCost=(s,id)=>{const u=idOf(UPGRADES,id);return u?u.baseCost*(s.upgrades[id]+1):0;};
 export const unlockedMarkets=s=>MARKETS.filter((m,i)=>s.metrics.orders>=m.needed && (i<2||s.reputation>=8));
 function offersFor(s){
@@ -59,7 +59,7 @@ function offersFor(s){
  return offers;
 }
 export function createTradeGame(name='我的贸易公司'){
- const s={version:2,ruleset:2,name:String(name).trim().slice(0,24)||'我的贸易公司',week:1,cash:18000,debt:0,reputation:0,receivables:[],active:[],offers:[],history:[],prices:pricesAt(1),priceHistory:[],customers:{},upgrades:{team:0,quality:0,logistics:0,sourcing:0},metrics:{orders:0,revenue:0,profit:0,ontime:0,rejected:0,brokered:0},log:[],lastBrokerWeek:0,ending:null};
+ const s={version:2,ruleset:3,name:String(name).trim().slice(0,24)||'我的贸易公司',week:1,cash:18000,debt:0,reputation:0,receivables:[],active:[],offers:[],history:[],prices:pricesAt(1),priceHistory:[],customers:{},upgrades:{team:0,quality:0,logistics:0,sourcing:0},metrics:{orders:0,revenue:0,profit:0,ontime:0,rejected:0,brokered:0},log:[],lastBrokerWeek:0,ending:null};
  s.offers=offersFor(s);s.priceHistory=[{week:1,...s.prices}];s.history=[{week:1,cash:s.cash,netWorth:netWorth(s),revenue:0,profit:0}];return s;
 }
 export function quoteOrder(s,offerId,options={}){
@@ -177,7 +177,7 @@ export function parseTradeSave(raw){
  for(const h of s.priceHistory){if(!integer(h.week,1,s.week))fail();for(const p of PRODUCTS)if(!integer(h[p.id],1,10000))fail();}
  for(const l of s.log)if(!integer(l.week,1,s.week)||!text(l.text,300)||!['info','success','cash','warning'].includes(l.kind))fail();
  if(s.ending!==null&&(!s.ending||!integer(s.ending.week,1,s.week)||!text(s.ending.title)||!integer(s.ending.orders)||!integer(s.ending.netWorth,-1000000000)))fail();
- if(s.ruleset===undefined){s.ruleset=2;if(s.ending&&!s.customers['europe-flagship']?.qualified){s.previousEnding=s.ending;s.ending=null;}}
- if(s.ruleset!==2)fail();
+ if(s.ruleset===undefined||s.ruleset===2){s.ruleset=3;if(s.ending&&(!s.customers['europe-flagship']?.qualified||netWorth(s)<60000)){s.previousEnding=s.ending;s.ending=null;}}
+ if(s.ruleset!==3)fail();
  return s;
 }

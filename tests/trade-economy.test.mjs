@@ -112,5 +112,15 @@ test('flagship is unlocked after normal markets and needs capable production to 
 });
 test('unpublished first-candidate achievement is retained while new final challenge stays open',()=>{
  const s=createTradeGame();delete s.ruleset;s.ending={week:1,title:'previous candidate',orders:16,netWorth:60000};
- const migrated=parseTradeSave(s);assert.equal(migrated.ruleset,2);assert.equal(migrated.ending,null);assert.equal(migrated.previousEnding.title,'previous candidate');assert.equal(migrated.cash,s.cash);
+ const migrated=parseTradeSave(s);assert.equal(migrated.ruleset,3);assert.equal(migrated.ending,null);assert.equal(migrated.previousEnding.title,'previous candidate');assert.equal(migrated.cash,s.cash);
+});
+test('signing does not recognize future profits before delivery',()=>{
+ const before=createTradeGame();const after=acceptAny(before,'long');assert.equal(netWorth(after),netWorth(before));
+ const order=after.active[0];let s=after;
+ while(s.week<order.deliveryWeek)s=go(s,{type:'NEXT_WEEK'});
+ assert.equal(netWorth(s),netWorth(before)+order.profit-weeklyCost(before)*(s.week-before.week));
+});
+
+test('earlier candidate estimated-profit ending is retained but not counted before realization',()=>{
+ const s=createTradeGame();s.ruleset=2;s.ending={week:1,title:'earlier',orders:9,netWorth:63659};s.customers['europe-flagship']={name:'test',market:'europe',orders:1,revenue:100,qualified:true};const n=parseTradeSave(s);assert.equal(n.ending,null);assert.equal(n.previousEnding.title,'earlier');assert.equal(n.customers['europe-flagship'].qualified,true);
 });
