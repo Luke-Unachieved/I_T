@@ -47,7 +47,7 @@ const embedded=new Map();
 for(const m of css.matchAll(assetPattern))if(!embedded.has(m[1]))embedded.set(m[1],{name:'--embedded-art-'+embedded.size,value:await data(m[1])});
 css=css.replace(assetPattern,(_,asset)=>`var(${embedded.get(asset).name})`);
 css=':root{'+[...embedded.values()].map(item=>`${item.name}:url('${item.value}')`).join(';')+'}\n'+css;
-let html=await readFile(path.join(root,'index.html'),'utf8');
+let html=await readFile(path.join(root,'classic.html'),'utf8');
 const js=chunks.join('\n').replace(/<\/script/gi,'<\\/script');
 html=html.replace('href="assets/mark.svg"',`href="${logo}"`).replace('<link rel="stylesheet" href="src/style.css">',`<style>${css}</style>`).replace('<script type="module" src="src/app.js"></script>',`<script>${js}</script>`);
 if(/(?:src|href)=["'](?:src|assets)\//.test(html)||/url\(['"]?\.\.\//.test(html))throw new Error('Unbundled local resource');

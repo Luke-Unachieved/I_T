@@ -78,14 +78,15 @@ test('import rejects v1, malformed or unsafe amounts and live schedule tampering
 });
 test('conservative diversified strategy reaches a real economic ending, then continues',()=>{
  let s=createTradeGame();for(let w=0;w<60&&!s.ending;w++){
-  for(const o of s.offers.slice()){
-   let best;for(const sup of SUPPLIERS)for(const ship of SHIPPING){const q=quoteOrder(s,o.id,{supplier:sup.id,shipping:ship.id,markup:-2});if(q.valid&&q.profit>0&&q.late===0&&forecastCash(s,q).minimum>=0&&(!best||q.profit>best.profit))best=q;}
+  for(const o of s.offers.slice().sort((a,b)=>(b.kind==='flagship')-(a.kind==='flagship'))){
+   let best;for(const sup of SUPPLIERS)for(const ship of SHIPPING){const q=quoteOrder(s,o.id,{supplier:sup.id,shipping:ship.id,markup:-2});if(q.valid&&q.profit>0&&q.late===0&&(o.kind!=='flagship'||q.penalty===0)&&forecastCash(s,q).minimum>=0&&(!best||q.profit>best.profit))best=q;}
    if(best)s=go(s,{type:'ACCEPT',offerId:o.id,supplier:best.supplier,shipping:best.shipping,markup:-2});
   }
+  if(s.cash>16000&&s.upgrades.quality<1)s=go(s,{type:'UPGRADE',id:'quality'});
   if(s.cash>22000&&s.upgrades.team<2)s=go(s,{type:'UPGRADE',id:'team'});
   s=go(s,{type:'NEXT_WEEK'});assert.deepEqual(parseTradeSave(s),s);
  }
- assert.ok(s.ending);assert.ok(s.metrics.orders>=16);assert.ok(netWorth(s)>=60000);const week=s.week;s=go(s,{type:'NEXT_WEEK'});assert.equal(s.week,week+1);assert.ok(s.ending);
+ assert.ok(s.ending);assert.ok(s.customers['europe-flagship']?.qualified);assert.ok(netWorth(s)>=60000);const week=s.week;s=go(s,{type:'NEXT_WEEK'});assert.equal(s.week,week+1);assert.ok(s.ending);
 });
 test('shipping payment is not deducted twice from net assets',()=>{
  let s=acceptAny(createTradeGame(),'long');const o=s.active[0];while(s.week<o.shipWeek-1)s=go(s,{type:'NEXT_WEEK'});
@@ -98,4 +99,18 @@ test('bad imported steps and impossible live contracts cannot become forecast in
 test('loan interest is included in cash forecast and money is never silently negative',()=>{
  let s=go(createTradeGame(),{type:'BRIDGE'});const cost=weeklyCost(s);assert.equal(cost,168);const f=forecastCash(s);s=go(s,{type:'NEXT_WEEK'});assert.equal(s.cash,f.points[1].cash);
  for(let i=0;i<200;i++){s=go(s,{type:'NEXT_WEEK'});assert.ok(Number.isSafeInteger(s.cash)&&s.cash>=0);assert.ok(Number.isSafeInteger(s.debt)&&s.debt>=0);}
+});
+test('flagship is unlocked after normal markets and needs capable production to qualify',()=>{
+ let s=createTradeGame();s.metrics.orders=8;s.reputation=16;s.cash=100000;s=go(s,{type:'NEXT_WEEK'});
+ const offer=s.offers.find(o=>o.kind==='flagship');assert.ok(offer);assert.equal(offer.depositRate,15);assert.equal(offer.quality,95);
+ const cheap=quoteOrder(s,offer.id,{supplier:'economy',shipping:'sea'});assert.ok(cheap.penalty>0);assert.ok(cheap.late>0);
+ s=go(s,{type:'UPGRADE',id:'quality'});const good=quoteOrder(s,offer.id,{supplier:'reliable',shipping:'rail',markup:-10});assert.equal(good.penalty,0);assert.equal(good.weeks,3);
+ s=go(s,{type:'ACCEPT',offerId:offer.id,supplier:'reliable',shipping:'rail',markup:-10});
+ assert.ok(s.active.some(o=>o.offer.kind==='flagship'));
+ for(let i=0;i<3;i++)s=go(s,{type:'NEXT_WEEK'});
+ assert.equal(s.customers['europe-flagship'].qualified,true);assert.equal(s.ending,null,'one market alone is not a global ending');assert.deepEqual(parseTradeSave(s),s);
+});
+test('unpublished first-candidate achievement is retained while new final challenge stays open',()=>{
+ const s=createTradeGame();delete s.ruleset;s.ending={week:1,title:'previous candidate',orders:16,netWorth:60000};
+ const migrated=parseTradeSave(s);assert.equal(migrated.ruleset,2);assert.equal(migrated.ending,null);assert.equal(migrated.previousEnding.title,'previous candidate');assert.equal(migrated.cash,s.cash);
 });

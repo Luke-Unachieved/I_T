@@ -44,16 +44,22 @@ export const upgradeCost=(s,id)=>{const u=idOf(UPGRADES,id);return u?u.baseCost*
 export const unlockedMarkets=s=>MARKETS.filter((m,i)=>s.metrics.orders>=m.needed && (i<2||s.reputation>=8));
 function offersFor(s){
  const markets=unlockedMarkets(s);const scale=1+Math.min(1.8,s.metrics.orders*0.075);
- return kinds.map((k,i)=>{
+ const offers=kinds.map((k,i)=>{
  const p=PRODUCTS[(s.week+i*2-1)%PRODUCTS.length];
  const market=markets[(s.week+i-1)%markets.length];
  const customerId=market.id+'-'+k.id;const repeat=s.customers[customerId]?.orders||0;
  const quantity=Math.max(10,round(5400*scale*(k.id==='long'?1.45:1)/p.base/5)*5);
  return {id:`w${s.week}-${k.id}`,kind:k.id,kindName:k.name,customerId,customer:`${market.name}${['连锁商店','批发商','采购商'][i]}`,market:market.id,product:p.id,quantity,unit:p.unit,price:round(p.base*k.factor/100*(1+Math.min(repeat,6)*0.012)),depositRate:k.depositRate,payLag:k.payLag,deadline:k.deadline,quality:k.quality,repeat,expires:s.week};
  });
+ // A concrete last challenge replaces an arbitrary order-count grind.
+ if(markets.length===3 && !s.customers['europe-flagship']?.qualified && !s.active.some(o=>o.offer.kind==='flagship')){
+  const p=PRODUCTS[(s.week+1)%PRODUCTS.length];const quantity=Math.max(20,round(18000/p.base/5)*5);
+  offers.push({id:`w${s.week}-flagship`,kind:'flagship',kindName:'年度框架试单',customerId:'europe-flagship',customer:'欧洲连锁采购中心',market:'europe',product:p.id,quantity,unit:p.unit,price:round(p.base*1.85),depositRate:15,payLag:3,deadline:3,quality:95,repeat:s.customers['europe-flagship']?.orders||0,expires:s.week});
+ }
+ return offers;
 }
 export function createTradeGame(name='我的贸易公司'){
- const s={version:2,name:String(name).trim().slice(0,24)||'我的贸易公司',week:1,cash:18000,debt:0,reputation:0,receivables:[],active:[],offers:[],history:[],prices:pricesAt(1),priceHistory:[],customers:{},upgrades:{team:0,quality:0,logistics:0,sourcing:0},metrics:{orders:0,revenue:0,profit:0,ontime:0,rejected:0,brokered:0},log:[],lastBrokerWeek:0,ending:null};
+ const s={version:2,ruleset:2,name:String(name).trim().slice(0,24)||'我的贸易公司',week:1,cash:18000,debt:0,reputation:0,receivables:[],active:[],offers:[],history:[],prices:pricesAt(1),priceHistory:[],customers:{},upgrades:{team:0,quality:0,logistics:0,sourcing:0},metrics:{orders:0,revenue:0,profit:0,ontime:0,rejected:0,brokered:0},log:[],lastBrokerWeek:0,ending:null};
  s.offers=offersFor(s);s.priceHistory=[{week:1,...s.prices}];s.history=[{week:1,cash:s.cash,netWorth:netWorth(s),revenue:0,profit:0}];return s;
 }
 export function quoteOrder(s,offerId,options={}){
@@ -94,7 +100,7 @@ function result(state,message,changed=false){return {state,message,changed};}
 function finish(s,o){
  s.metrics.orders++;s.metrics.revenue+=o.revenue-o.penalty;s.metrics.profit+=o.profit;s.metrics.ontime+=o.late?0:1;
  s.reputation=clamp(s.reputation+(o.late? -1:o.quality>=o.offer.quality?2:0),0,100);
- const c=s.customers[o.offer.customerId]||{orders:0,revenue:0,market:o.offer.market,name:o.offer.customer};c.orders++;c.revenue+=o.revenue-o.penalty;s.customers[o.offer.customerId]=c;
+ const c=s.customers[o.offer.customerId]||{orders:0,revenue:0,market:o.offer.market,name:o.offer.customer};c.orders++;c.revenue+=o.revenue-o.penalty;if(o.offer.kind==='flagship'&&o.late===0&&o.quality>=o.offer.quality)c.qualified=true;s.customers[o.offer.customerId]=c;
  const amount=o.revenue-o.deposit-o.penalty;
  if(o.dueWeek<=s.week){s.cash+=amount;log(s,`${o.offer.customer}尾款 ¥${amount} 到账。`,'cash');}
  else{s.receivables.push({id:o.id,customer:o.offer.customer,amount,dueWeek:o.dueWeek});}
@@ -121,7 +127,7 @@ export function reduceTrade(state,action){
   if(s.cash<0){const advance=-s.cash;s.cash=0;s.debt+=advance;log(s,`资金缺口 ¥${advance} 已转周转欠款，按周计息。接代办或回款后尽快归还。`,'warning');}
   s.prices=pricesAt(s.week);s.priceHistory.push({week:s.week,...s.prices});s.priceHistory=s.priceHistory.slice(-24);s.offers=offersFor(s);
   s.history.push({week:s.week,cash:s.cash,netWorth:netWorth(s),revenue:s.metrics.revenue,profit:s.metrics.profit});s.history=s.history.slice(-52);
-  if(!s.ending&&s.metrics.orders>=16&&new Set(Object.values(s.customers).filter(c=>c.orders>0).map(c=>c.market)).size===3&&netWorth(s)>=60000){s.ending={week:s.week,title:'从第一单到三大市场',orders:s.metrics.orders,netWorth:netWorth(s)};log(s,'阶段达成：三大市场。你已建立有复购、有现金流的贸易公司，可继续经营。','success');}
+  if(!s.ending&&s.customers['europe-flagship']?.qualified&&new Set(Object.values(s.customers).filter(c=>c.orders>0).map(c=>c.market)).size===3&&netWorth(s)>=60000){s.ending={week:s.week,title:'从第一单到三大市场',orders:s.metrics.orders,netWorth:netWorth(s)};log(s,'阶段达成：三大市场。欧洲框架试单已合格交付，你已建立有复购、有现金流的贸易公司，可继续经营。','success');}
   return result(s,arriving.length?`本周交付 ${arriving.length} 单，现金 ¥${s.cash}`:`第 ${s.week} 周，运营支出 ¥${operating}`,true);
  }
  if(action.type==='UPGRADE'){
@@ -153,11 +159,11 @@ export function parseTradeSave(raw){
  for(const key of ['receivables','active','offers','history','priceHistory','log'])if(!Array.isArray(s[key])||s[key].length>600)fail();
  for(const u of UPGRADES)if(!integer(s.upgrades?.[u.id],0,u.max))fail();
  for(const k of ['orders','revenue','profit','ontime','rejected','brokered'])if(!integer(s.metrics?.[k],k==='profit'?-1000000000:0))fail();
- if(!integer(s.lastBrokerWeek,0,s.week)||!s.customers||typeof s.customers!=='object'||Array.isArray(s.customers)||Object.keys(s.customers).length>9)fail();
- for(const [id,c] of Object.entries(s.customers))if(!/^(asia|middle|europe)-(quick|long|rush)$/.test(id)||!integer(c.orders)||!integer(c.revenue)||!text(c.name)||!idOf(MARKETS,c.market))fail();
+ if(!integer(s.lastBrokerWeek,0,s.week)||!s.customers||typeof s.customers!=='object'||Array.isArray(s.customers)||Object.keys(s.customers).length>10)fail();
+ for(const [id,c] of Object.entries(s.customers))if(!/^(asia|middle|europe)-(quick|long|rush|flagship)$/.test(id)||!integer(c.orders)||!integer(c.revenue)||!text(c.name)||!idOf(MARKETS,c.market)||(c.qualified!==undefined&&typeof c.qualified!=='boolean'))fail();
  for(const p of PRODUCTS)if(!integer(s.prices?.[p.id],1,10000))fail();
- const offerValid=o=>o&&text(o.id)&&/^w\d+-(quick|long|rush)$/.test(o.id)&&kinds.some(k=>k.id===o.kind)&&idOf(PRODUCTS,o.product)&&idOf(MARKETS,o.market)&&text(o.customer)&&/^(asia|middle|europe)-(quick|long|rush)$/.test(o.customerId)&&integer(o.quantity,1,100000)&&integer(o.price,1,10000)&&integer(o.depositRate,0,100)&&integer(o.payLag,0,12)&&integer(o.deadline,1,12)&&integer(o.quality,0,100)&&integer(o.repeat,0,10000)&&integer(o.expires,1,520)&&text(o.kindName)&&text(o.unit);
- if(s.offers.length>3||s.active.length>capacity(s)||!s.offers.every(offerValid))fail();
+ const offerValid=o=>o&&text(o.id)&&/^w\d+-(quick|long|rush|flagship)$/.test(o.id)&&(kinds.some(k=>k.id===o.kind)||o.kind==='flagship')&&idOf(PRODUCTS,o.product)&&idOf(MARKETS,o.market)&&text(o.customer)&&/^(asia|middle|europe)-(quick|long|rush|flagship)$/.test(o.customerId)&&integer(o.quantity,1,100000)&&integer(o.price,1,10000)&&integer(o.depositRate,0,100)&&integer(o.payLag,0,12)&&integer(o.deadline,1,12)&&integer(o.quality,0,100)&&integer(o.repeat,0,10000)&&integer(o.expires,1,520)&&text(o.kindName)&&text(o.unit);
+ if(s.offers.length>4||s.active.length>capacity(s)||!s.offers.every(offerValid))fail();
  const allIds=[...s.offers.map(o=>o.id),...s.active.map(o=>o.id),...s.receivables.map(r=>r.id)];if(new Set(allIds).size!==allIds.length)fail();
  for(const o of s.active){
   if(!offerValid(o.offer)||o.id!==o.offer.id||!idOf(SUPPLIERS,o.supplier)||!idOf(SHIPPING,o.shipping)||typeof o.paidShipping!=='boolean')fail();
@@ -171,5 +177,7 @@ export function parseTradeSave(raw){
  for(const h of s.priceHistory){if(!integer(h.week,1,s.week))fail();for(const p of PRODUCTS)if(!integer(h[p.id],1,10000))fail();}
  for(const l of s.log)if(!integer(l.week,1,s.week)||!text(l.text,300)||!['info','success','cash','warning'].includes(l.kind))fail();
  if(s.ending!==null&&(!s.ending||!integer(s.ending.week,1,s.week)||!text(s.ending.title)||!integer(s.ending.orders)||!integer(s.ending.netWorth,-1000000000)))fail();
+ if(s.ruleset===undefined){s.ruleset=2;if(s.ending&&!s.customers['europe-flagship']?.qualified){s.previousEnding=s.ending;s.ending=null;}}
+ if(s.ruleset!==2)fail();
  return s;
 }

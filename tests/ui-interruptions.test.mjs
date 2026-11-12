@@ -275,7 +275,7 @@ test('portrait viewer does not reveal unencountered characters or accept forged 
  for(const id of ['xu','gu','cheng','<script>']){const app=ui(engine.createGame());app.click('portrait-view',id);assert.equal(app.dialog.open,false);}
 });
 test('browser chrome uses the chosen warm-black theme',async()=>{
- const html=await readFile(new URL('../index.html',import.meta.url),'utf8');assert.match(html,/name="theme-color" content="#111110"/);
+ const html=await readFile(new URL('../classic.html',import.meta.url),'utf8');assert.match(html,/name="theme-color" content="#111110"/);
 });
 
 

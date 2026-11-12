@@ -1,17 +1,18 @@
 {
   "name": "trade-tycoon",
-  "version": "1.0.1",
+  "version": "2.0.0-rc.1",
   "private": true,
   "type": "module",
-  "description": "外贸达人养成记：轻经营与自愿关系的手机浏览器故事游戏",
+  "description": "外贸达人养成记：报价、履约、资金周转与市场扩张",
   "scripts": {
     "start": "node scripts/serve.mjs",
-    "build": "node scripts/build-standalone.mjs",
+    "build": "node scripts/build-standalone.mjs && node scripts/build-data.mjs",
     "test": "node --test tests/*.test.mjs",
     "check": "node --check src/trade-app.js && node --check src/trade-economy.js && node --check scripts/build-data.mjs && node --check src/visuals.js && node --check scripts/art-files.mjs && node --check scripts/build-standalone.mjs && node --check src/icons.js && node --check src/weekend-scenes.js && node --check src/album.js && node --check src/career-branches.js && node --check src/work-branches.js && node --check src/memory-titles.js && node --check src/calendar.js && node --check src/people-expansion.js && node --check src/engine.js && node --check src/app.js && node --check src/story.js && node --check src/relationships.js && node --check src/sound.js && node --check src/negotiation.js && node --check src/delivery-stories.js && node --check src/epilogue.js && node --check src/dialogue.js && node --check scripts/serve.mjs && npm test",
     "dev": "node scripts/serve.mjs",
     "check:release-art": "node scripts/check-release-assets.mjs",
-    "build:data": "node scripts/build-standalone.mjs && node scripts/build-data.mjs"
+    "build:data": "node scripts/build-standalone.mjs && node scripts/build-data.mjs",
+    "build:classic": "node scripts/build-standalone.mjs"
   },
   "engines": {
     "node": ">=20"
