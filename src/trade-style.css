@@ -30,3 +30,11 @@ dialog{border-radius:5px;border-top:4px solid #d16a32;box-shadow:0 24px 100px #0
 /* Day-based dispatch; secondary fast-forward never replaces the default day. */
 .time-controls{display:flex;gap:6px;align-items:center}.week small{display:block;font-size:9px;color:var(--muted);margin-top:2px}.advance-feedback{align-items:center}.advance-feedback p{margin:5px 0 0}.advance-feedback strong{font-variant-numeric:tabular-nums}.advance-feedback button{flex-shrink:0}
 @media(max-width:700px){.topbar{flex-wrap:wrap}.top-actions{width:100%;justify-content:space-between}.time-controls{gap:5px}.time-controls button{min-height:40px}.top-actions .week{display:flex;align-items:baseline;gap:4px}.week small{margin-left:4px}.advance-feedback{align-items:flex-start}.advance-feedback>div{min-width:0}.advance-feedback button{white-space:normal}}
+
+/* Compact currency settlement details, keeping the quote's single-column phone flow. */
+.fx-summary{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:8px 0;margin:6px 0;font-variant-numeric:tabular-nums}
+.fx-summary small,.fx-risk{display:block;line-height:1.5;overflow-wrap:anywhere}
+.fx-market .panel-head{flex-wrap:wrap;gap:8px}
+.fx-market .chart{max-height:120px}
+
+.fx-field{grid-column:1/-1}

@@ -21,7 +21,11 @@ new Function(chunks.join('\n')); // Validate the assembled script without runnin
 let html=await readFile(path.join(root,'trade.html'),'utf8');
 const css=await readFile(path.join(root,'src/trade-style.css'),'utf8');
 const mark='data:image/svg+xml;base64,'+(await readFile(path.join(root,'assets/mark.svg'))).toString('base64');
-html=html.replace('href="assets/mark.svg"',`href="${mark}"`).replace('<link rel="stylesheet" href="src/trade-style.css">',`<style>${css}</style>`).replace('<script type="module" src="src/trade-app.js"></script>',`<script>(()=>{${chunks.join('\n')}\n})();</script>`);
+html=html.replace('href="assets/mark.svg"',()=>`href="${mark}"`).replace('<link rel="stylesheet" href="src/trade-style.css">',()=>`<style>${css}</style>`).replace('<script type="module" src="src/trade-app.js"></script>',()=>`<script>(()=>{${chunks.join('\n')}\n})();</script>`);
+// Validate what the HTML parser will execute, not only the pre-embedding chunks.
+const embedded=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+if(embedded.length!==1)throw new Error('Expected one embedded game script');
+new Function(embedded[0][1]);
 await mkdir(out,{recursive:true});await writeFile(path.join(out,'index.html'),html);await writeFile(path.join(out,'.nojekyll'),'');
 // Keep the pre-rework game, including its original standalone storage key.
 await copyFile(path.join(root,'artifacts/standalone-v101/外贸达人养成记-v1.0.1.html'),path.join(out,'classic.html'));

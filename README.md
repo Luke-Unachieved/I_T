@@ -1,8 +1,8 @@
 > **当前网页版：2.0 数据经营**  
 > [开始游戏](https://luke-unachieved.github.io/I_T/) · [继续原版故事存档](https://luke-unachieved.github.io/I_T/classic.html)  
-> 新版以报价、履约、现金流与市场扩张为核心。默认推进 1 天，支持快进 3/7 天；重要机会与资金不足会暂停，旧周档自动迁移。原版和旧存档保留，以下原始策划未删除。  
+> 新版以报价、履约、现金流与市场扩张为核心。新询盘以美元报价，可选尾款锁汇或到期浮动结汇；默认推进 1 天，支持快进 3/7 天；重要机会与资金不足会暂停，旧周档自动迁移。原版和旧存档保留，以下原始策划未删除。
 > 本地运行 `npm start`；完整检查 `npm run check`；部署构建 `npm run build`，上传 `artifacts/data-v2/` 中全部文件，尤其保留 `classic.html`。  
-> [2.0 验收与界限](docs/rework/RELEASE_QA.md) · [每日推进验收](docs/rework/DAILY_TIME_QA.md)。网页可玩不等于商店上架或真实玩家留存已验收。
+> [2.0 验收与界限](docs/rework/RELEASE_QA.md) · [每日推进验收](docs/rework/DAILY_TIME_QA.md) · [美元结汇验收](docs/rework/FX_SETTLEMENT_QA.md)。网页可玩不等于商店上架或真实玩家留存已验收。
 
 # 外贸达人养成记 · 向海而生
 

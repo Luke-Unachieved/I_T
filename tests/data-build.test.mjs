@@ -15,3 +15,13 @@ test('data build retains the original standalone bundle and removes module depen
  const html=await readFile(new URL('../trade.html',import.meta.url),'utf8');
  assert.doesNotMatch(html,/https?:\/\//);
 });
+test('final built HTML preserves dollar literals and contains executable script only',async()=>{
+ const {execFileSync}=await import('node:child_process');
+ execFileSync(process.execPath,['scripts/build-data.mjs'],{cwd:new URL('..',import.meta.url),stdio:'pipe'});
+ const html=await readFile(new URL('../artifacts/data-v2/index.html',import.meta.url),'utf8');
+ const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+ assert.equal(scripts.length,1);assert.doesNotThrow(()=>new Function(scripts[0][1]));
+ assert.ok(scripts[0][1].includes("const usd=cents=>'US$'+"));
+ const outside=html.replace(/<script>[\s\S]*?<\/script>/g,'');
+ assert.doesNotMatch(outside,/\$\{state\.|const usd=|function quoteOrder/);
+});
