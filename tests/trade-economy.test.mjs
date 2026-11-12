@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createTradeGame,reduceTrade,quoteOrder,forecastCash,parseTradeSave,PRODUCTS,SUPPLIERS,SHIPPING,capacity,netWorth,weeklyCost} from '../src/trade-economy.js';
+import {createTradeGame,reduceTrade,quoteOrder,forecastCash,parseTradeSave,PRODUCTS,SUPPLIERS,SHIPPING,capacity,netWorth,weeklyCost,dayToWeek,weekToDay,MAX_DAY} from '../src/trade-economy.js';
 const go=(s,a)=>reduceTrade(s,a).state;
 const copy=s=>JSON.parse(JSON.stringify(s));
 function acceptAny(s,kind='quick',options={}){
@@ -42,11 +42,11 @@ test('long terms remain receivable after delivery and release capacity before ca
 });
 test('six-week cash forecast exactly matches actual scheduled cash in absence of new decisions',()=>{
  let s=acceptAny(createTradeGame(),'long');const forecast=forecastCash(s);
- for(const point of forecast.points.slice(1)){s=go(s,{type:'NEXT_WEEK'});assert.equal(s.cash,point.cash,`week ${s.week}`);}
+ for(const point of forecast.points.slice(1)){s=go(s,{type:'NEXT_DAY'});assert.equal(s.day,point.day);assert.equal(s.cash,point.cash,`day ${s.day}`);}
 });
 test('candidate forecast includes signing deposit and procurement before future cash events',()=>{
  const s=createTradeGame(),q=quoteOrder(s,s.offers[1].id,{markup:-10});const f=forecastCash(s,q);
- assert.equal(f.points[0].cash,s.cash+q.deposit-q.procurement);assert.equal(f.points[q.productionWeeks].outflow,weeklyCost(s)+q.balance+q.freight);
+ assert.equal(f.points[0].cash,s.cash+q.deposit-q.procurement);assert.equal(f.points[q.productionDays].outflow,weeklyCost(s)+q.balance+q.freight);
 });
 test('cash strain and full slots prevent unsafe acceptances without mutation',()=>{
  let s=createTradeGame();s.cash=0;const initial=JSON.stringify(s);
@@ -61,7 +61,7 @@ test('upgrades change next order and cannot spend money committed to existing or
 });
 test('broker income is once per week, recovers cash without irreversible bankruptcy',()=>{
  let s=createTradeGame();s.cash=0;const r=reduceTrade(s,{type:'BROKER'});assert.ok(r.state.cash>0);assert.equal(reduceTrade(r.state,{type:'BROKER'}).changed,false);
- s=go(s,{type:'NEXT_WEEK'});assert.equal(s.cash,0);assert.ok(s.debt>0);s=go(s,{type:'BROKER'});assert.ok(s.cash>weeklyCost(s));
+ let paused=reduceTrade(s,{type:'NEXT_WEEK'});assert.equal(paused.pause.code,'funding_gap');assert.equal(paused.state.day,7);s=go(paused.state,{type:'NEXT_DAY',allowFundingDay:8});assert.equal(s.cash,0);assert.ok(s.debt>0);s=go(s,{type:'BROKER'});assert.ok(s.cash>weeklyCost(s));
 });
 test('bridge and repayment keep debt explicit and avoid negative balance',()=>{
  let s=createTradeGame();s=go(s,{type:'BRIDGE'});assert.equal(s.debt,6000);assert.equal(s.cash,24000);
@@ -97,7 +97,7 @@ test('bad imported steps and impossible live contracts cannot become forecast in
  for(const mutate of variants){const bad=copy(s);mutate(bad);assert.throws(()=>parseTradeSave(bad));}
 });
 test('loan interest is included in cash forecast and money is never silently negative',()=>{
- let s=go(createTradeGame(),{type:'BRIDGE'});const cost=weeklyCost(s);assert.equal(cost,168);const f=forecastCash(s);s=go(s,{type:'NEXT_WEEK'});assert.equal(s.cash,f.points[1].cash);
+ let s=go(createTradeGame(),{type:'BRIDGE'});const cost=weeklyCost(s);assert.equal(cost,168);const f=forecastCash(s);s=go(s,{type:'NEXT_WEEK'});assert.equal(s.cash,f.points[7].cash);
  for(let i=0;i<200;i++){s=go(s,{type:'NEXT_WEEK'});assert.ok(Number.isSafeInteger(s.cash)&&s.cash>=0);assert.ok(Number.isSafeInteger(s.debt)&&s.debt>=0);}
 });
 test('flagship is unlocked after normal markets and needs capable production to qualify',()=>{
@@ -112,7 +112,7 @@ test('flagship is unlocked after normal markets and needs capable production to 
 });
 test('unpublished first-candidate achievement is retained while new final challenge stays open',()=>{
  const s=createTradeGame();delete s.ruleset;s.ending={week:1,title:'previous candidate',orders:16,netWorth:60000};
- const migrated=parseTradeSave(s);assert.equal(migrated.ruleset,3);assert.equal(migrated.ending,null);assert.equal(migrated.previousEnding.title,'previous candidate');assert.equal(migrated.cash,s.cash);
+ const migrated=parseTradeSave(s);assert.equal(migrated.ruleset,4);assert.equal(migrated.ending,null);assert.equal(migrated.previousEnding.title,'previous candidate');assert.equal(migrated.cash,s.cash);
 });
 test('signing does not recognize future profits before delivery',()=>{
  const before=createTradeGame();const after=acceptAny(before,'long');assert.equal(netWorth(after),netWorth(before));
@@ -123,4 +123,109 @@ test('signing does not recognize future profits before delivery',()=>{
 
 test('earlier candidate estimated-profit ending is retained but not counted before realization',()=>{
  const s=createTradeGame();s.ruleset=2;s.ending={week:1,title:'earlier',orders:9,netWorth:63659};s.customers['europe-flagship']={name:'test',market:'europe',orders:1,revenue:100,qualified:true};const n=parseTradeSave(s);assert.equal(n.ending,null);assert.equal(n.previousEnding.title,'earlier');assert.equal(n.customers['europe-flagship'].qualified,true);
+});
+
+// Produce the legacy weekly serialization (all financial fields unchanged).
+function weeklyFormat(s){
+ const old=copy(s);old.ruleset=3;delete old.day;
+ const undate=x=>{delete x.day;return x;};
+ const oldOffer=o=>{delete o.deadlineDays;delete o.payLagDays;delete o.expiresDay;return o;};
+ old.offers=old.offers.map(oldOffer);
+ for(const o of old.active){oldOffer(o.offer);for(const k of ['acceptedDay','shipDay','deliveryDay','dueDay','settlementDay','days','productionDays','payLagDays','lateDays'])delete o[k];o.steps=o.steps.map(undate);}
+ for(const r of old.receivables)delete r.dueDay;
+ for(const k of ['history','priceHistory','log'])old[k]=old[k].map(undate);
+ if(old.ending)undate(old.ending);if(old.previousEnding)undate(old.previousEnding);return old;
+}
+const days=(s,n)=>{for(let i=0;i<n;i++){const r=reduceTrade(s,{type:'NEXT_DAY'});assert.equal(r.advancedDays,1,r.message);s=r.state;}return s;};
+test('daily calendar is real: one click is one day, weekly bills and market updates happen once',()=>{
+ const s=createTradeGame();assert.equal(s.day,1);assert.equal(s.ruleset,4);
+ const r=reduceTrade(s,{type:'NEXT_DAY'});assert.equal(r.state.day,2);assert.equal(r.state.week,1);assert.equal(r.state.cash,18000);assert.equal(r.advancedDays,1);
+ const before=days(s,6);assert.equal(before.day,7);assert.equal(before.cash,18000);assert.deepEqual(before.prices,s.prices);
+ const after=reduceTrade(before,{type:'NEXT_DAY'});assert.equal(after.state.day,8);assert.equal(after.state.week,2);assert.equal(after.state.cash,17880);assert.equal(after.expiredOffers,3);assert.match(after.message,/3笔普通询盘/);
+ assert.deepEqual(parseTradeSave(after.state),after.state);
+});
+test('new midweek orders retain full durations instead of stealing days at the next weekly tick',()=>{
+ let s=days(createTradeGame(),3);const q=quoteOrder(s,s.offers[1].id,{markup:-10});assert.equal(s.day,4);assert.equal(q.productionDays,14);assert.equal(q.days,28);assert.equal(q.payLagDays,28);assert.equal(q.settlementDay,60);
+ s=go(s,{type:'ACCEPT',offerId:s.offers[1].id,markup:-10});assert.equal(s.active.length,1);const o=s.active[0];assert.equal(o.shipDay,18);assert.equal(o.deliveryDay,32);assert.equal(o.dueDay,60);
+ s=days(s,13);assert.equal(s.day,17);assert.equal(s.active[0].paidShipping,false);s=days(s,1);assert.equal(s.active[0].paidShipping,true);
+ s=days(s,13);assert.equal(s.day,31);assert.equal(s.metrics.orders,0);s=days(s,1);assert.equal(s.metrics.orders,1);assert.equal(s.receivables[0].dueDay,60);
+ assert.deepEqual(parseTradeSave(s),s);
+});
+test('daily forecast captures midweek shipment low and reconciles every day with actual cash',()=>{
+ let s=days(createTradeGame(),3);s=go(s,{type:'ACCEPT',offerId:s.offers[1].id,markup:-10});const f=forecastCash(s);
+ assert.equal(f.points.length,43);assert.equal(f.horizonDays,42);const shipment=f.points.find(p=>p.day===18);assert.equal(shipment.outflow,s.active[0].balance+s.active[0].freight,'midweek is not a weekly billing day');
+ for(const p of f.points.slice(1)){s=days(s,1);assert.equal(s.cash,p.cash,`cash day ${p.day}`);}
+});
+test('weekly save migration maps dates exactly and never scales money or rerolls offer IDs',()=>{
+ let s=acceptAny(createTradeGame(),'long');s=days(s,14);const legacy=weeklyFormat(s),original=JSON.stringify(legacy);const migrated=parseTradeSave(legacy);
+ assert.equal(JSON.stringify(legacy),original,'input object remains untouched');assert.equal(migrated.day,15);assert.equal(migrated.week,3);
+ assert.equal(migrated.active[0].acceptedDay,1);assert.equal(migrated.active[0].shipDay,15);assert.equal(migrated.active[0].deliveryDay,29);assert.equal(migrated.active[0].dueDay,57);assert.equal(migrated.active[0].paidShipping,true);
+ for(const k of ['cash','debt','metrics','prices','customers','upgrades'])assert.deepEqual(migrated[k],legacy[k]);
+ assert.deepEqual(migrated.offers.map(o=>o.id),legacy.offers.map(o=>o.id));assert.equal(migrated.offers[0].expiresDay,21);
+ assert.deepEqual(parseTradeSave(migrated),migrated,'migration is idempotent');
+ const after=days(migrated,1);assert.equal(after.cash,migrated.cash,'already paid shipping is not charged again');
+});
+test('legacy receivables keep exact value and absolute due date, then pay once',()=>{
+ let s=acceptAny(createTradeGame(),'long');s=days(s,28);const legacy=weeklyFormat(s);assert.equal(legacy.week,5);assert.equal(legacy.receivables.length,1);
+ s=parseTradeSave(legacy);assert.equal(s.day,29);const r=s.receivables[0];assert.equal(r.dueDay,57);assert.equal(r.amount,legacy.receivables[0].amount);
+ s=days(s,27);assert.equal(s.receivables.length,1);const before=s.cash;s=days(s,1);assert.equal(s.cash,before+r.amount-weeklyCost(s));assert.equal(s.receivables.length,0);const paid=s.cash;s=days(s,1);assert.equal(s.cash,paid);
+});
+test('quick 3/7 day advancement settles identically to individual days when no important stop exists',()=>{
+ const s=acceptAny(createTradeGame(),'quick');const fast=reduceTrade(s,{type:'ADVANCE_DAYS',days:7});const slow=days(s,7);assert.equal(fast.advancedDays,7);assert.equal(fast.pause,null);assert.deepEqual(fast.state,slow);
+ const a=reduceTrade(fast.state,{type:'ADVANCE_DAYS',days:3});assert.equal(a.advancedDays,3);assert.deepEqual(a.state,days(slow,3));
+});
+function flagshipState(){let s=createTradeGame();s.metrics.orders=8;s.reputation=16;s.cash=100000;return reduceTrade(s,{type:'ADVANCE_DAYS',days:7});}
+test('flagship arrival pauses only once at arrival day and expiry requires explicit current offer acknowledgement',()=>{
+ const appeared=flagshipState();assert.equal(appeared.state.day,8);assert.equal(appeared.pause.code,'flagship_available');assert.equal(appeared.advancedDays,7);
+ const following=reduceTrade(appeared.state,{type:'NEXT_DAY'});assert.equal(following.advancedDays,1);assert.equal(following.pause,null);
+ const expiry=reduceTrade(following.state,{type:'ADVANCE_DAYS',days:7});assert.equal(expiry.state.day,14);assert.equal(expiry.advancedDays,5);assert.equal(expiry.pause.code,'offers_expiring');assert.equal(expiry.remainingDays,2);
+ const again=reduceTrade(expiry.state,{type:'NEXT_DAY'});assert.equal(again.changed,false);assert.equal(again.advancedDays,0);assert.deepEqual(again.state,expiry.state);
+ const denied=reduceTrade(expiry.state,{type:'NEXT_DAY',allowExpireOfferIds:['w1-flagship']});assert.equal(denied.advancedDays,0,'stale approval cannot dismiss a different opportunity');
+ const acknowledged=reduceTrade(expiry.state,{type:'ADVANCE_DAYS',days:2,allowExpireOfferIds:expiry.pause.offerIds});assert.equal(acknowledged.state.day,15);assert.equal(acknowledged.advancedDays,1);assert.equal(acknowledged.pause.code,'flagship_available');
+});
+test('cash shortfall pauses BEFORE settlement and exact-day permission cannot authorize another gap',()=>{
+ let s=createTradeGame();s.cash=0;const r=reduceTrade(s,{type:'ADVANCE_DAYS',days:7});assert.equal(r.state.day,7);assert.equal(r.advancedDays,6);assert.equal(r.pause.code,'funding_gap');assert.equal(r.pause.day,8);assert.equal(r.pause.shortfall,120);assert.equal(r.state.debt,0);
+ const denied=reduceTrade(r.state,{type:'NEXT_DAY',allowFundingDay:7});assert.equal(denied.advancedDays,0);assert.equal(denied.state.day,7);
+ const ok=reduceTrade(r.state,{type:'NEXT_DAY',allowFundingDay:8});assert.equal(ok.state.day,8);assert.equal(ok.state.cash,0);assert.equal(ok.state.debt,120);
+ const once=days(ok.state,1);assert.equal(once.debt,120,'same day cost cannot replay');
+ const other=reduceTrade(once,{type:'ADVANCE_DAYS',days:7,allowFundingDay:8});assert.equal(other.pause.code,'funding_gap');assert.equal(other.pause.day,15);assert.equal(other.state.day,14);
+});
+test('ordinary receipts do not interrupt fast advancement, but new market and ending events do',()=>{
+ let s=acceptAny(createTradeGame(),'quick');s=days(s,27);const r=reduceTrade(s,{type:'ADVANCE_DAYS',days:3});assert.equal(r.advancedDays,3);assert.equal(r.pause,null);assert.equal(r.state.metrics.orders,1);assert.equal(r.state.receivables.length,0);
+ s=acceptAny(createTradeGame(),'quick');s.metrics.orders=2;s=days(s,27);const unlocked=reduceTrade(s,{type:'ADVANCE_DAYS',days:7});assert.equal(unlocked.advancedDays,1);assert.equal(unlocked.pause.code,'market_unlocked');assert.equal(unlocked.state.day,29);
+ const resumed=reduceTrade(unlocked.state,{type:'NEXT_DAY'});assert.equal(resumed.advancedDays,1);assert.equal(resumed.pause,null);
+ s=createTradeGame();s.cash=61000;s.customers={'asia-quick':{orders:1,revenue:1,market:'asia',name:'A'},'middle-quick':{orders:1,revenue:1,market:'middle',name:'B'},'europe-flagship':{orders:1,revenue:1,market:'europe',name:'C',qualified:true}};
+ const won=reduceTrade(s,{type:'ADVANCE_DAYS',days:7});assert.equal(won.advancedDays,1);assert.equal(won.pause.code,'ending');assert.equal(won.state.ending.day,2);assert.equal(reduceTrade(won.state,{type:'NEXT_DAY'}).pause,null);
+});
+test('daily broker limit resets only at a weekly boundary, no sevenfold income exploit',()=>{
+ let s=go(createTradeGame(),{type:'BROKER'});const income=s.cash;for(let i=0;i<6;i++){s=days(s,1);const r=reduceTrade(s,{type:'BROKER'});assert.equal(r.changed,false);assert.equal(s.cash,income);}
+ s=days(s,1);assert.equal(s.week,2);const r=reduceTrade(s,{type:'BROKER'});assert.equal(r.changed,true);assert.equal(r.state.metrics.brokered,2);
+});
+test('daily save rejects inconsistent alias dates and malformed paused advancement inputs',()=>{
+ const s=acceptAny(createTradeGame(),'long');for(const mutate of [x=>x.day=NaN,x=>x.day=8,x=>x.active[0].shipDay--,x=>x.active[0].dueDay--,x=>x.active[0].paidShipping=true,x=>x.offers[0].expiresDay=3,x=>x.active[0].steps[1].day--]){const bad=copy(s);mutate(bad);assert.throws(()=>parseTradeSave(bad));}
+ for(const n of [0,8,-1,2.5,NaN,Infinity,'7']){const r=reduceTrade(s,{type:'ADVANCE_DAYS',days:n});assert.equal(r.changed,false);assert.deepEqual(r.state,s);}
+ assert.equal(dayToWeek(1),1);assert.equal(dayToWeek(7),1);assert.equal(dayToWeek(8),2);assert.equal(weekToDay(2),8);assert.equal(MAX_DAY,3640);
+});
+test('advance notice aggregates all committed days instead of reporting only the last day',()=>{
+ let s=acceptAny(createTradeGame(),'quick');const o=copy(s.active[0]);s=days(s,27);
+ const r=reduceTrade(s,{type:'ADVANCE_DAYS',days:3});
+ assert.equal(r.advancedDays,3);assert.match(r.message,/已推进3\/3天/);assert.doesNotMatch(r.message,/已推进1天/);
+ assert.equal(r.summary.deliveries,1);assert.equal(r.summary.profit,o.profit);assert.equal(r.summary.receipts,o.revenue-o.deposit-o.penalty);
+ assert.match(r.message,/实际回款/);assert.match(r.message,/确认利润/);
+ assert.equal(r.state.cash-s.cash,r.summary.receipts-r.summary.payments-r.summary.operating);
+ const quiet=reduceTrade(createTradeGame(),{type:'ADVANCE_DAYS',days:3});
+ assert.equal(quiet.message,'已推进3/3天，当前第4天。');
+});
+test('advance summary includes shipment and later receivable, excludes an uncommitted funding day',()=>{
+ let s=acceptAny(createTradeGame(),'long');const o=copy(s.active[0]);s=days(s,13);
+ let r=reduceTrade(s,{type:'ADVANCE_DAYS',days:7});assert.equal(r.summary.payments,o.balance+o.freight);assert.match(r.message,/支付采购尾款及运费/);
+ s=days(r.state,35);assert.equal(s.day,56);r=reduceTrade(s,{type:'ADVANCE_DAYS',days:3});
+ assert.equal(r.summary.receipts,o.revenue-o.deposit-o.penalty);assert.equal(r.summary.deliveries,0);assert.match(r.message,/实际回款/);
+ assert.equal(r.state.cash-s.cash,r.summary.receipts-r.summary.payments-r.summary.operating);
+ s=createTradeGame();s.cash=0;r=reduceTrade(s,{type:'ADVANCE_DAYS',days:7});
+ assert.equal(r.advancedDays,6);assert.equal(r.summary.operating,0);assert.equal(r.pause.code,'funding_gap');
+});
+test('signing step labels the net cash flow, not the gross customer deposit',()=>{
+ const s=createTradeGame();
+ for(const offer of s.offers){const q=quoteOrder(s,offer.id);assert.equal(q.steps[0].label,'签约净收付');assert.equal(q.steps[0].amount,q.deposit-q.procurement);}
 });
