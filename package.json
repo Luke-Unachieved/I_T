@@ -8,9 +8,10 @@
     "start": "node scripts/serve.mjs",
     "build": "node scripts/build-standalone.mjs",
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check src/visuals.js && node --check scripts/art-files.mjs && node --check scripts/build-standalone.mjs && node --check src/icons.js && node --check src/weekend-scenes.js && node --check src/album.js && node --check src/career-branches.js && node --check src/work-branches.js && node --check src/memory-titles.js && node --check src/calendar.js && node --check src/people-expansion.js && node --check src/engine.js && node --check src/app.js && node --check src/story.js && node --check src/relationships.js && node --check src/sound.js && node --check src/negotiation.js && node --check src/delivery-stories.js && node --check src/epilogue.js && node --check src/dialogue.js && node --check scripts/serve.mjs && npm test",
+    "check": "node --check src/trade-app.js && node --check src/trade-economy.js && node --check scripts/build-data.mjs && node --check src/visuals.js && node --check scripts/art-files.mjs && node --check scripts/build-standalone.mjs && node --check src/icons.js && node --check src/weekend-scenes.js && node --check src/album.js && node --check src/career-branches.js && node --check src/work-branches.js && node --check src/memory-titles.js && node --check src/calendar.js && node --check src/people-expansion.js && node --check src/engine.js && node --check src/app.js && node --check src/story.js && node --check src/relationships.js && node --check src/sound.js && node --check src/negotiation.js && node --check src/delivery-stories.js && node --check src/epilogue.js && node --check src/dialogue.js && node --check scripts/serve.mjs && npm test",
     "dev": "node scripts/serve.mjs",
-    "check:release-art": "node scripts/check-release-assets.mjs"
+    "check:release-art": "node scripts/check-release-assets.mjs",
+    "build:data": "node scripts/build-standalone.mjs && node scripts/build-data.mjs"
   },
   "engines": {
     "node": ">=20"
