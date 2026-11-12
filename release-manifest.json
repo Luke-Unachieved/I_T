@@ -1,0 +1,13 @@
+{
+  "version": "2.0.0",
+  "mode": "data-trade-v2",
+  "title": "外贸达人养成记",
+  "legacy": "classic.html",
+  "saveKey": "trade-tycoon:data:v2",
+  "legacySaveKeys": [
+    "trade-tycoon:v1",
+    "trade-tycoon:standalone:v1"
+  ],
+  "sha256": "8e409582dac186cc9e016a8b07a896edbf1230cfc8ddaac3e23d47c141823032",
+  "bytes": 63214
+}
