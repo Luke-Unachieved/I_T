@@ -119,7 +119,8 @@ export function deliveryStory(input={}){
  let inspection='';
  if(checked)inspection='实物和核查记录对得上，这份仔细我看到了。';
  else if(!flawed&&inspected&&input.factoryId==='value'&&input.qualityPoints>0)inspection='新厂这批出货前补了外观复核，先从试用看起。';
- return {title,customer:usage+inspection+customerPriority(input),team:teamEcho(input,index,checked)};
+ const priority=checked&&input.need==='quality'&&input.planPoints>=2?'':customerPriority(input);
+ return {title,customer:usage+inspection+priority,team:teamEcho(input,index,checked)};
 }
 
 

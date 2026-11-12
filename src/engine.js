@@ -103,7 +103,7 @@ export function reduce(input,action){
   const q=quote(s,action.id);
   if(s.stage==='founder'&&s.cash<q.reserve)return fail(`这家工厂需要垫资 ¥${q.reserve}。可以换账期方案，或先取消这笔询盘。`);
   s.active.factory=action.id;s.active.step='ship';s.active.reserve=s.stage==='founder'?q.reserve:0;
-  s.cash-=s.active.reserve;s.ap--;message=s.stage==='founder'?`样品确认，已垫资 ¥${q.reserve}。回款时会连同利润一起返回。`:'公司承担货款。样品已确认，接下来安排出运。';break;
+  s.cash-=s.active.reserve;s.ap--;message=(s.stage==='founder'?`已垫资 ¥${q.reserve}，回款时连同利润返回。`:'公司承担货款。')+(action.id==='value'?(s.stage==='founder'&&s.staff.includes('xia')?'已选新厂试做，质检同事会核查这批货；接下来安排出运。':'已选新厂试做，这批货的品质还待核查。下一步可选验货后出运，降低瑕疵风险。'):'样品已确认，接下来安排出运。');break;
  }
  case 'ship': {
   if(!available()||s.active?.step!=='ship'||!SHIPMENTS.some(t=>t.id===action.id))return fail('请先完成工厂安排。');
