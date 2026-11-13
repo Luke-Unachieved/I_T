@@ -26,6 +26,18 @@ export const UPGRADES = [
 export const MARKETS = [
   {id:'asia',name:'东南亚',needed:0}, {id:'middle',name:'中东',needed:3}, {id:'europe',name:'欧洲',needed:8},
 ];
+export const MANAGERS=[
+ {id:'chen',name:'陈卓',role:'渠道负责人',description:'负责市场的成交率 +5 个百分点',chance:5,freight:0,quality:0},
+ {id:'zhou',name:'周岚',role:'货运负责人',description:'负责市场的运费再降 8%',chance:0,freight:8,quality:0},
+ {id:'lin',name:'林远',role:'验货负责人',description:'负责市场的交付品质 +4',chance:0,freight:0,quality:4},
+];
+const emptyExpansion=()=>({warehouse:0,branches:{}});
+export const expansionCost=s=>8000*((s.expansion?.warehouse||0)+1);
+export const expansionWeekly=s=>(s.expansion?.warehouse||0)*100+Object.keys(s.expansion?.branches||{}).length*180;
+export function expansionBonus(s,market){
+ const branch=s.expansion?.branches?.[market],manager=MANAGERS.find(m=>m.id===branch?.manager);
+ return {warehouse:s.expansion?.warehouse||0,branch:!!branch,manager:manager||null,chance:(branch?3:0)+(manager?.chance||0),freight:manager?.freight||0,quality:manager?.quality||0};
+}
 export const PAYMENT_TERMS=[
  {id:'standard',name:'按原条件',priceAdjustment:0,depositChange:0,payLagChangeDays:0},
  {id:'cashflow',name:'让价换快回款',priceAdjustment:-4,depositChange:20,payLagChangeDays:-14},
@@ -59,8 +71,8 @@ const tailValue=(fx,rate)=>convertUsd(fx.tailUsdCents,fx.mode==='locked'?fx.lock
 const fxBounds=fx=>fx.mode==='locked'?[fx.estimatedTail,fx.estimatedTail]:[tailValue(fx,FX_MIN),tailValue(fx,FX_MAX)];
 
 const pricesAt=week=>Object.fromEntries(PRODUCTS.map((p,i)=>[p.id,round(p.base*(1+0.13*Math.sin(week*0.61+i*1.7)+0.07*Math.cos(week*0.27+i)))]));
-export const capacity=s=>2+s.upgrades.team;
-export const weeklyCost=s=>120+s.upgrades.team*120+s.upgrades.quality*60+s.upgrades.logistics*30+s.upgrades.sourcing*40+Math.ceil(s.debt*0.008);
+export const capacity=s=>2+s.upgrades.team+(s.expansion?.warehouse||0)+Object.keys(s.expansion?.branches||{}).length;
+export const weeklyCost=s=>120+s.upgrades.team*120+s.upgrades.quality*60+s.upgrades.logistics*30+s.upgrades.sourcing*40+Math.ceil(s.debt*0.008)+expansionWeekly(s);
 export const netWorth=s=>s.cash-s.debt+s.receivables.reduce((a,r)=>a+r.amount,0)+s.active.reduce((a,o)=>a+(o.paidShipping?o.cost+o.freight:o.procurement)-o.deposit,0);
 export const upgradeCost=(s,id)=>{const u=idOf(UPGRADES,id);return u?u.baseCost*(s.upgrades[id]+1):0;};
 export const unlockedMarkets=s=>MARKETS.filter((m,i)=>s.metrics.orders>=m.needed && (i<2||s.reputation>=8));
@@ -81,7 +93,7 @@ function offersFor(s){
  return offers.map(o=>({...o,deadlineDays:o.deadline*7,payLagDays:o.payLag*7,expiresDay:o.expires*7,currency:'USD',quoteRate:fxRateAt(s.week),usdUnitCents:round(o.price*1000000/fxRateAt(s.week))}));
 }
 export function createTradeGame(name='我的贸易公司'){
- const s={version:2,ruleset:5,day:1,name:String(name).trim().slice(0,24)||'我的贸易公司',week:1,cash:18000,debt:0,reputation:0,receivables:[],active:[],offers:[],history:[],prices:pricesAt(1),priceHistory:[],customers:{},upgrades:{team:0,quality:0,logistics:0,sourcing:0},metrics:{orders:0,revenue:0,profit:0,ontime:0,rejected:0,brokered:0},log:[],lastBrokerWeek:0,ending:null};
+ const s={version:2,ruleset:6,expansion:emptyExpansion(),day:1,name:String(name).trim().slice(0,24)||'我的贸易公司',week:1,cash:18000,debt:0,reputation:0,receivables:[],active:[],offers:[],history:[],prices:pricesAt(1),priceHistory:[],customers:{},upgrades:{team:0,quality:0,logistics:0,sourcing:0},metrics:{orders:0,revenue:0,profit:0,ontime:0,rejected:0,brokered:0},log:[],lastBrokerWeek:0,ending:null};
  s.offers=offersFor(s);s.priceHistory=[{day:1,week:1,...s.prices}];s.history=[{day:1,week:1,cash:s.cash,netWorth:netWorth(s),revenue:0,profit:0}];return s;
 }
 export function quoteOrder(s,offerId,options={}){
@@ -91,14 +103,16 @@ export function quoteOrder(s,offerId,options={}){
  const paymentTerms=paymentProposal(offer,options.paymentTerms??'standard');
  if(!paymentTerms)return {valid:false,reason:'此询盘不支持该付款提案'};
  const cost=round(offer.quantity*s.prices[offer.product]*supplier.cost/100*(1-s.upgrades.sourcing*0.05));
- const freight=round(offer.quantity*PRODUCTS.find(p=>p.id===offer.product).base*shipping.rate/100*(1-s.upgrades.logistics*0.15));
+ const expansion=expansionBonus(s,offer.market);
+ const baseFreight=round(offer.quantity*PRODUCTS.find(p=>p.id===offer.product).base*shipping.rate/100*(1-s.upgrades.logistics*0.15));
+ const freight=round(baseFreight*(1-expansion.warehouse*.05)*(1-expansion.freight/100));
  const usdCents=offer.currency==='USD'?contractUsd(offer,markup,paymentTerms):0;
  const signRate=fxRateAt(s.week),revenue=usdCents?convertUsd(usdCents,signRate):round(offer.quantity*offer.price*(1+markup/100));
  const deposit=round(revenue*paymentTerms.depositRate/100),procurement=round(cost*0.4),balance=cost-procurement;
- const weeks=supplier.weeks+shipping.weeks,quality=Math.min(100,supplier.quality+s.upgrades.quality*10);
+ const weeks=supplier.weeks+shipping.weeks,quality=Math.min(100,supplier.quality+s.upgrades.quality*10+expansion.quality);
  const late=Math.max(0,weeks-offer.deadline),shortfall=Math.max(0,offer.quality-quality);
  const penalty=round(revenue*Math.min(.25,late*.06+shortfall*.003));
- const chance=clamp(round(88-markup*2.3+paymentTerms.acceptanceAdjustment+Math.min(offer.repeat,5)*2+Math.min(s.reputation,20)*0.3-late*12-shortfall*.5),5,98);
+ const chance=clamp(round(88-markup*2.3+paymentTerms.acceptanceAdjustment+Math.min(offer.repeat,5)*2+Math.min(s.reputation,20)*0.3+expansion.chance-late*12-shortfall*.5),5,98);
  let fx=null;
  if(offer.currency==='USD'){
   const mode=options.fxMode??'locked';
@@ -115,7 +129,7 @@ export function quoteOrder(s,offerId,options={}){
  const days=supplier.days+shipping.days,productionDays=supplier.days,payLagDays=paymentTerms.payLagDays,lateDays=Math.max(0,days-offer.deadlineDays);
  const settlementDay=s.day+days+payLagDays,settlementWeek=dayToWeek(settlementDay);
  let reason='';if(penalty>revenue-deposit)reason='预计赔付超过未付尾款，请降低订金提案或改善品质与交期';else if(offer.expiresDay<s.day)reason='询盘已过期';else if(s.active.length>=capacity(s))reason='并行订单已满，交付后释放名额';else if(s.cash<cashRequired)reason=`还需垫资 ¥${cashRequired-s.cash}`;
- return {valid:!reason,reason,offer,fx,paymentTerms,supplier:supplier.id,shipping:shipping.id,markup,revenue,cost,freight,deposit,procurement,balance,profit,margin:round(profit/revenue*100),chance,weeks,days,productionDays,payLagDays,lateDays,payLag:payLagDays/7,capacity:1,quality,late,penalty,cashRequired,settlementWeek,settlementDay,steps:[{day:s.day,week:s.week,label:'签约净收付',amount:deposit-procurement-fee},{day:s.day+productionDays,week:dayToWeek(s.day+productionDays),label:'工厂尾款与出运',amount:-balance-freight},{day:settlementDay,week:settlementWeek,label:'客户尾款',amount:fx?fx.estimatedTail:revenue-deposit-penalty}],productionWeeks:supplier.weeks};
+ return {valid:!reason,reason,offer,expansion,freightSaving:baseFreight-freight,fx,paymentTerms,supplier:supplier.id,shipping:shipping.id,markup,revenue,cost,freight,deposit,procurement,balance,profit,margin:round(profit/revenue*100),chance,weeks,days,productionDays,payLagDays,lateDays,payLag:payLagDays/7,capacity:1,quality,late,penalty,cashRequired,settlementWeek,settlementDay,steps:[{day:s.day,week:s.week,label:'签约净收付',amount:deposit-procurement-fee},{day:s.day+productionDays,week:dayToWeek(s.day+productionDays),label:'工厂尾款与出运',amount:-balance-freight},{day:settlementDay,week:settlementWeek,label:'客户尾款',amount:fx?fx.estimatedTail:revenue-deposit-penalty}],productionWeeks:supplier.weeks};
 }
 function projected(s,quote){
  const events=[];
@@ -210,6 +224,36 @@ export function reduceTrade(state,action){
   const message=`已推进${advancedDays}/${requestedDays}天，当前第${current.day}天。${details.length?details.join('；')+'。':''}${pause?pause.message:''}${expiredOffers?` ${expiredOffers}笔普通询盘已到期，询盘板已按周期更新。`:""}`;
   return result(advancedDays?current:state,message,advancedDays>0,{advancedDays,requestedDays,remainingDays:requestedDays-advancedDays,expiredOffers,summary,pause});
  }
+ if(['EXPAND_WAREHOUSE','OPEN_BRANCH','APPOINT','DISMISS'].includes(action.type)){
+  s.expansion=s.expansion||emptyExpansion();let cost=0,message='';
+  if(action.type==='EXPAND_WAREHOUSE'){
+   if(s.expansion.warehouse>=2)return result(state,'集货仓已扩建到上限');
+   cost=expansionCost(s);s.expansion.warehouse++;message=`出口集货仓扩至 ${s.expansion.warehouse} 级`;
+  }else{
+   const market=idOf(MARKETS,action.market);if(!market||(action.type==='OPEN_BRANCH'&&!unlockedMarkets(s).some(m=>m.id===market.id)))return result(state,'先完成交付，打开该市场');
+   if(action.type==='OPEN_BRANCH'){
+    if(s.expansion.branches[market.id])return result(state,'该市场已有子公司');
+    cost=16000;s.expansion.branches[market.id]={manager:null,appointedDay:0};message=`${market.name}子公司成立，并行名额 +1`;
+   }else{
+    const branch=s.expansion.branches[market.id],manager=idOf(MANAGERS,action.manager);
+    if(action.type==='DISMISS'){
+     if(!branch?.manager)return result(state,'该子公司尚未任命负责人');
+     if(s.day<branch.appointedDay+7)return result(state,'任命满 7 天后才能调任');
+     if(s.cash<600)return result(state,'现金不足');s.cash-=600;branch.manager=null;branch.appointedDay=0;
+     if(forecastCash(s).stressMinimum<0)return result(state,'请先留足已有合同的周转金');
+     log(s,`${market.name}子公司负责人已卸任，交接支出 ¥600。`);return result(s,'负责人已卸任，可调往其他子公司',true);
+    }
+    if(!branch||!manager)return result(state,'请先设立子公司，再选择负责人');
+    if(branch.manager===manager.id)return result(state,'该负责人已在任');
+    if(Object.values(s.expansion.branches).some(b=>b.manager===manager.id))return result(state,'这位负责人已在其他子公司任职');
+    if(branch.manager&&s.day<branch.appointedDay+7)return result(state,'任命满 7 天后才能调任');
+    cost=branch.manager?600:0;branch.manager=manager.id;branch.appointedDay=s.day;message=`${manager.name}已任${market.name}子公司负责人`;
+   }
+  }
+  if(s.cash<cost)return result(state,'现金不足，先等订单回款');s.cash-=cost;
+  if(forecastCash(s).stressMinimum<0)return result(state,'扩张后已有合同可能资金不足，先留足周转金');
+  log(s,`${message}，投入 ¥${cost}。`,'success');return result(s,message,true);
+ }
  if(action.type==='UPGRADE'){
   const u=idOf(UPGRADES,action.id);if(!u)return result(state,'没有这项建设');if(s.upgrades[u.id]>=u.max)return result(state,'已满级');const cost=upgradeCost(s,u.id);
   if(s.cash<cost)return result(state,'现金不足');s.cash-=cost;s.upgrades[u.id]++;
@@ -247,9 +291,17 @@ export function parseTradeSave(raw){
  const text=(v,max=80)=>typeof v==='string'&&v.length<=max;
  const fail=()=>{throw new Error('经营存档数据无效或版本不兼容，原存档未改动');};
  if(!s||s.version!==2||!text(s.name,24)||!integer(s.week,1,520)||!integer(s.cash)||!integer(s.debt)||!integer(s.reputation,0,100))fail();
- const daily=s.ruleset===4||s.ruleset===5;
- if(![undefined,2,3,4,5].includes(s.ruleset))fail();
+ const daily=[4,5,6].includes(s.ruleset);
+ if(![undefined,2,3,4,5,6].includes(s.ruleset))fail();
  if(daily&&(!integer(s.day,1,MAX_DAY)||s.week!==dayToWeek(s.day)))fail();
+ if(s.ruleset!==6&&s.expansion===undefined)s.expansion=emptyExpansion();
+ const ex=s.expansion;
+ if(!ex||!integer(ex.warehouse,0,2)||!ex.branches||typeof ex.branches!=='object'||Array.isArray(ex.branches)||Object.keys(ex.branches).length>3)fail();
+ const assigned=[];
+ for(const [market,b] of Object.entries(ex.branches)){
+  if(!s.metrics||!idOf(MARKETS,market)||!b||typeof b!=='object'||!(b.manager===null||idOf(MANAGERS,b.manager))||!integer(b.appointedDay,0,s.day??weekToDay(s.week))||(b.manager===null?b.appointedDay!==0:b.appointedDay<1))fail();
+  if(b.manager){if(assigned.includes(b.manager))fail();assigned.push(b.manager);}
+ }
  for(const key of ['receivables','active','offers','history','priceHistory','log'])if(!Array.isArray(s[key])||s[key].length>600)fail();
  for(const u of UPGRADES)if(!integer(s.upgrades?.[u.id],0,u.max))fail();
  for(const k of ['orders','revenue','profit','ontime','rejected','brokered'])if(!integer(s.metrics?.[k],k==='profit'?-1000000000:0))fail();
@@ -301,5 +353,5 @@ export function parseTradeSave(raw){
  if(s.ending===undefined)fail();
  if(s.ruleset===undefined||s.ruleset===2){if(s.ending&&(!s.customers['europe-flagship']?.qualified||netWorth(s)<60000)){s.previousEnding=s.ending;s.ending=null;}}
  if(!daily){s=migrateCalendar(s);return parseTradeSave(s);}
- s.ruleset=5;return s;
+ s.ruleset=6;return s;
 }

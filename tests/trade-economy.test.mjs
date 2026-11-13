@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createTradeGame as createFxGame,fxRateAt,FX_MIN,FX_MAX,reduceTrade,quoteOrder,forecastCash,parseTradeSave,PRODUCTS,SUPPLIERS,SHIPPING,capacity,netWorth,weeklyCost,dayToWeek,weekToDay,MAX_DAY} from '../src/trade-economy.js';
 // Legacy RMB fixture: existing board has no currency metadata; future boards still use new USD rules.
-const createTradeGame=(name)=>{const s=createFxGame(name);s.ruleset=5;for(const o of s.offers){delete o.currency;delete o.quoteRate;delete o.usdUnitCents;}return s;};
+const createTradeGame=(name)=>{const s=createFxGame(name);s.ruleset=6;for(const o of s.offers){delete o.currency;delete o.quoteRate;delete o.usdUnitCents;}return s;};
 const go=(s,a)=>reduceTrade(s,a).state;
 const copy=s=>JSON.parse(JSON.stringify(s));
 function acceptAny(s,kind='quick',options={}){
@@ -114,7 +114,7 @@ test('flagship is unlocked after normal markets and needs capable production to 
 });
 test('unpublished first-candidate achievement is retained while new final challenge stays open',()=>{
  const s=createTradeGame();delete s.ruleset;s.ending={week:1,title:'previous candidate',orders:16,netWorth:60000};
- const migrated=parseTradeSave(s);assert.equal(migrated.ruleset,5);assert.equal(migrated.ending,null);assert.equal(migrated.previousEnding.title,'previous candidate');assert.equal(migrated.cash,s.cash);
+ const migrated=parseTradeSave(s);assert.equal(migrated.ruleset,6);assert.equal(migrated.ending,null);assert.equal(migrated.previousEnding.title,'previous candidate');assert.equal(migrated.cash,s.cash);
 });
 test('signing does not recognize future profits before delivery',()=>{
  const before=createTradeGame();const after=acceptAny(before,'long');assert.equal(netWorth(after),netWorth(before));
@@ -140,7 +140,7 @@ function weeklyFormat(s){
 }
 const days=(s,n)=>{for(let i=0;i<n;i++){const r=reduceTrade(s,{type:'NEXT_DAY'});assert.equal(r.advancedDays,1,r.message);s=r.state;}return s;};
 test('daily calendar is real: one click is one day, weekly bills and market updates happen once',()=>{
- const s=createTradeGame();assert.equal(s.day,1);assert.equal(s.ruleset,5);
+ const s=createTradeGame();assert.equal(s.day,1);assert.equal(s.ruleset,6);
  const r=reduceTrade(s,{type:'NEXT_DAY'});assert.equal(r.state.day,2);assert.equal(r.state.week,1);assert.equal(r.state.cash,18000);assert.equal(r.advancedDays,1);
  const before=days(s,6);assert.equal(before.day,7);assert.equal(before.cash,18000);assert.deepEqual(before.prices,s.prices);
  const after=reduceTrade(before,{type:'NEXT_DAY'});assert.equal(after.state.day,8);assert.equal(after.state.week,2);assert.equal(after.state.cash,17880);assert.equal(after.expiredOffers,3);assert.match(after.message,/3笔普通询盘/);
@@ -234,7 +234,7 @@ test('signing step labels the net cash flow, not the gross customer deposit',()=
 
 // USD contracts: separate from unchanged legacy RMB fixture regressions above.
 test('new inquiries are explicit USD; old board stays RMB until the next weekly refresh',()=>{
- const fresh=createFxGame();assert.equal(fresh.ruleset,5);
+ const fresh=createFxGame();assert.equal(fresh.ruleset,6);
  for(const o of fresh.offers){assert.equal(o.currency,'USD');assert.equal(o.quoteRate,fxRateAt(1));assert.ok(o.usdUnitCents>0);}
  const old=parseTradeSave(createTradeGame());assert.equal(quoteOrder(old,old.offers[0].id).fx,null);
  const refreshed=reduceTrade(old,{type:'ADVANCE_DAYS',days:7}).state;
@@ -324,7 +324,7 @@ test('ruleset4 migrates without repricing old active contracts or receivables',(
   let s=acceptAny(createTradeGame(),'long');
   if(phase==='receivable')s=days(s,s.active[0].deliveryDay-s.day);
   s.ruleset=4;const original=copy(s),m=parseTradeSave(s);
-  assert.equal(m.ruleset,5);assert.equal(m.day,s.day);
+  assert.equal(m.ruleset,6);assert.equal(m.day,s.day);
   for(const key of ['cash','debt','metrics','active','receivables','offers','ending'])assert.deepEqual(m[key],original[key]);
   assert.deepEqual(s,original);assert.deepEqual(parseTradeSave(m),m);
  }
