@@ -108,3 +108,5 @@ npm run check # 先 build：部分验收读取构建产物
 
 ### 生意之外
 「公司」页底部可展开房车与自愿关系，默认不占经营主屏。免费散步与晚餐同样增进了解，不需要花钱刷关系；私人消费不会增加公司净值，且会预留合同与运营资金。规则7自动兼容旧经营档。336项检查与明确区分的UI/脚本结果见 [生活与平衡验收](docs/rework/LIFE_AND_BALANCE_QA.md)。
+
+窄屏与全程验收记录：[`FULL_UI_ACCEPTANCE.md`](docs/rework/FULL_UI_ACCEPTANCE.md)，含真实正常存档通关、可选房车/关系、刷新保持及320/390px布局检查（非iPhone真机）。

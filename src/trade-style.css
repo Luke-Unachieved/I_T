@@ -53,3 +53,9 @@ dialog{border-radius:5px;border-top:4px solid #d16a32;box-shadow:0 24px 100px #0
 
 /* Optional life stays tucked away from the trading loop. */
 .life-panel{margin-top:16px}.life-panel summary{cursor:pointer;list-style:none;flex-wrap:wrap}.life-panel summary h2{display:inline;margin:0}.life-panel summary::after{content:'＋';margin-left:auto}.life-panel details[open] summary::after{content:'−'}.life-owned{display:flex;gap:12px;flex-wrap:wrap;font-weight:700}.life-choice{border:1px solid var(--line);padding:14px}.life-choice h3{margin:0 0 8px}.life-memory{border-left:3px solid var(--orange);padding:10px 12px;background:#f6f0e6;font-family:var(--serif);line-height:1.8}.life-panel .save-tools{flex-wrap:wrap}
+
+/* Keep narrow-screen grids from inheriting table/select min-content widths. */
+.grid > *{min-width:0}
+@media(max-width:1100px){.grid{grid-template-columns:minmax(0,1fr)}}
+.customer-card{grid-template-columns:minmax(0,1fr) auto auto}
+@media(max-width:700px){.customer-card{grid-template-columns:minmax(0,1fr) auto}.customer-card>div:first-child{grid-column:1/-1}.customer-card>.pill{justify-self:end}}
