@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#153c39"><meta name="description" content="看行情、接订单、控账期，把第一笔生意做成全球航线。"><title>外贸不靠外貌</title><link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTgiIGZpbGw9IiMyNDVkNTgiLz48cGF0aCBkPSJNMTQgNDFoMzZsLTcgMTBIMjF6TTMwIDEydjI2SDE2em00IDUgMTUgMjFIMzR6IiBmaWxsPSIjZjllMmI2Ii8+PC9zdmc+Cg==" type="image/svg+xml"><style>:root{--paper:#f5f3ec;--panel:#fffef9;--ink:#193c39;--muted:#737e76;--line:#dedfd4;--green:#1c6a55;--orange:#b7532a;--red:#ad3e35;--lime:#d9e89b;--serif:Georgia,'Songti SC','STSong',serif;font-family:Inter,'PingFang SC','Microsoft YaHei',sans-serif;font-synthesis:none;color:var(--ink);background:var(--paper);font-size:14px}*{box-sizing:border-box}body{margin:0}button,input,select{font:inherit}button,a,input,select{touch-action:manipulation}button,a{ -webkit-tap-highlight-color:transparent}button{cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:7px;padding:10px 14px;font-weight:650}button:hover{border-color:var(--green);background:#eef3e5}button:disabled{opacity:.45;cursor:not-allowed}button:focus-visible,a:focus-visible{outline:3px solid #e49c55;outline-offset:3px}a{color:inherit}button.primary{background:var(--ink);color:white;border-color:var(--ink)}button.primary:hover{background:var(--green)}button.accent{background:var(--lime);border-color:var(--lime)}button.small{font-size:12px;padding:7px 10px}.shell{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:100dvh}.sidebar{position:sticky;top:0;height:100dvh;background:var(--ink);color:#e6e8dc;padding:32px 22px;display:flex;flex-direction:column;gap:28px}.brand{font-family:var(--serif);font-size:23px;font-weight:800;line-height:1.45;letter-spacing:2px}.brand small{font:10px sans-serif;display:block;letter-spacing:4px;color:#b9c6b3;margin-top:12px}.sidebar nav{display:grid;gap:8px}.sidebar nav button{background:none;color:#b9cac1;border-color:transparent;text-align:left;padding:13px;font-size:14px}.sidebar nav button.active{background:#31534a;color:white;border-color:#46665a}.sidebar nav span{display:inline-block;width:30px;font-weight:400;color:#8da99a}.sidebar .foot{margin-top:auto;display:grid;gap:12px;font-size:11px;color:#b3c4b8}.sidebar .foot a{text-decoration:none}.company-stamp{border-top:1px solid #426057;border-bottom:1px solid #426057;padding:15px 0;line-height:1.8}.company-stamp strong{display:block;color:white;font-size:16px}.workspace{padding:28px 36px 36px;max-width:1600px;width:100%;margin:auto}.topbar{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:22px}.eyebrow{font-size:10px;font-weight:750;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}h1{font:700 30px var(--serif);margin:6px 0}h2{font-size:16px;margin:0}h3{font-size:14px;margin:0}.top-actions{display:flex;align-items:center;gap:10px}.week{font-variant-numeric:tabular-nums;font-size:14px}.week b{font-size:23px}.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:18px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}.kpi{padding:17px 20px;border-right:1px solid var(--line)}.kpi:last-child{border:0}.kpi label{font-size:12px;color:var(--muted);display:block}.kpi strong{display:block;font-size:25px;letter-spacing:-1px;font-variant-numeric:tabular-nums;margin:7px 0}.kpi small{font-size:11px;color:var(--muted)}.positive{color:var(--green)}.negative{color:var(--red)}.grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(270px,1fr);gap:18px}.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:18px}.panel-head{display:flex;align-items:center;justify-content:space-between;padding:17px 19px;border-bottom:1px solid var(--line);gap:12px}.panel-head small{font-size:11px;color:var(--muted)}.panel-body{padding:18px}.chart{width:100%;height:110px;display:block;overflow:visible}.chart text{font:10px sans-serif;fill:var(--muted)}.chart .line{fill:none;stroke:var(--green);stroke-width:2.5;stroke-linejoin:round}.chart .area{fill:#e5eddc}.chart .axis{stroke:#e3e5da;stroke-width:1}.chart .zero{stroke:var(--red);stroke-dasharray:3 3}.chart-caption{display:flex;justify-content:space-between;align-items:center;gap:12px;color:var(--muted);font-size:11px;margin-top:9px}.pill{font-size:10px;background:#e9efdf;color:var(--green);border:1px solid #dce6cc;border-radius:4px;padding:3px 6px;white-space:nowrap}.pill.warm{background:#f8e6d9;color:var(--orange);border-color:#f1d7c5}.offer{display:grid;grid-template-columns:minmax(0,1fr) 90px 90px 74px;align-items:center;gap:12px;padding:15px 19px;border-bottom:1px solid var(--line)}.offer:last-child{border-bottom:0}.offer .name{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.offer .sub{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.6}.offer .number{font-variant-numeric:tabular-nums}.offer .number small{font-size:10px;color:var(--muted);display:block;margin-top:5px}.empty{padding:25px 19px;color:var(--muted);line-height:1.7;font-size:13px}.route-map{position:relative;background:#edf1e4;padding:12px 18px;overflow:hidden}.route-map svg{height:95px;display:block;width:100%}.route-map .route{stroke:#94ae92;stroke-dasharray:4 4;fill:none;stroke-width:1.5}.route-map text{font-size:10px;fill:#3b5d4b}.goal{padding:16px 19px;display:grid;gap:10px}.goal small{font-size:11px;color:var(--muted)}.progress{height:6px;background:#eceee3;border-radius:5px;overflow:hidden}.progress i{display:block;height:100%;background:var(--green);max-width:100%;transition:width .35s}.goal-title{display:flex;justify-content:space-between;gap:10px;font-size:12px}.compact-list{list-style:none;padding:0;margin:0}.compact-list li{border-top:1px solid var(--line);padding:12px 19px;line-height:1.6;font-size:12px}.compact-list li:first-child{border:0}.compact-list small{color:var(--muted);font-size:10px;margin-right:8px}.order-card{padding:15px 19px;border-top:1px solid var(--line)}.order-card:first-child{border:0}.order-card .row{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px}.order-card p{margin:8px 0 0;font-size:11px;color:var(--muted)}.tabs-row{display:flex;gap:8px;overflow-x:auto;margin-bottom:18px}.tabs-row button{white-space:nowrap}.tabs-row button.active{background:var(--ink);color:white}.market-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}.market-card{padding:18px}.market-price{font-size:25px;margin:12px 0 4px;font-weight:700;font-variant-numeric:tabular-nums}.hint{font-size:12px;line-height:1.6;color:var(--muted)}.upgrade-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.upgrade-card{padding:20px}.upgrade-card p{min-height:38px;font-size:12px;color:var(--muted);line-height:1.7}.upgrade-card footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}.ledger-table{width:100%;border-collapse:collapse;font-size:12px;text-align:left}.ledger-table th,.ledger-table td{padding:12px 16px;border-bottom:1px solid var(--line)}.ledger-table th{color:var(--muted);font-size:10px;font-weight:500}.scroll-table{overflow-x:auto}.notice{padding:12px 16px;border:1px solid #d9e4c5;background:#ebf1df;border-radius:7px;font-size:12px;line-height:1.6;margin-bottom:16px;display:flex;justify-content:space-between;gap:12px}.notice.warning{background:#fff1e6;border-color:#edcfb8;color:#8c4c28}.notice button{border:0;background:none;padding:0 4px}.start{min-height:100dvh;display:grid;grid-template-columns:1fr 1fr;max-width:1200px;margin:auto;align-items:center;gap:70px;padding:60px}.start h1{font-size:46px;line-height:1.25;letter-spacing:2px}.start .lead{font-size:16px;line-height:1.9;color:var(--muted)}.start .wordmark{font-size:11px;letter-spacing:4px;color:var(--orange);margin-bottom:25px}.start .scene{background:var(--ink);border-radius:160px 160px 8px 8px;padding:50px 24px;color:#eff4df;min-height:440px;display:flex;flex-direction:column;justify-content:space-between}.start .scene svg{width:100%;height:200px}.start .scene h2{font:28px var(--serif);line-height:1.5;margin:0 20px}.start .scene p{margin:0 20px;font-size:11px;letter-spacing:2px;color:#c0cfb8}.start form{display:grid;gap:12px;margin-top:24px}.start label{font-size:12px}.start input{width:100%;border:1px solid #c6cdbd;background:var(--panel);padding:14px;border-radius:7px}.start .legacy{font-size:12px;margin-top:22px;color:var(--muted)}.start .start-features{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px}.start-features span{font-size:11px;color:var(--green)}dialog{border:1px solid var(--line);border-radius:13px;padding:0;background:var(--panel);color:var(--ink);width:min(850px,calc(100% - 28px));max-height:90dvh;box-shadow:0 30px 100px #112e3266}dialog::backdrop{background:#112d29aa;backdrop-filter:blur(3px)}.dialog-header{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;padding:22px 24px;border-bottom:1px solid var(--line)}.dialog-header h2{font-size:22px}.dialog-header p{font-size:12px;color:var(--muted);margin-bottom:0}.dialog-header button{border:none;background:none;padding:0;font-size:24px}.dialog-body{padding:22px 24px}.quote-grid{display:grid;grid-template-columns:1fr 1fr;gap:26px}.field{display:block;font-size:12px;margin-bottom:18px}.field>span{display:block;font-weight:650;margin-bottom:8px}.field select,.field input[type=text]{width:100%;padding:11px 10px;border:1px solid #ccd2c1;border-radius:7px;background:white;color:var(--ink)}.field input[type=range]{width:100%;accent-color:var(--green)}.field small{display:block;margin-top:6px;font-size:11px;color:var(--muted);line-height:1.5}.quote-breakdown{padding:14px;background:#edf1e4;border-radius:8px}.money-row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;font-size:12px}.money-row.total{border-top:1px solid #cbd8bd;margin-top:5px;font-weight:700;font-size:16px;padding-top:12px}.quote-stat{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin:16px 0}.quote-stat strong{display:block;font-size:19px}.quote-stat small{font-size:10px;color:var(--muted)}.dialog-footer{display:flex;align-items:center;justify-content:space-between;gap:15px;border-top:1px solid var(--line);padding:17px 24px}.dialog-footer .hint{max-width:70%;font-size:11px}.save-tools{display:flex;gap:10px;flex-wrap:wrap}.save-tools input{max-width:100%}.milestone{background:var(--ink);color:white;padding:22px;border-radius:9px;margin-bottom:18px}.milestone h2{font:24px var(--serif);margin:0 0 9px}.milestone p{font-size:13px;line-height:1.7;color:#d7e4d3}.mini-kpis{display:flex;gap:20px;flex-wrap:wrap}.mini-kpis strong{display:block;font-size:20px}.mini-kpis small{font-size:11px;color:var(--muted)}#trade-toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--ink);color:white;padding:12px 20px;border-radius:9px;box-shadow:0 8px 30px #0003;max-width:90%;width:max-content;z-index:100;opacity:0;pointer-events:none;transition:opacity .15s;font-size:13px;line-height:1.6}#trade-toast.show{opacity:1}.mobile-nav{display:none}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0)}
+@media(min-width:1400px){.workspace{padding:32px 44px}.offer{padding-top:18px;padding-bottom:18px}.chart{height:130px}}
+@media(max-width:1100px){.shell{grid-template-columns:175px minmax(0,1fr)}.sidebar{padding:25px 16px}.workspace{padding:24px}.grid{grid-template-columns:1fr}.grid>.aside{display:grid;grid-template-columns:1fr 1fr;gap:16px}.kpi{padding:15px}.kpi strong{font-size:21px}.brand{font-size:20px}}
+@media(max-width:700px){.shell{display:block}.sidebar{display:none}.workspace{padding:19px 14px 90px}.topbar{margin-bottom:16px;gap:8px}h1{font-size:23px}.eyebrow{font-size:9px}.top-actions{gap:8px}.top-actions .week{font-size:11px}.week b{font-size:18px}.top-actions button{padding:10px;font-size:12px}.kpis{grid-template-columns:1fr 1fr;margin-bottom:14px}.kpi{padding:13px 15px;border-bottom:1px solid var(--line)}.kpi:nth-child(2){border-right:0}.kpi:nth-child(n+3){border-bottom:0}.kpi strong{font-size:22px;margin:5px 0}.kpi small{font-size:10px}.grid{gap:0}.grid>.aside{display:block}.panel{margin-bottom:14px;border-radius:8px}.panel-head{padding:14px}.panel-body{padding:14px}.offer{grid-template-columns:1fr 68px 65px;gap:8px;padding:14px}.offer>.number:nth-of-type(3){display:none}.offer .name{font-size:13px}.offer .sub{font-size:10px}.offer .number{font-size:12px}.offer button{padding:9px 8px;font-size:11px}.offer .pill{font-size:9px}.market-grid{grid-template-columns:1fr 1fr;gap:12px}.market-card{padding:14px}.market-card .chart{height:75px}.market-price{font-size:21px}.upgrade-grid{grid-template-columns:1fr;gap:0}.mobile-nav{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;bottom:0;left:0;right:0;background:#fffef9f5;backdrop-filter:blur(10px);border-top:1px solid var(--line);padding:7px 8px calc(8px + env(safe-area-inset-bottom));z-index:20}.mobile-nav button{border:0;border-radius:6px;background:none;font-size:11px;padding:7px 4px}.mobile-nav button span{display:block;font-size:16px;margin-bottom:4px}.mobile-nav button.active{background:#e8eedc;color:var(--green)}.start{grid-template-columns:1fr;gap:20px;padding:32px 24px}.start h1{font-size:36px}.start .scene{min-height:190px;border-radius:90px 90px 8px 8px;padding:25px;grid-row:1}.start .scene svg{height:100px}.start .scene h2,.start .scene p{display:none}.start .wordmark{margin-bottom:15px}.start .lead{font-size:14px}.quote-grid{grid-template-columns:1fr;gap:8px}.dialog-header,.dialog-body{padding:18px}.dialog-header h2{font-size:19px}.dialog-footer{padding:14px 18px;position:sticky;bottom:0;background:var(--panel)}.dialog-footer .hint{max-width:60%}.chart{height:100px}#trade-toast{bottom:90px}.ledger-table th,.ledger-table td{padding:10px;white-space:nowrap}.quote-stat{margin:12px 0}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+.receipt{display:flex;align-items:center;justify-content:space-between;gap:18px;background:#edf1df;border:1px solid #cadbb4;border-left:5px solid var(--green);padding:18px 20px;border-radius:8px;margin-bottom:18px}.receipt small{font-size:10px;letter-spacing:2px;color:var(--green)}.receipt h2{font-size:18px;margin:7px 0}.receipt h2 span{color:var(--green)}.receipt p{font-size:11px;color:var(--muted);margin:0;line-height:1.7}@media(max-width:700px){.receipt{padding:14px;align-items:flex-start}.receipt h2{font-size:15px}}
+details summary{font-size:12px;font-weight:650;cursor:pointer;padding:8px 0}.notice button,.offer button{white-space:nowrap;flex-shrink:0}@media(max-width:700px){.offer button{padding:9px 6px}.market-card .chart text{display:none}.market-card .chart-caption{font-size:10px;margin-top:0;margin-bottom:7px}.quote-grid>div:first-child{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}.quote-grid .field{margin-bottom:6px;min-width:0}.quote-grid .field:nth-child(3),#quote-schedule{grid-column:1/-1}.quote-grid .field select{font-size:11px;padding:9px 5px}.quote-grid .field small{font-size:10px}.quote-grid #quote-schedule{margin-bottom:5px}.quote-grid .field>span{margin-bottom:5px}}
+.ending-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;border-top:1px solid #4d6a5b;padding-top:16px;margin-top:14px}.ending-stats strong{font-size:23px;display:block;color:var(--lime)}.ending-stats small{display:block;color:#c0cfb8;margin-top:7px;font-size:11px}@media(max-width:700px){.ending-stats{gap:8px}.ending-stats strong{font-size:19px}}
+
+/* Port ledger: original compact freight-desk visual system. */
+:root{--paper:#eef2f5;--panel:#fff;--ink:#17334b;--muted:#596e80;--line:#d5dee6;--green:#126583;--orange:#af461c;--red:#b53635;--lime:#ffb968;--serif:'PingFang SC','Microsoft YaHei',sans-serif;font-size:13px;background:var(--paper)}
+body{background:linear-gradient(90deg,#e5ebf0 1px,transparent 1px) 0 0/32px 32px,var(--paper)}
+button{border-radius:4px;padding:9px 12px;transition:background .15s,border-color .15s,box-shadow .15s}
+button:hover{background:#eaf2f7;border-color:#638ba4}button.primary{background:#c45122;border-color:#c45122;color:#fff;box-shadow:0 2px 0 #813616}button.primary:hover{background:#aa3c15;border-color:#aa3c15}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #de691f;outline-offset:3px}button.accent{background:#ffcc8d;border-color:#e5a65e}button.small{padding:7px 10px}
+.shell{grid-template-columns:184px minmax(0,1fr)}.sidebar{padding:24px 16px;gap:22px;background:linear-gradient(155deg,#183c56,#0e2338 72%);color:#e3ebf2;border-right:4px solid #da7137}.brand{font-size:23px;letter-spacing:1px;line-height:1.4}.brand:before{content:'';display:block;width:38px;height:5px;background:#f18b4b;margin-bottom:16px;box-shadow:12px -7px 0 -1px #d9e5ed}.brand small{color:#b7cbd9;font-size:10px;letter-spacing:3px}.company-stamp{border-color:#406079;padding:12px 0}.company-stamp strong{font-size:15px;overflow-wrap:anywhere}.company-stamp small{font-size:10px}.sidebar nav{gap:5px}.sidebar nav button{color:#c1d3df;padding:11px 12px;border-radius:3px}.sidebar nav button:hover{background:#234761}.sidebar nav button.active{background:#294b64;border-color:#4c6c82;border-left:3px solid #f39a5c;padding-left:10px}.sidebar nav span{color:#99bdd3;width:25px}.sidebar .foot{color:#a9c0cf;gap:10px}.sidebar .foot button{background:#e6edf2;color:#17334b}
+.workspace{padding:20px 24px 28px;max-width:1680px}.topbar{margin-bottom:14px;padding-bottom:12px;border-bottom:2px solid #213f58}.eyebrow{font-size:10px;letter-spacing:1.3px}h1{font-size:25px;letter-spacing:-.5px;margin:5px 0 0}h2{font-size:14px;letter-spacing:.2px}.week{border:1px solid var(--line);background:#fff;padding:7px 11px;border-radius:3px}.week b{font-size:22px}.top-actions{gap:12px}
+.kpis{border-radius:4px;border-top:3px solid var(--ink);margin-bottom:14px;box-shadow:0 2px 4px #1b354806}.kpi{padding:13px 16px;position:relative}.kpi label{font-size:11px;color:#4d6579}.kpi strong{font-family:'SFMono-Regular',Consolas,'Liberation Mono',monospace;font-size:25px;font-weight:750;margin:7px 0 5px;letter-spacing:-1px}.kpi small{font-size:10px}.kpi:nth-child(3){background:#f5f8fa}.kpi:nth-child(4){background:#edf5f8}
+.grid{grid-template-columns:minmax(0,1.7fr) minmax(270px,.9fr);gap:14px}.panel{border-radius:4px;margin-bottom:14px;box-shadow:0 2px 4px #1b354806}.panel-head{padding:12px 14px;background:linear-gradient(90deg,#f3f6f9,#fff);border-bottom:1px solid var(--line)}.panel-head h2{display:flex;align-items:center;gap:7px}.panel-head h2:before{content:'';height:12px;width:3px;background:#d46a31;display:inline-block}.panel-head small{font-size:10px}.panel-body{padding:14px}.chart{height:105px}.chart .line{stroke:#1e708e;stroke-width:2.5}.chart .area{fill:#dfedf3}.chart .axis{stroke:#dce5ec;stroke-dasharray:2 4}.chart circle{fill:#cf5d27}.chart text{fill:#637a8c}.chart-caption{font-size:10px;margin-top:6px}
+.pill{background:#e8f2f7;border:1px solid #c9dfe9;color:#245e7b;border-radius:3px;padding:2px 5px;font-size:10px}.pill.warm{background:#fff0e1;color:#9d431d;border-color:#f0ceb1}
+.offer{grid-template-columns:minmax(0,1fr) 86px 86px 75px;gap:10px;padding:12px 14px}.offer:nth-child(odd){background:#fafcfd}.offer:hover{background:#f1f6fa}.offer .name{gap:5px;font-size:13px}.offer .sub{font-size:10px;margin-top:5px;line-height:1.6}.offer .number{font-family:'SFMono-Regular',Consolas,monospace;font-size:13px;font-weight:650}.offer .number small{font-family:'PingFang SC','Microsoft YaHei',sans-serif;font-size:10px;font-weight:400;margin-top:5px}.inquiry>button{background:#fff3e9;border-color:#e2b698;color:#98401e}.inquiry>button:hover{background:#ffe2cb;border-color:#be6b37}.cargo-info{display:flex;align-items:flex-start;gap:9px;min-width:0}.cargo-info>div{min-width:0}.product-art{width:36px;height:36px;flex:0 0 36px;background:#eaf1f6;border:1px solid #d5e1ea;border-radius:4px;padding:5px;color:#2a617e}.product-art path{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.product-heading{display:flex;gap:9px;align-items:center}.market-card .product-art{width:32px;height:32px;flex-basis:32px}
+.order-card{padding:12px 14px}.order-card .row{font-size:12px}.order-card p{font-size:10px;line-height:1.7}.progress{height:5px;border-radius:2px;background:#e7edf2}.progress i{background:#347b99;border-radius:2px}.route-map{background:linear-gradient(0deg,#e9f0f5,#f8fafc);padding:8px 14px;border-bottom:1px dashed #bdcfdb}.route-map svg{height:77px}.route-map .route{stroke:#648fa8}.route-map text{fill:#355d78}.goal{padding:13px 14px;gap:8px}.goal small{font-size:10px;line-height:1.6}.goal-title{font-size:11px}.compact-list li{padding:10px 14px;font-size:11px;line-height:1.65}.compact-list small{color:#456a83;border-left:2px solid #d7834e;padding-left:6px}.empty{font-size:12px;padding:20px 14px;line-height:1.7}
+.market-grid{gap:14px}.market-card{padding:15px}.market-price{font-family:'SFMono-Regular',Consolas,monospace;font-size:27px;margin:13px 0 5px}.market-card .chart{margin-top:12px}.upgrade-grid{gap:14px}.upgrade-card{padding:16px}.upgrade-card footer{border-top:1px dashed #c6d3dd;padding-top:12px}.upgrade-card p{font-size:11px}.ledger-table th{background:#edf3f7;color:#426078;font-weight:700}.ledger-table th,.ledger-table td{padding:10px 14px}.ledger-table td:not(:first-child){font-variant-numeric:tabular-nums}.ledger-table tbody tr:nth-child(even){background:#f8fafc}.notice{background:#e8f2f7;border-color:#c2d8e4;border-radius:3px;font-size:11px;padding:10px 13px;margin-bottom:12px}.notice.warning{background:#fff2e5;border-color:#e3b992}.receipt{background:#edf5f8;border-color:#bad3e1;border-left-color:#2b7295;border-radius:4px;padding:14px 16px;margin-bottom:14px}.receipt h2{font-size:17px}.receipt small{letter-spacing:1px}.receipt p{color:#526b7c}.milestone{background:linear-gradient(110deg,#16344d,#244e68);border-radius:4px;padding:18px;margin-bottom:14px;border-top:4px solid #df7c3e}.milestone .eyebrow{color:#b4cbd9}.milestone h2{font-size:23px;margin-top:9px}.milestone p{color:#cadbe5;font-size:12px}.ending-stats{border-color:#567588;padding-top:12px}.ending-stats strong{color:#ffd0a2}.ending-stats small{color:#c1d4df}
+dialog{border-radius:5px;border-top:4px solid #d16a32;box-shadow:0 24px 100px #0c263866}dialog::backdrop{background:#0c2339a8}.dialog-header{padding:17px 20px;background:#f3f6f9}.dialog-header h2{font-size:21px}.dialog-body{padding:18px 20px}.quote-grid{gap:22px}.field{margin-bottom:15px}.field select,.field input[type=text]{border-color:#b7c9d7;border-radius:3px;padding:10px}.field small{font-size:10px}.field input[type=range]{accent-color:#c35d2a}.quote-breakdown{border:1px solid #ccdce7;border-top:3px solid #365e78;background:#f0f5f8;border-radius:3px;padding:12px 14px}.money-row{padding:6px 0;font-size:12px;font-variant-numeric:tabular-nums}.money-row.total{border-top:1px dashed #99b3c6;font-size:17px}.quote-stat{border-bottom:1px dashed var(--line);padding-bottom:13px;margin:14px 0}.quote-stat strong{font-family:Consolas,monospace;font-size:22px}.dialog-footer{padding:13px 20px}.hint{font-size:11px}.mini-kpis strong{font-family:Consolas,monospace}.mini-kpis small{font-size:10px}#trade-toast{border-radius:4px;background:#17364f;border-left:4px solid #ee995e}
+.start{gap:60px;padding:50px;max-width:1100px}.start h1{font-size:48px;font-weight:800;letter-spacing:0}.start .lead{font-size:15px;color:#516b7f}.start .scene{border-radius:5px;min-height:440px;background:linear-gradient(135deg,#244b65,#10283d);border-top:7px solid #e0783d;position:relative;box-shadow:12px 12px 0 #cbd8e1}.start .scene:after{content:'';height:7px;background:repeating-linear-gradient(90deg,#ea9b60 0 26px,transparent 26px 32px);position:absolute;bottom:0;left:0;right:0;opacity:.65}.start .scene h2{font-size:28px;font-weight:600;color:#edf5fa}.start .scene p{color:#bbd0de}.start input{border-color:#9fb5c6;border-radius:4px}.start-features span{color:#245f7d}.start .wordmark{color:#ad4e24;letter-spacing:3px}
+@media(min-width:1400px){.workspace{padding:24px 30px}.offer{padding-top:14px;padding-bottom:14px}.chart{height:115px}}
+@media(min-width:1101px) and (max-width:1250px){.cargo-info .product-art{display:none}.offer{grid-template-columns:minmax(0,1fr) 80px 80px 70px;gap:8px}.grid{grid-template-columns:minmax(0,1.6fr) minmax(260px,.9fr)}}
+@media(max-width:1100px){.shell{grid-template-columns:162px minmax(0,1fr)}.sidebar{padding:22px 13px}.workspace{padding:18px}.grid{grid-template-columns:1fr}.grid>.aside{gap:14px}.kpi{padding:12px}.kpi strong{font-size:21px}.brand{font-size:21px}}
+@media(max-width:700px){body{background:var(--paper)}.shell{display:block}.sidebar{display:none}.workspace{padding:14px 12px 90px}.topbar{padding-bottom:10px;margin-bottom:12px;gap:6px}h1{font-size:21px}.eyebrow{font-size:9px;letter-spacing:.5px}.top-actions{gap:6px}.week{padding:6px 7px}.week b{font-size:18px}.top-actions button{padding:10px 9px;font-size:11px;min-height:40px}.kpis{margin-bottom:12px}.kpi{padding:11px 12px}.kpi strong{font-size:23px}.kpi small{font-size:9px}.panel{margin-bottom:12px;border-radius:4px}.panel-head{padding:11px 12px}.panel-head small{font-size:9px}.panel-body{padding:12px}.grid{gap:0}.grid>.aside{display:block}.offer{padding:12px;gap:8px}.inquiry{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 83px}.inquiry .cargo-info{grid-column:1/-1;gap:9px}.inquiry .cargo-info .sub{font-size:10px;line-height:1.6}.inquiry>.number:nth-of-type(3){display:block}.inquiry .number{font-size:13px}.inquiry .number small{font-size:9px;margin-top:3px}.inquiry button{min-height:39px;padding:9px;font-size:11px}.offer .name{font-size:13px}.offer .pill{font-size:9px}.product-art{width:33px;height:33px;flex-basis:33px}.market-grid{gap:10px}.market-card{padding:12px}.market-card .product-heading{gap:6px;font-size:12px;flex-wrap:wrap}.market-card .product-art{width:27px;height:27px;flex-basis:27px}.market-card .goal-title{flex-wrap:wrap;gap:6px}.market-price{font-size:23px}.market-card .chart{height:65px;margin-top:8px}.upgrade-grid{gap:0}.mobile-nav{background:#122d43;border-top:3px solid #df783d;padding-top:5px}.mobile-nav button{color:#bfd1de;min-height:48px}.mobile-nav button.active{background:#31546d;color:#fff}.mobile-nav button span{font-size:15px;margin-bottom:2px}.notice{padding:9px 11px}.start{padding:28px 23px;gap:28px}.start h1{font-size:37px}.start .scene{grid-row:1;min-height:150px;padding:15px 22px;border-radius:4px;box-shadow:7px 7px 0 #cbd8e1}.start .scene svg{height:110px}.start .scene h2,.start .scene p{display:none}.start .lead{font-size:14px}.start .wordmark{font-size:10px;margin-bottom:15px}.quote-grid{gap:10px}.dialog-header,.dialog-body{padding:15px}.dialog-header h2{font-size:19px}.field select{min-height:40px}.dialog-footer{padding:12px 15px}.dialog-footer button{min-height:42px}.quote-stat{margin:12px 0;padding-bottom:10px}.quote-stat strong{font-size:20px}.quote-breakdown{padding:10px 12px}.money-row.total{font-size:16px}.receipt{padding:12px;gap:10px}.receipt h2{font-size:15px}.receipt small{font-size:9px}.receipt p{font-size:10px}.milestone{padding:15px}.milestone h2{font-size:21px}.ending-stats{gap:8px}.ending-stats strong{font-size:19px}.ending-stats small{font-size:10px}.chart{height:95px}}
+@media(max-width:360px){.workspace{padding-left:9px;padding-right:9px}.top-actions{gap:4px}.week{padding:6px 4px}.top-actions button{padding:10px 6px}.kpi strong{font-size:21px}.inquiry{grid-template-columns:1fr 1fr 76px;gap:6px}.market-grid{grid-template-columns:1fr}.dialog-footer .hint{max-width:56%}}
+/* Day-based dispatch; secondary fast-forward never replaces the default day. */
+.time-controls{display:flex;gap:6px;align-items:center}.week small{display:block;font-size:9px;color:var(--muted);margin-top:2px}.advance-feedback{align-items:center}.advance-feedback p{margin:5px 0 0}.advance-feedback strong{font-variant-numeric:tabular-nums}.advance-feedback button{flex-shrink:0}
+@media(max-width:700px){.topbar{flex-wrap:wrap}.top-actions{width:100%;justify-content:space-between}.time-controls{gap:5px}.time-controls button{min-height:40px}.top-actions .week{display:flex;align-items:baseline;gap:4px}.week small{margin-left:4px}.advance-feedback{align-items:flex-start}.advance-feedback>div{min-width:0}.advance-feedback button{white-space:normal}}
+
+/* Compact currency settlement details, keeping the quote's single-column phone flow. */
+.fx-summary{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:8px 0;margin:6px 0;font-variant-numeric:tabular-nums}
+.fx-summary small,.fx-risk{display:block;line-height:1.5;overflow-wrap:anywhere}
+.fx-market .panel-head{flex-wrap:wrap;gap:8px}
+.fx-market .chart{max-height:120px}
+
+.fx-field{grid-column:1/-1}
+
+.terms-field,.terms-summary{grid-column:1/-1}
+.terms-summary{font-size:12px;line-height:1.55;margin-bottom:8px;overflow-wrap:anywhere}
+.terms-summary small{display:block;color:var(--muted)}
+
+/* Compact operational feedback; no new economic rules. */
+.next-milestone{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:10px 14px;margin:0 0 14px;border-left:3px solid var(--accent,#dc7335);background:var(--panel,#fff);font-size:12px;line-height:1.5}
+.next-milestone span{color:var(--muted)}
+.forecast-details{border-top:1px solid var(--line)}
+.forecast-details summary{padding:12px 16px;cursor:pointer;color:var(--muted);font-size:12px}
+.forecast-details .scroll-table{max-height:320px;overflow:auto}
+@media(max-width:600px){.receipt{align-items:flex-start}.receipt h2{font-size:18px}.receipt p{line-height:1.6}.next-milestone{display:block}.next-milestone span{display:block;margin-top:3px}}
+</style></head><body><div id="trade-app"></div><div id="trade-toast" role="status" aria-live="polite"></div><dialog id="trade-dialog"></dialog><script>(()=>{const module0=(()=>{
+/** Data-trade economy. Cash is fictional integer RMB; USD contracts use integer cents. No DOM or storage. */
+const PRODUCTS = [
+  {id:'fasteners',name:'五金紧固件',unit:'箱',base:60,color:'#e4b56b'},
+  {id:'cups',name:'保温杯',unit:'箱',base:90,color:'#6dc6b3'},
+  {id:'lights',name:'LED 灯具',unit:'箱',base:120,color:'#b2b9ef'},
+  {id:'tools',name:'电动工具',unit:'箱',base:180,color:'#eea182'},
+  {id:'textiles',name:'家居织品',unit:'箱',base:75,color:'#90bfda'},
+  {id:'pumps',name:'小型水泵',unit:'箱',base:240,color:'#b6cd86'},
+];
+const SUPPLIERS = [
+  {id:'reliable',name:'稳达制造',cost:100,quality:94,weeks:2,days:14,description:'品质稳定，常规成本 · 生产 14 天'},
+  {id:'economy',name:'丰源工厂',cost:84,quality:78,weeks:3,days:21,description:'采购省 16%，品质较低 · 生产 21 天'},
+  {id:'express',name:'联捷制造',cost:112,quality:90,weeks:1,days:7,description:'采购贵 12%，抢交期 · 生产 7 天'},
+];
+const SHIPPING = [
+  {id:'sea',name:'海运拼箱',rate:7,weeks:2,days:14,description:'运费低 · 运输 14 天'},
+  {id:'rail',name:'专线快运',rate:12,weeks:1,days:7,description:'运费中 · 运输 7 天'},
+  {id:'air',name:'空运急件',rate:23,weeks:0,days:0,description:'运费高 · 加急运输计入下方总交期'},
+];
+const UPGRADES = [
+  {id:'team',name:'业务团队',baseCost:4800,max:3,description:'每级 +1 并行订单槽，周运营费 +120'},
+  {id:'quality',name:'驻厂验货',baseCost:3600,max:2,description:'每级品质 +10，周运营费 +60'},
+  {id:'logistics',name:'航线协议',baseCost:5200,max:3,description:'每级运费 -15%，周运营费 +30'},
+  {id:'sourcing',name:'集采网络',baseCost:6500,max:3,description:'每级采购成本 -5%，周运营费 +40'},
+];
+const MARKETS = [
+  {id:'asia',name:'东南亚',needed:0}, {id:'middle',name:'中东',needed:3}, {id:'europe',name:'欧洲',needed:8},
+];
+const MANAGERS=[
+ {id:'chen',name:'陈卓',role:'渠道负责人',description:'负责市场的成交率 +5 个百分点',chance:5,freight:0,quality:0},
+ {id:'zhou',name:'周岚',role:'货运负责人',description:'负责市场的运费再降 8%',chance:0,freight:8,quality:0},
+ {id:'lin',name:'林远',role:'验货负责人',description:'负责市场的交付品质 +4',chance:0,freight:0,quality:4},
+];
+const emptyExpansion=()=>({warehouse:0,branches:{}});
+const expansionCost=s=>8000*((s.expansion?.warehouse||0)+1);
+const expansionWeekly=s=>(s.expansion?.warehouse||0)*100+Object.keys(s.expansion?.branches||{}).length*180;
+function expansionBonus(s,market){
+ const branch=s.expansion?.branches?.[market],manager=MANAGERS.find(m=>m.id===branch?.manager);
+ return {warehouse:s.expansion?.warehouse||0,branch:!!branch,manager:manager||null,chance:(branch?3:0)+(manager?.chance||0),freight:manager?.freight||0,quality:manager?.quality||0};
+}
+const PAYMENT_TERMS=[
+ {id:'standard',name:'按原条件',priceAdjustment:0,depositChange:0,payLagChangeDays:0},
+ {id:'cashflow',name:'让价换快回款',priceAdjustment:-4,depositChange:20,payLagChangeDays:-14},
+ {id:'growth',name:'给账期换高价',priceAdjustment:5,depositChange:-20,payLagChangeDays:14},
+];
+const termsAcceptance={quick:{cashflow:-8,growth:-12},long:{cashflow:-12,growth:4},rush:{cashflow:-4,growth:-8}};
+function paymentProposal(offer,id='standard'){
+ const t=idOf(PAYMENT_TERMS,id);
+ if(!t||((offer.currency!=='USD'||offer.kind==='flagship')&&id!=='standard'))return null;
+ return {id:t.id,name:t.name,depositRate:id==='standard'?offer.depositRate:clamp(offer.depositRate+t.depositChange,5,90),payLagDays:Math.max(0,(offer.payLagDays??offer.payLag*7)+t.payLagChangeDays),priceAdjustment:t.priceAdjustment,acceptanceAdjustment:id==='standard'?0:termsAcceptance[offer.kind]?.[id]??0};
+}
+const contractUsd=(offer,markup,terms)=>round(offer.quantity*offer.usdUnitCents*(1+terms.priceAdjustment/100)*(1+markup/100));
+const kinds=[
+ {id:'quick',name:'稳健回款',depositRate:70,payLag:0,deadline:5,quality:75,factor:138},
+ {id:'long',name:'大额账期',depositRate:20,payLag:4,deadline:6,quality:90,factor:170},
+ {id:'rush',name:'紧急补货',depositRate:50,payLag:1,deadline:2,quality:85,factor:166},
+];
+const clone=x=>JSON.parse(JSON.stringify(x));
+const round=Math.round;
+const clamp=(v,min,max)=>Math.max(min,Math.min(max,v));
+const idOf=(list,id)=>list.find(x=>x.id===id);
+const hash=s=>{let n=2166136261;for(const c of s)n=Math.imul(n^c.charCodeAt(0),16777619);return n>>>0;};
+const dayToWeek=day=>Math.floor((day-1)/7)+1;
+const weekToDay=week=>(week-1)*7+1;
+const MAX_DAY=3640;
+// Fictional bounded weekly FX market. No date/random reroll; UI displays current rate only.
+const FX_MIN=64000,FX_MAX=80000;
+const fxRateAt=week=>round(72000+5200*Math.sin(week*.47)+2400*Math.cos(week*.19));
+const convertUsd=(cents,rate)=>round(cents*rate/1000000);
+const tailValue=(fx,rate)=>convertUsd(fx.tailUsdCents,fx.mode==='locked'?fx.lockedRate:rate);
+const fxBounds=fx=>fx.mode==='locked'?[fx.estimatedTail,fx.estimatedTail]:[tailValue(fx,FX_MIN),tailValue(fx,FX_MAX)];
+
+const pricesAt=week=>Object.fromEntries(PRODUCTS.map((p,i)=>[p.id,round(p.base*(1+0.13*Math.sin(week*0.61+i*1.7)+0.07*Math.cos(week*0.27+i)))]));
+const capacity=s=>2+s.upgrades.team+(s.expansion?.warehouse||0)+Object.keys(s.expansion?.branches||{}).length;
+const weeklyCost=s=>120+s.upgrades.team*120+s.upgrades.quality*60+s.upgrades.logistics*30+s.upgrades.sourcing*40+Math.ceil(s.debt*0.008)+expansionWeekly(s);
+const netWorth=s=>s.cash-s.debt+s.receivables.reduce((a,r)=>a+r.amount,0)+s.active.reduce((a,o)=>a+(o.paidShipping?o.cost+o.freight:o.procurement)-o.deposit,0);
+const upgradeCost=(s,id)=>{const u=idOf(UPGRADES,id);return u?u.baseCost*(s.upgrades[id]+1):0;};
+const unlockedMarkets=s=>MARKETS.filter((m,i)=>s.metrics.orders>=m.needed && (i<2||s.reputation>=8));
+function offersFor(s){
+ const markets=unlockedMarkets(s);const scale=1+Math.min(1.8,s.metrics.orders*0.075);
+ const offers=kinds.map((k,i)=>{
+ const p=PRODUCTS[(s.week+i*2-1)%PRODUCTS.length];
+ const market=markets[(s.week+i-1)%markets.length];
+ const customerId=market.id+'-'+k.id;const repeat=s.customers[customerId]?.orders||0;
+ const quantity=Math.max(10,round(5400*scale*(k.id==='long'?1.45:1)/p.base/5)*5);
+ return {id:`w${s.week}-${k.id}`,kind:k.id,kindName:k.name,customerId,customer:`${market.name}${['连锁商店','批发商','采购商'][i]}`,market:market.id,product:p.id,quantity,unit:p.unit,price:round(p.base*k.factor/100*(1+Math.min(repeat,6)*0.012)),depositRate:k.depositRate,payLag:k.payLag,deadline:k.deadline,quality:k.quality,repeat,expires:s.week};
+ });
+ // A concrete last challenge replaces an arbitrary order-count grind.
+ if(markets.length===3 && !s.customers['europe-flagship']?.qualified && !s.active.some(o=>o.offer.kind==='flagship')){
+  const p=PRODUCTS[(s.week+1)%PRODUCTS.length];const quantity=Math.max(20,round(18000/p.base/5)*5);
+  offers.push({id:`w${s.week}-flagship`,kind:'flagship',kindName:'年度框架试单',customerId:'europe-flagship',customer:'欧洲连锁采购中心',market:'europe',product:p.id,quantity,unit:p.unit,price:round(p.base*1.85),depositRate:15,payLag:3,deadline:3,quality:95,repeat:s.customers['europe-flagship']?.orders||0,expires:s.week});
+ }
+ return offers.map(o=>({...o,deadlineDays:o.deadline*7,payLagDays:o.payLag*7,expiresDay:o.expires*7,currency:'USD',quoteRate:fxRateAt(s.week),usdUnitCents:round(o.price*1000000/fxRateAt(s.week))}));
+}
+function createTradeGame(name='我的贸易公司'){
+ const s={version:2,ruleset:6,expansion:emptyExpansion(),day:1,name:String(name).trim().slice(0,24)||'我的贸易公司',week:1,cash:18000,debt:0,reputation:0,receivables:[],active:[],offers:[],history:[],prices:pricesAt(1),priceHistory:[],customers:{},upgrades:{team:0,quality:0,logistics:0,sourcing:0},metrics:{orders:0,revenue:0,profit:0,ontime:0,rejected:0,brokered:0},log:[],lastBrokerWeek:0,ending:null};
+ s.offers=offersFor(s);s.priceHistory=[{day:1,week:1,...s.prices}];s.history=[{day:1,week:1,cash:s.cash,netWorth:netWorth(s),revenue:0,profit:0}];return s;
+}
+function quoteOrder(s,offerId,options={}){
+ const offer=s.offers.find(x=>x.id===offerId);const supplier=idOf(SUPPLIERS,options.supplier||'reliable'),shipping=idOf(SHIPPING,options.shipping||'sea');
+ const markup=options.markup??0;
+ if(!offer||!supplier||!shipping||!Number.isInteger(markup)||markup < -10 || markup > 15)return {valid:false,reason:'报价方案无效'};
+ const paymentTerms=paymentProposal(offer,options.paymentTerms??'standard');
+ if(!paymentTerms)return {valid:false,reason:'此询盘不支持该付款提案'};
+ const cost=round(offer.quantity*s.prices[offer.product]*supplier.cost/100*(1-s.upgrades.sourcing*0.05));
+ const expansion=expansionBonus(s,offer.market);
+ const baseFreight=round(offer.quantity*PRODUCTS.find(p=>p.id===offer.product).base*shipping.rate/100*(1-s.upgrades.logistics*0.15));
+ const freight=round(baseFreight*(1-expansion.warehouse*.05)*(1-expansion.freight/100));
+ const usdCents=offer.currency==='USD'?contractUsd(offer,markup,paymentTerms):0;
+ const signRate=fxRateAt(s.week),revenue=usdCents?convertUsd(usdCents,signRate):round(offer.quantity*offer.price*(1+markup/100));
+ const deposit=round(revenue*paymentTerms.depositRate/100),procurement=round(cost*0.4),balance=cost-procurement;
+ const weeks=supplier.weeks+shipping.weeks,quality=Math.min(100,supplier.quality+s.upgrades.quality*10+expansion.quality);
+ const late=Math.max(0,weeks-offer.deadline),shortfall=Math.max(0,offer.quality-quality);
+ const penalty=round(revenue*Math.min(.25,late*.06+shortfall*.003));
+ const chance=clamp(round(88-markup*2.3+paymentTerms.acceptanceAdjustment+Math.min(offer.repeat,5)*2+Math.min(s.reputation,20)*0.3+expansion.chance-late*12-shortfall*.5),5,98);
+ let fx=null;
+ if(offer.currency==='USD'){
+  const mode=options.fxMode??'locked';
+  if(!['locked','spot'].includes(mode))return {valid:false,reason:'结汇方式无效'};
+  // Contract deductions are fixed at signing; only the remaining USD balance floats.
+  const tailUsdCents=Math.max(0,usdCents-round(usdCents*paymentTerms.depositRate/100)-round(penalty*1000000/signRate));
+  const estimatedTail=convertUsd(tailUsdCents,signRate);
+  const fee=mode==='locked'?Math.ceil(estimatedTail*.006):0;
+  fx={mode,usdCents,tailUsdCents,signRate,lockedRate:signRate,fee,estimatedTail};
+  [fx.minTail,fx.maxTail]=fxBounds(fx);
+ }
+ const fee=fx?.fee||0;
+ const cashRequired=Math.max(0,procurement+fee-deposit),profit=(fx?deposit+fx.estimatedTail:revenue-penalty)-cost-freight-fee;
+ const days=supplier.days+shipping.days,productionDays=supplier.days,payLagDays=paymentTerms.payLagDays,lateDays=Math.max(0,days-offer.deadlineDays);
+ const settlementDay=s.day+days+payLagDays,settlementWeek=dayToWeek(settlementDay);
+ let reason='';if(penalty>revenue-deposit)reason='预计赔付超过未付尾款，请降低订金提案或改善品质与交期';else if(offer.expiresDay<s.day)reason='询盘已过期';else if(s.active.length>=capacity(s))reason='并行订单已满，交付后释放名额';else if(s.cash<cashRequired)reason=`还需垫资 ¥${cashRequired-s.cash}`;
+ return {valid:!reason,reason,offer,expansion,freightSaving:baseFreight-freight,fx,paymentTerms,supplier:supplier.id,shipping:shipping.id,markup,revenue,cost,freight,deposit,procurement,balance,profit,margin:round(profit/revenue*100),chance,weeks,days,productionDays,payLagDays,lateDays,payLag:payLagDays/7,capacity:1,quality,late,penalty,cashRequired,settlementWeek,settlementDay,steps:[{day:s.day,week:s.week,label:'签约净收付',amount:deposit-procurement-fee},{day:s.day+productionDays,week:dayToWeek(s.day+productionDays),label:'工厂尾款与出运',amount:-balance-freight},{day:settlementDay,week:settlementWeek,label:'客户尾款',amount:fx?fx.estimatedTail:revenue-deposit-penalty}],productionWeeks:supplier.weeks};
+}
+function projected(s,quote){
+ const events=[];
+ for(const o of s.active){if(!o.paidShipping)events.push({day:o.shipDay,amount:-o.balance-o.freight});events.push({day:o.dueDay,amount:o.fx?o.fx.estimatedTail:o.revenue-o.deposit-o.penalty,fx:o.fx});}
+ for(const r of s.receivables)events.push({day:r.dueDay,amount:r.amount,fx:r.fx});
+ if(quote?.offer)for(const x of quote.steps)events.push({day:x.day,amount:x.amount,fx:x.day===quote.settlementDay?quote.fx:null});
+ return events;
+}
+/** Every daily low is sampled: a midweek shipment cannot hide between chart ticks. */
+function forecastCash(s,quote){
+ const events=projected(s,quote);let cash=s.cash,lowCash=s.cash,highCash=s.cash;const points=[];
+ for(let offset=0;offset<=42;offset++){
+  const day=s.day+offset,week=dayToWeek(day);let inflow=0,outflow=offset>0&&(day-1)%7===0?weeklyCost(s):0;
+  for(const e of events.filter(x=>x.day===day)){if(e.amount>=0)inflow+=e.amount;else outflow-=e.amount;}
+  let lowInflow=inflow,highInflow=inflow;
+  for(const e of events.filter(x=>x.day===day&&x.fx?.mode==='spot')){const [lo,hi]=fxBounds(e.fx);lowInflow+=lo-e.amount;highInflow+=hi-e.amount;}
+  cash+=inflow-outflow;lowCash+=lowInflow-outflow;highCash+=highInflow-outflow;points.push({day,week,cash,lowCash,highCash,inflow,outflow});
+ }
+ return {points,minimum:Math.min(...points.map(p=>p.cash)),stressMinimum:Math.min(...points.map(p=>p.lowCash)),estimated:events.some(e=>e.fx?.mode==='spot'),horizonDays:42,note:'逐日预测未来42天；每7天更新行情与询盘、结算运营费。已签合同按实际日期收付且锁价，不含未来新单及新增借款。负值需提前补充资金。浮动美元尾款按签约汇率估计，阴影为模拟压力区间而非收益保证，实际到期结汇。'};
+}
+function log(s,text,kind='info'){s.log.unshift({day:s.day,week:s.week,text,kind});s.log=s.log.slice(0,60);}
+function result(state,message,changed=false,extra={}){return {state,message,changed,...extra};}
+const deliveryProfit=(s,o)=>o.profit+(o.fx&&o.dueDay<=s.day?tailValue(o.fx,fxRateAt(s.week))-o.fx.estimatedTail:0);
+const deliveryEstimated=(s,o)=>o.fx?.mode==='spot'&&o.dueDay>s.day;
+function finish(s,o){
+ s.metrics.orders++;s.metrics.revenue+=o.fx?o.deposit+o.fx.estimatedTail:o.revenue-o.penalty;s.metrics.profit+=o.profit;s.metrics.ontime+=o.late?0:1;
+ s.reputation=clamp(s.reputation+(o.late? -1:o.quality>=o.offer.quality?2:0),0,100);
+ const c=s.customers[o.offer.customerId]||{orders:0,revenue:0,market:o.offer.market,name:o.offer.customer};c.orders++;c.revenue+=o.fx?o.deposit+o.fx.estimatedTail:o.revenue-o.penalty;if(o.offer.kind==='flagship'&&o.late===0&&o.quality>=o.offer.quality)c.qualified=true;s.customers[o.offer.customerId]=c;
+ const amount=o.fx?o.fx.estimatedTail:o.revenue-o.deposit-o.penalty;
+ if(o.dueDay<=s.day){s.cash+=settleFx(s,amount,o.fx,o.offer.customerId);log(s,`${o.offer.customer}尾款 ¥${o.fx?tailValue(o.fx,fxRateAt(s.week)):amount} 到账。`,'cash');}
+ else{s.receivables.push({id:o.id,customer:o.offer.customer,amount,currency:o.fx?'USD':'CNY',fx:o.fx??null,...(o.paymentTerms?{paymentTerms:o.paymentTerms}:{}),customerId:o.offer.customerId,dueDay:o.dueDay,dueWeek:o.dueWeek});}
+ log(s,`${o.offer.customer}收货：本单利润${deliveryEstimated(s,o)?'（浮动尾款未收，暂估）':''} ¥${deliveryProfit(s,o)}${o.penalty?`，含赔付 ¥${o.penalty}`:''}。${o.late?'交期延误':'准时交付'}，复购记录 +1。`,'success');
+}
+function settleFx(s,estimated,fx,customerId){
+ if(!fx)return estimated;
+ const actual=tailValue(fx,fxRateAt(s.week)),delta=actual-estimated;
+ s.metrics.profit+=delta;s.metrics.revenue+=delta;
+ if(s.customers[customerId])s.customers[customerId].revenue+=delta;
+ log(s,`美元尾款 $${(fx.tailUsdCents/100).toFixed(2)} × ${((fx.mode==='locked'?fx.lockedRate:fxRateAt(s.week))/10000).toFixed(4)}，结汇 ¥${actual}（${fx.mode==='locked'?'银行锁汇':'到期结汇'}，相对签约估值 ${delta>=0?'+':''}¥${delta}）。`,'cash');
+ return actual;
+}
+/** Settle exactly one calendar day. Caller commits only after handling any cash shortfall. */
+function settleDay(s){
+ const startingProfit=s.metrics.profit;
+ s.day++;s.week=dayToWeek(s.day);const boundary=(s.day-1)%7===0;
+ const operating=boundary?weeklyCost(s):0;s.cash-=operating;let payments=0;
+ for(const o of s.active){if(!o.paidShipping&&o.shipDay<=s.day){s.cash-=o.balance+o.freight;payments+=o.balance+o.freight;o.paidShipping=true;log(s,`${o.offer.customer}已出运，支付尾款及运费 ¥${o.balance+o.freight}。`);}}
+ const arriving=s.active.filter(o=>o.deliveryDay<=s.day);s.active=s.active.filter(o=>o.deliveryDay>s.day);for(const o of arriving)finish(s,o);
+ const received=s.receivables.filter(r=>r.dueDay<=s.day);s.receivables=s.receivables.filter(r=>r.dueDay>s.day);for(const r of received){s.cash+=settleFx(s,r.amount,r.fx,r.customerId);log(s,`${r.customer}账期结束，尾款 ¥${r.fx?tailValue(r.fx,fxRateAt(s.week)):r.amount} 到账。`,'cash');}
+ let newFlagship=false,expiredOffers=0;
+ if(boundary){expiredOffers=s.offers.filter(o=>o.kind!=='flagship').length;if(expiredOffers)log(s,`${expiredOffers}笔普通询盘到期，询盘板按每7天周期更新。`);s.prices=pricesAt(s.week);s.priceHistory.push({day:s.day,week:s.week,...s.prices});s.priceHistory=s.priceHistory.slice(-24);s.offers=offersFor(s);newFlagship=s.offers.some(o=>o.kind==='flagship');}
+ if(!s.ending&&s.customers['europe-flagship']?.qualified&&new Set(Object.values(s.customers).filter(c=>c.orders>0).map(c=>c.market)).size===3&&netWorth(s)>=60000){s.ending={day:s.day,week:s.week,title:'从第一单到三大市场',orders:s.metrics.orders,netWorth:netWorth(s)};log(s,'阶段达成：三大市场。欧洲框架试单已合格交付，你已建立有复购、有现金流的贸易公司，可继续经营。','success');}
+ return {operating,payments,deliveries:arriving.length,profit:arriving.reduce((n,o)=>n+deliveryProfit(s,o),0),estimatedDeliveries:arriving.filter(o=>deliveryEstimated(s,o)).length,fxAdjustment:s.metrics.profit-startingProfit-arriving.reduce((n,o)=>n+deliveryProfit(s,o),0),receipts:received.reduce((n,r)=>n+(r.fx?tailValue(r.fx,fxRateAt(s.week)):r.amount),0)+arriving.filter(o=>o.dueDay<=s.day).reduce((n,o)=>n+(o.fx?tailValue(o.fx,fxRateAt(s.week)):o.revenue-o.deposit-o.penalty),0),newFlagship,expiredOffers};
+}
+function reduceTrade(state,action){
+ if(!action||typeof action!=='object')return result(state,'操作无效');const s=clone(state);
+ if(action.type==='ACCEPT'){
+  const q=quoteOrder(s,action.offerId,action);if(!q.valid)return result(state,q.reason);
+  const forecast=forecastCash(s,q);if(forecast.stressMinimum<0)return result(state,`未来 42 天压力情景最低现金为 ¥${forecast.stressMinimum}，先换方案、回款或补充周转金`);
+  s.offers=s.offers.filter(o=>o.id!==action.offerId);
+  // Offer-specific fixed draw prevents reload rerolls; every rejected inquiry is consumed.
+  if(hash(q.offer.id+'|'+q.offer.customerId)%100>=q.chance){s.metrics.rejected++;log(s,`${q.offer.customer}未接受报价，本次询盘关闭。`);return result(s,`客户未接受这份报价（成交率 ${q.chance}%）。可选择另一笔询盘。`,true);}
+  s.cash+=q.deposit-q.procurement-(q.fx?.fee||0);
+  s.active.push({...q,id:q.offer.id,acceptedDay:s.day,acceptedWeek:s.week,shipDay:s.day+q.productionDays,shipWeek:dayToWeek(s.day+q.productionDays),deliveryDay:s.day+q.days,deliveryWeek:dayToWeek(s.day+q.days),dueDay:q.settlementDay,dueWeek:q.settlementWeek,paidShipping:false});
+  log(s,`${q.offer.customer}签约 ${q.fx?'USD '+(q.fx.usdCents/100).toFixed(2):'¥'+q.revenue}，订金 ¥${q.deposit} / 工厂首付 ¥${q.procurement}${q.fx?' / 锁汇费 ¥'+q.fx.fee:''}。${q.paymentTerms?'付款提案：'+q.paymentTerms.name+'，订金'+q.paymentTerms.depositRate+'%，交付后'+q.paymentTerms.payLagDays+'天收尾款。':''}`,'success');return result(s,`签约成功，预计利润 ¥${q.profit}，第 ${q.settlementDay} 天收齐货款。`,true);
+ }
+ if(['NEXT_DAY','NEXT_WEEK','ADVANCE_DAYS','ADVANCE'].includes(action.type)){
+  const requestedDays=action.type==='NEXT_DAY'?1:action.type==='NEXT_WEEK'?7:action.days;
+  if(!Number.isInteger(requestedDays)||requestedDays<1||requestedDays>7)return result(state,'每次可推进1至7天',false,{advancedDays:0,requestedDays,pause:null});
+  let advancedDays=0,pause=null,expiredOffers=0;let current=s;const summary={deliveries:0,profit:0,estimatedDeliveries:0,fxAdjustment:0,receipts:0,payments:0,operating:0};
+  const allowed=new Set(Array.isArray(action.allowExpireOfferIds)?action.allowExpireOfferIds.filter(x=>typeof x==='string'):[]);
+  for(let i=0;i<requestedDays;i++){
+   if(current.day>=MAX_DAY){pause={code:'limit',day:current.day,message:'已达到3640天经营记录上限，可导出纪念存档'};break;}
+   const expiring=current.offers.filter(o=>o.kind==='flagship'&&o.expiresDay<current.day+1&&!allowed.has(o.id));
+   if(expiring.length){pause={code:'offers_expiring',day:current.day,offerIds:expiring.map(o=>o.id),message:`${expiring.length}笔未处理询盘今天到期。先查看报价，或明确放弃本批询盘再继续。`};break;}
+   const next=clone(current),beforeMarkets=unlockedMarkets(current).length,beforeEnding=!!current.ending;
+   const outcome=settleDay(next);
+   if(next.cash<0&&action.allowFundingDay!==next.day){pause={code:'funding_gap',day:next.day,shortfall:-next.cash,message:`第${next.day}天确定收支后仍缺¥${-next.cash}。请先周转，或确认将该日缺口转为计息欠款。`};break;}
+   if(next.cash<0){const advance=-next.cash;next.cash=0;next.debt+=advance;log(next,`资金缺口 ¥${advance} 已转周转欠款，按周计息。接代办或回款后尽快归还。`,'warning');}
+   next.history.push({day:next.day,week:next.week,cash:next.cash,netWorth:netWorth(next),revenue:next.metrics.revenue,profit:next.metrics.profit});next.history=next.history.slice(-365);
+   current=next;advancedDays++;expiredOffers+=outcome.expiredOffers;for(const key of Object.keys(summary))summary[key]+=outcome[key];
+   if(!beforeEnding&&current.ending){pause={code:'ending',day:current.day,message:'第一程已达成，先看看经营成绩，再继续远航。'};break;}
+   if(unlockedMarkets(current).length>beforeMarkets){const newMarkets=unlockedMarkets(current).slice(beforeMarkets);const hasNewOffers=current.offers.some(o=>newMarkets.some(m=>m.id===o.market));pause={code:'market_unlocked',day:current.day,message:hasNewOffers?'已解锁新市场，新市场询盘已到达，去算一单。':'已解锁新市场；新市场询盘在下一次每7天更新时到达。'};break;}
+   if(outcome.newFlagship){pause={code:'flagship_available',day:current.day,offerIds:current.offers.filter(o=>o.kind==='flagship').map(o=>o.id),message:'欧洲框架试单已出现，先查看品质、交期与周转要求。'};break;}
+  }
+  const details=[];
+  if(summary.deliveries)details.push(`交付${summary.deliveries}单，交付订单利润${summary.estimatedDeliveries?'（含'+summary.estimatedDeliveries+'单浮动尾款暂估）':''} ¥${summary.profit}`);
+  if(summary.fxAdjustment)details.push(`此前应收结汇损益调整 ${summary.fxAdjustment>=0?'+':''}¥${summary.fxAdjustment}`);
+  if(summary.receipts)details.push(`实际回款 ¥${summary.receipts}`);
+  if(summary.payments)details.push(`支付采购尾款及运费 ¥${summary.payments}`);
+  if(summary.operating)details.push(`周结运营及利息 ¥${summary.operating}`);
+  const message=`已推进${advancedDays}/${requestedDays}天，当前第${current.day}天。${details.length?details.join('；')+'。':''}${pause?pause.message:''}${expiredOffers?` ${expiredOffers}笔普通询盘已到期，询盘板已按周期更新。`:""}`;
+  return result(advancedDays?current:state,message,advancedDays>0,{advancedDays,requestedDays,remainingDays:requestedDays-advancedDays,expiredOffers,summary,pause});
+ }
+ if(['EXPAND_WAREHOUSE','OPEN_BRANCH','APPOINT','DISMISS'].includes(action.type)){
+  s.expansion=s.expansion||emptyExpansion();let cost=0,message='';
+  if(action.type==='EXPAND_WAREHOUSE'){
+   if(s.expansion.warehouse>=2)return result(state,'集货仓已扩建到上限');
+   cost=expansionCost(s);s.expansion.warehouse++;message=`出口集货仓扩至 ${s.expansion.warehouse} 级`;
+  }else{
+   const market=idOf(MARKETS,action.market);if(!market||(action.type==='OPEN_BRANCH'&&!unlockedMarkets(s).some(m=>m.id===market.id)))return result(state,'先完成交付，打开该市场');
+   if(action.type==='OPEN_BRANCH'){
+    if(s.expansion.branches[market.id])return result(state,'该市场已有子公司');
+    cost=16000;s.expansion.branches[market.id]={manager:null,appointedDay:0};message=`${market.name}子公司成立，并行名额 +1`;
+   }else{
+    const branch=s.expansion.branches[market.id],manager=idOf(MANAGERS,action.manager);
+    if(action.type==='DISMISS'){
+     if(!branch?.manager)return result(state,'该子公司尚未任命负责人');
+     if(s.day<branch.appointedDay+7)return result(state,'任命满 7 天后才能调任');
+     if(s.cash<600)return result(state,'现金不足');s.cash-=600;branch.manager=null;branch.appointedDay=0;
+     if(forecastCash(s).stressMinimum<0)return result(state,'请先留足已有合同的周转金');
+     log(s,`${market.name}子公司负责人已卸任，交接支出 ¥600。`);return result(s,'负责人已卸任，可调往其他子公司',true);
+    }
+    if(!branch||!manager)return result(state,'请先设立子公司，再选择负责人');
+    if(branch.manager===manager.id)return result(state,'该负责人已在任');
+    if(Object.values(s.expansion.branches).some(b=>b.manager===manager.id))return result(state,'这位负责人已在其他子公司任职');
+    if(branch.manager&&s.day<branch.appointedDay+7)return result(state,'任命满 7 天后才能调任');
+    cost=branch.manager?600:0;branch.manager=manager.id;branch.appointedDay=s.day;message=`${manager.name}已任${market.name}子公司负责人`;
+   }
+  }
+  if(s.cash<cost)return result(state,'现金不足，先等订单回款');s.cash-=cost;
+  if(forecastCash(s).stressMinimum<0)return result(state,'扩张后已有合同可能资金不足，先留足周转金');
+  log(s,`${message}，投入 ¥${cost}。`,'success');return result(s,message,true);
+ }
+ if(action.type==='UPGRADE'){
+  const u=idOf(UPGRADES,action.id);if(!u)return result(state,'没有这项建设');if(s.upgrades[u.id]>=u.max)return result(state,'已满级');const cost=upgradeCost(s,u.id);
+  if(s.cash<cost)return result(state,'现金不足');s.cash-=cost;s.upgrades[u.id]++;
+  if(forecastCash(s).stressMinimum<0)return result(state,'升级后已有合同可能资金不足，先等回款');
+  log(s,`${u.name}升至 ${s.upgrades[u.id]} 级，投入 ¥${cost}。`,'success');return result(s,`${u.name}已升级`,true);
+ }
+ if(action.type==='BRIDGE'){
+  if(s.debt>=12000)return result(state,'主动周转额度已用满');const amount=Math.min(6000,12000-s.debt);s.cash+=amount;s.debt+=amount;log(s,`取得周转金 ¥${amount}，周息 0.8%。`);return result(s,`到账 ¥${amount}，每周新增利息 ¥${Math.ceil(amount*.008)}`,true);
+ }
+ if(action.type==='REPAY'){
+  if(!Number.isSafeInteger(action.amount)||action.amount<=0)return result(state,'还款金额无效');const amount=Math.min(action.amount,s.cash,s.debt);if(!amount)return result(state,'暂无可还金额');s.cash-=amount;s.debt-=amount;
+  if(forecastCash(s).stressMinimum<0)return result(state,'请先留足已签订单的周转资金');log(s,`归还周转金 ¥${amount}。`);return result(s,`已还款 ¥${amount}`,true);
+ }
+ if(action.type==='BROKER'){
+  if(s.lastBrokerWeek===s.week)return result(state,'本周代办已完成');s.lastBrokerWeek=s.week;const pay=Math.max(420,weeklyCost(s)+100);s.cash+=pay;s.metrics.brokered++;log(s,`完成单证代办，收入 ¥${pay}。`,'cash');return result(s,`代办收入 ¥${pay}，本周不再重复结算`,true);
+ }
+ return result(state,'未知操作');
+}
+
+// v1 story saves stay isolated. v2 weekly saves migrate once, without replaying settlement.
+function migrateCalendar(s){
+ const day=weekToDay(s.week);
+ const dated=x=>({...x,day:weekToDay(x.week)});
+ const offer=o=>({...o,deadlineDays:o.deadline*7,payLagDays:o.payLag*7,expiresDay:o.expires*7});
+ s.day=day;s.offers=s.offers.map(offer);
+ s.active=s.active.map(o=>({...o,offer:offer(o.offer),acceptedDay:weekToDay(o.acceptedWeek),shipDay:weekToDay(o.shipWeek),deliveryDay:weekToDay(o.deliveryWeek),dueDay:weekToDay(o.dueWeek),settlementDay:weekToDay(o.dueWeek),days:o.weeks*7,productionDays:o.productionWeeks*7,payLagDays:o.payLag*7,lateDays:o.late*7,steps:o.steps.map(dated)}));
+ s.receivables=s.receivables.map(r=>({...r,dueDay:weekToDay(r.dueWeek)}));
+ s.history=s.history.map(dated);s.priceHistory=s.priceHistory.map(dated);s.log=s.log.map(dated);
+ if(s.ending)s.ending=dated(s.ending);if(s.previousEnding)s.previousEnding=dated(s.previousEnding);
+ s.ruleset=4;return s;
+}
+function parseTradeSave(raw){
+ let s;try{s=typeof raw==='string'?JSON.parse(raw):clone(raw);}catch{throw new Error('存档不是有效 JSON');}
+ const integer=(v,min=0,max=1000000000)=>Number.isSafeInteger(v)&&v>=min&&v<=max;
+ const text=(v,max=80)=>typeof v==='string'&&v.length<=max;
+ const fail=()=>{throw new Error('经营存档数据无效或版本不兼容，原存档未改动');};
+ if(!s||s.version!==2||!text(s.name,24)||!integer(s.week,1,520)||!integer(s.cash)||!integer(s.debt)||!integer(s.reputation,0,100))fail();
+ const daily=[4,5,6].includes(s.ruleset);
+ if(![undefined,2,3,4,5,6].includes(s.ruleset))fail();
+ if(daily&&(!integer(s.day,1,MAX_DAY)||s.week!==dayToWeek(s.day)))fail();
+ if(s.ruleset!==6&&s.expansion===undefined)s.expansion=emptyExpansion();
+ const ex=s.expansion;
+ if(!ex||!integer(ex.warehouse,0,2)||!ex.branches||typeof ex.branches!=='object'||Array.isArray(ex.branches)||Object.keys(ex.branches).length>3)fail();
+ const assigned=[];
+ for(const [market,b] of Object.entries(ex.branches)){
+  if(!s.metrics||!idOf(MARKETS,market)||!b||typeof b!=='object'||!(b.manager===null||idOf(MANAGERS,b.manager))||!integer(b.appointedDay,0,s.day??weekToDay(s.week))||(b.manager===null?b.appointedDay!==0:b.appointedDay<1))fail();
+  if(b.manager){if(assigned.includes(b.manager))fail();assigned.push(b.manager);}
+ }
+ for(const key of ['receivables','active','offers','history','priceHistory','log'])if(!Array.isArray(s[key])||s[key].length>600)fail();
+ for(const u of UPGRADES)if(!integer(s.upgrades?.[u.id],0,u.max))fail();
+ for(const k of ['orders','revenue','profit','ontime','rejected','brokered'])if(!integer(s.metrics?.[k],k==='profit'?-1000000000:0))fail();
+ if(!integer(s.lastBrokerWeek,0,s.week)||!s.customers||typeof s.customers!=='object'||Array.isArray(s.customers)||Object.keys(s.customers).length>10)fail();
+ for(const [id,c] of Object.entries(s.customers))if(!/^(asia|middle|europe)-(quick|long|rush|flagship)$/.test(id)||!integer(c.orders)||!integer(c.revenue)||!text(c.name)||!idOf(MARKETS,c.market)||(c.qualified!==undefined&&typeof c.qualified!=='boolean'))fail();
+ for(const p of PRODUCTS)if(!integer(s.prices?.[p.id],1,10000))fail();
+ const fxValid=f=>{
+  if(!f||!['locked','spot'].includes(f.mode)||!integer(f.usdCents,1,1000000000)||!integer(f.tailUsdCents,0,f.usdCents)||!integer(f.signRate,FX_MIN,FX_MAX)||f.lockedRate!==f.signRate||!integer(f.fee)||!integer(f.estimatedTail)||!integer(f.minTail)||!integer(f.maxTail))return false;
+  const [lo,hi]=fxBounds(f);
+  return f.estimatedTail===convertUsd(f.tailUsdCents,f.signRate)&&f.fee===(f.mode==='locked'?Math.ceil(f.estimatedTail*.006):0)&&f.minTail===lo&&f.maxTail===hi;
+ };
+ const currencyValid=o=>o.currency===undefined||(o.currency==='USD'&&integer(o.usdUnitCents,1,1000000)&&integer(o.quoteRate,FX_MIN,FX_MAX)&&o.quoteRate===fxRateAt(o.expires)&&o.usdUnitCents===round(o.price*1000000/o.quoteRate));
+ const dateValid=(x,dayKey,weekKey,min=1,max=3850)=>integer(x[dayKey],min,max)&&x[weekKey]===dayToWeek(x[dayKey]);
+ const offerValid=o=>o&&currencyValid(o)&&text(o.id)&&/^w\d+-(quick|long|rush|flagship)$/.test(o.id)&&(kinds.some(k=>k.id===o.kind)||o.kind==='flagship')&&idOf(PRODUCTS,o.product)&&idOf(MARKETS,o.market)&&text(o.customer)&&/^(asia|middle|europe)-(quick|long|rush|flagship)$/.test(o.customerId)&&integer(o.quantity,1,100000)&&integer(o.price,1,10000)&&integer(o.depositRate,0,100)&&integer(o.payLag,0,12)&&integer(o.deadline,1,12)&&integer(o.quality,0,100)&&integer(o.repeat,0,10000)&&integer(o.expires,1,520)&&text(o.kindName)&&text(o.unit)&&(!daily||(o.deadlineDays===o.deadline*7&&o.payLagDays===o.payLag*7&&o.expiresDay===o.expires*7));
+ if(s.offers.length>4||s.active.length>capacity(s)||!s.offers.every(offerValid))fail();
+ if(daily&&s.offers.some(o=>o.expiresDay<s.day))fail();
+ const allIds=[...s.offers.map(o=>o.id),...s.active.map(o=>o.id),...s.receivables.map(r=>r.id)];if(new Set(allIds).size!==allIds.length)fail();
+ for(const o of s.active){
+  const terms=o.offer&&paymentProposal(o.offer,o.paymentTerms?.id??'standard');
+  if(!terms)fail();
+  if(o.paymentTerms!==undefined){
+   if(!o.paymentTerms||Object.keys(terms).some(k=>o.paymentTerms[k]!==terms[k])||(daily&&o.payLagDays!==terms.payLagDays)||o.payLag!==terms.payLagDays/7)fail();
+  }
+  if(o.offer?.currency==='USD'){
+   if(!fxValid(o.fx)||o.fx.signRate!==fxRateAt(o.acceptedWeek)||o.fx.usdCents!==contractUsd(o.offer,o.markup,terms)||o.revenue!==convertUsd(o.fx.usdCents,o.fx.signRate)||o.deposit!==round(o.revenue*terms.depositRate/100)||o.fx.tailUsdCents!==Math.max(0,o.fx.usdCents-round(o.fx.usdCents*terms.depositRate/100)-round(o.penalty*1000000/o.fx.signRate)))fail();
+   if(o.steps?.[0]?.amount!==o.deposit-o.procurement-o.fx.fee||o.steps?.[1]?.amount!==-o.balance-o.freight||o.steps?.[2]?.amount!==o.fx.estimatedTail)fail();
+  }else if(o.fx!=null)fail();
+  if(!offerValid(o.offer)||o.id!==o.offer.id||!idOf(SUPPLIERS,o.supplier)||!idOf(SHIPPING,o.shipping)||typeof o.paidShipping!=='boolean')fail();
+  for(const k of ['revenue','cost','freight','deposit','procurement','balance','penalty','cashRequired'])if(!integer(o[k]))fail();
+  for(const k of ['acceptedWeek','shipWeek','deliveryWeek','dueWeek'])if(!integer(o[k],1,550))fail();
+  if(!Array.isArray(o.steps)||o.steps.length!==3||!o.steps.every(x=>integer(x.week,1,550)&&text(x.label,80)&&integer(x.amount,-1000000000))||!integer(o.weeks,1,6)||!integer(o.productionWeeks,1,3)||!integer(o.payLag,0,14)||!integer(o.margin,-100,100)||o.capacity!==1)fail();
+  if(!integer(o.profit,-1000000000)||!integer(o.markup,-10,15)||!integer(o.quality,0,100)||!integer(o.late,0,20)||!integer(o.chance,0,100)||o.deposit>o.revenue||o.penalty>o.revenue-o.deposit||o.cost!==o.procurement+o.balance||o.profit!==(o.fx?o.deposit+o.fx.estimatedTail-o.cost-o.freight-o.fx.fee:o.revenue-o.cost-o.freight-o.penalty)||o.acceptedWeek>s.week||o.shipWeek<o.acceptedWeek||o.deliveryWeek<o.shipWeek||o.dueWeek<o.deliveryWeek)fail();
+  if(!daily&&o.deliveryWeek<=s.week)fail();
+  if(daily){
+   for(const [d,w] of [['acceptedDay','acceptedWeek'],['shipDay','shipWeek'],['deliveryDay','deliveryWeek'],['dueDay','dueWeek']])if(!dateValid(o,d,w))fail();
+   if(o.acceptedDay>s.day||o.deliveryDay<=s.day||o.days!==o.weeks*7||o.productionDays!==o.productionWeeks*7||o.payLagDays!==o.payLag*7||o.lateDays!==o.late*7||o.shipDay!==o.acceptedDay+o.productionDays||o.deliveryDay!==o.acceptedDay+o.days||o.dueDay!==o.deliveryDay+o.payLagDays||o.settlementDay!==o.dueDay||o.paidShipping!==(o.shipDay<=s.day))fail();
+   if(!o.steps.every(x=>dateValid(x,'day','week'))||o.steps[0].day!==o.acceptedDay||o.steps[1].day!==o.shipDay||o.steps[2].day!==o.dueDay)fail();
+  }
+ }
+ for(const r of s.receivables)if(r.paymentTerms!==undefined){
+  const t=r.paymentTerms,config=t&&idOf(PAYMENT_TERMS,t.id),kind=r.customerId?.split('-')[1];
+  if(!config||t.name!==config.name||t.priceAdjustment!==config.priceAdjustment||!integer(t.depositRate,0,100)||!integer(t.payLagDays,0,98)||t.payLagDays%7!==0||t.acceptanceAdjustment!==(t.id==='standard'?0:termsAcceptance[kind]?.[t.id])||(kind==='flagship'&&t.id!=='standard'))fail();
+ }
+ for(const r of s.receivables)if((r.currency!==undefined&&!['USD','CNY'].includes(r.currency))||(r.currency==='USD'&&!r.fx)||(r.currency==='CNY'&&r.fx!=null)||(r.fx!=null&&(!fxValid(r.fx)||r.amount!==r.fx.estimatedTail||!text(r.customerId)||!s.customers[r.customerId]))||!text(r.id)||!text(r.customer)||!integer(r.amount)||!integer(r.dueWeek,daily?s.week:s.week+1,550)||(daily&&!dateValid(r,'dueDay','dueWeek',s.day+1)))fail();
+ for(const h of s.history)if(!integer(h.week,1,s.week)||!integer(h.cash)||!integer(h.netWorth,-1000000000)||!integer(h.revenue)||!integer(h.profit,-1000000000)||(daily&&!dateValid(h,'day','week',1,s.day)))fail();
+ for(const h of s.priceHistory){if(!integer(h.week,1,s.week)||(daily&&!dateValid(h,'day','week',1,s.day)))fail();for(const p of PRODUCTS)if(!integer(h[p.id],1,10000))fail();}
+ for(const l of s.log)if(!integer(l.week,1,s.week)||!text(l.text,300)||!['info','success','cash','warning'].includes(l.kind)||(daily&&!dateValid(l,'day','week',1,s.day)))fail();
+ for(const key of ['ending','previousEnding'])if(s[key]!=null&&(!integer(s[key].week,1,s.week)||!text(s[key].title)||!integer(s[key].orders)||!integer(s[key].netWorth,-1000000000)||(daily&&!dateValid(s[key],'day','week',1,s.day))))fail();
+ if(s.ending===undefined)fail();
+ if(s.ruleset===undefined||s.ruleset===2){if(s.ending&&(!s.customers['europe-flagship']?.qualified||netWorth(s)<60000)){s.previousEnding=s.ending;s.ending=null;}}
+ if(!daily){s=migrateCalendar(s);return parseTradeSave(s);}
+ s.ruleset=6;return s;
+}
+
+return {PRODUCTS,SUPPLIERS,SHIPPING,UPGRADES,MARKETS,MANAGERS,expansionCost,expansionWeekly,expansionBonus,PAYMENT_TERMS,dayToWeek,weekToDay,MAX_DAY,FX_MIN,fxRateAt,capacity,weeklyCost,netWorth,upgradeCost,unlockedMarkets,createTradeGame,quoteOrder,forecastCash,reduceTrade,parseTradeSave};})();
+const module1=(()=>{const {createTradeGame,reduceTrade,quoteOrder,forecastCash,parseTradeSave,PRODUCTS,SUPPLIERS,SHIPPING,UPGRADES,MARKETS,capacity,weeklyCost,netWorth,upgradeCost,unlockedMarkets,fxRateAt,PAYMENT_TERMS,MANAGERS,expansionCost,expansionWeekly}=module0;
+
+const KEY='trade-tycoon:data:v2';
+const app=document.querySelector('#trade-app'),dialog=document.querySelector('#trade-dialog');
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=v=>(v<0?'−':'')+'¥'+Math.abs(Math.round(v||0)).toLocaleString('zh-CN');
+const usd=cents=>'US$'+(Number(cents||0)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fxRate=rate=>(Number(rate||0)/10000).toFixed(4);
+const compact=v=>Math.abs(v)>=10000?(v/10000).toFixed(1)+'万':Math.round(v).toLocaleString('zh-CN');
+const byId=(items,id)=>items.find(x=>x.id===id);
+let state=null,tab='desk',notice='',saveWarning='',timer,quoteId=null,quoteOptions={supplier:'reliable',shipping:'sea',markup:0,fxMode:'locked',paymentTerms:'standard'},importCandidate=null,importTicket=0,damagedSave=null;
+let legacyAvailable=false,lastReceipt=null,lastAdvance=null;
+const dayLabel=d=>'第 '+d+' 天';
+const recordDay=r=>r.day??((r.week-1)*7+1);
+function advanceFeedback(){
+ if(!lastAdvance)return '';
+ const p=lastAdvance.pause,summary=lastAdvance.summary||{},details=[];
+ if(summary.payments)details.push('出运支出 '+money(summary.payments));
+ if(summary.operating)details.push('运营及利息 '+money(summary.operating));
+ if(summary.fxAdjustment)details.push('此前尾款汇差 '+money(summary.fxAdjustment));
+ if(lastAdvance.expiredOffers)details.push('询盘已更新');
+ return `<section class="notice ${p?'warning':''} advance-feedback" role="status"><div><strong>已推进 ${lastAdvance.advancedDays} / ${lastAdvance.requestedDays} 天 · 当前${dayLabel(state.day)}</strong>${details.length?`<p>${details.join(' · ')}</p>`:''}${p?`<p>${esc(p.message)}${lastAdvance.requestedDays>lastAdvance.advancedDays?' 剩余 '+(lastAdvance.requestedDays-lastAdvance.advancedDays)+' 天未推进。':''}</p>`:''}</div>${lastAdvance.remainingDays>0&&(p?.code==='offers_expiring'||p?.code==='funding_gap')?button('确认后继续','advance-review','','small'):''}</section>`;
+}
+
+try{legacyAvailable=!!(localStorage.getItem('trade-tycoon:v1')||localStorage.getItem('trade-tycoon:standalone:v1'));const raw=localStorage.getItem(KEY);if(raw){try{const loaded=parseTradeSave(raw);const original=JSON.parse(raw);if(original.ruleset!==loaded.ruleset&&!localStorage.getItem(KEY+':before-upgrade'))localStorage.setItem(KEY+':before-upgrade',raw);state=loaded;}catch{damagedSave=raw;saveWarning='经营存档暂时无法读取，未覆盖。请先导出原文件留存。';}}}catch{saveWarning='浏览器无法读写存档。请定期导出，避免关闭后丢失进度。';}
+function save(){if(damagedSave)return;try{localStorage.setItem(KEY,JSON.stringify(state));saveWarning='';}catch{saveWarning='自动保存失败，请到「账本」导出存档。';}}
+function download(text,name){const url=URL.createObjectURL(new Blob([text],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+function toast(message){clearTimeout(timer);const el=document.querySelector('#trade-toast');el.textContent=message;el.classList.add('show');timer=setTimeout(()=>el.classList.remove('show'),4500);}
+const button=(label,action,attrs='',cls='')=>`<button class="${cls}" data-action="${action}" ${attrs}>${label}</button>`;
+function chart(values,labels=[],label='资金曲线',fromZero=true,format=money,axisFormat=compact,padding=5){
+ const list=values.length?values:[0,0];const lo=fromZero?Math.min(...list,0):Math.max(0,Math.min(...list)-padding),hi=fromZero?Math.max(...list,1):Math.max(...list)+padding,span=hi-lo||1;
+ const x=i=>30+i*270/Math.max(1,list.length-1),y=v=>15+(hi-v)/span*70;
+ const points=list.map((v,i)=>`${x(i)},${y(v)}`).join(' '),zero=y(0);
+ return `<svg class="chart" viewBox="0 0 330 110" role="img" aria-label="${esc(label)}：${list.map(format).join('，')}" preserveAspectRatio="none"><path class="axis" d="M30 15H300M30 50H300M30 85H300"/><polygon class="area" points="30,85 ${points} 300,85"/><polyline class="line" points="${points}"/><circle cx="${x(list.length-1)}" cy="${y(list.at(-1))}" r="3" fill="#186583"/>${lo<0?`<path class="zero" d="M30 ${zero}H300"/>`:''}<text x="0" y="19">${axisFormat(hi)}</text><text x="0" y="88">${axisFormat(lo)}</text>${labels.map((l,i)=>i===0||i===labels.length-1||i===Math.floor(labels.length/2)?`<text x="${x(i)}" y="106" text-anchor="${i===0?'start':i===labels.length-1?'end':'middle'}">${esc(l)}</text>`:'').join('')}</svg>`;
+}
+// Original product line drawings; presentation only, no economic state.
+function productArt(id){const paths={fasteners:'M8 9l7-4 7 4v8l-7 4-7-4z M15 10v6 M12 13h6 M23 20l5 5 M24 18l6 6 M20 24l5 5',cups:'M11 8h14v22H11z M13 4h10v4 M14 13h8 M14 17h8 M16 25h4',lights:'M12 22c0-4-5-6-5-12a11 11 0 0122 0c0 6-5 8-5 12z M12 26h12 M14 30h8 M15 10l3 4 3-4 M18 14v8',tools:'M5 8h18l7 5v6H18l-3 11H8l3-13H5z M30 11h4v10h-4 M7 11h7',textiles:'M5 9l8-5 5 5 5-5 8 5-5 8-4-3v16H14V14l-4 3z M14 23h8',pumps:'M8 16h18v12H8z M11 11h12v5 M15 6h4v5 M26 18h6v7h-6 M4 28h26 M12 20h10 M12 24h10'};return `<svg class="product-art" viewBox="0 0 36 36" aria-hidden="true" focusable="false"><path d="${paths[id]||paths.fasteners}"/></svg>`;}
+function shipArt(){return `<svg viewBox="0 0 400 220" aria-hidden="true"><circle cx="305" cy="50" r="30" fill="#f5a341"/><path d="M25 145H360L327 185H78Z" fill="#dce6eb"/><path d="M45 130H250V145H45Z" fill="#4b7993"/><path d="M73 103H127V129H73ZM132 103H186V129H132ZM191 103H245V129H191Z" fill="#e87936"/><path d="M108 74H162V101H108ZM167 74H221V101H167Z" fill="#f5a341"/><path d="M267 105H322V145H267ZM278 84H311V105H278Z" fill="#f7fafb"/><path d="M23 199H375M57 210H300" stroke="#7aa2b9" stroke-width="2"/><path d="M33 95V26H203M35 28L132 95M155 28V63M150 63H160" fill="none" stroke="#83a3b8" stroke-width="3"/></svg>`;}
+function start(){return `<main class="start"><section><div class="wordmark">看行情，做订单，收回款</div><h1>外贸不靠<br>外貌</h1><p class="lead">第一单看利润，下一单看周转。<br>从一间小公司，把生意做到更远。</p><div class="start-features"><span>↗ 看行情</span><span>▤ 做订单</span><span>◷ 收回款</span><span>◈ 拓市场</span></div>${saveWarning?`<p class="notice warning">${esc(saveWarning)}</p>`:''}<form id="start-form"><label for="company-name">给你的贸易公司起个名字</label><input id="company-name" name="company" maxlength="24" value="我的贸易公司" autocomplete="off" required>${damagedSave?button('导出原存档','export-damaged'):'<button class="primary" type="submit">开张，接第一笔生意 →</button>'}</form><div class="legacy"><button class="small" data-action="import-open">导入经营存档</button></div></section><div class="scene"><h2>货走得出去，<br>钱也要回得来。</h2>${shipArt()}<p>每一笔小生意，都通向更远的地方。</p></div></main>`;}
+const tabs=[['desk','经营','▤'],['market','行情','↗'],['company','公司','◈'],['ledger','账本','◷']];
+function kpis(){const fc=forecastCash(state);return `<section class="kpis" aria-label="经营总览"><div class="kpi"><label>可用现金</label><strong>${money(state.cash)}</strong><small>每周运营 ${money(weeklyCost(state))}</small></div><div class="kpi"><label>42 天最低现金</label><strong class="${(fc.stressMinimum??fc.minimum)<1500?'negative':''}">${money(fc.minimum)}</strong><small>${fc.estimated?'按签约汇率估算 · 压力最低 '+money(fc.stressMinimum):'已有合同与运营费已计入'}</small></div><div class="kpi"><label>待收尾款</label><strong>${money(state.receivables.reduce((a,r)=>a+r.amount,0))}</strong><small>${state.receivables.some(r=>r.fx?.mode==='spot')?'含浮动美元尾款，按签约汇率估值':'已交付，按约定账期收回'}</small></div><div class="kpi"><label>累计订单利润</label><strong class="${state.metrics.profit>=0?'positive':'negative'}">${money(state.metrics.profit)}</strong><small>已交付 ${state.metrics.orders} 单 · ${state.receivables.some(r=>r.fx?.mode==='spot')?'含未结汇估值 · 未扣周运营费':'未扣周运营费'}</small></div></section>`;}
+function shell(){const names={desk:'经营工作台',market:'商品行情',company:'公司与航线',ledger:'资金账本'};return `<div class="shell"><aside class="sidebar"><div class="brand">外贸不靠<br>外貌</div><div class="company-stamp"><small>一家认真做生意的公司</small><strong>${esc(state.name)}</strong><small>${unlockedMarkets(state).length} 个市场 · ${state.metrics.orders} 笔交付</small></div><nav>${tabs.map(([id,name,icon])=>button(`<span>${icon}</span>${name}`,'tab',`data-tab="${id}"`,tab===id?'active':'')).join('')}</nav><div class="foot"><span>资金流转，生意向前。</span><button class="small" data-action="export">导出经营存档</button></div></aside><main class="workspace"><header class="topbar"><div><div class="eyebrow">${esc(state.name)} / ${state.ending?'继续远航':'第一程'}</div><h1>${names[tab]}</h1></div><div class="top-actions"><span class="week">第 <b>${state.day}</b> 天<small>第 ${state.week} 周</small></span><div class="time-controls">${button('下一天 →','next','', 'primary')}${button('快进 3 天','advance',`data-days="3" title="最多前往第 ${state.day+3} 天，重要事项会暂停"`,'small')}${button('快进 7 天','advance',`data-days="7" title="最多前往第 ${state.day+7} 天，重要事项会暂停"`,'small')}</div></div></header>${saveWarning?`<div class="notice warning">${esc(saveWarning)}</div>`:''}${notice?`<div class="notice"><span>${esc(notice)}</span>${button('×','dismiss','aria-label="关闭提示"')}</div>`:''}${advanceFeedback()}${kpis()}${receiptFeedback()}${nextMilestone()}${({desk:desk,market:market,company:company,ledger:ledger})[tab]()}</main><nav class="mobile-nav" aria-label="主导航">${tabs.map(([id,name,icon])=>button(`<span>${icon}</span>${name}`,'tab',`data-tab="${id}"`,tab===id?'active':'')).join('')}</nav></div>`;}
+function goals(){const markets=unlockedMarkets(state);const covered=new Set(Object.values(state.customers).map(c=>c.market)).size;const worth=netWorth(state);return `<div class="panel"><div class="panel-head"><h2>${state.ending?'航线已成，继续远航':'下一程：三大市场'}</h2><span class="pill">已履约 ${covered}/3</span></div><div class="route-map"><svg viewBox="0 0 320 95" aria-label="市场：${MARKETS.map(m=>m.name).join('、')}"><path d="M20 55Q160 0 290 55" class="route"/>${MARKETS.map((m,i)=>`<circle cx="${35+i*125}" cy="${i===1?28:55}" r="${markets.some(x=>x.id===m.id)?7:4}" fill="${markets.some(x=>x.id===m.id)?'#186583':'#a7bac8'}"/><text x="${35+i*125}" y="${i===1?54:82}" text-anchor="middle">${m.name}</text>`).join('')}</svg></div><div class="goal">${[['市场入场交付',state.metrics.orders,8,'单'],['公司净值',Math.max(0,worth),60000,''],['信誉',state.reputation,8,'']].map(([name,n,max,unit])=>`<div class="goal-title"><span>${name}</span><strong>${name==='公司净值'?money(n):n}${unit} / ${name==='公司净值'?money(max):max}${unit}</strong></div><div class="progress"><i style="width:${Math.min(100,n/max*100)}%"></i></div>`).join('')}<div class="goal-title"><span>欧洲框架试单</span><strong>${state.customers['europe-flagship']?.qualified?'已合格交付':'待完成'}</strong></div><small>试单要求：品质 95、21 天交付、15% 订金。先准备验货与周转能力。</small><small>3 单解锁中东，8 单且信誉 8 解锁欧洲。实际交付覆盖三大市场、净值 6 万，并合格完成欧洲框架试单，完成第一程。</small></div></div>`;}
+function receiptFeedback(){
+ if(!lastReceipt)return '';
+ const r=lastReceipt;
+ return `<section class="receipt" role="status"><div><small>${dayLabel(r.day)} · 经营回执</small><h2>${r.orders?r.orders+' 笔交付':'货款到账'}${r.orders?' · 订单利润 '+(r.profit>=0?'+':'')+money(r.profit):''}</h2><p>实际回款 <b class="positive">${money(r.receipts)}</b> · 本次现金净变化 ${r.cash>=0?'+':''}${money(r.cash)}${r.reputation?' · 信誉 +'+r.reputation:''}${r.markets?' · 解锁 '+r.markets+' 个新市场':''}</p>${r.estimated?'<small>利润含浮动尾款估值，结汇后确定。</small>':''}</div>${button('收好','receipt-dismiss','','small')}</section>`;
+}
+function nextMilestone(){
+ const events=[];
+ for(const o of state.active){if(!o.paidShipping)events.push({day:o.shipDay,label:'出运',customer:o.offer.customer});events.push({day:o.deliveryDay,label:'交付',customer:o.offer.customer});}
+ for(const r of state.receivables)events.push({day:r.dueDay,label:'回款',customer:r.customer});
+ const next=events.filter(e=>e.day>=state.day).sort((a,b)=>a.day-b.day)[0];
+ if(!next)return '';
+ return `<div class="next-milestone"><strong>下一节点：${esc(next.label)} · ${dayLabel(next.day)}</strong><span>${esc(next.customer)} · 还需 ${Math.max(0,next.day-state.day)} 天${state.active.length>=capacity(state)?' · 订单名额已满，可快进等履约':''}</span></div>`;
+}
+function forecastTable(points){return `<div class="scroll-table"><table class="ledger-table"><thead><tr><th>日期</th><th>入账</th><th>支出含运营</th><th>期末现金</th></tr></thead><tbody>${points.map(p=>`<tr><td>${dayLabel(p.day)}${p.day===state.day?' · 当前':''}</td><td class="positive">${money(p.inflow)}</td><td>${money(p.outflow)}</td><td class="${p.cash<0?'negative':''}">${money(p.cash)}</td></tr>`).join('')}</tbody></table></div>`;}
+function forecastSummary(fc){
+ const events=fc.points.filter(p=>p.day===state.day||p.inflow||p.outflow);
+ return `${forecastTable(events)}<details class="forecast-details"><summary>查看全部 ${fc.points.length} 天明细（含无收支日）</summary>${forecastTable(fc.points)}</details>`;
+}
+function desk(){const fc=forecastCash(state);return `${state.ending?`<section class="milestone"><div class="eyebrow">${dayLabel(recordDay(state.ending))} · 第一程达成</div><h2>从第一单，到三大市场</h2><p>欧洲框架试单合格交付，生意已连通三大市场。</p><div class="ending-stats"><div><strong>${recordDay(state.ending)} 天</strong><small>走完第一程</small></div><div><strong>${state.ending.orders} 单</strong><small>累计交付</small></div><div><strong>${money(state.ending.netWorth)}</strong><small>达成时净值</small></div></div><p>继续开拓，或到「账本」导出这份成绩。</p></section>`:''}<div class="grid"><div><section class="panel"><div class="panel-head"><h2>本周询盘 <span class="pill">${state.offers.length}</span></h2><small>每 7 天更新 · 先算，再接</small></div>${state.offers.map(o=>{const q=quoteOrder(state,o.id);return `<article class="offer inquiry"><div class="cargo-info">${productArt(o.product)}<div><div class="name"><strong>${esc(byId(PRODUCTS,o.product).name)}</strong><span class="pill ${o.kind==='long'?'warm':''}">${esc(o.kindName)}</span>${o.repeat?'<span class="pill">复购</span>':''}</div><div class="sub">${esc(o.customer)} · ${o.quantity} ${esc(o.unit)}<br>订金 ${o.depositRate}% · 最晚交付 ${o.deadlineDays} 天 · 尾款 ${o.payLagDays?'再等 '+o.payLagDays+' 天':'交付即收'}</div></div></div><div class="number"><strong>${q.fx?usd(q.fx.usdCents):money(q.revenue)}</strong><small>基准合同额${q.fx?' · 美元':''}</small></div><div class="number positive"><strong>${money(q.profit)}</strong><small>${q.fx?.mode==='spot'?'基准利润估值':'基准预计利润'}</small></div>${button('算这单 →','quote',`data-id="${esc(o.id)}"`,'small')}</article>`;}).join('')||'<div class="empty">本周询盘已处理。可逐日推进或快进，等待新的生意与回款。</div>'}</section><section class="panel"><div class="panel-head"><h2>在途订单</h2><small>${state.active.length} / ${capacity(state)} 个并行名额</small></div>${state.active.map(o=>`<article class="order-card"><div class="row"><strong>${esc(o.offer.customer)} · ${esc(byId(PRODUCTS,o.offer.product).name)}</strong><span class="pill">${o.paidShipping?'运输中':'生产中'}</span></div><div class="progress"><i style="width:${Math.max(5,Math.min(100,(state.day-o.acceptedDay)/Math.max(1,o.deliveryDay-o.acceptedDay)*100))}%"></i></div><p>订金 ${o.paymentTerms?.depositRate??o.offer.depositRate}% · 尾款${(o.paymentTerms?.payLagDays??o.payLagDays)?'交付后 '+(o.paymentTerms?.payLagDays??o.payLagDays)+' 天':'交付即收'} · 第 ${o.shipDay} 天出运 · 第 ${o.deliveryDay} 天交付（还需 ${Math.max(0,o.deliveryDay-state.day)} 天）· 第 ${o.dueDay} 天收齐款${o.fx?` · 尾款 ${usd(o.fx.tailUsdCents)} / ${money(o.fx.estimatedTail)}${o.fx.mode==='spot'?'（按签约汇率估算，非保证到账）':'（已锁汇）'}`:''} · ${o.fx?.mode==='spot'?'利润估值':'预计利润'} <b class="${o.profit>=0?'positive':'negative'}">${money(o.profit)}</b>${o.penalty?` · 已计赔付 ${money(o.penalty)}`:''}</p></article>`).join('')||'<div class="empty">还没有在途订单。选择询盘，比较成本、交期和最低现金后签约。</div>'}</section><section class="panel"><div class="panel-head"><h2>经营动态</h2><small>最新 5 条</small></div><ul class="compact-list">${state.log.slice(0,5).map(l=>`<li><small>${dayLabel(recordDay(l))}</small>${esc(l.text)}</li>`).join('')||'<li>开张资金 ¥18,000 已就位。先拿下第一笔订单。</li>'}</ul></section></div><aside class="aside"><section class="panel"><div class="panel-head"><h2>未来 42 天资金</h2><span class="pill ${(fc.stressMinimum??fc.minimum)<1500?'warm':''}">${(fc.stressMinimum??fc.minimum)<1500?'周转偏紧':fc.estimated?'压力区间可覆盖':'可覆盖合同'}</span></div><div class="panel-body">${chart(fc.points.map(p=>p.cash),fc.points.map(p=>dayLabel(p.day)),fc.estimated?'未来42天现金估算':'未来42天现金')}<div class="chart-caption"><span>最低 ${money(fc.minimum)}</span><span>${fc.estimated?'浮动尾款为估值 · 压力最低 '+money(fc.stressMinimum):'不含未来新单'}</span></div></div></section>${goals()}</aside></div>`;}
+function fxMarket(){const history=state.priceHistory.map(h=>({week:h.week,rate:fxRateAt(h.week)}));return `<section class="panel fx-market"><div class="panel-head"><h2>美元兑人民币</h2><strong>1 美元 = ${fxRate(fxRateAt(state.week))} 元</strong></div><div class="panel-body">${chart(history.map(h=>h.rate/10000),history.map(h=>'第'+h.week+'周'),'每美元可兑换人民币',false,v=>v.toFixed(4)+' 元',v=>v.toFixed(2),.04)}<div class="chart-caption"><span>过去 ${history.length} 周 · 游戏内汇率</span><span>人民币采购，美元报价与回款</span></div></div></section>`;}
+function market(){return `${fxMarket()}<div class="notice"><span>采购价每周变动，签约即锁定本单成本。报价时可调售价，但提价会降低成交率。</span>${button('去接单 →','tab','data-tab="desk"','small')}</div><section class="market-grid">${PRODUCTS.map(p=>{const points=state.priceHistory.map(h=>h[p.id]),last=points.at(-2)||p.base,now=state.prices[p.id],delta=Math.round((now/last-1)*100);return `<article class="panel market-card"><div class="goal-title"><h2 class="product-heading">${productArt(p.id)}${p.name}</h2><span class="pill ${delta>0?'warm':''}">${delta>=0?'+':''}${delta}%</span></div><div class="market-price">${money(now)}<small class="hint"> / ${p.unit}</small></div><div class="hint">上周 ${money(last)} · 长期基准 ${money(p.base)}</div>${chart(points,state.priceHistory.map(h=>'第'+h.week+'周'),p.name+'采购价',false)}<div class="chart-caption">近 ${points.length} 周采购走势</div><div class="hint">标准工厂采购价 · 集采和供应商影响最终成本</div></article>`;}).join('')}</section>`;}
+function expansionPanel(){
+ const ex=state.expansion,used=Object.values(ex.branches).map(b=>b.manager),markets=unlockedMarkets(state);
+ return `<section class="panel"><div class="panel-head"><h2>把生意做大</h2><small>扩张周运营 ${money(expansionWeekly(state))}</small></div><div class="panel-body"><div class="goal-title"><h3>出口集货仓</h3><span class="pill">${ex.warehouse} / 2 级</span></div><p class="hint">合并装柜、减少中转。每级并行订单 +1、运费再降 5%，周运营 +¥100。</p><div class="money-row"><strong>${ex.warehouse===2?'已建成':money(expansionCost(state))}</strong>${button('扩建集货仓','warehouse',ex.warehouse===2?'disabled':'','small')}</div></div>${MARKETS.map(m=>{const b=ex.branches[m.id],open=markets.some(x=>x.id===m.id);return `<div class="panel-body"><div class="goal-title"><h3>${m.name}子公司</h3><span class="pill">${b?'已成立':open?'可设立':'市场未开放'}</span></div>${b?`<p class="hint">并行名额 +1 · 本市场成交率 +3 个百分点 · 周运营 ¥180</p><div class="save-tools">${MANAGERS.map(p=>button(`${p.name} · ${p.role}${b.manager===p.id?'（在任）':''}`,'appoint',`data-market="${m.id}" data-manager="${p.id}" ${(b.manager===p.id||used.includes(p.id))?'disabled':''} title="${esc(p.description)}"`,'small')).join('')}</div><p class="hint">${b.manager?esc(byId(MANAGERS,b.manager).description):'选一位负责人，专长只作用于本市场。'}</p>${b.manager?button('卸任 / 调往其他市场','dismiss-manager',`data-market="${m.id}"`,'small'):''}`:`<p class="hint">当地维护客户，增加 1 个并行名额，成交率 +3 个百分点；周运营 +¥180。</p><div class="money-row"><strong>¥16,000</strong>${button('设立子公司','branch',`data-market="${m.id}" ${open?'':'disabled'}`,'small')}</div>`}</div>`;}).join('')}<div class="panel-body hint">订单名额常满时再扩张，不是通关条件。只影响新签合同；支出计入经营费用，不计入公司净值。</div></section>`;
+}
+function company(){return `<div class="grid"><div><section class="upgrade-grid">${UPGRADES.map(u=>`<article class="panel upgrade-card"><div class="goal-title"><h2>${u.name}</h2><span class="pill">${state.upgrades[u.id]} / ${u.max} 级</span></div><p>${esc(u.description)}</p><footer><strong>${state.upgrades[u.id]===u.max?'已满级':money(upgradeCost(state,u.id))}</strong>${button('安排升级','upgrade',`data-id="${u.id}" ${state.upgrades[u.id]===u.max?'disabled':''}`,'small')}</footer></article>`).join('')}</section>${expansionPanel()}<section class="panel"><div class="panel-head"><h2>复购客户</h2><small>履约留下的生意</small></div>${Object.values(state.customers).map(c=>`<div class="offer"><div><strong>${esc(c.name)}</strong><div class="sub">${esc(byId(MARKETS,c.market).name)} · 已交付 ${c.orders} 单</div></div><div class="number">${money(c.revenue)}<small>累计合同收入</small></div><span class="pill">复购提价 +${(Math.min(c.orders,6)*1.2).toFixed(1)}%</span></div>`).join('')||'<div class="empty">准时交付第一笔订单，积累自己的老客户。</div>'}</section></div><aside>${goals()}<section class="panel"><div class="panel-head"><h2>公司的底气</h2></div><div class="panel-body mini-kpis"><div><strong>${money(netWorth(state))}</strong><small>净值，含应收及在途已付成本</small></div><div><strong>${state.metrics.ontime}/${state.metrics.orders}</strong><small>准时交付</small></div><div><strong>${capacity(state)} 单</strong><small>并行容量</small></div></div></section></aside></div>`;}
+function ledger(){const fc=forecastCash(state);return `<div class="grid"><div><section class="panel"><div class="panel-head"><h2>现金记录</h2><small>最近 ${state.history.length} 条记录</small></div><div class="panel-body">${chart(state.history.map(h=>h.cash),state.history.map(h=>dayLabel(recordDay(h))),'历史可用现金')}<div class="chart-caption"><span>现金不是利润。尾款未到账时，下一单仍需要周转。</span></div></div></section><section class="panel"><div class="panel-head"><h2>未来收支</h2><small>${fc.estimated?'浮动尾款按签约汇率估算，非保证到账':'按已签合同预测'}</small></div>${forecastSummary(fc)}</section><section class="panel"><div class="panel-head"><h2>应收尾款</h2></div><ul class="compact-list">${state.receivables.map(r=>`<li><b>${esc(r.customer)}</b> · ${r.fx?usd(r.fx.tailUsdCents)+' / ':''}${money(r.amount)}${r.fx?.mode==='spot'?' · 估计待结汇':r.fx?' · 已锁汇':''}<br><small>${r.paymentTerms?`订金 ${r.paymentTerms.depositRate}% · 尾款${r.paymentTerms.payLagDays?'交付后 '+r.paymentTerms.payLagDays+' 天':'交付即收'} · `:''}第 ${r.dueDay} 天到账 · 还需 ${Math.max(0,r.dueDay-state.day)} 天${r.fx?.mode==='spot'?' · 按签约汇率估算，非保证到账':''}</small></li>`).join('')||'<li>暂无已交付未回款的订单。</li>'}</ul></section><section class="panel"><div class="panel-head"><h2>流水</h2><small>最近 60 条</small></div><ul class="compact-list">${state.log.map(l=>`<li><small>${dayLabel(recordDay(l))}</small>${esc(l.text)}</li>`).join('')||'<li>第一笔经营记录即将开始。</li>'}</ul></section></div><aside><section class="panel"><div class="panel-head"><h2>周转工具</h2></div><div class="panel-body"><div class="money-row"><span>当前借款</span><strong>${money(state.debt)}</strong></div><p class="hint">周息 0.8%，包含在每周运营支出。借款不会增加公司净值。</p><div class="save-tools">${button('周转借款','borrow',state.debt>=12000?'disabled':'','small')}${button('归还借款','repay',state.debt===0?'disabled':'','small')}</div><hr style="border:0;border-top:1px solid var(--line);margin:20px 0"><h3>单证代办</h3><p class="hint">不需垫资，每周限一次。手头紧时先维持周转，再找合适订单。</p>${button(state.lastBrokerWeek===state.week?'本周已代办':'接一次代办','broker',state.lastBrokerWeek===state.week?'disabled':'','small')}</div></section><section class="panel"><div class="panel-head"><h2>存档</h2><span class="pill">${saveWarning?'保存异常':'自动保存'}</span></div><div class="panel-body"><div class="save-tools">${button('导出存档','export','','small')}${button('导入存档','import-open','','small')}${button('导出导入前备份','export-backup','','small')}${button('导出升级前存档','export-upgrade','','small')}</div><p class="hint">当前进度保存在此浏览器。换设备前先导出存档。</p></div></section></aside></div>`;}
+function render(){app.innerHTML=state?shell():start();}
+function apply(action){const isAdvance=['NEXT_DAY','ADVANCE_DAYS'].includes(action.type);const previous=state;const result=reduceTrade(state,action);if(result.changed){state=result.state;if(['NEXT_DAY','ADVANCE_DAYS'].includes(action.type)){const orders=state.metrics.orders-previous.metrics.orders;if(orders||result.summary?.receipts)lastReceipt={day:state.day,orders,profit:result.summary?.profit??0,receipts:result.summary?.receipts??0,estimated:result.summary?.estimatedDeliveries??0,cash:state.cash-previous.cash,reputation:state.reputation-previous.reputation,markets:unlockedMarkets(state).length-unlockedMarkets(previous).length};}save();}if(['NEXT_DAY','ADVANCE_DAYS'].includes(action.type))lastAdvance={advancedDays:result.advancedDays??0,requestedDays:result.requestedDays??1,remainingDays:result.remainingDays??Math.max(0,(result.requestedDays??1)-(result.advancedDays??0)),pause:result.pause??null,summary:result.summary??{},expiredOffers:result.expiredOffers??0};else lastAdvance=null;notice=isAdvance?'':result.message;if(isAdvance){clearTimeout(timer);document.querySelector('#trade-toast').classList.remove('show');}render();if(!isAdvance)toast(result.message);return result;}
+function closeDialog(){importTicket++;if(dialog.open)dialog.close();quoteId=null;importCandidate=null;}
+function openDialog(html){dialog.innerHTML=html;if(!dialog.open)dialog.showModal();}
+function showQuote(id,reset=true){quoteId=id;if(reset)quoteOptions={supplier:'reliable',shipping:'sea',markup:0,fxMode:'locked',paymentTerms:'standard'};const o=state.offers.find(x=>x.id===id);if(!o){closeDialog();return;}openDialog(`<div class="dialog-header"><div><div class="eyebrow">报价工作台 / ${esc(o.kindName)}</div><h2>${esc(byId(PRODUCTS,o.product).name)} · ${o.quantity}${esc(o.unit)}</h2><p>${esc(o.customer)} · 品质要求 ${o.quality} · 最晚 ${o.deadlineDays} 天交付</p></div>${button('×','close','aria-label="关闭报价"')}</div><div class="dialog-body"><div class="quote-grid"><div><label class="field"><span>供应商</span><select id="quote-supplier">${SUPPLIERS.map(x=>`<option value="${x.id}" ${quoteOptions.supplier===x.id?'selected':''}>${x.name} · 基础品质${x.quality}</option>`).join('')}</select><small id="supplier-hint"></small></label><label class="field"><span>出运方式</span><select id="quote-shipping">${SHIPPING.map(x=>`<option value="${x.id}" ${quoteOptions.shipping===x.id?'selected':''}>${x.name} · ${x.days?x.days+'天':'交期见下方合计'}</option>`).join('')}</select><small id="shipping-hint"></small></label><label class="field"><span>报价调整 <output id="markup-label">0%</output></span><input id="quote-markup" type="range" min="-10" max="15" step="1" value="${quoteOptions.markup}" aria-label="报价调整百分比"><small>基准单价 ${o.currency==='USD'?usd(o.usdUnitCents):money(o.price)} / ${esc(o.unit)}。高报价利润多，客户更容易拒绝。</small></label>${o.currency==='USD'&&o.kind!=='flagship'?`<label class="field terms-field"><span>付款条件</span><select id="quote-terms">${PAYMENT_TERMS.map(t=>`<option value="${t.id}" ${quoteOptions.paymentTerms===t.id?'selected':''}>${esc(t.name)}</option>`).join('')}</select></label>`:''}<div id="terms-summary" class="terms-summary" aria-live="polite"></div>${o.currency==='USD'?`<label class="field fx-field"><span>尾款结汇</span><select id="quote-fx"><option value="locked" ${quoteOptions.fxMode==='locked'?'selected':''}>锁定尾款 · 付费确定回款</option><option value="spot" ${quoteOptions.fxMode==='spot'?'selected':''}>到期浮动 · 承担汇率变化</option></select></label>`:''}<div id="quote-schedule"></div></div><div id="quote-result"></div></div></div><div class="dialog-footer"><span id="quote-warning" class="hint"></span>${button('提交报价 →','accept','','primary')}</div>`);updateQuote();}
+function updateQuote(){const q=quoteOrder(state,quoteId,quoteOptions);if(!q.offer)return;const fc=forecastCash(state,q);document.querySelector('#terms-summary').innerHTML=paymentComparison(q,fc);document.querySelector('#supplier-hint').textContent=byId(SUPPLIERS,quoteOptions.supplier).description;document.querySelector('#shipping-hint').textContent=byId(SHIPPING,quoteOptions.shipping).description;document.querySelector('#markup-label').textContent=(quoteOptions.markup>0?'+':'')+quoteOptions.markup+'%';document.querySelector('#quote-schedule').innerHTML=`<details><summary>本单分期收付明细</summary>${q.steps.map(s=>`<div class="money-row"><span>第 ${s.day} 天 · ${esc(s.label)}</span><b class="${s.amount>=0?'positive':'negative'}">${s.amount>=0?'+':''}${money(s.amount)}</b></div>`).join('')}</details>`;document.querySelector('#quote-result').innerHTML=`<div class="quote-breakdown"><div class="money-row"><span>合同金额${q.fx?' · 美元':''}</span><b>${q.fx?usd(q.fx.usdCents):money(q.revenue)}</b></div><div class="money-row"><span>采购成本${q.fx?' · 人民币':''}</span><span>−${money(q.cost)}</span></div><div class="money-row"><span>运费</span><span>−${money(q.freight)}</span></div>${q.freightSaving?`<div class="money-row positive"><span>集货 / 专人货运已省</span><span>${money(q.freightSaving)}</span></div>`:''}${q.expansion?.branch?`<small class="hint">${esc(byId(MARKETS,q.offer.market).name)}子公司：成交率 +${q.expansion.chance} 个百分点${q.expansion.quality?' · 品质 +'+q.expansion.quality:''}（已计入）</small>`:''}${q.fx?fxQuote(q):''}${q.penalty?`<div class="money-row negative"><span>交期 / 品质赔付</span><span>−${money(q.penalty)}</span></div>`:''}<div class="money-row total"><span>${q.fx?.mode==='spot'?'订单利润估值':'预计订单利润'}</span><span class="${q.profit>=0?'positive':'negative'}">${money(q.profit)}</span></div><small class="hint">利润率 ${q.margin}% · 未分摊公司周运营费</small></div><div class="quote-stat"><div><strong>${q.chance}%</strong><small>预计成交率</small></div><div><strong>${q.days} 天</strong><small>${q.lateDays?'延误 '+q.lateDays+' 天':'按时交付'}</small></div><div><strong>${q.quality}</strong><small>交付品质</small></div></div>${chart(fc.points.map(p=>p.cash),fc.points.map(p=>dayLabel(p.day)),fc.estimated?'接单后现金估算':'接单后现金预测')}<div class="chart-caption"><span>未来42天最低现金</span><strong class="${(fc.stressMinimum??fc.minimum)<1500?'negative':'positive'}">${money(fc.minimum)}</strong></div>${fc.estimated?`<div class="hint fx-risk">按签约汇率估算，非保证到账。压力最低现金 ${money(fc.stressMinimum)}；尾款到账后才确定结汇损益。</div>`:''}`;const reason=!q.valid?q.reason:(fc.stressMinimum??fc.minimum)<0?'汇率压力下资金不足，需调整方案或先回款':q.profit<0?'本单预计亏损，请确认是否值得为客户关系投入。':q.penalty?(q.offer.kind==='flagship'?'此方案不合格，不能完成最终目标；赔付已扣入利润。':'存在已知交期/品质赔付，已从利润扣除。'):q.fx?'采购价及合同美元金额固定，尾款按所选方式结汇。被拒不扣钱。':'签约后锁价，占用 1 个并行名额；被拒不扣钱。';document.querySelector('#quote-warning').textContent=reason;dialog.querySelector('[data-action="accept"]').disabled=!q.valid||(fc.stressMinimum??fc.minimum)<0;}
+function paymentComparison(q,fc){const t=q.paymentTerms||{id:'standard',depositRate:q.offer.depositRate,payLagDays:q.payLagDays};const baseline=quoteOrder(state,quoteId,{...quoteOptions,paymentTerms:'standard'});const profitDiff=q.profit-baseline.profit,daysDiff=q.settlementDay-baseline.settlementDay;return `<div>订金 ${t.depositRate}% · ${t.payLagDays?'交付后 '+t.payLagDays+' 天收尾款':'交付即收尾款'}</div><small>${t.id==='standard'?'按原询盘付款条件':`比原条件${q.fx?.mode==='spot'?'预计':''}${profitDiff>=0?'多赚':'少赚'}${money(Math.abs(profitDiff))}，${daysDiff===0?'回款日不变':(daysDiff>0?'晚':'早')+Math.abs(daysDiff)+' 天收款'}`}${q.offer.kind==='flagship'?' · 框架试单条件固定':''}</small>`;}
+function fxQuote(q){const f=q.fx;return `<div class="fx-summary"><div class="money-row"><span>签约汇率</span><span>1 美元 = ${fxRate(f.signRate)} 元</span></div><div class="money-row"><span>${f.mode==='locked'?'锁汇费 · 签约扣款':'结汇费用'}</span><span>${money(f.fee)}</span></div><div class="money-row"><span>${f.mode==='locked'?'锁定尾款':'尾款估值'}</span><b>${money(f.estimatedTail)}</b></div><small>${usd(f.tailUsdCents)} · ${f.mode==='locked'?'按锁定汇率 '+fxRate(f.lockedRate)+' 自动结汇':'按当前汇率估算，非保证到账'}</small>${f.mode==='spot'?`<div class="hint">汇率压力区间：${money(f.minTail)}～${money(f.maxTail)}，不是保底或收益承诺。</div>`:''}</div>`;}
+function confirmation(title,body,action,attrs=''){openDialog(`<div class="dialog-header"><h2>${esc(title)}</h2>${button('×','close','aria-label="关闭"')}</div><div class="dialog-body">${body}</div><div class="dialog-footer">${button('取消','close')}${button('确认','confirm-'+action,attrs,'primary')}</div>`);}
+function importOpen(){openDialog(`<div class="dialog-header"><h2>导入经营存档</h2>${button('×','close','aria-label="关闭导入"')}</div><div class="dialog-body"><p class="hint">选择之前导出的经营存档文件。会先检查，不会立即覆盖当前进度。</p><input id="import-file" type="file" accept=".json,application/json" aria-label="选择存档文件"><div id="import-status" class="hint" role="status"></div></div>`);}
+app.addEventListener('submit',e=>{if(e.target.id!=='start-form')return;e.preventDefault();if(damagedSave)return;state=createTradeGame(new FormData(e.target).get('company'));save();render();});
+function handle(e){const el=e.target.closest('[data-action]');if(!el||el.disabled)return;const a=el.dataset.action;
+ if(a==='close'){closeDialog();return;}
+ if(a==='receipt-dismiss'){lastReceipt=null;render();return;}
+ if(a==='dismiss'){notice='';render();return;}
+ if(a==='export-upgrade'){try{const raw=localStorage.getItem(KEY+':before-upgrade');if(raw)download(raw,'贸易经营-升级前存档.json');else toast('尚无升级前备份，当前进度可正常导出。');}catch{toast('浏览器无法读取升级前存档。');}return;}
+ if(a==='export-backup'){try{const raw=localStorage.getItem(KEY+':before-import');if(raw)download(raw,'贸易经营-导入前备份.json');else toast('尚无导入前备份，当前进度可正常导出。');}catch{toast('浏览器无法读取备份。');}return;}
+ if(a==='export-damaged'){download(damagedSave,'经营存档-原文件备份.json');return;}
+ if(a==='import-open'){importOpen();return;}
+ if(a==='export'){download(JSON.stringify(state,null,2),`贸易经营-第${state.day}天.json`);toast('已生成存档文件，请保留下载文件。');return;}
+ if(a==='tab'){tab=el.dataset.tab;render();window.scrollTo(0,0);return;}
+ if(a==='quote'){showQuote(el.dataset.id);return;}
+ if(a==='accept'){const id=quoteId,options={...quoteOptions};closeDialog();apply({type:'ACCEPT',offerId:id,...options});return;}
+ if(a==='next'){apply({type:'NEXT_DAY'});return;}
+ if(a==='advance'){apply({type:'ADVANCE_DAYS',days:Number(el.dataset.days)});return;}
+ if(a==='advance-review'){const p=lastAdvance?.pause;if(!p)return;const days=lastAdvance.remainingDays;if(days<=0)return;confirmation('确认继续推进',`<p>${esc(p.message)}</p><p class="hint">${p.code==='offers_expiring'?'仅放弃本次列出的到期询盘，新询盘仍会正常提醒。':'仅允许跨过这一个资金不足日，不会忽略后续资金风险。'}将尝试继续 ${days} 天。</p>`,'advance');return;}
+ if(a==='confirm-advance'){const pending=lastAdvance;if(!pending?.pause){closeDialog();return;}const p=pending.pause,days=pending.remainingDays;closeDialog();if(days<=0)return;apply({type:'ADVANCE_DAYS',days,...(p.code==='offers_expiring'?{allowExpireOfferIds:p.offerIds}:{allowFundingDay:p.day})});return;}
+ if(a==='broker'){apply({type:'BROKER'});return;}
+ if(a==='dismiss-manager'){confirmation('卸任负责人','<p>交接支出 ¥600，任命满 7 天后可卸任。卸任后可免费任命到其他子公司，已签合同不变。</p>','dismiss-manager',`data-market="${el.dataset.market}"`);return;}
+ if(a==='confirm-dismiss-manager'){closeDialog();apply({type:'DISMISS',market:el.dataset.market});return;}
+ if(['warehouse','branch','appoint'].includes(a)){
+  const market=el.dataset.market,manager=el.dataset.manager,b=state.expansion.branches[market];
+  const title=a==='warehouse'?'扩建出口集货仓':a==='branch'?`设立${byId(MARKETS,market).name}子公司`:`任命${byId(MANAGERS,manager).name}`;
+  const cost=a==='warehouse'?expansionCost(state):a==='branch'?16000:b?.manager?600:0;
+  const effect=a==='warehouse'?'并行订单 +1，新单运费再降 5%，周运营增加 ¥100。':a==='branch'?'并行订单 +1，本市场成交率 +3 个百分点；周运营增加 ¥180。':`${byId(MANAGERS,manager).description}。首次任命免费，换人 ¥600；任命满 7 天才可调任。`;
+  confirmation(title,`<p>投入 <b>${money(cost)}</b>。</p><p>${esc(effect)}</p><p class="hint">只影响新签合同。会先检查未来资金，周转不足不扣款。</p>`,'expand',`data-kind="${a}" data-market="${market||''}" data-manager="${manager||''}"`);return;
+ }
+ if(a==='confirm-expand'){const type={warehouse:'EXPAND_WAREHOUSE',branch:'OPEN_BRANCH',appoint:'APPOINT'}[el.dataset.kind];closeDialog();apply({type,market:el.dataset.market,manager:el.dataset.manager});return;}
+ if(a==='upgrade'){const id=el.dataset.id,u=byId(UPGRADES,id);confirmation(`升级${u.name}`,`<p>投入 <b>${money(upgradeCost(state,id))}</b>。</p><p class="hint">${esc(u.description)}。会检查已签合同的未来资金，资金不足时不会扣款。</p>`,'upgrade',`data-id="${id}"`);return;}
+ if(a==='confirm-upgrade'){const id=el.dataset.id;closeDialog();apply({type:'UPGRADE',id});return;}
+ if(a==='borrow'){confirmation('借一笔周转金',`<p>本次最多到账 <b>${money(Math.max(0,Math.min(6000,12000-state.debt)))}</b>，主动借款上限 ¥12,000。</p><p class="hint">每周利息 0.8%，会增加运营支出。这是游戏内资金，不涉及真实借贷。</p>`,'borrow');return;}
+ if(a==='confirm-borrow'){closeDialog();apply({type:'BRIDGE'});return;}
+ if(a==='repay'){confirmation('归还周转金',`<p>归还 <b>${money(Math.min(state.cash,state.debt))}</b>。若影响已签合同周转，不会执行。</p>`,'repay');return;}
+ if(a==='confirm-repay'){closeDialog();apply({type:'REPAY',amount:Math.min(state.cash,state.debt)});return;}
+ if(a==='confirm-import'&&importCandidate){const loaded=importCandidate;try{if(state)localStorage.setItem(KEY+':before-import',JSON.stringify(state));else if(damagedSave)localStorage.setItem(KEY+':before-import',damagedSave);}catch{toast('无法备份当前存档。请先导出，再尝试导入。');return;}closeDialog();damagedSave=null;state=loaded;lastReceipt=null;lastAdvance=null;tab='desk';save();notice='存档已导入，导入前进度已备份。';render();toast(notice);}
+}
+app.addEventListener('click',handle);dialog.addEventListener('click',handle);
+dialog.addEventListener('cancel',()=>{quoteId=null;importCandidate=null;importTicket++;});
+dialog.addEventListener('input',e=>{if(e.target.id==='quote-markup'){quoteOptions.markup=Number(e.target.value);updateQuote();}});
+dialog.addEventListener('change',async e=>{if(['quote-supplier','quote-shipping','quote-fx','quote-terms'].includes(e.target.id)){quoteOptions[{'quote-supplier':'supplier','quote-shipping':'shipping','quote-fx':'fxMode','quote-terms':'paymentTerms'}[e.target.id]]=e.target.value;updateQuote();return;}if(e.target.id==='import-file'){const file=e.target.files?.[0];if(!file)return;const ticket=++importTicket;try{if(file.size>1500000)throw new Error('存档文件过大');const loaded=parseTradeSave(await file.text());if(ticket!==importTicket||!dialog.open)return;importCandidate=loaded;confirmation('确认导入',`<p><b>${esc(loaded.name)}</b> · ${dayLabel(loaded.day)} · 现金 ${money(loaded.cash)}</p><p class="hint">导入将替换当前经营进度，替换前会保留一份备份。</p>`,'import');}catch(error){if(ticket===importTicket&&dialog.open)document.querySelector('#import-status').textContent=error.message==='存档文件过大'?'文件过大，请选择 1.5 MB 以内的经营存档。':'无法识别经营存档，当前进度未改动。请确认文件为经营存档。';}}});
+render();
+
+return {};})();
+})();</script></body></html>
