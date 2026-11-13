@@ -1,13 +1,13 @@
 {
   "version": "2.0.0",
   "mode": "data-trade-v2",
-  "title": "外贸达人养成记",
+  "title": "外贸不靠外貌",
   "legacy": "classic.html",
   "saveKey": "trade-tycoon:data:v2",
   "legacySaveKeys": [
     "trade-tycoon:v1",
     "trade-tycoon:standalone:v1"
   ],
-  "sha256": "090fea82485f99dd5003319bf62622edf9a1f11cc98370c8c38120de4f064567",
-  "bytes": 100586
+  "sha256": "73c4ee1c3454a1f16f516975492742016850a3f6eea8fc7f3af0446dcf263240",
+  "bytes": 100215
 }
