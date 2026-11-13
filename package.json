@@ -12,7 +12,8 @@
     "dev": "node scripts/serve.mjs",
     "check:release-art": "node scripts/check-release-assets.mjs",
     "build:data": "node scripts/build-standalone.mjs && node scripts/build-data.mjs",
-    "build:classic": "node scripts/build-standalone.mjs"
+    "build:classic": "node scripts/build-standalone.mjs",
+    "pretest": "npm run build"
   },
   "engines": {
     "node": ">=20"
