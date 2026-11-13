@@ -4,7 +4,7 @@
 
 [开始游戏](https://luke-unachieved.github.io/I_T/)
 
-> 当前修订统一游戏名称、简化导航，并修复导入存档后残留上一轮快进和交付提示的问题。
+> 当前修订合并重复的推进提示，并让新市场解锁提示与询盘实际到达时间一致。
 
 ## 怎么玩
 
@@ -23,7 +23,7 @@
 npm start
 # http://127.0.0.1:4173
 npm run build
-npm run check
+npm run check # 先 build：部分验收读取构建产物
 ```
 
 现行网页构建在 `artifacts/data-v2/`，主入口为 `index.html`。发布时使用该目录完整内容，不能将源码目录或测试存档当成发行包。构建也携带 `classic.html`，仅为已有旧链接和旧存档保留兼容，不作为现行游戏模式推广。原剧情源码不再扩展，但不在此次修订中永久删除。
@@ -35,6 +35,8 @@ npm run check
 本次更名不改变访问地址、存档键、经济数值、既有公司名称和存档结构。新旧存档各自独立，不将故事版进度假装迁移成数据版，也不清空旧档。旧链接兼容页继续保留，二维码无需因本次更名重做。
 
 ## 验收与发行边界
+
+- 最新推进反馈修订 319 项检查通过；实际续测覆盖两单交付回款，未代表全通关。见 [推进反馈验收](docs/rework/PROGRESS_FEEDBACK_QA.md)。
 
 - 付款条件版本已通过 306 项检查和重点浏览器回归，详见 [付款验收](docs/rework/PAYMENT_TERMS_QA.md)。
 - [每日推进](docs/rework/DAILY_TIME_QA.md)、[结汇](docs/rework/FX_SETTLEMENT_QA.md)、[数据版验收](docs/rework/RELEASE_QA.md)分别说明覆盖范围。

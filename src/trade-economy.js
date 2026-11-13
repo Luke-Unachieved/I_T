@@ -198,7 +198,7 @@ export function reduceTrade(state,action){
    next.history.push({day:next.day,week:next.week,cash:next.cash,netWorth:netWorth(next),revenue:next.metrics.revenue,profit:next.metrics.profit});next.history=next.history.slice(-365);
    current=next;advancedDays++;expiredOffers+=outcome.expiredOffers;for(const key of Object.keys(summary))summary[key]+=outcome[key];
    if(!beforeEnding&&current.ending){pause={code:'ending',day:current.day,message:'第一程已达成，先看看经营成绩，再继续远航。'};break;}
-   if(unlockedMarkets(current).length>beforeMarkets){pause={code:'market_unlocked',day:current.day,message:'已解锁新市场。查看新目标后可继续；询盘在下一次每7天更新时刷新。'};break;}
+   if(unlockedMarkets(current).length>beforeMarkets){const newMarkets=unlockedMarkets(current).slice(beforeMarkets);const hasNewOffers=current.offers.some(o=>newMarkets.some(m=>m.id===o.market));pause={code:'market_unlocked',day:current.day,message:hasNewOffers?'已解锁新市场，新市场询盘已到达，去算一单。':'已解锁新市场；新市场询盘在下一次每7天更新时到达。'};break;}
    if(outcome.newFlagship){pause={code:'flagship_available',day:current.day,offerIds:current.offers.filter(o=>o.kind==='flagship').map(o=>o.id),message:'欧洲框架试单已出现，先查看品质、交期与周转要求。'};break;}
   }
   const details=[];
