@@ -42,3 +42,11 @@ dialog{border-radius:5px;border-top:4px solid #d16a32;box-shadow:0 24px 100px #0
 .terms-field,.terms-summary{grid-column:1/-1}
 .terms-summary{font-size:12px;line-height:1.55;margin-bottom:8px;overflow-wrap:anywhere}
 .terms-summary small{display:block;color:var(--muted)}
+
+/* Compact operational feedback; no new economic rules. */
+.next-milestone{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:10px 14px;margin:0 0 14px;border-left:3px solid var(--accent,#dc7335);background:var(--panel,#fff);font-size:12px;line-height:1.5}
+.next-milestone span{color:var(--muted)}
+.forecast-details{border-top:1px solid var(--line)}
+.forecast-details summary{padding:12px 16px;cursor:pointer;color:var(--muted);font-size:12px}
+.forecast-details .scroll-table{max-height:320px;overflow:auto}
+@media(max-width:600px){.receipt{align-items:flex-start}.receipt h2{font-size:18px}.receipt p{line-height:1.6}.next-milestone{display:block}.next-milestone span{display:block;margin-top:3px}}

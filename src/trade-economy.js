@@ -15,7 +15,7 @@ export const SUPPLIERS = [
 export const SHIPPING = [
   {id:'sea',name:'海运拼箱',rate:7,weeks:2,days:14,description:'运费低 · 运输 14 天'},
   {id:'rail',name:'专线快运',rate:12,weeks:1,days:7,description:'运费中 · 运输 7 天'},
-  {id:'air',name:'空运急件',rate:23,weeks:0,days:0,description:'运费高 · 出运当天送达'},
+  {id:'air',name:'空运急件',rate:23,weeks:0,days:0,description:'运费高 · 加急运输计入下方总交期'},
 ];
 export const UPGRADES = [
   {id:'team',name:'业务团队',baseCost:4800,max:3,description:'每级 +1 并行订单槽，周运营费 +120'},
