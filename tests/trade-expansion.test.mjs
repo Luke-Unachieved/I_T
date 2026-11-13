@@ -7,7 +7,7 @@ const rich=()=>{const s=e.createTradeGame('扩张测试');s.cash=200000;s.metric
 const act=(s,type,extra={})=>e.reduceTrade(s,{type,...extra});
 test('v5 old save migrates once without money, date or offer changes',()=>{
  const old=rich();old.ruleset=5;delete old.expansion;
- const n=e.parseTradeSave(old);assert.equal(n.ruleset,6);assert.deepEqual(n.expansion,{warehouse:0,branches:{}});
+ const n=e.parseTradeSave(old);assert.equal(n.ruleset,7);assert.deepEqual(n.expansion,{warehouse:0,branches:{}});
  assert.deepEqual({...n,ruleset:5,expansion:undefined},{...old,expansion:undefined});assert.deepEqual(e.parseTradeSave(n),n);
 });
 test('warehouse has explicit cost, slot, weekly overhead and quoted saving',()=>{

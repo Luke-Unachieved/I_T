@@ -50,3 +50,6 @@ dialog{border-radius:5px;border-top:4px solid #d16a32;box-shadow:0 24px 100px #0
 .forecast-details summary{padding:12px 16px;cursor:pointer;color:var(--muted);font-size:12px}
 .forecast-details .scroll-table{max-height:320px;overflow:auto}
 @media(max-width:600px){.receipt{align-items:flex-start}.receipt h2{font-size:18px}.receipt p{line-height:1.6}.next-milestone{display:block}.next-milestone span{display:block;margin-top:3px}}
+
+/* Optional life stays tucked away from the trading loop. */
+.life-panel{margin-top:16px}.life-panel summary{cursor:pointer;list-style:none;flex-wrap:wrap}.life-panel summary h2{display:inline;margin:0}.life-panel summary::after{content:'＋';margin-left:auto}.life-panel details[open] summary::after{content:'−'}.life-owned{display:flex;gap:12px;flex-wrap:wrap;font-weight:700}.life-choice{border:1px solid var(--line);padding:14px}.life-choice h3{margin:0 0 8px}.life-memory{border-left:3px solid var(--orange);padding:10px 12px;background:#f6f0e6;font-family:var(--serif);line-height:1.8}.life-panel .save-tools{flex-wrap:wrap}

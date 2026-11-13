@@ -26,6 +26,19 @@ export const UPGRADES = [
 export const MARKETS = [
   {id:'asia',name:'东南亚',needed:0}, {id:'middle',name:'中东',needed:3}, {id:'europe',name:'欧洲',needed:8},
 ];
+export const LIFE_ITEMS=[
+ {id:'home-flat',type:'home',rank:1,name:'有阳台的小家',cost:24000,description:'下班后关上门，有一盏只为自己亮着的灯。'},
+ {id:'home-sea',type:'home',rank:2,name:'临海的房子',cost:80000,description:'货轮从窗外经过，今天不必追着它的船期。'},
+ {id:'car-city',type:'car',rank:1,name:'自己的第一辆车',cost:10000,description:'钥匙落在掌心，周末终于可以走远一点。'},
+ {id:'car-tour',type:'car',rank:2,name:'长途旅行车',cost:45000,description:'后备箱放行李，不放样品。下一站由自己决定。'},
+];
+export const COMPANIONS=[
+ {id:'shen',gender:'female',name:'沈知遥',age:32,job:'独立摄影师',protagonist:'male'},
+ {id:'lu',gender:'male',name:'陆时安',age:33,job:'图书馆员',protagonist:'female'},
+];
+const emptyLife=()=>({home:null,car:null,protagonist:null,relationship:null,spent:0,memory:''});
+export function lifeItemCost(s,id){const item=LIFE_ITEMS.find(x=>x.id===id);if(!item)return 0;const owned=LIFE_ITEMS.find(x=>x.id===s.life?.[item.type]);return Math.max(0,item.cost-(owned?.cost||0));}
+export const lifeReserve=s=>3000+weeklyCost(s)*4;
 export const MANAGERS=[
  {id:'chen',name:'陈卓',role:'渠道负责人',description:'负责市场的成交率 +5 个百分点',chance:5,freight:0,quality:0},
  {id:'zhou',name:'周岚',role:'货运负责人',description:'负责市场的运费再降 8%',chance:0,freight:8,quality:0},
@@ -93,7 +106,7 @@ function offersFor(s){
  return offers.map(o=>({...o,deadlineDays:o.deadline*7,payLagDays:o.payLag*7,expiresDay:o.expires*7,currency:'USD',quoteRate:fxRateAt(s.week),usdUnitCents:round(o.price*1000000/fxRateAt(s.week))}));
 }
 export function createTradeGame(name='我的贸易公司'){
- const s={version:2,ruleset:6,expansion:emptyExpansion(),day:1,name:String(name).trim().slice(0,24)||'我的贸易公司',week:1,cash:18000,debt:0,reputation:0,receivables:[],active:[],offers:[],history:[],prices:pricesAt(1),priceHistory:[],customers:{},upgrades:{team:0,quality:0,logistics:0,sourcing:0},metrics:{orders:0,revenue:0,profit:0,ontime:0,rejected:0,brokered:0},log:[],lastBrokerWeek:0,ending:null};
+ const s={version:2,ruleset:7,life:emptyLife(),expansion:emptyExpansion(),day:1,name:String(name).trim().slice(0,24)||'我的贸易公司',week:1,cash:18000,debt:0,reputation:0,receivables:[],active:[],offers:[],history:[],prices:pricesAt(1),priceHistory:[],customers:{},upgrades:{team:0,quality:0,logistics:0,sourcing:0},metrics:{orders:0,revenue:0,profit:0,ontime:0,rejected:0,brokered:0},log:[],lastBrokerWeek:0,ending:null};
  s.offers=offersFor(s);s.priceHistory=[{day:1,week:1,...s.prices}];s.history=[{day:1,week:1,cash:s.cash,netWorth:netWorth(s),revenue:0,profit:0}];return s;
 }
 export function quoteOrder(s,offerId,options={}){
@@ -224,6 +237,35 @@ export function reduceTrade(state,action){
   const message=`已推进${advancedDays}/${requestedDays}天，当前第${current.day}天。${details.length?details.join('；')+'。':''}${pause?pause.message:''}${expiredOffers?` ${expiredOffers}笔普通询盘已到期，询盘板已按周期更新。`:""}`;
   return result(advancedDays?current:state,message,advancedDays>0,{advancedDays,requestedDays,remainingDays:requestedDays-advancedDays,expiredOffers,summary,pause});
  }
+ if(['BUY_LIFE','BEGIN_RELATIONSHIP','SPEND_TIME','END_RELATIONSHIP'].includes(action.type)){
+  s.life=s.life||emptyLife();let cost=0,message='';
+  if(action.type==='BUY_LIFE'){
+   const item=idOf(LIFE_ITEMS,action.id);if(!item)return result(state,'没有这项生活计划');
+   const owned=idOf(LIFE_ITEMS,s.life[item.type]);if(owned&&owned.rank>=item.rank)return result(state,'已经拥有同级或更好的选择');
+   cost=lifeItemCost(s,item.id);s.life[item.type]=item.id;message=item.description;
+  }else if(action.type==='BEGIN_RELATIONSHIP'){
+   const person=idOf(COMPANIONS,action.id);if(!person||s.life.relationship)return result(state,'已有相识的人，请先处理当前关系');
+   if(s.life.protagonist&&s.life.protagonist!==person.protagonist)return result(state,'主角身份已选定');
+   s.life.protagonist=person.protagonist;s.life.relationship={id:person.id,stage:0,lastDay:0};message=`朋友聚会上，你认识了${person.name}。对方愿意找时间一起散步。`;
+  }else if(action.type==='END_RELATIONSHIP'){
+   if(!s.life.relationship)return result(state,'目前没有关系需要结束');
+   s.life.relationship=null;message='你们好好告别。生意照常，生活也继续。';
+  }else{
+   const r=s.life.relationship,person=r&&idOf(COMPANIONS,r.id);
+   if(!person||!['walk','dinner'].includes(action.plan))return result(state,'先认识一个愿意相处的人');
+   if(r.lastDay&&s.day<r.lastDay+7)return result(state,`对方也有自己的安排，第 ${r.lastDay+7} 天再约。`);
+   const alreadyTogether=r.stage===3;cost=action.plan==='dinner'?300:0;r.stage=Math.min(3,r.stage+1);r.lastDay=s.day;
+   message=[`${action.plan==='dinner'?'你们在小馆子里吃了顿晚饭':'你们沿着江边聊了很久'}。${person.name}说，下次还想再见。`,`你们约好认真了解彼此，不把忙碌当作敷衍的理由。`,`你们都愿意把对方放进未来的计划里。日子不只剩下订单。`][r.stage-1];
+   if(alreadyTogether)message=action.plan==='dinner'?`你和${person.name}在常去的小馆子吃晚饭。今天只聊生活，不谈订单。`:`你和${person.name}沿江走了一圈。没有特别的事，也是值得留住的一天。`;
+  }
+  if(cost){
+   if(s.debt>0)return result(state,'先还清周转借款，再安排这笔消费');
+   if(s.cash<cost)return result(state,'暂时不够，先把这份期待留着');s.cash-=cost;
+   if(forecastCash(s).stressMinimum<lifeReserve(s))return result(state,`先留下合同资金及 ¥${lifeReserve(s)} 生活消费安全余量`);
+   s.life.spent+=cost;
+  }
+  s.life.memory=message;log(s,message,'success');return result(s,message,true);
+ }
  if(['EXPAND_WAREHOUSE','OPEN_BRANCH','APPOINT','DISMISS'].includes(action.type)){
   s.expansion=s.expansion||emptyExpansion();let cost=0,message='';
   if(action.type==='EXPAND_WAREHOUSE'){
@@ -291,10 +333,15 @@ export function parseTradeSave(raw){
  const text=(v,max=80)=>typeof v==='string'&&v.length<=max;
  const fail=()=>{throw new Error('经营存档数据无效或版本不兼容，原存档未改动');};
  if(!s||s.version!==2||!text(s.name,24)||!integer(s.week,1,520)||!integer(s.cash)||!integer(s.debt)||!integer(s.reputation,0,100))fail();
- const daily=[4,5,6].includes(s.ruleset);
- if(![undefined,2,3,4,5,6].includes(s.ruleset))fail();
+ const daily=[4,5,6,7].includes(s.ruleset);
+ if(![undefined,2,3,4,5,6,7].includes(s.ruleset))fail();
  if(daily&&(!integer(s.day,1,MAX_DAY)||s.week!==dayToWeek(s.day)))fail();
- if(s.ruleset!==6&&s.expansion===undefined)s.expansion=emptyExpansion();
+ if(![6,7].includes(s.ruleset)&&s.expansion===undefined)s.expansion=emptyExpansion();
+ if(s.ruleset!==7&&s.life===undefined)s.life=emptyLife();
+ const life=s.life;
+ if(!life||!integer(life.spent)||!text(life.memory,200)||![null,'male','female'].includes(life.protagonist))fail();
+ for(const type of ['home','car'])if(life[type]!==null&&!LIFE_ITEMS.some(x=>x.id===life[type]&&x.type===type))fail();
+ if(life.relationship!==null){const r=life.relationship,p=r&&idOf(COMPANIONS,r.id);if(!p||life.protagonist!==p.protagonist||!integer(r.stage,0,3)||!integer(r.lastDay,0,s.day??weekToDay(s.week))||(r.stage===0?r.lastDay!==0:r.lastDay<1))fail();}
  const ex=s.expansion;
  if(!ex||!integer(ex.warehouse,0,2)||!ex.branches||typeof ex.branches!=='object'||Array.isArray(ex.branches)||Object.keys(ex.branches).length>3)fail();
  const assigned=[];
@@ -353,5 +400,5 @@ export function parseTradeSave(raw){
  if(s.ending===undefined)fail();
  if(s.ruleset===undefined||s.ruleset===2){if(s.ending&&(!s.customers['europe-flagship']?.qualified||netWorth(s)<60000)){s.previousEnding=s.ending;s.ending=null;}}
  if(!daily){s=migrateCalendar(s);return parseTradeSave(s);}
- s.ruleset=6;return s;
+ s.ruleset=7;return s;
 }
