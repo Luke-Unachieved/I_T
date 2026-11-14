@@ -1,13 +1,13 @@
 {
   "version": "2.0.0",
   "mode": "data-trade-v2",
-  "title": "外贸不靠外貌",
+  "title": "再开一单就下班",
   "legacy": "classic.html",
   "saveKey": "trade-tycoon:data:v2",
   "legacySaveKeys": [
     "trade-tycoon:v1",
     "trade-tycoon:standalone:v1"
   ],
-  "sha256": "8187489cc5f04f6be4e81ea87b94281253dea4c82333801c0f5a6139aeb5c304",
-  "bytes": 123197
+  "sha256": "873de89d555c50d43cc32d885d01576ba97d1622d9e26746a8964a605d1b155e",
+  "bytes": 123206
 }
