@@ -60,6 +60,10 @@ dialog{border-radius:5px;border-top:4px solid #d16a32;box-shadow:0 24px 100px #0
 @media(max-width:1100px){.grid{grid-template-columns:minmax(0,1fr)}}
 .customer-card{grid-template-columns:minmax(0,1fr) auto auto}
 @media(max-width:700px){.customer-card{grid-template-columns:minmax(0,1fr) auto}.customer-card>div:first-child{grid-column:1/-1}.customer-card>.pill{justify-self:end}}
+
+/* Fit the two currencies to their actual width instead of letting USD amounts
+   spill across the profit column on mid-size desktop screens. */
+@media(min-width:701px){.inquiry{grid-template-columns:minmax(0,1fr) max-content max-content 75px}.inquiry .number{white-space:nowrap}}
 </style></head><body><div id="trade-app"></div><div id="trade-toast" role="status" aria-live="polite"></div><dialog id="trade-dialog"></dialog><script>(()=>{const module0=(()=>{
 /** Data-trade economy. Cash is fictional integer RMB; USD contracts use integer cents. No DOM or storage. */
 const PRODUCTS = [
@@ -502,6 +506,19 @@ function replaceTradeRun(storage,key,current,next){
 
 function save(){if(damagedSave)return;try{localStorage.setItem(KEY,JSON.stringify(state));saveWarning='';}catch{saveWarning='自动保存失败，请到「账本」导出存档。';}}
 function download(text,name){const url=URL.createObjectURL(new Blob([text],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+// One read-only path for all recovery exports; original keys and bytes stay intact.
+const savedRunExports={
+ 'export-previous':[':before-new-game','贸易经营-上局存档.json','尚未重新开局，没有上局存档。','浏览器无法读取上局存档。'],
+ 'export-upgrade':[':before-upgrade','贸易经营-升级前存档.json','尚无升级前备份，当前进度可正常导出。','浏览器无法读取升级前存档。'],
+ 'export-backup':[':before-import','贸易经营-导入前备份.json','尚无导入前备份，当前进度可正常导出。','浏览器无法读取备份。']
+};
+function exportSavedRun(suffix,filename,missing,error){
+ try{
+  const raw=localStorage.getItem(KEY+suffix);
+  if(raw)download(raw,filename);
+  else toast(missing);
+ }catch{toast(error);}
+}
 function toast(message){clearTimeout(timer);const el=document.querySelector('#trade-toast');el.textContent=message;el.classList.add('show');timer=setTimeout(()=>el.classList.remove('show'),4500);}
 const button=(label,action,attrs='',cls='')=>`<button class="${cls}" data-action="${action}" ${attrs}>${label}</button>`;
 function chart(values,labels=[],label='资金曲线',fromZero=true,format=money,axisFormat=compact,padding=5){
@@ -572,9 +589,8 @@ function handle(e){const el=e.target.closest('[data-action]');if(!el||el.disable
   try{replaceTradeRun(localStorage,KEY,state,next);}catch{toast('无法安全保存新局，当前进度未切换。请先导出存档并检查浏览器空间。');return;}
   closeDialog();state=next;tab='desk';lastReceipt=null;lastAdvance=null;lifeOpen=false;notice='新公司已开张，上局存档可在账本导出。';saveWarning='';render();return;
  }
- if(a==='export-previous'){try{const raw=localStorage.getItem(KEY+':before-new-game');if(raw)download(raw,'贸易经营-上局存档.json');else toast('尚未重新开局，没有上局存档。');}catch{toast('浏览器无法读取上局存档。');}return;}
- if(a==='export-upgrade'){try{const raw=localStorage.getItem(KEY+':before-upgrade');if(raw)download(raw,'贸易经营-升级前存档.json');else toast('尚无升级前备份，当前进度可正常导出。');}catch{toast('浏览器无法读取升级前存档。');}return;}
- if(a==='export-backup'){try{const raw=localStorage.getItem(KEY+':before-import');if(raw)download(raw,'贸易经营-导入前备份.json');else toast('尚无导入前备份，当前进度可正常导出。');}catch{toast('浏览器无法读取备份。');}return;}
+ const savedExport=savedRunExports[a];
+ if(savedExport){exportSavedRun(...savedExport);return;}
  if(a==='export-damaged'){download(damagedSave,'经营存档-原文件备份.json');return;}
  if(a==='import-open'){importOpen();return;}
  if(a==='export'){download(JSON.stringify(state,null,2),`贸易经营-第${state.day}天.json`);toast('已生成存档文件，请保留下载文件。');return;}
@@ -609,7 +625,17 @@ function handle(e){const el=e.target.closest('[data-action]');if(!el||el.disable
  if(a==='confirm-borrow'){closeDialog();apply({type:'BRIDGE'});return;}
  if(a==='repay'){confirmation('归还周转金',`<p>归还 <b>${money(Math.min(state.cash,state.debt))}</b>。若影响已签合同周转，不会执行。</p>`,'repay');return;}
  if(a==='confirm-repay'){closeDialog();apply({type:'REPAY',amount:Math.min(state.cash,state.debt)});return;}
- if(a==='confirm-import'&&importCandidate){const loaded=importCandidate;try{if(state)localStorage.setItem(KEY+':before-import',JSON.stringify(state));else if(damagedSave)localStorage.setItem(KEY+':before-import',damagedSave);}catch{toast('无法备份当前存档。请先导出，再尝试导入。');return;}closeDialog();damagedSave=null;state=loaded;lastReceipt=null;lastAdvance=null;tab='desk';save();notice='存档已导入，导入前进度已备份。';render();toast(notice);}
+ if(a==='confirm-import'&&importCandidate){
+  const loaded=importCandidate;
+  // Both writes must succeed before replacing in-memory progress or dismissing recovery.
+  try{
+   if(state)localStorage.setItem(KEY+':before-import',JSON.stringify(state));
+   else if(damagedSave)localStorage.setItem(KEY+':before-import',damagedSave);
+   localStorage.setItem(KEY,JSON.stringify(loaded));
+  }catch{toast('无法安全保存导入存档，当前进度未切换。请先导出存档并检查浏览器空间。');return;}
+  closeDialog();damagedSave=null;state=loaded;lastReceipt=null;lastAdvance=null;tab='desk';saveWarning='';
+  notice='存档已导入，导入前进度已备份。';render();toast(notice);
+ }
 }
 app.addEventListener('click',handle);dialog.addEventListener('click',handle);
 dialog.addEventListener('cancel',()=>{quoteId=null;importCandidate=null;importTicket++;});
