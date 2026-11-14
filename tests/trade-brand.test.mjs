@@ -44,3 +44,16 @@ test('confirmed import clears old delivery receipt and fast-forward intent, keep
  const after=storage.get(key);vm.runInContext("handle({target:{closest:()=>({dataset:{action:'confirm-advance'}})}})",context);assert.equal(storage.get(key),after);
  const reloaded=boot([...storage]);assert.equal(reloaded.storage.get(key),after);
 });
+
+test('life entry is a single trailing footer on every business page without touching saves',()=>{
+ const raw=JSON.stringify(economy.createTradeGame('入口位置测试'));
+ const {storage,elements,context}=boot([[key,raw]]);
+ for(const tab of ['market','company','ledger','desk']){
+  vm.runInContext(`tab='${tab}';render()`,context);
+  const html=elements.get('#trade-app').innerHTML;
+  assert.equal((html.match(/class="life-dock"/g)||[]).length,1);
+  assert.equal((html.match(/class="panel life-panel"/g)||[]).length,1);
+  assert.match(html,/<footer class="life-dock" aria-label="生活">[\s\S]*<\/footer><\/main>/);
+ }
+ assert.equal(storage.get(key),raw);
+});

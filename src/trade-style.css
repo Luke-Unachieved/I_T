@@ -63,3 +63,12 @@ dialog{border-radius:5px;border-top:4px solid #d16a32;box-shadow:0 24px 100px #0
 /* Fit the two currencies to their actual width instead of letting USD amounts
    spill across the profit column on mid-size desktop screens. */
 @media(min-width:701px){.inquiry{grid-template-columns:minmax(0,1fr) max-content max-content 75px}.inquiry .number{white-space:nowrap}}
+
+/* In-flow bottom-right life entry: never overlays orders or the mobile nav. */
+.life-dock{display:flex;justify-content:flex-end;margin-top:24px;clear:both}
+.life-dock .life-panel{width:100%;margin:0}
+.life-dock .life-panel:has(details:not([open])){width:max-content;max-width:100%}
+.life-dock summary{justify-content:flex-end;min-height:44px;border-bottom:0}
+.life-dock details[open] summary{border-bottom:1px solid var(--line)}
+.life-dock summary h2{font-size:13px}
+@media(max-width:700px){.life-dock{margin-top:18px;margin-bottom:env(safe-area-inset-bottom,0px)}.life-dock .panel-body{padding:14px}}
