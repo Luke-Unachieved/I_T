@@ -13,9 +13,9 @@ function boot(state){
 test('compact forecast retains all inflow/outflow and offers full daily detail',()=>{
  const s=economy.createTradeGame('测试'),{c,storage}=boot(s);const raw=storage.get('trade-tycoon:data:v2');
  const html=vm.runInContext('forecastSummary(forecastCash(state))',c);
- const before=html.split('<details')[0];assert.equal((before.match(/<tr>/g)||[]).length,8); // header + current + 6 operating days
+ const before=html.split('<details')[0];assert.equal((before.match(/class="cash-day"/g)||[]).length,7); // current + 6 operating days, now visual rows
  assert.match(html,/<details class="forecast-details"><summary>查看全部 43 天明细/);
- assert.equal((html.match(/<tr>/g)||[]).length,52);
+ assert.equal((html.match(/<tr>/g)||[]).length,44);
  assert.equal(storage.get('trade-tycoon:data:v2'),raw);
 });
 test('next node selects earliest actual ship, delivery or receipt and escapes customer',()=>{

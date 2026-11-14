@@ -46,3 +46,13 @@ test('empty cost composition remains finite and all legacy save bytes stay untou
  c.quote={cost:0,freight:0,penalty:0,profit:0};const html=vm.runInContext('profitComposition(quote)',c);
  assert.doesNotMatch(html,/NaN|Infinity/);assert.equal(storage.get('trade-tycoon:data:v2'),raw);
 });
+test('cash calendar keeps a common amount scale, negatives and exact figures',()=>{
+ const {c,storage,raw}=boot(economy.createTradeGame('港口'));
+ c.forecast={points:[{day:1,inflow:0,outflow:0,cash:18000},{day:2,inflow:1000,outflow:2000,cash:-100},{day:3,inflow:0,outflow:0,cash:-100}]};
+ const html=vm.runInContext('forecastSummary(forecast)',c);
+ assert.match(html,/所有柱条使用同一金额尺度/);assert.match(html,/width:50%/);assert.match(html,/width:100%/);assert.match(html,/cash-balance negative/);assert.match(html,/−¥100/);assert.match(html,/无回款/);assert.doesNotMatch(html,/NaN|Infinity/);assert.equal(storage.get('trade-tycoon:data:v2'),raw);
+});
+test('empty future cash calendar is finite without fabricated transactions',()=>{
+ const {c}=boot(economy.createTradeGame('港口'));c.forecast={points:[{day:1,inflow:0,outflow:0,cash:0}]};
+ const html=vm.runInContext('forecastSummary(forecast)',c);assert.match(html,/width:0%/);assert.doesNotMatch(html,/NaN|Infinity/);
+});
