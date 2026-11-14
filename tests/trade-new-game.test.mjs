@@ -34,7 +34,7 @@ import * as economy from '../src/trade-economy.js';
 function boot(fail=false){
  const nodes=new Map(),values=new Map([['trade-tycoon:data:v2',JSON.stringify(createTradeGame('旧公司'))]]);
  const node=id=>{if(!nodes.has(id))nodes.set(id,{innerHTML:'',textContent:'',value:'新公司',open:false,addEventListener(){},showModal(){this.open=true;},close(){this.open=false;},classList:{add(){},remove(){}}});return nodes.get(id);};
- const context=vm.createContext({...economy,document:{querySelector:node},localStorage:{getItem:k=>values.get(k)??null,setItem(k,v){if(fail)throw Error('quota');values.set(k,v);}},window:{scrollTo(){}},setTimeout:()=>0,clearTimeout(){}});
+ const context=vm.createContext({...economy,document:{querySelector:node},localStorage:{getItem:k=>values.get(k)??null,setItem(k,v){if(typeof fail==='function'?fail(k):fail)throw Error('quota');values.set(k,v);}},window:{scrollTo(){}},setTimeout:()=>0,clearTimeout(){}});
  vm.runInContext(app.replace(/^import[^\n]+\n/,''),context);
  const click=action=>vm.runInContext(`handle({target:{closest:()=>({dataset:{action:'${action}'}})}})`,context);
  return {context,nodes,values,click};
@@ -50,4 +50,55 @@ test('open and cancel do not alter current save; confirm starts once and backup 
 test('storage failure keeps the active UI on the old company',()=>{
  const {context,click}=boot(true);click('new-game');click('confirm-new-game');
  assert.equal(vm.runInContext('state.name',context),'旧公司');
+});
+test('all recovery exports retain exact bytes and never modify saved state',()=>{
+ const {context,values,click}=boot();context.downloads=[];
+ vm.runInContext('download=(raw,name)=>downloads.push({raw,name})',context);
+ for(const [action,suffix] of [['export-previous',':before-new-game'],['export-upgrade',':before-upgrade'],['export-backup',':before-import']]){
+  const raw='{ "name": "原样字节" }';values.set('trade-tycoon:data:v2'+suffix,raw);
+  const before=[...values];click(action);assert.equal(context.downloads.at(-1).raw,raw);assert.deepEqual([...values],before);
+ }
+});
+test('missing recovery exports show a message without downloading or writing',()=>{
+ const {context,values,nodes,click}=boot();context.downloads=[];
+ vm.runInContext('download=(raw,name)=>downloads.push({raw,name})',context);
+ const before=[...values];click('export-previous');
+ assert.equal(context.downloads.length,0);assert.deepEqual([...values],before);
+ assert.match(nodes.get('#trade-toast').textContent,/尚未重新开局/);
+});
+
+test('import write failure retains current UI and exact persisted save despite successful backup',()=>{
+ const {context,values,nodes,click}=boot(k=>k==='trade-tycoon:data:v2');
+ const original=values.get('trade-tycoon:data:v2');
+ vm.runInContext("importCandidate=createTradeGame('导入公司');dialog.open=true",context);
+ click('confirm-import');
+ assert.equal(values.get('trade-tycoon:data:v2'),original);
+ assert.equal(values.get('trade-tycoon:data:v2:before-import'),original);
+ assert.equal(vm.runInContext('state.name',context),'旧公司');
+ assert.equal(vm.runInContext('dialog.open',context),true);
+ assert.match(nodes.get('#trade-toast').textContent,/当前进度未切换/);
+});
+test('successful import persists first, preserves prior save and clears stale warnings',()=>{
+ const {context,values,click}=boot();const original=values.get('trade-tycoon:data:v2');
+ vm.runInContext("importCandidate=createTradeGame('导入公司');dialog.open=true;saveWarning='旧警告'",context);
+ click('confirm-import');
+ assert.equal(parseTradeSave(values.get('trade-tycoon:data:v2')).name,'导入公司');
+ assert.equal(values.get('trade-tycoon:data:v2:before-import'),original);
+ assert.equal(vm.runInContext('state.name',context),'导入公司');
+ assert.equal(vm.runInContext('dialog.open',context),false);
+ assert.equal(vm.runInContext('saveWarning',context),'');
+});
+test('failed import from damaged save keeps recovery bytes and recovery screen intact',()=>{
+ const {context,values,click}=boot(k=>k==='trade-tycoon:data:v2');
+ values.set('trade-tycoon:data:v2','{ damaged original');
+ vm.runInContext("state=null;damagedSave='{ damaged original';importCandidate=createTradeGame('导入公司');dialog.open=true",context);
+ click('confirm-import');
+ assert.equal(values.get('trade-tycoon:data:v2'),'{ damaged original');
+ assert.equal(values.get('trade-tycoon:data:v2:before-import'),'{ damaged original');
+ assert.equal(vm.runInContext('state',context),null);
+ assert.equal(vm.runInContext('damagedSave',context),'{ damaged original');
+});
+test('desktop inquiry currencies reserve separate intrinsic-width columns',async()=>{
+ const css=await readFile(new URL('../src/trade-style.css',import.meta.url),'utf8');
+ assert.match(css,/@media\(min-width:701px\)\{\.inquiry\{grid-template-columns:minmax\(0,1fr\) max-content max-content 75px\}/);
 });

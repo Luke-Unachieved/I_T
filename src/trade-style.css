@@ -59,3 +59,7 @@ dialog{border-radius:5px;border-top:4px solid #d16a32;box-shadow:0 24px 100px #0
 @media(max-width:1100px){.grid{grid-template-columns:minmax(0,1fr)}}
 .customer-card{grid-template-columns:minmax(0,1fr) auto auto}
 @media(max-width:700px){.customer-card{grid-template-columns:minmax(0,1fr) auto}.customer-card>div:first-child{grid-column:1/-1}.customer-card>.pill{justify-self:end}}
+
+/* Fit the two currencies to their actual width instead of letting USD amounts
+   spill across the profit column on mid-size desktop screens. */
+@media(min-width:701px){.inquiry{grid-template-columns:minmax(0,1fr) max-content max-content 75px}.inquiry .number{white-space:nowrap}}
