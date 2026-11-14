@@ -13,9 +13,9 @@ function boot(entries=[]){
  return {storage,elements,context};
 }
 test('new title is consistent and current navigation does not expose the retired mode',async()=>{
- for(const file of ['index.html','trade.html'])assert.match(await readFile(new URL('../'+file,import.meta.url),'utf8'),/<title>外贸不靠外貌<\/title>/);
- assert.doesNotMatch(app,/向海而生|外贸达人|href="classic.html"|原版入口/);
- const {elements}=boot();assert.match(elements.get('#trade-app').innerHTML,/外贸不靠<br>外貌/);
+ for(const file of ['index.html','trade.html'])assert.match(await readFile(new URL('../'+file,import.meta.url),'utf8'),/<title>再开一单就下班<\/title>/);
+ assert.doesNotMatch(app,/向海而生|外贸达人|外贸不靠|外貌|href="classic.html"|原版入口/);
+ const {elements}=boot();assert.match(elements.get('#trade-app').innerHTML,/再开一单<br>就下班/);
  assert.doesNotMatch(elements.get('#trade-app').innerHTML,/classic.html/);
 });
 test('renaming keeps existing company name, progress and all legacy save bytes unchanged',()=>{
@@ -28,7 +28,7 @@ test('renaming keeps existing company name, progress and all legacy save bytes u
 });
 test('release preserves the old link without branding the current game as the old title',async()=>{
  const manifest=JSON.parse(await readFile(new URL('../artifacts/data-v2/release-manifest.json',import.meta.url),'utf8'));
- assert.equal(manifest.title,'外贸不靠外貌');assert.equal(manifest.saveKey,key);assert.equal(manifest.legacy,'classic.html');
+ assert.equal(manifest.title,'再开一单就下班');assert.equal(manifest.saveKey,key);assert.equal(manifest.legacy,'classic.html');
  const classic=await readFile(new URL('../artifacts/data-v2/classic.html',import.meta.url));
  const original=await readFile(new URL('../artifacts/standalone-v101/外贸达人养成记-v1.0.1.html',import.meta.url));assert.deepEqual(classic,original);
 });

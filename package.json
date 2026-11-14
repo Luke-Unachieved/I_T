@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "外贸不靠外貌：报价、履约、资金周转与市场扩张",
+  "description": "再开一单就下班：报价、履约、资金周转与市场扩张",
   "scripts": {
     "start": "node scripts/serve.mjs",
     "build": "node scripts/build-standalone.mjs && node scripts/build-data.mjs",
