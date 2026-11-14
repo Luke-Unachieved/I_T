@@ -22,7 +22,7 @@ test('next node selects earliest actual ship, delivery or receipt and escapes cu
  const {c}=boot(economy.createTradeGame('测试'));
  vm.runInContext("state.active=[{paidShipping:false,shipDay:15,deliveryDay:29,offer:{customer:'<img>'}}];state.receivables=[{dueDay:8,customer:'早回款'}]",c);
  assert.match(vm.runInContext('nextMilestone()',c),/回款 · 第 8 天/);
- vm.runInContext('state.receivables=[]',c);const html=vm.runInContext('nextMilestone()',c);assert.match(html,/出运 · 第 15 天/);assert.match(html,/&lt;img&gt;/);
+ vm.runInContext('state.receivables=[];state.active.push({...state.active[0]})',c);const html=vm.runInContext('nextMilestone()',c);assert.match(html,/出运 · 第 15 天/);assert.match(html,/&lt;img&gt;/);
 });
 test('receipts appear on every tab, persist across quiet days, and can dismiss',()=>{
  const {c}=boot(economy.createTradeGame('测试'));

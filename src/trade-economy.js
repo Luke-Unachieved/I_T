@@ -197,6 +197,14 @@ function settleDay(s){
  if(!s.ending&&s.customers['europe-flagship']?.qualified&&new Set(Object.values(s.customers).filter(c=>c.orders>0).map(c=>c.market)).size===3&&netWorth(s)>=60000){s.ending={day:s.day,week:s.week,title:'从第一单到三大市场',orders:s.metrics.orders,netWorth:netWorth(s)};log(s,'阶段达成：三大市场。欧洲框架试单已合格交付，你已建立有复购、有现金流的贸易公司，可继续经营。','success');}
  return {operating,payments,deliveries:arriving.length,profit:arriving.reduce((n,o)=>n+deliveryProfit(s,o),0),estimatedDeliveries:arriving.filter(o=>deliveryEstimated(s,o)).length,fxAdjustment:s.metrics.profit-startingProfit-arriving.reduce((n,o)=>n+deliveryProfit(s,o),0),receipts:received.reduce((n,r)=>n+(r.fx?tailValue(r.fx,fxRateAt(s.week)):r.amount),0)+arriving.filter(o=>o.dueDay<=s.day).reduce((n,o)=>n+(o.fx?tailValue(o.fx,fxRateAt(s.week)):o.revenue-o.deposit-o.penalty),0),newFlagship,expiredOffers};
 }
+// Only known contract milestones; a free slot also makes new inquiries relevant.
+export function nextTradeEvent(s){
+ const events=[];
+ for(const o of s.active){if(!o.paidShipping)events.push({day:o.shipDay,label:'出运',customer:o.offer.customer});events.push({day:o.deliveryDay,label:'交付',customer:o.offer.customer});}
+ for(const r of s.receivables)events.push({day:r.dueDay,label:'回款',customer:r.customer});
+ if(s.active.length<capacity(s)||!events.length)events.push({day:s.week*7+1,label:'新一周询盘',customer:'询盘更新'});
+ return events.filter(e=>e.day>s.day&&e.day<=MAX_DAY).sort((a,b)=>a.day-b.day)[0]||null;
+}
 export function reduceTrade(state,action){
  if(!action||typeof action!=='object')return result(state,'操作无效');const s=clone(state);
  if(action.type==='ACCEPT'){
@@ -209,9 +217,10 @@ export function reduceTrade(state,action){
   s.active.push({...q,id:q.offer.id,acceptedDay:s.day,acceptedWeek:s.week,shipDay:s.day+q.productionDays,shipWeek:dayToWeek(s.day+q.productionDays),deliveryDay:s.day+q.days,deliveryWeek:dayToWeek(s.day+q.days),dueDay:q.settlementDay,dueWeek:q.settlementWeek,paidShipping:false});
   log(s,`${q.offer.customer}签约 ${q.fx?'USD '+(q.fx.usdCents/100).toFixed(2):'¥'+q.revenue}，订金 ¥${q.deposit} / 工厂首付 ¥${q.procurement}${q.fx?' / 锁汇费 ¥'+q.fx.fee:''}。${q.paymentTerms?'付款提案：'+q.paymentTerms.name+'，订金'+q.paymentTerms.depositRate+'%，交付后'+q.paymentTerms.payLagDays+'天收尾款。':''}`,'success');return result(s,`签约成功，预计利润 ¥${q.profit}，第 ${q.settlementDay} 天收齐货款。`,true);
  }
- if(['NEXT_DAY','NEXT_WEEK','ADVANCE_DAYS','ADVANCE'].includes(action.type)){
-  const requestedDays=action.type==='NEXT_DAY'?1:action.type==='NEXT_WEEK'?7:action.days;
-  if(!Number.isInteger(requestedDays)||requestedDays<1||requestedDays>7)return result(state,'每次可推进1至7天',false,{advancedDays:0,requestedDays,pause:null});
+ if(['NEXT_DAY','NEXT_WEEK','ADVANCE_DAYS','ADVANCE','NEXT_EVENT'].includes(action.type)){
+  const event=action.type==='NEXT_EVENT'?nextTradeEvent(state):null;
+  const requestedDays=action.type==='NEXT_EVENT'?(event?event.day-state.day:0):action.type==='NEXT_DAY'?1:action.type==='NEXT_WEEK'?7:action.days;
+  if(!Number.isInteger(requestedDays)||requestedDays<1||requestedDays>(action.type==='NEXT_EVENT'?98:7))return result(state,'每次可推进1至7天',false,{advancedDays:0,requestedDays,pause:null});
   let advancedDays=0,pause=null,expiredOffers=0;let current=s;const summary={deliveries:0,profit:0,estimatedDeliveries:0,fxAdjustment:0,receipts:0,payments:0,operating:0};
   const allowed=new Set(Array.isArray(action.allowExpireOfferIds)?action.allowExpireOfferIds.filter(x=>typeof x==='string'):[]);
   for(let i=0;i<requestedDays;i++){

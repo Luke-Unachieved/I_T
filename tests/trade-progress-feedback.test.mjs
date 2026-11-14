@@ -40,3 +40,16 @@ test('weekly-boundary unlock says new inquiries are here when board already incl
 test('midweek unlock still explains the next weekly board refresh',()=>{
  const r=unlockOn(2);assert.equal(r.state.offers.some(o=>o.market==='middle'),false);assert.match(r.pause.message,/下一次/);
 });
+
+test('past receipts fold after date advances, current receipt stays prominent',()=>{
+ const {c}=boot();
+ vm.runInContext("state.day=30;lastReceipt={day:29,orders:1,profit:100,receipts:0,cash:-120,reputation:2};",c);
+ assert.match(vm.runInContext('receiptFeedback()',c),/^<details class="receipt-history"><summary>第 29 天 · 历史经营回执/);
+ vm.runInContext('state.day=29',c);assert.match(vm.runInContext('receiptFeedback()',c),/^<section class="receipt"/);
+});
+test('remaining net worth and dated unpaid tails distinguish profit from cash',()=>{
+ const {c}=boot();vm.runInContext("state.cash=59695;state.receivables=[]",c);
+ assert.match(vm.runInContext('goals()',c),/净值还差 ¥305/);
+ vm.runInContext("state.receivables=[{customer:'<evil>',amount:1234,dueDay:45,fx:{mode:'spot'}}]",c);
+ const html=vm.runInContext('pendingTails()',c);assert.match(html,/&lt;evil&gt;：¥1,234 · 第 45 天到账/);assert.match(html,/浮动结汇估值/);assert.doesNotMatch(html,/<evil>/);
+});
