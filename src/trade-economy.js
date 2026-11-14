@@ -94,9 +94,14 @@ function offersFor(s){
  const offers=kinds.map((k,i)=>{
  const p=PRODUCTS[(s.week+i*2-1)%PRODUCTS.length];
  const market=markets[(s.week+i-1)%markets.length];
+ // Buyer contracts, not blanket regional bonuses. Only future weekly inquiries change.
+ const contract=market.id==='middle'&&k.id==='quick'?{name:'展会配货',customer:'海湾展会配货商',deadline:3,quality:85,factor:146}
+  :market.id==='europe'&&k.id==='long'?{name:'渠道试销',customer:'莱茵渠道采购部',quality:98,payLag:5,factor:180}
+  :market.id==='asia'&&k.id==='quick'?{customer:'南洋社区百货'}:{};
+ const terms={...k,...contract};
  const customerId=market.id+'-'+k.id;const repeat=s.customers[customerId]?.orders||0;
  const quantity=Math.max(10,round(5400*scale*(k.id==='long'?1.45:1)/p.base/5)*5);
- return {id:`w${s.week}-${k.id}`,kind:k.id,kindName:k.name,customerId,customer:`${market.name}${['连锁商店','批发商','采购商'][i]}`,market:market.id,product:p.id,quantity,unit:p.unit,price:round(p.base*k.factor/100*(1+Math.min(repeat,6)*0.012)),depositRate:k.depositRate,payLag:k.payLag,deadline:k.deadline,quality:k.quality,repeat,expires:s.week};
+ return {id:`w${s.week}-${k.id}`,kind:k.id,kindName:terms.name,customerId,customer:contract.customer||`${market.name}${['连锁商店','批发商','采购商'][i]}`,market:market.id,product:p.id,quantity,unit:p.unit,price:round(p.base*terms.factor/100*(1+Math.min(repeat,6)*0.012)),depositRate:terms.depositRate,payLag:terms.payLag,deadline:terms.deadline,quality:terms.quality,repeat,expires:s.week};
  });
  // A concrete last challenge replaces an arbitrary order-count grind.
  if(markets.length===3 && !s.customers['europe-flagship']?.qualified && !s.active.some(o=>o.offer.kind==='flagship')){
