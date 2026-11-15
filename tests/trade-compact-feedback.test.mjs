@@ -35,3 +35,23 @@ test('air copy makes no same-day delivery promise, original contract timing rema
  assert.doesNotMatch(source,/当日送达/);assert.doesNotMatch(economy.SHIPPING.find(s=>s.id==='air').description,/当天送达/);
  assert.equal(economy.SHIPPING.find(s=>s.id==='air').days,0);
 });
+test('ledger shows ten recent entries and preserves escaped older history in disclosure',()=>{
+ const {c}=boot(economy.createTradeGame('测试'));
+ vm.runInContext("state.log=Array.from({length:60},(_,i)=>({day:60-i,text:'流水 '+i+' <img>'}))",c);
+ const html=vm.runInContext('ledger()',c);
+ assert.match(html,/查看更早 50 条流水/);
+ const history=html.slice(html.indexOf('<h2>流水</h2>'));
+ assert.equal((history.split('查看更早')[0].match(/流水 \d+ &lt;img&gt;/g)||[]).length,10);
+ assert.equal((history.match(/流水 \d+ &lt;img&gt;/g)||[]).length,60);
+ assert.equal(vm.runInContext('state.log.length',c),60);
+ vm.runInContext('state.log=state.log.slice(0,5)',c);
+ assert.doesNotMatch(vm.runInContext('ledger()',c),/查看更早/);
+});
+test('completed goal card shows optional continuation instead of stale preparation instructions',()=>{
+ const {c}=boot(economy.createTradeGame('测试'));
+ assert.match(vm.runInContext('goals()',c),/先准备验货与周转能力/);
+ vm.runInContext('state.ending={day:134,orders:10,netWorth:77314}',c);
+ const html=vm.runInContext('goals()',c);
+ assert.match(html,/第一程目标已全部达成/);
+ assert.doesNotMatch(html,/先准备验货与周转能力|3 单解锁中东/);
+});
