@@ -56,3 +56,12 @@ test('empty future cash calendar is finite without fabricated transactions',()=>
  const {c}=boot(economy.createTradeGame('港口'));c.forecast={points:[{day:1,inflow:0,outflow:0,cash:0}]};
  const html=vm.runInContext('forecastSummary(forecast)',c);assert.match(html,/width:0%/);assert.doesNotMatch(html,/NaN|Infinity/);
 });
+test('finished-run results are collapsed, without removing results or cash warnings',()=>{
+ const {c}=boot(economy.createTradeGame('收口'));
+ vm.runInContext('state.ending={day:134,orders:9,netWorth:66633}',c);
+ const html=vm.runInContext('desk()',c);assert.match(html,/milestone-fold"><details><summary>第一程已达成/);assert.match(html,/66,633/);assert.match(html,/本周询盘/);assert.doesNotMatch(html,/milestone-fold"><details open/);
+});
+test('cost legend labels do not repeat the exact breakdown amounts',()=>{
+ const {c}=boot(economy.createTradeGame('收口'));c.quote={cost:1000,freight:100,profit:200};
+ const html=vm.runInContext('profitComposition(quote)',c);const legend=html.split('class="cost-legend"')[1];assert.match(legend,/采购/);assert.doesNotMatch(legend,/¥/);assert.match(html,/采购 ¥1,000/);
+});
