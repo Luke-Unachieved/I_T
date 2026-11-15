@@ -75,3 +75,8 @@ test('inquiries precede the operational map and goals no longer duplicate routes
  assert.ok(html.indexOf('本周询盘')<html.indexOf('生意在路上'));assert.match(html,/<aside class="aside"><section class="panel trade-network"/);
  const goal=vm.runInContext('goals()',c);assert.doesNotMatch(goal,/route-map|<svg/);assert.match(goal,/欧洲框架试单/);
 });
+test('inquiry discloses baseline penalty before the quotation is opened',()=>{
+ const {c}=boot(economy.createTradeGame('先看风险'));c.quoteOrder=()=>({profit:2787,revenue:10000,penalty:1800,lateDays:14});
+ assert.match(vm.runInContext('desk()',c),/基准方案延期 14 天 · 已含赔付/);
+ c.quoteOrder=()=>({profit:100,revenue:10000,penalty:100,lateDays:0});assert.match(vm.runInContext('desk()',c),/基准方案品质不足 · 已含赔付/);
+});
