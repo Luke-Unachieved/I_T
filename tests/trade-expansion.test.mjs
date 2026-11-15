@@ -54,3 +54,22 @@ test('expansion company view and quote show real benefits without extra navigati
  vm.runInContext(src.replace(/^import[^\n]+\n/,''),c);const html=vm.runInContext('company()',c);
  assert.match(html,/出口集货仓/);assert.match(html,/东南亚子公司/);assert.match(html,/不是通关条件/);assert.match(html,/每级并行订单 \+1/);
 });
+test('buildings preserve net worth but consume real cash and never create income',()=>{
+ const s=rich(),worth=e.netWorth(s),profit=s.metrics.profit;
+ let n=act(s,'EXPAND_WAREHOUSE').state;
+ assert.equal(e.infrastructureAssets(n),8000);assert.equal(e.netWorth(n),worth);assert.equal(n.cash,s.cash-8000);assert.equal(n.metrics.profit,profit);
+ n=act(n,'EXPAND_WAREHOUSE').state;assert.equal(e.infrastructureAssets(n),24000);assert.equal(e.netWorth(n),worth);
+ n=act(n,'OPEN_BRANCH',{market:'asia'}).state;assert.equal(e.infrastructureAssets(n),40000);assert.equal(n.cash,s.cash-40000);assert.equal(e.netWorth(n),worth);
+ const parsed=e.parseTradeSave(n);assert.deepEqual(e.parseTradeSave(parsed),parsed);assert.equal(e.infrastructureAssets(parsed),40000);assert.equal(e.netWorth(parsed),worth);
+ const later=act(parsed,'NEXT_DAY').state;assert.equal(later.cash,n.cash);assert.equal(e.infrastructureAssets(later),40000);
+});
+test('legacy buildings neither award ending on load nor on an uneventful next day',()=>{
+ const s=rich();s.cash=55000;s.expansion.warehouse=1;s.customers={'asia-quick':{orders:1,revenue:1,market:'asia',name:'A'},'middle-quick':{orders:1,revenue:1,market:'middle',name:'B'},'europe-flagship':{orders:1,revenue:1,market:'europe',name:'C',qualified:true}};
+ const parsed=e.parseTradeSave(s);assert.equal(e.netWorth(parsed),63000);assert.equal(parsed.ending,null);assert.equal(act(parsed,'NEXT_DAY').state.ending,null);
+ parsed.receivables=[{id:'real-tail',customer:'C',amount:100,dueDay:2,dueWeek:1}];const paid=act(parsed,'NEXT_DAY');assert.equal(paid.pause.code,'ending');assert.equal(paid.state.cash,55100);
+});
+test('building asset value cannot fund shipments or bypass expansion cash protection',()=>{
+ const s=e.createTradeGame('现金');s.expansion.warehouse=2;s.cash=100;
+ assert.equal(e.infrastructureAssets(s),24000);assert.equal(e.forecastCash(s).minimum<0,true);
+ const before=JSON.stringify(s);assert.equal(act(s,'OPEN_BRANCH',{market:'asia'}).changed,false);assert.equal(JSON.stringify(s),before);
+});

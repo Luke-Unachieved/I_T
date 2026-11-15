@@ -1,4 +1,4 @@
-import {readFile,writeFile,mkdir,copyFile} from 'node:fs/promises';
+import {readFile,writeFile,mkdir,rm} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
@@ -27,7 +27,8 @@ const embedded=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
 if(embedded.length!==1)throw new Error('Expected one embedded game script');
 new Function(embedded[0][1]);
 await mkdir(out,{recursive:true});await writeFile(path.join(out,'index.html'),html);await writeFile(path.join(out,'.nojekyll'),'');
-// Keep the pre-rework game, including its original standalone storage key.
-await copyFile(path.join(root,'artifacts/standalone-v101/外贸达人养成记-v1.0.1.html'),path.join(out,'classic.html'));
-await writeFile(path.join(out,'release-manifest.json'),JSON.stringify({version:'2.0.0',mode:'data-trade-v2',title:'再开一单就下班',legacy:'classic.html',saveKey:'trade-tycoon:data:v2',legacySaveKeys:['trade-tycoon:v1','trade-tycoon:standalone:v1'],sha256:createHash('sha256').update(html).digest('hex'),bytes:Buffer.byteLength(html)},null,2));
+// The released game no longer includes the abandoned story-mode bundle.
+// This is a generated copy; original source and its separate build remain intact.
+await rm(path.join(out,'classic.html'),{force:true});
+await writeFile(path.join(out,'release-manifest.json'),JSON.stringify({version:'2.0.0',mode:'data-trade-v2',title:'再开一单就下班',saveKey:'trade-tycoon:data:v2',legacySaveKeys:['trade-tycoon:v1','trade-tycoon:standalone:v1'],sha256:createHash('sha256').update(html).digest('hex'),bytes:Buffer.byteLength(html)},null,2));
 console.log(JSON.stringify({out,bytes:Buffer.byteLength(html),sha256:createHash('sha256').update(html).digest('hex')}));

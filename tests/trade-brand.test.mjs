@@ -26,11 +26,10 @@ test('renaming keeps existing company name, progress and all legacy save bytes u
  for(const tab of ['market','company','ledger','desk']){vm.runInContext(`tab='${tab}';render()`,context);assert.doesNotMatch(elements.get('#trade-app').innerHTML,/href="classic.html"/);}
  assert.equal(storage.get(key),raw);
 });
-test('release preserves the old link without branding the current game as the old title',async()=>{
+test('release omits the abandoned story game while preserving current branding and save key',async()=>{
  const manifest=JSON.parse(await readFile(new URL('../artifacts/data-v2/release-manifest.json',import.meta.url),'utf8'));
- assert.equal(manifest.title,'再开一单就下班');assert.equal(manifest.saveKey,key);assert.equal(manifest.legacy,'classic.html');
- const classic=await readFile(new URL('../artifacts/data-v2/classic.html',import.meta.url));
- const original=await readFile(new URL('../artifacts/standalone-v101/外贸达人养成记-v1.0.1.html',import.meta.url));assert.deepEqual(classic,original);
+ assert.equal(manifest.title,'再开一单就下班');assert.equal(manifest.saveKey,key);assert.equal(manifest.legacy,undefined);
+ await assert.rejects(readFile(new URL('../artifacts/data-v2/classic.html',import.meta.url)),{code:'ENOENT'});
 });
 
 test('confirmed import clears old delivery receipt and fast-forward intent, keeps imported progress',()=>{

@@ -9,9 +9,9 @@ test('data mode and original mode have independent entry points and save keys',a
  assert.match(await readFile(new URL('../classic.html',import.meta.url),'utf8'),/src\/app.js/);
  assert.match(await readFile(new URL('../trade.html',import.meta.url),'utf8'),/src\/trade-app.js/);
 });
-test('data build retains the original standalone bundle and removes module dependencies',async()=>{
+test('data build excludes the abandoned story bundle and removes module dependencies',async()=>{
  const script=await readFile(new URL('../scripts/build-data.mjs',import.meta.url),'utf8');
- assert.match(script,/standalone-v101/);assert.match(script,/classic.html/);
+ assert.doesNotMatch(script,/copyFile|standalone-v101/);assert.match(script,/rm\(path.join\(out,'classic.html'\)/);
  const html=await readFile(new URL('../trade.html',import.meta.url),'utf8');
  assert.doesNotMatch(html,/https?:\/\//);
 });

@@ -103,7 +103,7 @@ test('loan interest is included in cash forecast and money is never silently neg
  for(let i=0;i<200;i++){s=go(s,{type:'NEXT_WEEK'});assert.ok(Number.isSafeInteger(s.cash)&&s.cash>=0);assert.ok(Number.isSafeInteger(s.debt)&&s.debt>=0);}
 });
 test('flagship is unlocked after normal markets and needs capable production to qualify',()=>{
- let s=createTradeGame();s.metrics.orders=8;s.reputation=16;s.cash=100000;s=go(s,{type:'NEXT_WEEK'});
+ let s=createTradeGame();s.metrics.orders=8;s.customers["europe-quick"]={orders:1,revenue:8000,market:"europe",name:"欧洲老客户"};s.reputation=16;s.cash=100000;s=go(s,{type:'NEXT_WEEK'});
  const offer=s.offers.find(o=>o.kind==='flagship');assert.ok(offer);assert.equal(offer.depositRate,15);assert.equal(offer.quality,95);
  const cheap=quoteOrder(s,offer.id,{supplier:'economy',shipping:'sea'});assert.ok(cheap.penalty>0);assert.ok(cheap.late>0);
  s=go(s,{type:'UPGRADE',id:'quality'});const good=quoteOrder(s,offer.id,{supplier:'reliable',shipping:'rail',markup:-10});assert.equal(good.penalty,0);assert.equal(good.weeks,3);
@@ -176,7 +176,7 @@ test('quick 3/7 day advancement settles identically to individual days when no i
  const s=acceptAny(createTradeGame(),'quick');const fast=reduceTrade(s,{type:'ADVANCE_DAYS',days:7});const slow=days(s,7);assert.equal(fast.advancedDays,7);assert.equal(fast.pause,null);assert.deepEqual(fast.state,slow);
  const a=reduceTrade(fast.state,{type:'ADVANCE_DAYS',days:3});assert.equal(a.advancedDays,3);assert.deepEqual(a.state,days(slow,3));
 });
-function flagshipState(){let s=createTradeGame();s.metrics.orders=8;s.reputation=16;s.cash=100000;return reduceTrade(s,{type:'ADVANCE_DAYS',days:7});}
+function flagshipState(){let s=createTradeGame();s.metrics.orders=8;s.customers["europe-quick"]={orders:1,revenue:8000,market:"europe",name:"欧洲老客户"};s.reputation=16;s.cash=100000;return reduceTrade(s,{type:'ADVANCE_DAYS',days:7});}
 test('flagship arrival pauses only once at arrival day and expiry requires explicit current offer acknowledgement',()=>{
  const appeared=flagshipState();assert.equal(appeared.state.day,8);assert.equal(appeared.pause.code,'flagship_available');assert.equal(appeared.advancedDays,7);
  const following=reduceTrade(appeared.state,{type:'NEXT_DAY'});assert.equal(following.advancedDays,1);assert.equal(following.pause,null);
@@ -197,6 +197,7 @@ test('ordinary receipts do not interrupt fast advancement, but new market and en
  s=acceptAny(createTradeGame(),'quick');s.metrics.orders=2;s=days(s,27);const unlocked=reduceTrade(s,{type:'ADVANCE_DAYS',days:7});assert.equal(unlocked.advancedDays,1);assert.equal(unlocked.pause.code,'market_unlocked');assert.equal(unlocked.state.day,29);
  const resumed=reduceTrade(unlocked.state,{type:'NEXT_DAY'});assert.equal(resumed.advancedDays,1);assert.equal(resumed.pause,null);
  s=createTradeGame();s.cash=61000;s.customers={'asia-quick':{orders:1,revenue:1,market:'asia',name:'A'},'middle-quick':{orders:1,revenue:1,market:'middle',name:'B'},'europe-flagship':{orders:1,revenue:1,market:'europe',name:'C',qualified:true}};
+ s.receivables=[{id:'final-tail',customer:'C',amount:1,dueDay:2,dueWeek:1}];
  const won=reduceTrade(s,{type:'ADVANCE_DAYS',days:7});assert.equal(won.advancedDays,1);assert.equal(won.pause.code,'ending');assert.equal(won.state.ending.day,2);assert.equal(reduceTrade(won.state,{type:'NEXT_DAY'}).pause,null);
 });
 test('daily broker limit resets only at a weekly boundary, no sevenfold income exploit',()=>{

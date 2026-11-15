@@ -27,7 +27,7 @@ test('next node selects earliest actual ship, delivery or receipt and escapes cu
 test('receipts appear on every tab, persist across quiet days, and can dismiss',()=>{
  const {c}=boot(economy.createTradeGame('测试'));
  vm.runInContext("lastReceipt={day:29,orders:1,profit:500,receipts:0,cash:-120,reputation:2,markets:0,estimated:1}",c);
- for(const tab of ['desk','market','company','ledger']){c.targetTab=tab;const html=vm.runInContext('tab=targetTab;shell()',c);assert.match(html,/第 29 天 · 经营回执/);assert.match(html,/实际回款/);assert.match(html,/浮动尾款估值/);}
+ for(const tab of ['desk','market','company','ledger']){c.targetTab=tab;const html=vm.runInContext('tab=targetTab;shell()',c);assert.match(html,/第 29 天 · 经营回执/);assert.match(html,/本次尾款入账/);assert.match(html,/浮动尾款估值/);}
  vm.runInContext("apply({type:'NEXT_DAY'})",c);assert.equal(vm.runInContext('lastReceipt.day',c),29);
  vm.runInContext("handle({target:{closest:()=>({dataset:{action:'receipt-dismiss'}})}})",c);assert.equal(vm.runInContext('lastReceipt',c),null);
 });
