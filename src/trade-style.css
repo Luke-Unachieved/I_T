@@ -86,3 +86,8 @@ dialog{border-radius:5px;border-top:4px solid #d16a32;box-shadow:0 24px 100px #0
 @media(max-width:600px){.cash-calendar{padding:10px}.cash-day{grid-template-columns:52px minmax(0,1fr) 72px;gap:7px}.network-map svg{max-height:165px}}
 
 .milestone-fold{padding:12px 16px}.milestone-fold summary{cursor:pointer;font-size:13px;font-weight:600}.milestone-fold details[open] summary{margin-bottom:18px}.milestone-fold details:not([open]){margin:0}
+
+/* Keep the next decision above the operational overview, not below it. */
+.aside .network-body{grid-template-columns:1fr}.aside .network-map{padding:6px}.aside .network-map svg{max-height:150px}.aside .network-map text{font-size:18px}.aside .network-map .route-caption{font-size:14px}.aside .flow-counts{grid-template-columns:repeat(3,1fr);border-left:0;border-top:1px solid var(--line);padding:8px;gap:5px}.aside .flow-count{grid-template-columns:18px 1fr}.aside .flow-count small{grid-column:1/-1;font-size:11px}.aside .flow-capacity{grid-column:1/-1}.receipt{padding:12px 16px}.receipt h2{font-size:18px;margin:4px 0}.receipt p{margin:4px 0}.receipt-tails summary{cursor:pointer;font-size:12px;color:var(--muted);margin-top:6px}
+
+.aside .network-map text{font-size:24px}.aside .network-map .network-origin text{font-size:20px}

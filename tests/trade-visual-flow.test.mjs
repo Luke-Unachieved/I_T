@@ -70,3 +70,8 @@ test('inquiry baseline loss is styled as negative, not profitable green',()=>{
  c.quoteOrder=(s,id)=>({profit:-321,revenue:1000});
  const html=vm.runInContext('desk()',c);assert.match(html,/class="number negative"><strong>−¥321/);assert.doesNotMatch(html,/class="number positive"><strong>−¥321/);
 });
+test('inquiries precede the operational map and goals no longer duplicate routes',()=>{
+ const {c}=boot(economy.createTradeGame('先接单'));const html=vm.runInContext('desk()',c);
+ assert.ok(html.indexOf('本周询盘')<html.indexOf('生意在路上'));assert.match(html,/<aside class="aside"><section class="panel trade-network"/);
+ const goal=vm.runInContext('goals()',c);assert.doesNotMatch(goal,/route-map|<svg/);assert.match(goal,/欧洲框架试单/);
+});
