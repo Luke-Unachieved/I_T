@@ -2,12 +2,11 @@
   "version": "2.0.0",
   "mode": "data-trade-v2",
   "title": "再开一单就下班",
-  "legacy": "classic.html",
   "saveKey": "trade-tycoon:data:v2",
   "legacySaveKeys": [
     "trade-tycoon:v1",
     "trade-tycoon:standalone:v1"
   ],
-  "sha256": "904a3dddb096ba0511c7cb5e690d4fa560bb04b5fe46b2a52744a95fe9060ae9",
-  "bytes": 137221
+  "sha256": "c3965a148e4da0ecd4e697816446d75a5c9a6ae200f749283499a9ae18ffe5c6",
+  "bytes": 211526
 }
