@@ -65,3 +65,8 @@ test('cost legend labels do not repeat the exact breakdown amounts',()=>{
  const {c}=boot(economy.createTradeGame('收口'));c.quote={cost:1000,freight:100,profit:200};
  const html=vm.runInContext('profitComposition(quote)',c);const legend=html.split('class="cost-legend"')[1];assert.match(legend,/采购/);assert.doesNotMatch(legend,/¥/);assert.match(html,/采购 ¥1,000/);
 });
+test('inquiry baseline loss is styled as negative, not profitable green',()=>{
+ const {c}=boot(economy.createTradeGame('亏损报价'));
+ c.quoteOrder=(s,id)=>({profit:-321,revenue:1000});
+ const html=vm.runInContext('desk()',c);assert.match(html,/class="number negative"><strong>−¥321/);assert.doesNotMatch(html,/class="number positive"><strong>−¥321/);
+});
