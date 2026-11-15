@@ -44,7 +44,7 @@ npm run check # 先 build：部分验收读取构建产物
 
 ## 验收与发行边界
 
-- 最新推进反馈修订 319 项检查通过；实际续测覆盖两单交付回款，未代表全通关。见 [推进反馈验收](docs/rework/PROGRESS_FEEDBACK_QA.md)。
+- 最终收口 370 项检查通过；四种AI模拟视角分别从新档实际通关（99/120/134/141天），风险视角覆盖拒单、浮动结汇损失、借还款和资金保护。并非四名真人。见 [封版验收](docs/rework/FINAL_ACCEPTANCE_20261115.md)。
 
 - 付款条件版本已通过 306 项检查和重点浏览器回归，详见 [付款验收](docs/rework/PAYMENT_TERMS_QA.md)。
 - [每日推进](docs/rework/DAILY_TIME_QA.md)、[结汇](docs/rework/FX_SETTLEMENT_QA.md)、[数据版验收](docs/rework/RELEASE_QA.md)分别说明覆盖范围。
