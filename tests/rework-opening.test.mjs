@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createOpeningGame,quoteOpening,reduceOpening,STORAGE_KEY,availableInvestments,normalizeOpeningSave,INVESTMENTS} from '../src/rework-opening.js';
+import {createOpeningGame,quoteOpening,reduceOpening,STORAGE_KEY,availableInvestments,normalizeOpeningSave,INVESTMENTS,DAILY_OPERATING_COST} from '../src/rework-opening.js';
 const act=(s,type,orderId,route)=>reduceOpening(s,{type,orderId,route});
 function sale(s,id,route='sea'){for(const type of ['PURCHASE','SHIP','DELIVER']){const r=act(s,type,id,route);assert.equal(r.feedback.ok,true,r.feedback.message);s=r.state;}return s;}
 test('independent opening is deterministic and quotes are pure',()=>{const s=createOpeningGame(),before=JSON.stringify(s);assert.notEqual(STORAGE_KEY,'trade-tycoon:data:v2');assert.deepEqual(s,createOpeningGame());const q=quoteOpening(s,'quick','sea');assert.equal(q.profit,350);assert.equal(q.collectionDay,5);assert.equal(JSON.stringify(s),before);});
@@ -79,7 +79,33 @@ test('normalization preserves signed contract economics and legacy locked dates 
  const paid=s.orders.find(o=>o.id==='quick');paid.revenue=999;paid.quantity=13;paid.payLag=2;assert.equal(normalizeOpeningSave(s).orders.find(o=>o.id==='quick').revenue,999);
 });
 
-test('second-stage fastest comparison trades warehouse cash for fixed-lane time, not an extra reward',()=>{
- const results={};for(const choice of ['warehouse','express']){let s=firstStage();const start=s.day;s=reduceOpening(s,{type:'INVEST',choice}).state;s=sale(s,'port-large','express');s=sale(s,'port-quick','sea');s=sale(s,'port-urgent','express');s=act(s,'COLLECT','port-large').state;results[choice]={cash:s.cash,days:s.day-start};}
- assert.deepEqual(results,{warehouse:{cash:5816,days:11},express:{cash:5700,days:10}});
+test('operating costs charge only actual elapsed days including a nine-day wait',()=>{
+ let s=reduceOpening(firstStage(),{type:'INVEST',choice:'warehouse'}).state;s=sale(s,'port-large','sea');const cash=s.cash,paid=s.operatingCostPaid;const r=act(s,'COLLECT','port-large');assert.equal(r.feedback.operatingCost,450);assert.equal(r.state.cash,cash+3000-450);assert.equal(r.state.operatingCostPaid,paid+450);assert.equal(act(r.state,'COLLECT','port-large').feedback.ok,false);
+});
+test('work filling payment lag does not double-charge time and new orders reserve operations',()=>{
+ let s=reduceOpening(firstStage(),{type:'INVEST',choice:'express'}).state;const start=s.day;s=sale(s,'port-quick','express');s=sale(s,'port-large','express');s=sale(s,'port-urgent','express');s=act(s,'COLLECT','port-large').state;assert.equal(s.cash,5070);assert.equal(s.day-start,11);assert.equal(s.operatingCostPaid,550);
+ let poor=reduceOpening(firstStage(),{type:'INVEST',choice:'warehouse'}).state;poor.cash=2000;const q=quoteOpening(poor,'port-large','sea');assert.ok(q.cashAfterPayment>=0);assert.ok(q.cashAfterReserve<0);assert.equal(q.valid,false);assert.equal(act(poor,'PURCHASE','port-large').feedback.ok,false);
+});
+test('legacy low-cash shipment settles receivable and costs atomically without retroactive fees',()=>{
+ let old=reduceOpening(firstStage(),{type:'INVEST',choice:'warehouse'}).state;old=sale(old,'port-quick');old=act(old,'PURCHASE','port-large').state;old=act(old,'SHIP','port-large','sea').state;old.cash=100;delete old.operatingCostPaid;delete old.dailyOperatingCost;const day=old.day;let s=normalizeOpeningSave(old);assert.equal(s.day,day);assert.equal(s.operatingCostPaid,0);assert.equal(s.dailyOperatingCost,50);
+ assert.equal(act(s,'DELIVER','port-large').feedback.ok,false);const q=quoteOpening(s,'port-large');assert.equal(q.canSettle,true);const r=act(s,'SETTLE','port-large');assert.equal(r.feedback.ok,true);assert.equal(r.state.cash,100+3000-q.settleOperatingCost);assert.equal(r.feedback.operatingCost,q.settleOperatingCost);assert.equal(r.state.orders.find(o=>o.id==='port-large').status,'paid');assert.equal(act(r.state,'SETTLE','port-large').feedback.ok,false);
+});
+
+test('single fifty-yuan operating rate is exposed and warehouse retains a slower higher-cash strategy',()=>{
+ assert.equal(DAILY_OPERATING_COST,50);assert.ok(availableInvestments(firstStage()).every(i=>i.dailyCost===50));let s=reduceOpening(firstStage(),{type:'INVEST',choice:'warehouse'}).state;const start=s.day;s=sale(s,'port-large','sea');s=sale(s,'port-quick','sea');s=sale(s,'port-urgent','express');s=act(s,'COLLECT','port-large').state;assert.equal(s.cash,5366);assert.equal(s.day-start,13);assert.equal(s.operatingCostPaid,650);
+});
+function secondStage(choice='warehouse'){let s=reduceOpening(firstStage(),{type:'INVEST',choice}).state;for(const id of ['port-quick','port-urgent','port-large']){s=sale(s,id,id==='port-urgent'?'express':'sea');if(id==='port-large')s=act(s,'COLLECT',id).state;}return s;}
+test('third stage is explicit, preserves a finished legacy stage, and opens four offers for two signatures',()=>{
+ const old=secondStage();delete old.stageTarget;delete old.stageSigned;const restored=normalizeOpeningSave(old);assert.equal(restored.stage,2);assert.equal(restored.ending,true);assert.equal(restored.orders.length,6);
+ assert.equal(reduceOpening(firstStage(),{type:'NEXT_STAGE'}).feedback.ok,false);
+ let s=reduceOpening(restored,{type:'NEXT_STAGE'}).state;assert.equal(s.stage,3);assert.equal(s.stageTarget,2);assert.equal(s.stageSigned,0);assert.equal(s.ending,false);assert.equal(s.cash,old.cash);assert.equal(s.day,old.day);assert.equal(s.orders.filter(o=>o.stage===3).length,4);
+ s=sale(s,'choice-restock','express');assert.equal(s.stageSigned,1);assert.equal(s.ending,false);assert.equal(s.orders.filter(o=>o.status==='declined').length,0);
+ s=act(s,'PURCHASE','choice-urgent').state;assert.equal(s.stageSigned,2);assert.equal(s.stageCompleted,1);assert.equal(s.orders.filter(o=>o.status==='declined').length,2);assert.equal(quoteOpening(s,'choice-bulk').valid,false);assert.ok(Number.isFinite(quoteOpening(s,'choice-bulk').profit));assert.ok(Number.isFinite(quoteOpening(s,'choice-bulk').cashAfterReserve));assert.equal(act(s,'PURCHASE','choice-bulk').feedback.ok,false);assert.deepEqual(normalizeOpeningSave(s),s);
+ s=act(s,'SHIP','choice-urgent','express').state;s=act(s,'DELIVER','choice-urgent').state;assert.equal(s.ending,true);assert.equal(s.completed,8);assert.equal(s.stageCompleted,2);assert.equal(s.portUnlocked,true);assert.equal(reduceOpening(s,{type:'NEXT_STAGE'}).feedback.ok,false);assert.deepEqual(normalizeOpeningSave(s),s);
+});
+test('third-stage choices retain fast-lane terms and meaningful capital versus speed outcomes',()=>{
+ const run=(choice,ids,routes)=>{let s=reduceOpening(secondStage(choice),{type:'NEXT_STAGE'}).state;const cash=s.cash,day=s.day;for(let i=0;i<ids.length;i++)s=sale(s,ids[i],routes[i]);for(const o of s.orders.filter(o=>o.status==='receivable').sort((a,b)=>a.collectionDay-b.collectionDay))s=act(s,'COLLECT',o.id).state;assert.equal(s.ending,true);return {net:s.cash-cash,days:s.day-day};};
+ assert.deepEqual(run('warehouse',['choice-bulk','choice-regular'],['sea','sea']),{net:2156,days:10});
+ assert.deepEqual(run('express',['choice-restock','choice-urgent'],['express','express']),{net:990,days:2});
+ for(const choice of ['warehouse','express']){const s=reduceOpening(secondStage(choice),{type:'NEXT_STAGE'}).state;const q=quoteOpening(s,'choice-urgent','express');assert.equal(q.transitDays,choice==='express'?1:2);assert.equal(q.freight,choice==='express'?180:300);const poor=structuredClone(s);poor.cash=100;assert.equal(act(poor,'PURCHASE','choice-bulk').feedback.ok,false);assert.equal(poor.stageSigned,0);}
 });
