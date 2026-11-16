@@ -19,3 +19,17 @@ test('open contracts show the real latest quote movement and explicit relative d
  local.setItem(engine.STORAGE_KEY,JSON.stringify(s));const app=boot('',local,storage());assert.match(app.root.innerHTML,/本批毛利 ↑ \+¥100/);assert.match(app.root.innerHTML,/本批毛利 ↓ −¥120/);assert.match(app.root.innerHTML,/接单后 2 天内交付/);
  app.act('PURCHASE','urgent');assert.match(app.root.innerHTML,/最晚第 7 天交付/);
 });
+test('growth plaques count only actual invested procurement or booked express benefits',()=>{
+ let base=engine.createOpeningGame();for(const id of ['quick','urgent','large']){for(const type of ['PURCHASE','SHIP','DELIVER'])base=engine.reduceOpening(base,{type,orderId:id,route:id==='urgent'?'express':'sea'}).state;if(id==='large')base=engine.reduceOpening(base,{type:'COLLECT',orderId:id}).state;}
+ for(const choice of ['warehouse','express']){
+  let s=engine.reduceOpening(base,{type:'INVEST',choice}).state;const local=storage();local.setItem(engine.STORAGE_KEY,JSON.stringify(s));assert.match(boot('',local,storage()).root.innerHTML,/累计省[^<]*<\/span><b>¥0/);
+  const id=choice==='warehouse'?'port-quick':'port-urgent';s=engine.reduceOpening(s,{type:'PURCHASE',orderId:id}).state;if(choice==='express')s=engine.reduceOpening(s,{type:'SHIP',orderId:id,route:'express'}).state;
+  local.setItem(engine.STORAGE_KEY,JSON.stringify(s));const html=boot('',local,storage()).root.innerHTML;
+  if(choice==='warehouse')assert.match(html,/货仓累计省采购<\/span><b>¥80/);else{assert.match(html,/快线累计省运费<\/span><b>¥120/);assert.match(html,/比普通快运少用 1 天/);}
+ }
+});
+test('cash-constrained contract shows exact shortfall and a receivable recovery action',()=>{
+ let s=engine.createOpeningGame();for(const type of ['PURCHASE','SHIP','DELIVER'])s=engine.reduceOpening(s,{type,orderId:'large',route:'sea'}).state;
+ const local=storage();local.setItem(engine.STORAGE_KEY,JSON.stringify(s));const app=boot('',local,storage());app.act('select','urgent');assert.match(app.root.innerHTML,/还差 ¥400/);assert.match(app.root.innerHTML,/¥2,100 在第 12 天到账/);assert.match(app.root.innerHTML,/查看这笔待收款/);
+ app.act('select','large');assert.match(app.root.innerHTML,/等到收款 · 推进 7 天/);
+});
