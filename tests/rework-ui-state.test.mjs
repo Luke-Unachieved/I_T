@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import * as engine from '../src/rework-opening.js';
 const source=fs.readFileSync(new URL('../src/rework-app.js',import.meta.url),'utf8').replace(/^import[^\n]+\n/,'').replaceAll('import.meta.url',JSON.stringify('https://game.invalid/src/rework-app.js'));
 function storage(){const data=new Map();return {getItem:k=>data.get(k)??null,setItem:(k,v)=>data.set(k,v),data};}
-function boot(search,local,session){const events={},root={innerHTML:'',addEventListener:(type,fn)=>events[type]=fn};vm.runInNewContext(source,{...engine,structuredClone,URL,URLSearchParams,location:{search},document:{querySelector:()=>root},localStorage:local,sessionStorage:session,fetch:()=>Promise.reject(new Error('No art needed for storage test')),confirm:()=>true});return {root,act:(action,id)=>events.click({target:{closest:()=>({dataset:{action,id}})}})}}
+function boot(search,local,session,art=null){const events={},root={innerHTML:'',addEventListener:(type,fn)=>events[type]=fn};vm.runInNewContext(source,{...engine,structuredClone,URL,URLSearchParams,location:{search},document:{querySelector:()=>root},localStorage:local,sessionStorage:session,fetch:()=>art?Promise.resolve({ok:true,text:()=>Promise.resolve(art)}):Promise.reject(new Error('No art needed for storage test')),confirm:()=>true});return {root,act:(action,id)=>events.click({target:{closest:()=>({dataset:{action,id}})}})}}
 test('trial tabs never read or overwrite normal progress; refresh keeps only that tab trial',()=>{
  const local=storage(),a=storage(),b=storage();const old=engine.createOpeningGame();old.cash=4321;local.setItem(engine.STORAGE_KEY,JSON.stringify(old));const before=local.getItem(engine.STORAGE_KEY);
  const first=boot('?trial=1',local,a);assert.match(first.root.innerHTML,/1,800/);first.act('PURCHASE','quick');assert.equal(local.getItem(engine.STORAGE_KEY),before);assert.equal(JSON.parse(a.getItem(engine.STORAGE_KEY+':trial')).cash,1400);
@@ -47,4 +47,24 @@ test('collection preview includes every receivable due by the selected day',()=>
  // Compatible existing signed payment terms are preserved by normalization.
  const quick=s.orders.find(o=>o.id==='quick');quick.payLag=3;quick.collectionDay=12;s=engine.reduceOpening(s,{type:'DELIVER',orderId:'quick'}).state;
  const local=storage();local.setItem(engine.STORAGE_KEY,JSON.stringify(s));const app=boot('',local,storage());app.act('select','large');assert.match(app.root.innerHTML,/回款 <b>\+¥2,950/);
+});
+test('a funded express route keeps a contract purchasable when sea operating reserve is unaffordable',()=>{
+ let s=engine.createOpeningGame();for(const id of ['quick','urgent','large']){for(const type of ['PURCHASE','SHIP','DELIVER'])s=engine.reduceOpening(s,{type,orderId:id,route:id==='urgent'?'express':'sea'}).state;if(id==='large')s=engine.reduceOpening(s,{type:'COLLECT',orderId:id}).state;}
+ s=engine.reduceOpening(s,{type:'INVEST',choice:'express'}).state;
+ const cost=engine.quoteOpening(s,'port-quick','express').purchaseCost;s.cash=cost+180+50;
+ assert.equal(engine.quoteOpening(s,'port-quick','sea').valid,false);assert.equal(engine.quoteOpening(s,'port-quick','express').valid,true);
+ const local=storage();local.setItem(engine.STORAGE_KEY,JSON.stringify(s));const app=boot('',local,storage());app.act('select','port-quick');
+ assert.match(app.root.innerHTML,/快运后毛利/);assert.doesNotMatch(app.root.innerHTML,/data-action="PURCHASE"[^>]*disabled/);
+ app.act('PURCHASE','port-quick');assert.match(app.root.innerHTML,/下一步 · 选船/);assert.match(app.root.innerHTML,/¥180 运费/);
+});
+
+test('fixed-line growth and shipping lane are drawn only for the actual investment and route',async()=>{
+ let s=engine.createOpeningGame();for(const id of ['quick','urgent','large']){for(const type of ['PURCHASE','SHIP','DELIVER'])s=engine.reduceOpening(s,{type,orderId:id,route:id==='urgent'?'express':'sea'}).state;if(id==='large')s=engine.reduceOpening(s,{type:'COLLECT',orderId:id}).state;}
+ s=engine.reduceOpening(s,{type:'INVEST',choice:'express'}).state;s=engine.reduceOpening(s,{type:'PURCHASE',orderId:'port-quick'}).state;
+ const art=fs.readFileSync(new URL('../assets/rework-harbor.svg',import.meta.url),'utf8');
+ for(const route of ['sea','express']){
+  const shipped=engine.reduceOpening(s,{type:'SHIP',orderId:'port-quick',route}).state,local=storage();local.setItem(engine.STORAGE_KEY,JSON.stringify(shipped));const app=boot('',local,storage(),art);await new Promise(resolve=>setImmediate(resolve));
+  assert.match(app.root.innerHTML,/固定快线专用码头/);assert.match(app.root.innerHTML,new RegExp('shipping-lane '+(route==='express'?'fast':'sea')));
+ }
+ const local=storage();local.setItem(engine.STORAGE_KEY,JSON.stringify(engine.createOpeningGame()));const app=boot('',local,storage(),art);await new Promise(resolve=>setImmediate(resolve));assert.doesNotMatch(app.root.innerHTML,/express-terminal|shipping-lane/);
 });
