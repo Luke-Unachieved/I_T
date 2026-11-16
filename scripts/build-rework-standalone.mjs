@@ -15,6 +15,6 @@ export async function buildReworkHtml(){
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  const dir=path.resolve(process.argv[2]||path.join(root,'artifacts/rework'));await mkdir(dir,{recursive:true});
  const output=path.join(dir,'再开一单就下班.html');await writeFile(output,await buildReworkHtml());
- await writeFile(path.join(dir,'开始试玩.txt'),'再开一单就下班\n\n解压后，用 Chrome 或 Edge 打开“再开一单就下班.html”即可。无需安装，不依赖网络图片或脚本。\n\n当前内容：三程经营，从首单到投资扩张，再从四位客户中挑两位合作。\n\n进度保存在当前浏览器中，不与在线版同步。请保留文件位置并使用同一浏览器；无痕模式、禁用存储或清理浏览器数据可能丢失进度。界面出现保存失败提示时请勿关闭。\n\n这是独立重做候选版，原在线版和原存档不受影响。\n');
+ await writeFile(path.join(dir,'开始试玩.txt'),'再开一单就下班\n\n解压后，用 Chrome 或 Edge 打开“再开一单就下班.html”即可。无需安装，不依赖网络图片或脚本。\n\n当前内容：从首单、投资到挑选客户，接着经营熟客回头单；选择付款条件、扩建双泊位，靠真实复购解锁三成定金。\n\n进度保存在当前浏览器中，不与在线版同步。请保留文件位置并使用同一浏览器；无痕模式、禁用存储或清理浏览器数据可能丢失进度。界面出现保存失败提示时请勿关闭。\n\n这是独立重做候选版，原在线版和原存档不受影响。\n');
  console.log(output);
 }
