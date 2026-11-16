@@ -33,3 +33,11 @@ test('cash-constrained contract shows exact shortfall and a receivable recovery 
  const local=storage();local.setItem(engine.STORAGE_KEY,JSON.stringify(s));const app=boot('',local,storage());app.act('select','urgent');assert.match(app.root.innerHTML,/还差 ¥400/);assert.match(app.root.innerHTML,/¥2,100 在第 12 天到账/);assert.match(app.root.innerHTML,/查看这笔待收款/);
  app.act('select','large');assert.match(app.root.innerHTML,/等到收款 · 推进 7 天/);
 });
+test('third-stage result separates this stage cash gain from lifetime earnings without fabricating absent history',()=>{
+ let s=engine.createOpeningGame();const act=(type,id,route)=>{s=engine.reduceOpening(s,{type,orderId:id,route}).state;};const sale=(id,route='sea')=>{for(const type of ['PURCHASE','SHIP','DELIVER'])act(type,id,route);};
+ sale('quick');sale('urgent','express');sale('large');act('COLLECT','large');s=engine.reduceOpening(s,{type:'INVEST',choice:'warehouse'}).state;
+ sale('port-quick');sale('port-urgent','express');sale('port-large');act('COLLECT','port-large');s=engine.reduceOpening(s,{type:'NEXT_STAGE'}).state;const startCash=s.cash,startDay=s.day;
+ sale('choice-bulk');sale('choice-urgent','express');act('COLLECT','choice-bulk');const local=storage();local.setItem(engine.STORAGE_KEY,JSON.stringify(s));let html=boot('',local,storage()).root.innerHTML;
+ assert.match(html,/这一程 · 2 位客户/);assert.ok(html.includes('+'+'¥'+(s.cash-startCash).toLocaleString('zh-CN')));assert.ok(html.includes((s.day-startDay)+' 天 · 已扣'));assert.match(html,/累计净赚/);assert.match(html,/出货至回款/);
+ s.history=[];local.setItem(engine.STORAGE_KEY,JSON.stringify(s));html=boot('',local,storage()).root.innerHTML;assert.doesNotMatch(html,/这一程 ·/);assert.match(html,/累计净赚/);
+});
