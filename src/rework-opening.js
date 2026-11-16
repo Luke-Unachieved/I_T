@@ -59,7 +59,7 @@ export function reduceOpening(state,action){
   next.day=Math.max(state.day,order.collectionDay);next.cash+=order.revenue;order.status='paid';next.completed++;message=`推进到第${next.day}天，收到${order.revenue}元。`;
  }
  next.portUnlocked=next.completed===ORDERS.length;
- if(next.portUnlocked)message+=' 三单全部收齐，新港口已解锁！';
+ if(next.portUnlocked)message+=' 三单全部收齐，第一程完成！';
  const feedback={ok:true,message,action:action.type,orderId:order.id,cashDelta:next.cash-state.cash,daysAdvanced:next.day-state.day,portUnlocked:next.portUnlocked};
  next.history.push({...feedback,day:next.day});return {state:next,feedback};
 }
