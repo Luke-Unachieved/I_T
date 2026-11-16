@@ -68,3 +68,12 @@ test('fixed-line growth and shipping lane are drawn only for the actual investme
  }
  const local=storage();local.setItem(engine.STORAGE_KEY,JSON.stringify(engine.createOpeningGame()));const app=boot('',local,storage(),art);await new Promise(resolve=>setImmediate(resolve));assert.doesNotMatch(app.root.innerHTML,/express-terminal|shipping-lane/);
 });
+test('route choice compares each payment date with existing receivables on the same day scale',()=>{
+ let s=engine.createOpeningGame();const act=(type,id,route)=>{s=engine.reduceOpening(s,{type,orderId:id,route}).state;};
+ for(const type of ['PURCHASE','SHIP','DELIVER'])act(type,'urgent','express');
+ for(const type of ['PURCHASE','SHIP','DELIVER'])act(type,'large','sea');
+ act('PURCHASE','quick');const due=s.orders.find(o=>o.id==='large').collectionDay;
+ const local=storage();local.setItem(engine.STORAGE_KEY,JSON.stringify(s));const app=boot('',local,storage());app.act('select','quick');
+ const html=app.root.innerHTML;assert.match(html,/route-pending/);assert.match(html,/◆ 待收 ¥2,100/);assert.ok(html.includes('已有货款第 '+due+' 天到账'));assert.equal((html.match(/class="pending-marker"/g)||[]).length,2);assert.equal((html.match(/class="payment-marker"/g)||[]).length,2);
+ for(const route of ['sea','express']){const q=engine.quoteOpening(s,'quick',route);assert.ok(html.includes(`第 ${q.arrivalDay} 天送达`));assert.ok(html.includes(`本单第 ${q.collectionDay} 天回款`));}
+});
