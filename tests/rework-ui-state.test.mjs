@@ -97,3 +97,9 @@ test('earned customer trust exposes a deposit and every cash panel shows only th
  app.act('SHIP',o.id,{route:'express'});app.act('DELIVER',o.id);app.act('select',o.id);assert.match(app.root.innerHTML,/客户已签收 · 等尾款/);assert.ok(app.root.innerHTML.includes('¥'+(o.revenue-deposit).toLocaleString('zh-CN')));assert.doesNotMatch(app.root.innerHTML,new RegExp('回款 <b>\\+¥'+o.revenue.toLocaleString('zh-CN')));
  app.act('COLLECT',o.id);assert.equal(JSON.parse(local.getItem(engine.STORAGE_KEY)).orders.find(x=>x.id===o.id).status,'paid');
 });
+
+test('narrow layout keeps price explanation hidden and progress below the scene subtitle',()=>{
+ const css=fs.readFileSync(new URL('../src/rework-style.css',import.meta.url),'utf8');
+ assert.match(css,/@media\(max-width:1050px\)\{\.market-tape \.price-rule\{display:none\}\}/);
+ assert.match(css,/@media\(max-width:760px\)\{\.goal-track\{top:96px\}\.harbor-art,\.harbor>img\{top:122px\}\}/);
+});
