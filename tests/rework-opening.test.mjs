@@ -109,3 +109,8 @@ test('third-stage choices retain fast-lane terms and meaningful capital versus s
  assert.deepEqual(run('express',['choice-restock','choice-urgent'],['express','express']),{net:990,days:2});
  for(const choice of ['warehouse','express']){const s=reduceOpening(secondStage(choice),{type:'NEXT_STAGE'}).state;const q=quoteOpening(s,'choice-urgent','express');assert.equal(q.transitDays,choice==='express'?1:2);assert.equal(q.freight,choice==='express'?180:300);const poor=structuredClone(s);poor.cash=100;assert.equal(act(poor,'PURCHASE','choice-bulk').feedback.ok,false);assert.equal(poor.stageSigned,0);}
 });
+test('one collection settles both same-day third-stage receivables with one daily bill',()=>{
+ let s=reduceOpening(firstStage(),{type:'INVEST',choice:'warehouse'}).state;s=sale(s,'port-quick');s=sale(s,'port-urgent','express');s=sale(s,'port-large');s=act(s,'COLLECT','port-large').state;s=reduceOpening(s,{type:'NEXT_STAGE'}).state;
+ s=sale(s,'choice-bulk');s=sale(s,'choice-regular');const bulk=s.orders.find(o=>o.id==='choice-bulk'),regular=s.orders.find(o=>o.id==='choice-regular');assert.equal(bulk.collectionDay,regular.collectionDay);const before=s.cash,days=bulk.collectionDay-s.day;
+ const r=act(s,'COLLECT','choice-bulk');assert.equal(r.feedback.ok,true);assert.equal(r.state.cash,before+6150-days*50);assert.equal(r.feedback.operatingCost,days*50);assert.equal(r.state.stageCompleted,2);assert.equal(r.state.ending,true);assert.equal(r.state.orders.find(o=>o.id==='choice-regular').status,'paid');assert.equal(act(r.state,'COLLECT','choice-regular').feedback.ok,false);
+});

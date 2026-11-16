@@ -41,3 +41,10 @@ test('third-stage result separates this stage cash gain from lifetime earnings w
  assert.match(html,/这一程 · 2 位客户/);assert.ok(html.includes('+'+'¥'+(s.cash-startCash).toLocaleString('zh-CN')));assert.ok(html.includes((s.day-startDay)+' 天 · 已扣'));assert.match(html,/累计净赚/);assert.match(html,/出货至回款/);
  s.history=[];local.setItem(engine.STORAGE_KEY,JSON.stringify(s));html=boot('',local,storage()).root.innerHTML;assert.doesNotMatch(html,/这一程 ·/);assert.match(html,/累计净赚/);
 });
+test('collection preview includes every receivable due by the selected day',()=>{
+ let s=engine.createOpeningGame();s.cash=5000;for(const type of ['PURCHASE','SHIP','DELIVER'])s=engine.reduceOpening(s,{type,orderId:'large',route:'sea'}).state;
+ for(const type of ['PURCHASE','SHIP'])s=engine.reduceOpening(s,{type,orderId:'quick',route:'sea'}).state;
+ // Compatible existing signed payment terms are preserved by normalization.
+ const quick=s.orders.find(o=>o.id==='quick');quick.payLag=3;quick.collectionDay=12;s=engine.reduceOpening(s,{type:'DELIVER',orderId:'quick'}).state;
+ const local=storage();local.setItem(engine.STORAGE_KEY,JSON.stringify(s));const app=boot('',local,storage());app.act('select','large');assert.match(app.root.innerHTML,/回款 <b>\+¥2,950/);
+});

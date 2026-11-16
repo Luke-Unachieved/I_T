@@ -138,6 +138,10 @@ export function reduceOpening(state,action){
   if(targetDay>state.day&&state.orders.some(o=>o.status==='packed'))return reject(state,'先把码头已配好的货发运交付，再等待这笔回款。');
   next.day=Math.max(state.day,order.collectionDay);next.cash+=order.revenue;order.status='paid';next.completed++;message=`推进到第${next.day}天，收到${order.revenue}元。`;
  }
+ // Reaching a promised payment date settles all receivables already due.
+ // One advance, one operating bill; no extra collection clicks for the same day.
+ const due=next.orders.filter(o=>o.status==='receivable'&&o.collectionDay<=next.day);
+ if(due.length){const total=due.reduce((n,o)=>n+o.revenue,0);for(const o of due){o.status='paid';next.completed++;}next.cash+=total;message+=` 同时收到${due.length}笔到期货款${total}元。`;}
  const operatingCost=Math.max(0,next.day-state.day)*(state.dailyOperatingCost||0);
  if(next.cash<operatingCost)return reject(state,'现金不足以覆盖本次运营费；可选择交付并等到收款，一次结清应收与运营费。');
  next.cash-=operatingCost;next.operatingCostPaid=(state.operatingCostPaid||0)+operatingCost;
