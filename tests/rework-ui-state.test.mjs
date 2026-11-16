@@ -14,3 +14,8 @@ test('trial tabs never read or overwrite normal progress; refresh keeps only tha
 test('storage failure is reported without stopping the in-memory game',()=>{
  const broken={getItem(){throw Error('blocked')},setItem(){throw Error('blocked')}};const app=boot('?trial=1',broken,broken);app.act('PURCHASE','quick');assert.match(app.root.innerHTML,/1,400/);assert.match(app.root.innerHTML,/浏览器没有保存这次进度/);
 });
+test('open contracts show the real latest quote movement and explicit relative deadline',()=>{
+ let s=engine.createOpeningGame();const local=storage();for(const type of ['PURCHASE','SHIP','DELIVER'])s=engine.reduceOpening(s,{type,orderId:'quick',route:'sea'}).state;
+ local.setItem(engine.STORAGE_KEY,JSON.stringify(s));const app=boot('',local,storage());assert.match(app.root.innerHTML,/本批毛利 ↑ \+¥100/);assert.match(app.root.innerHTML,/本批毛利 ↓ −¥120/);assert.match(app.root.innerHTML,/接单后 2 天内交付/);
+ app.act('PURCHASE','urgent');assert.match(app.root.innerHTML,/最晚第 7 天交付/);
+});
