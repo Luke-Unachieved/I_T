@@ -33,14 +33,21 @@ function costFor(state,order){const base=order.basePurchaseCost??order.unitCost*
 export const SECOND_BERTH_COST=2500;
 export const cargoCapacity=state=>state.berthCount===2?2:1;
 export function currentOpeningOrders(state){return state.businessRound?state.orders.filter(o=>o.businessRound===state.businessRound):state.orders.filter(o=>o.stage===state.stage&&!o.businessRound);}
-export function businessCustomers(state){return state.orders.filter(o=>o.stage===3&&!o.businessRound&&o.status==='paid').map(o=>({id:o.id,name:o.name,product:o.product,repeatPaid:state.orders.filter(x=>x.customerId===o.id&&x.businessRound&&x.status==='paid').length,completed:state.orders.filter(x=>x.customerId===o.id&&x.businessRound&&x.status==='paid').length}));}
+const DEPOSIT_REPEAT_TARGET=2;
+function earlierPaidRepeats(state,o){return state.orders.filter(x=>x.customerId===o.customerId&&x.businessRound<o.businessRound&&x.businessRound>0&&x.status==='paid').length;}
+export function outstandingPayment(order){return order.status==='paid'?0:Math.max(0,order.revenue-(order.depositReceived||0));}
+function procurementDeposit(state,o){return o.status==='open'&&o.paymentTerms==='deposit'&&earlierPaidRepeats(state,o)>=DEPOSIT_REPEAT_TARGET?Math.floor(o.baseRevenue*30/100):0;}
+export function businessCustomers(state){return state.orders.filter(o=>o.stage===3&&!o.businessRound&&o.status==='paid').map(o=>({id:o.id,name:o.name,product:o.product,repeatPaid:state.orders.filter(x=>x.customerId===o.id&&x.businessRound&&x.status==='paid').length,completed:state.orders.filter(x=>x.customerId===o.id&&x.businessRound&&x.status==='paid').length,repeatTarget:DEPOSIT_REPEAT_TARGET,depositUnlocked:state.orders.filter(x=>x.customerId===o.id&&x.businessRound&&x.status==='paid').length>=DEPOSIT_REPEAT_TARGET}));}
 function repeatTemplates(state,round){return businessCustomers(state).map(c=>{const t=THIRD_ORDERS.find(o=>o.id===c.id);return {...t,id:`repeat-${round}-${t.id}`,customerId:t.id,businessRound:round,stage:3,baseRevenue:t.revenue,paymentTerms:'credit',payLag:Math.max(3,t.payLag)};});}
-export function paymentOptions(state,id){const o=find(state,id);if(!o?.businessRound)return [];return [{id:'credit',payment:'credit',selected:o.paymentTerms==='credit',revenue:o.baseRevenue,payLag:Math.max(3,THIRD_ORDERS.find(t=>t.id===o.customerId).payLag),discount:0},{id:'cash',payment:'cash',selected:o.paymentTerms==='cash',revenue:Math.floor(o.baseRevenue*92/100),payLag:0,discount:o.baseRevenue-Math.floor(o.baseRevenue*92/100)}];}
+export function paymentOptions(state,id){
+ const o=find(state,id);if(!o?.businessRound)return [];const payLag=Math.max(3,THIRD_ORDERS.find(t=>t.id===o.customerId).payLag),unlocked=earlierPaidRepeats(state,o)>=DEPOSIT_REPEAT_TARGET;
+ return [{id:'credit',payment:'credit',selected:o.paymentTerms==='credit',revenue:o.baseRevenue,payLag,discount:0},{id:'cash',payment:'cash',selected:o.paymentTerms==='cash',revenue:Math.floor(o.baseRevenue*92/100),payLag:0,discount:o.baseRevenue-Math.floor(o.baseRevenue*92/100)},{id:'deposit',payment:'deposit',selected:o.paymentTerms==='deposit',revenue:o.baseRevenue,payLag,discount:0,deposit:Math.floor(o.baseRevenue*30/100),disabled:!unlocked,reason:unlocked?'':`这位客户复购收齐${DEPOSIT_REPEAT_TARGET}单后愿付定金。`,requiredRepeats:DEPOSIT_REPEAT_TARGET}];
+}
 function transportEstimate(state,o,day=state.day){return ROUTES.map(r=>{const days=r.id==='express'&&o.stage>=2&&state.investment!=='express'?2:r.days;return {freight:r.id==='express'&&state.investment==='express'?180:r.cost,arrivalDay:day+days,collectionDay:day+days+o.payLag};}).filter(r=>r.arrivalDay<=(o.deadlineDay??day+o.deadlineDays)).sort((a,b)=>(a.freight+(a.collectionDay-day)*(state.dailyOperatingCost||0))-(b.freight+(b.collectionDay-day)*(state.dailyOperatingCost||0)))[0];}
 export function berthUpgrade(state){
  let reason='';if(!state.businessRound)reason='先完成三程，开始经营长期客户。';else if(cargoCapacity(state)===2)reason='第二泊位已经投入使用。';
  else if(state.orders.some(o=>['packed','shipping'].includes(o.status)))reason='先把码头这批货交付，再扩建泊位。';
- else {const remaining=state.cash-SECOND_BERTH_COST;const candidates=currentOpeningOrders(state).filter(o=>o.status==='open');const orders=candidates.length?candidates:repeatTemplates(state,(state.businessRound||0)+1);const minimum=Math.min(...orders.map(o=>{const estimate=transportEstimate(state,o);return costFor(state,o).purchaseCost+estimate.freight+(estimate.collectionDay-state.day)*(state.dailyOperatingCost||0);}));const dueDays=Math.max(0,...state.orders.filter(o=>o.status==='receivable').map(o=>o.collectionDay-state.day));if(remaining<Math.max(minimum,dueDays*(state.dailyOperatingCost||0)))reason='扩建后还要留够一笔生意的货款、运费与日常周转。';}
+ else {const remaining=state.cash-SECOND_BERTH_COST;const candidates=currentOpeningOrders(state).filter(o=>o.status==='open');const orders=candidates.length?candidates:repeatTemplates(state,(state.businessRound||0)+1);const minimum=Math.min(...orders.map(o=>{const estimate=transportEstimate(state,o);return costFor(state,o).purchaseCost-procurementDeposit(state,o)+estimate.freight+(estimate.collectionDay-state.day)*(state.dailyOperatingCost||0);}));const dueDays=Math.max(0,...state.orders.filter(o=>o.status==='receivable').map(o=>o.collectionDay-state.day));if(remaining<Math.max(minimum,dueDays*(state.dailyOperatingCost||0)))reason='扩建后还要留够一笔生意的货款、运费与日常周转。';}
  return {cost:SECOND_BERTH_COST,available:!reason,reason};
 }
 export function availableInvestments(state){return INVESTMENTS.map(i=>{let reason='';
@@ -62,20 +69,21 @@ export function normalizeOpeningSave(raw){
   if(s.businessRound){if(s.stage!==3||s.orders.length!==10+s.businessRound*2||businessCustomers(s).length!==2||s.orders.some(o=>!o.businessRound&&o.stage===3&&!['paid','declined'].includes(o.status)))return null;for(let n=1;n<=s.businessRound;n++)templates.push(...repeatTemplates(s,n));}
   if(s.orders.length!==templates.length||new Set(s.orders.map(o=>o.id)).size!==templates.length)return null;
   for(const o of s.orders){const template=templates.find(t=>t.id===o.id);if(!template||!['open','packed','shipping','receivable','paid','declined'].includes(o.status))return null;
-   for(const key of ['berthIndex','purchaseCost','basePurchaseCost','unitCost','deadlineDay','freight','arrivalDay','collectionDay','deliveredDay','transitDays','shipDay'])if(o[key]!=null&&!integer(o[key]))return null;
+   for(const key of ['depositReceived','berthIndex','purchaseCost','basePurchaseCost','unitCost','deadlineDay','freight','arrivalDay','collectionDay','deliveredDay','transitDays','shipDay'])if(o[key]!=null&&!integer(o[key]))return null;
    if(signed(o)&&(!integer(o.purchaseCost)||!integer(o.deadlineDay)))return null;
    if(['shipping','receivable','paid'].includes(o.status)&&(!ROUTES.some(r=>r.id===o.route)||!integer(o.freight)||!integer(o.arrivalDay)||!integer(o.collectionDay)))return null;
    if(!PRODUCTS.some(p=>p.id===o.product)||typeof o.name!=='string'||o.name.length>120)return null;
    if(!['quantity','revenue','deadlineDays','payLag'].every(k=>integer(o[k]))||o.quantity<1||o.deadlineDays<1)return null;
    if(legacyCosts&&signed(o))o.legacySettlement=true;
-   if(template.businessRound){if(o.businessRound!==template.businessRound||o.customerId!==template.customerId||o.baseRevenue!==template.baseRevenue||!['cash','credit'].includes(o.paymentTerms)||['declined'].includes(o.status)||(o.businessRound<s.businessRound&&o.status!=='paid'))return null;for(const key of ['name','product','quantity','deadlineDays'])if(o[key]!==template[key])return null;const terms=paymentOptions(s,o.id).find(x=>x.id===o.paymentTerms);if(o.revenue!==terms.revenue||o.payLag!==terms.payLag)return null;
+   if(template.businessRound){if(o.businessRound!==template.businessRound||o.customerId!==template.customerId||o.baseRevenue!==template.baseRevenue||!['cash','credit','deposit'].includes(o.paymentTerms)||['declined'].includes(o.status)||(o.businessRound<s.businessRound&&o.status!=='paid'))return null;for(const key of ['name','product','quantity','deadlineDays'])if(o[key]!==template[key])return null;const terms=paymentOptions(s,o.id).find(x=>x.id===o.paymentTerms);if(terms.disabled||o.revenue!==terms.revenue||o.payLag!==terms.payLag)return null;
+    if(o.paymentTerms==='deposit'){if(o.status==='open'?o.depositReceived!=null:o.depositReceived!==terms.deposit)return null;}else if(o.depositReceived!=null)return null;
     const procurement=['purchaseCost','basePurchaseCost','unitCost','deadlineDay','berthIndex'],shipment=['freight','arrivalDay','collectionDay','transitDays','shipDay'];
     if(o.status==='open'&&[...procurement,...shipment,'deliveredDay'].some(k=>o[k]!=null))return null;
     if(o.status==='packed'&&[...shipment,'deliveredDay'].some(k=>o[k]!=null))return null;
     if(signed(o)&&(!procurement.every(k=>integer(o[k]))||o.berthIndex>=cargoCapacity(s)||o.basePurchaseCost!==o.unitCost*o.quantity||o.purchaseCost!==Math.floor(o.basePurchaseCost*(s.investment==='warehouse'?90:100)/100)))return null;
     if(['shipping','receivable','paid'].includes(o.status)&&(!shipment.every(k=>integer(o[k]))||o.arrivalDay!==o.shipDay+o.transitDays||o.collectionDay!==o.arrivalDay+o.payLag||o.arrivalDay>o.deadlineDay))return null;
     if(['receivable','paid'].includes(o.status)&&(!integer(o.deliveredDay)||o.deliveredDay<o.arrivalDay||o.deliveredDay>s.day))return null;
-   }else if(o.businessRound||o.customerId||o.paymentTerms||o.baseRevenue!=null)return null;
+   }else if(o.businessRound||o.customerId||o.paymentTerms||o.baseRevenue!=null||o.depositReceived!=null)return null;
    o.stage=template.businessRound||THIRD_ORDERS.some(t=>t.id===o.id)?3:SECOND_ORDERS.some(t=>t.id===o.id)?2:1;
    if(o.route&&o.transitDays==null)o.transitDays=ROUTES.find(r=>r.id===o.route).days;
   }
@@ -99,7 +107,8 @@ export function quoteOpening(state,orderId,route='sea'){
  const arrivalDay=order.arrivalDay??state.day+transitDays;
  const deadlineDay=order.deadlineDay??state.day+order.deadlineDays;
  const onTime=arrivalDay<=deadlineDay;
- const cashNeeded=order.status==='open'?purchaseCost+freight:order.status==='packed'?freight:0;
+ const deposit=procurementDeposit(state,order),balanceDue=Math.max(0,outstandingPayment(order)-deposit),termsAllowed=order.paymentTerms!=='deposit'||earlierPaidRepeats(state,order)>=DEPOSIT_REPEAT_TARGET;
+ const cashNeeded=order.status==='open'?purchaseCost+freight-deposit:order.status==='packed'?freight:0;
  const collectionDay=order.collectionDay??arrivalDay+order.payLag;
  const operatingReserve=Math.max(0,collectionDay-state.day)*(state.dailyOperatingCost||0);
  // Parallel procurement must not consume the other cargo's freight or common operating runway.
@@ -109,10 +118,10 @@ export function quoteOpening(state,orderId,route='sea'){
  const sharedOperatingReserve=Math.max(0,collectionDay-state.day,...otherEstimates.map(x=>(x?.collectionDay??state.day)-state.day))*(state.dailyOperatingCost||0);
  const cashAfterPayment=state.cash-cashNeeded,cashAfterReserve=cashAfterPayment-otherFreightReserve-sharedOperatingReserve;
  const needsReserve=['open','packed'].includes(order.status);
- const settleOperatingCost=operatingReserve,settleCashAfter=state.cash+order.revenue-settleOperatingCost;
+ const settleOperatingCost=operatingReserve,settleCashAfter=state.cash+outstandingPayment(order)-settleOperatingCost;
  const canSettle=!!order.legacySettlement&&order.status==='shipping'&&order.payLag>0&&state.cash-Math.max(0,arrivalDay-state.day)*(state.dailyOperatingCost||0)<0&&settleCashAfter>=0;
- const funded=otherEstimates.every(Boolean)&&cashAfterPayment>=0&&(!needsReserve||cashAfterReserve>=0||(!!order.legacySettlement&&cashAfterReserve+order.revenue>=0));
- return {valid:order.status!=='declined'&&onTime&&funded,reason:order.status==='declined'?'本轮已经选定两位客户，这笔不再签约。':!onTime?'这条路线赶不上交期。':!funded?'现金不足以支付货款、运费并撑到收款日。':'',orderId,route:shipping.id,purchaseCost,basePurchaseCost,discountSavings:basePurchaseCost-purchaseCost,freight,revenue:order.revenue,profit:order.revenue-purchaseCost-freight,transitDays,arrivalDay,collectionDay,deadlineDay,onTime,cashNeeded,cashAfterPayment,operatingReserve,otherFreightReserve,sharedOperatingReserve,cashAfterReserve,canSettle,settleOperatingCost,settleCashAfter,payLag:order.payLag};
+ const funded=otherEstimates.every(Boolean)&&cashAfterPayment>=0&&(!needsReserve||cashAfterReserve>=0||(!!order.legacySettlement&&cashAfterReserve+outstandingPayment(order)>=0));
+ return {valid:order.status!=='declined'&&termsAllowed&&onTime&&funded,reason:!termsAllowed?'这位客户尚未完成两笔复购，不能收取定金。':order.status==='declined'?'本轮已经选定两位客户，这笔不再签约。':!onTime?'这条路线赶不上交期。':!funded?'现金不足以支付货款、运费并撑到收款日。':'',orderId,route:shipping.id,purchaseCost,basePurchaseCost,discountSavings:basePurchaseCost-purchaseCost,freight,revenue:order.revenue,deposit,balanceDue,profit:order.revenue-purchaseCost-freight,transitDays,arrivalDay,collectionDay,deadlineDay,onTime,cashNeeded,cashAfterPayment,operatingReserve,otherFreightReserve,sharedOperatingReserve,cashAfterReserve,canSettle,settleOperatingCost,settleCashAfter,payLag:order.payLag};
 }
 function reject(state,message){return {state,feedback:{ok:false,message}};}
 /** Actions: PURCHASE {orderId}, SHIP {orderId,route}, DELIVER {orderId}, COLLECT {orderId},
@@ -130,7 +139,7 @@ export function reduceOpening(state,action){
  }
  if(action?.type==='SET_PAYMENT'){
   const o=find(state,action.orderId),choice=action.paymentTerms??action.payment;if(!state.businessRound||o?.businessRound!==state.businessRound||o.status!=='open')return reject(state,'采购后合同已锁定，不能再改付款方式。');
-  const terms=paymentOptions(state,o.id).find(x=>x.id===choice);if(!terms)return reject(state,'请选择即收或账期。');const next=structuredClone(state);Object.assign(find(next,o.id),{paymentTerms:terms.id,revenue:terms.revenue,payLag:terms.payLag});return {state:next,feedback:{ok:true,message:terms.id==='cash'?`让价${terms.discount}元，交付即收款。`:`按原价成交，交付后${terms.payLag}天回款。`,action:action.type,cashDelta:0,daysAdvanced:0,operatingCost:0}};
+  const terms=paymentOptions(state,o.id).find(x=>x.id===choice);if(!terms)return reject(state,'请选择收款方式。');if(terms.disabled)return reject(state,terms.reason);const next=structuredClone(state);Object.assign(find(next,o.id),{paymentTerms:terms.id,revenue:terms.revenue,payLag:terms.payLag});return {state:next,feedback:{ok:true,message:terms.id==='deposit'?`签约先收${terms.deposit}元定金，尾款${terms.revenue-terms.deposit}元按账期收。`:terms.id==='cash'?`让价${terms.discount}元，交付即收款。`:`按原价成交，交付后${terms.payLag}天回款。`,action:action.type,cashDelta:0,daysAdvanced:0,operatingCost:0}};
  }
  if(action?.type==='EXPAND_BERTH'){
   const option=berthUpgrade(state);if(!option.available)return reject(state,option.reason);const next=structuredClone(state);next.cash-=option.cost;next.berthCount=2;next.berthInvestmentCost=option.cost;
@@ -160,9 +169,9 @@ export function reduceOpening(state,action){
   const affordable=ROUTES.some(r=>quoteOpening(state,order.id,r.id).valid);
   if(!affordable)return reject(state,'要留够采购、运费及收齐前的运营费；先收回其他订单的款。');
   Object.assign(order,costFor(state,order));order.unitCost=state.prices[order.product];order.deadlineDay=state.day+order.deadlineDays;
-  next.cash-=order.purchaseCost;order.status='packed';order.berthIndex=Array.from({length:cargoCapacity(state)},(_,i)=>i).find(i=>!state.orders.some(o=>['packed','shipping'].includes(o.status)&&(o.berthIndex??0)===i));next.stageSigned=currentOpeningOrders(next).filter(signed).length;
+  const deposit=procurementDeposit(state,original);if(order.paymentTerms==='deposit')order.depositReceived=deposit;next.cash+=deposit-order.purchaseCost;order.status='packed';order.berthIndex=Array.from({length:cargoCapacity(state)},(_,i)=>i).find(i=>!state.orders.some(o=>['packed','shipping'].includes(o.status)&&(o.berthIndex??0)===i));next.stageSigned=currentOpeningOrders(next).filter(signed).length;
   if(next.stage===3&&!next.businessRound&&next.stageSigned===2)for(const other of next.orders.filter(o=>o.stage===3&&o.status==='open'))other.status='declined';
-  message=`${order.quantity}箱货已配好，采购支出${order.purchaseCost}元。`;
+  message=`${order.quantity}箱货已配好，采购支出${order.purchaseCost}元。${deposit?' 同时收到定金'+deposit+'元。':''}`;
  }else if(action.type==='SHIP'){
   if(order.status!=='packed')return reject(state,'先采购配货，再选运输。');
   const q=quoteOpening(state,order.id,action.route);if(!q.valid)return reject(state,q.reason);
@@ -173,19 +182,19 @@ export function reduceOpening(state,action){
   next.day=Math.max(state.day,order.arrivalDay);order.status='receivable';order.deliveredDay=next.day;
   next.round++;next.prices={...priceAt(next.round)};next.nextPrices={...priceAt(next.round+1)};
   next.priceHistory.push({day:next.day,prices:{...next.prices}});
-  message=`客户已收货，${order.revenue}元将在第${order.collectionDay}天到账。`;
-  if(order.payLag===0||action.type==='SETTLE'){if(action.type==='SETTLE')next.day=Math.max(next.day,order.collectionDay);next.cash+=order.revenue;order.status='paid';next.completed++;message=`交付收款${order.revenue}元，这单毛利${order.revenue-order.purchaseCost-order.freight}元。`;}
+  message=`客户已收货，${outstandingPayment(order)}元将在第${order.collectionDay}天到账。`;
+  if(order.payLag===0||action.type==='SETTLE'){if(action.type==='SETTLE')next.day=Math.max(next.day,order.collectionDay);const payment=outstandingPayment(order);next.cash+=payment;order.status='paid';next.completed++;message=`交付收款${payment}元，这单毛利${order.revenue-order.purchaseCost-order.freight}元。`;}
  }else{
   if(order.status!=='receivable')return reject(state,'没有这笔待收款。');
   const targetDay=Math.max(state.day,order.collectionDay);
   if(state.orders.some(o=>o.status==='shipping'&&o.arrivalDay<targetDay))return reject(state,'先交付正在路上的货，再推进到这笔回款日。');
   if(targetDay>state.day&&state.orders.some(o=>o.status==='packed'))return reject(state,'先把码头已配好的货发运交付，再等待这笔回款。');
-  next.day=Math.max(state.day,order.collectionDay);next.cash+=order.revenue;order.status='paid';next.completed++;message=`推进到第${next.day}天，收到${order.revenue}元。`;
+  next.day=Math.max(state.day,order.collectionDay);const payment=outstandingPayment(order);next.cash+=payment;order.status='paid';next.completed++;message=`推进到第${next.day}天，收到${payment}元。`;
  }
  // Reaching a promised payment date settles all receivables already due.
  // One advance, one operating bill; no extra collection clicks for the same day.
  const due=next.orders.filter(o=>o.status==='receivable'&&o.collectionDay<=next.day);
- if(due.length){const total=due.reduce((n,o)=>n+o.revenue,0);for(const o of due){o.status='paid';next.completed++;}next.cash+=total;message+=` 同时收到${due.length}笔到期货款${total}元。`;}
+ if(due.length){const total=due.reduce((n,o)=>n+outstandingPayment(o),0);for(const o of due){o.status='paid';next.completed++;}next.cash+=total;message+=` 同时收到${due.length}笔到期货款${total}元。`;}
  const operatingCost=Math.max(0,next.day-state.day)*(state.dailyOperatingCost||0);
  if(!Number.isSafeInteger(next.cash)||next.cash<operatingCost)return reject(state,'现金不足以覆盖本次运营费；可选择交付并等到收款，一次结清应收与运营费。');
  next.cash-=operatingCost;next.operatingCostPaid=(state.operatingCostPaid||0)+operatingCost;
@@ -193,6 +202,8 @@ export function reduceOpening(state,action){
  next.stageCompleted=currentOpeningOrders(next).filter(o=>o.status==='paid').length;
  next.portUnlocked=next.stageCompleted===(next.stageTarget??3);next.ending=next.stage>=2&&next.portUnlocked;
  if(next.portUnlocked)message+=next.businessRound?' 这批回头单款已收齐，老客户还会再来。':next.stage===3?' 两位客户的款全部收齐，第三程完成！':next.ending?' 新港三单全部收齐，第二程完成！':' 三单全部收齐，选一次经营投资，出发去新港！';
+ const newlyTrusted=businessCustomers(next).filter(c=>c.repeatPaid===DEPOSIT_REPEAT_TARGET&&(businessCustomers(state).find(old=>old.id===c.id)?.repeatPaid||0)<DEPOSIT_REPEAT_TARGET);
+ if(newlyTrusted.length)message+=' '+newlyTrusted.map(c=>c.name+'愿意先付定金了。').join('');
  const feedback={ok:true,message,action:action.type,orderId:order.id,cashDelta:next.cash-state.cash,daysAdvanced:next.day-state.day,operatingCost,portUnlocked:next.portUnlocked};
  next.history.push({...feedback,day:next.day});return {state:next,feedback};
 }

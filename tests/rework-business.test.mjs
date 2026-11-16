@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createOpeningGame,reduceOpening,normalizeOpeningSave,quoteOpening,currentOpeningOrders,businessCustomers,paymentOptions,cargoCapacity,berthUpgrade} from '../src/rework-opening.js';
+import {createOpeningGame,reduceOpening,normalizeOpeningSave,quoteOpening,currentOpeningOrders,businessCustomers,paymentOptions,cargoCapacity,berthUpgrade,outstandingPayment} from '../src/rework-opening.js';
 function move(s,type,orderId,route,extra={}){const r=reduceOpening(s,{type,orderId,route,...extra});assert.equal(r.feedback.ok,true,r.feedback.message);return r.state;}
 function sale(s,id,route='sea'){for(const t of ['PURCHASE','SHIP','DELIVER'])s=move(s,t,id,route);return s;}
 function completed(){let s=createOpeningGame();s=sale(s,'quick');s=sale(s,'urgent','express');s=sale(s,'large');s=move(s,'COLLECT','large');s=move(s,'INVEST',null,null,{choice:'express'});s=sale(s,'port-quick','express');s=sale(s,'port-large','express');s=sale(s,'port-urgent','express');s=move(s,'COLLECT','port-large');s=move(s,'NEXT_STAGE');s=sale(s,'choice-bulk','express');s=sale(s,'choice-regular','sea');s=move(s,'COLLECT','choice-bulk');return s;}
@@ -35,4 +35,36 @@ test('another packed cargo freight and shared runway remain reserved during para
 test('business save validation rejects unrecognized customers, altered contract terms and unfinished past rounds',()=>{
  const s=business();for(const mutate of [x=>currentOpeningOrders(x)[0].customerId='unknown',x=>currentOpeningOrders(x)[0].baseRevenue++,x=>currentOpeningOrders(x)[0].revenue++,x=>currentOpeningOrders(x)[0].paymentTerms='free',x=>x.orders.push({...currentOpeningOrders(x)[0],id:'made-up'}),x=>x.businessRound=99,x=>currentOpeningOrders(x)[0].purchaseCost=0]){const bad=structuredClone(s);mutate(bad);assert.equal(normalizeOpeningSave(bad),null);}
  const next=move(finishRound(s),'NEXT_BUSINESS_ROUND');const bad=structuredClone(next);bad.orders.find(o=>o.businessRound===1).status='receivable';assert.equal(normalizeOpeningSave(bad),null);
+});
+
+function trusted(){let s=finishRound(business());s=move(s,'NEXT_BUSINESS_ROUND');s=finishRound(s);return move(s,'NEXT_BUSINESS_ROUND');}
+test('deposit unlock uses two earlier paid repeats and cannot be applied retroactively',()=>{
+ let s=business();let o=currentOpeningOrders(s)[0];assert.equal(paymentOptions(s,o.id).find(x=>x.id==='deposit').disabled,true);assert.equal(reduceOpening(s,{type:'SET_PAYMENT',orderId:o.id,paymentTerms:'deposit'}).feedback.ok,false);
+ s=finishRound(s);s=move(s,'NEXT_BUSINESS_ROUND');const roundTwo=currentOpeningOrders(s)[0].id;s=finishRound(s);assert.equal(businessCustomers(s)[0].depositUnlocked,true);assert.equal(businessCustomers(s)[0].repeatTarget,2);
+ s=move(s,'NEXT_BUSINESS_ROUND');o=currentOpeningOrders(s)[0];assert.equal(paymentOptions(s,o.id).find(x=>x.id==='deposit').disabled,false);assert.equal(paymentOptions(s,roundTwo).find(x=>x.id==='deposit').disabled,true);
+ const bad=structuredClone(s),past=bad.orders.find(x=>x.id===roundTwo);past.paymentTerms='deposit';past.depositReceived=Math.floor(past.baseRevenue*.3);assert.equal(normalizeOpeningSave(bad),null);
+});
+test('procurement deposit unlocks working capital, pays once, and later collects only the balance',()=>{
+ let s=trusted(),o=currentOpeningOrders(s)[0];const credit=quoteOpening(s,o.id,'express');s.cash=credit.cashNeeded+credit.sharedOperatingReserve-1;assert.equal(quoteOpening(s,o.id,'express').valid,false);
+ s=move(s,'SET_PAYMENT',o.id,null,{paymentTerms:'deposit'});let q=quoteOpening(s,o.id,'express');assert.equal(q.valid,true);assert.equal(q.deposit,Math.floor(o.baseRevenue*.3));assert.equal(q.balanceDue,o.revenue-q.deposit);const cash=s.cash,day=s.day,fullRevenue=o.revenue,cost=q.purchaseCost,deposit=q.deposit;
+ s=move(s,'PURCHASE',o.id);o=s.orders.find(x=>x.id===o.id);assert.equal(s.cash,cash+deposit-cost);assert.equal(o.depositReceived,deposit);assert.equal(outstandingPayment(o),fullRevenue-deposit);assert.ok(normalizeOpeningSave(s));assert.equal(quoteOpening(s,o.id,'express').deposit,0);
+ assert.equal(reduceOpening(s,{type:'PURCHASE',orderId:o.id}).state,s);assert.equal(reduceOpening(s,{type:'SET_PAYMENT',orderId:o.id,paymentTerms:'cash'}).feedback.ok,false);
+ s=move(s,'SHIP',o.id,'express');s=move(s,'DELIVER',o.id);s=move(s,'COLLECT',o.id);assert.equal(s.cash,cash+fullRevenue-cost-180-(s.day-day)*50);assert.equal(outstandingPayment(s.orders.find(x=>x.id===o.id)),0);assert.ok(normalizeOpeningSave(s));assert.equal(reduceOpening(s,{type:'COLLECT',orderId:o.id}).feedback.ok,false);
+});
+test('automatic due receipts pay deposit balances rather than full invoices',()=>{
+ let s=trusted();s.cash=20000;s=move(s,'EXPAND_BERTH');const [a,b]=currentOpeningOrders(s);for(const o of [a,b])s=move(s,'SET_PAYMENT',o.id,null,{paymentTerms:'deposit'});
+ // Bulk express + 6-day credit and regular sea + 3-day credit both pay on day +7.
+ s=move(s,'PURCHASE',a.id);const parallel=quoteOpening(s,b.id,'sea');assert.ok(parallel.otherFreightReserve>0);assert.equal(parallel.cashAfterReserve,s.cash-parallel.cashNeeded-parallel.otherFreightReserve-parallel.sharedOperatingReserve);s=move(s,'SHIP',a.id,'express');s=move(s,'PURCHASE',b.id);s=move(s,'SHIP',b.id,'sea');s=move(s,'DELIVER',a.id);s=move(s,'DELIVER',b.id);
+ const pending=currentOpeningOrders(s);assert.equal(pending[0].collectionDay,pending[1].collectionDay);const total=pending.reduce((n,o)=>n+outstandingPayment(o),0),cash=s.cash,days=pending[0].collectionDay-s.day;
+ s=move(s,'COLLECT',a.id);assert.equal(s.cash,cash+total-days*50);assert.ok(currentOpeningOrders(s).every(o=>o.status==='paid'));assert.ok(normalizeOpeningSave(s));
+});
+test('deposit save schema rejects early money, wrong amounts and grafted deposits on old contracts',()=>{
+ let open=trusted(),o=currentOpeningOrders(open)[0];open=move(open,'SET_PAYMENT',o.id,null,{paymentTerms:'deposit'});assert.ok(normalizeOpeningSave(open));const early=structuredClone(open);currentOpeningOrders(early)[0].depositReceived=1320;assert.equal(normalizeOpeningSave(early),null);
+ const packed=move(open,'PURCHASE',o.id);for(const amount of [undefined,0,1,1321]){const bad=structuredClone(packed);bad.orders.find(x=>x.id===o.id).depositReceived=amount;assert.equal(normalizeOpeningSave(bad),null);}
+ const bad=structuredClone(packed);bad.orders.find(x=>x.id==='quick').depositReceived=0;assert.equal(normalizeOpeningSave(bad),null);
+ const old=business();assert.ok(old.orders.every(x=>x.depositReceived==null));assert.ok(normalizeOpeningSave(old));
+});
+test('first second-repeat payment announces trust once, including automatic simultaneous payment',()=>{
+ let s=finishRound(business());s=move(s,'NEXT_BUSINESS_ROUND');s.cash=20000;s=move(s,'EXPAND_BERTH');const [a,b]=currentOpeningOrders(s);for(const [o,route] of [[a,'express'],[b,'sea']]){s=move(s,'PURCHASE',o.id);s=move(s,'SHIP',o.id,route);}s=move(s,'DELIVER',a.id);s=move(s,'DELIVER',b.id);
+ const result=reduceOpening(s,{type:'COLLECT',orderId:a.id});assert.equal(result.feedback.ok,true);assert.equal((result.feedback.message.match(/愿意先付定金了/g)||[]).length,2);s=move(result.state,'NEXT_BUSINESS_ROUND');const c=currentOpeningOrders(s)[0];s=sale(s,c.id,'express');const later=reduceOpening(s,{type:'COLLECT',orderId:c.id});assert.equal(later.feedback.ok,true);assert.doesNotMatch(later.feedback.message,/愿意先付定金了/);
 });
