@@ -6,15 +6,19 @@
   "description": "再开一单就下班：报价、履约、资金周转与市场扩张",
   "scripts": {
     "start": "node scripts/serve.mjs",
-    "build": "node scripts/build-standalone.mjs && node scripts/build-data.mjs",
+    "build": "npm run build:modern",
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check src/trade-app.js && node --check src/trade-economy.js && node --check scripts/build-data.mjs && node --check src/visuals.js && node --check scripts/art-files.mjs && node --check scripts/build-standalone.mjs && node --check src/icons.js && node --check src/weekend-scenes.js && node --check src/album.js && node --check src/career-branches.js && node --check src/work-branches.js && node --check src/memory-titles.js && node --check src/calendar.js && node --check src/people-expansion.js && node --check src/engine.js && node --check src/app.js && node --check src/story.js && node --check src/relationships.js && node --check src/sound.js && node --check src/negotiation.js && node --check src/delivery-stories.js && node --check src/epilogue.js && node --check src/dialogue.js && node --check scripts/serve.mjs && npm test",
+    "check": "npm run check:modern && node --check src/trade-app.js && node --check src/trade-economy.js && node --check scripts/build-data.mjs && node --check src/visuals.js && node --check scripts/art-files.mjs && node --check scripts/build-standalone.mjs && node --check src/icons.js && node --check src/weekend-scenes.js && node --check src/album.js && node --check src/career-branches.js && node --check src/work-branches.js && node --check src/memory-titles.js && node --check src/calendar.js && node --check src/people-expansion.js && node --check src/engine.js && node --check src/app.js && node --check src/story.js && node --check src/relationships.js && node --check src/sound.js && node --check src/negotiation.js && node --check src/delivery-stories.js && node --check src/epilogue.js && node --check src/dialogue.js && node --check scripts/serve.mjs && npm test",
     "dev": "node scripts/serve.mjs",
     "check:release-art": "node scripts/check-release-assets.mjs",
-    "build:data": "node scripts/build-standalone.mjs && node scripts/build-data.mjs",
-    "build:classic": "node scripts/build-standalone.mjs",
-    "pretest": "npm run build",
-    "build:modern": "node scripts/build-deal-standalone.mjs"
+    "build:data": "npm run build:legacy:data",
+    "build:classic": "npm run build:legacy:classic",
+    "pretest": "npm run build && npm run build:legacy",
+    "build:modern": "node scripts/build-deal-standalone.mjs",
+    "build:legacy": "node scripts/build-standalone.mjs && node scripts/build-data.mjs",
+    "build:legacy:data": "node scripts/build-standalone.mjs && node scripts/build-data.mjs",
+    "build:legacy:classic": "node scripts/build-standalone.mjs",
+    "check:modern": "node --check src/deal-room-engine.js && node --check src/deal-room-app.js && node --check scripts/build-deal-standalone.mjs"
   },
   "engines": {
     "node": ">=20"

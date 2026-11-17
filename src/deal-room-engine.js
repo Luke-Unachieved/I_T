@@ -1,3 +1,4 @@
+import {canonicalLifeAction,applyLifeAction,LIFE_ACTION_KEYS} from './deal-room-life.js';
 import {stockProcurementOpportunity,previewStockProcurement,previewStudioProjectFromStock} from './deal-room-stock-procurement.js';
 import {revisionOpportunity,previewRevisionOrder} from './deal-room-collection-revision.js';
 import {roundReceivablesActive,roundReceivableSummary,previewRoundSigning,advanceRoundTime} from './deal-room-round-receivables.js';
@@ -227,6 +228,7 @@ export function previewSupplyPlan(state,{clientId,firstBatch,payment}={}){
 }
 
 function apply(state,action){
+  if(Object.hasOwn(LIFE_ACTION_KEYS,action.type))return applyLifeAction(state,action);
   if(action.type==='ENABLE_ROUND_RECEIVABLES'){
     if(roundReceivablesActive(state)||state.phase!=='portfolio'||!state.businessRound||state.businessTarget!==2||state.businessSigned!==0||state.clientProjectActive||state.contracts.some(c=>['fulfilling','receivable'].includes(c.status))||state.history.length>MAX_DEAL_ACTIONS-16||!businessOpportunities(state).some(o=>o.available))return state;
     const s=copy(state);s.roundReceivables={active:true,round:s.businessRound,startDay:s.day};s.feedback={kind:'round-receivables',message:'这轮两单可以交货后继续接单；尾款仍按账期到账。收齐后再回工作室。'};return s;
@@ -570,6 +572,7 @@ function apply(state,action){
 }
 const actionKeys={OPEN_STOCK_PROCUREMENT:['type'],CLOSE_STOCK_PROCUREMENT:['type'],SIGN_STOCK_PROCUREMENT:['type','factoryMode'],FULFIL_STOCK_PROCUREMENT:['type'],SIGN_STUDIO_PROJECT_FROM_STOCK:['type'],SET_ACCOUNT_EXPANSION_BASIS:['type','basisId'],START_ACCOUNT_FROM_REVISION:['type'],SET_ACCOUNT_VERSION:['type','versionId'],OPEN_COLLECTION_REVISION:['type'],CLOSE_COLLECTION_REVISION:['type'],COMMISSION_COLLECTION_REVISION:['type'],RECEIVE_COLLECTION_REVISION:['type'],SIGN_COLLECTION_REVISION:['type','buyerId','scope'],FULFIL_COLLECTION_REVISION:['type'],START_CASE_DEVELOPMENT:['type'],OPEN_STUDIO_READING_PAIR:['type'],CLOSE_SETTLED_ROUND:['type'],CANCEL_ROUND_RECEIVABLES:['type'],ENABLE_ROUND_RECEIVABLES:['type'],DELIVER_ROUND_ORDER:['type'],WAIT_ROUND_RECEIPT:['type'],FINISH_ROUND_RECEIVABLES:['type'],SIGN_FIRST_CATALOGUE_ORDER:['type','referrerId','lampVersion'],START_OPENING_CURATION:['type','clientId'],SIGN_STUDIO_ALLOCATION:['type','allocation'],WAIT_STUDIO_ALLOCATION:['type','allocation'],START_ACCOUNT_FROM_COLLECTION:['type'],PAUSE_CLIENT_PROJECTS:['type'],RESUME_CLIENT_PROJECTS:['type'],OPEN_LAUNCH_PROJECT:['type'],CLOSE_LAUNCH_PROJECT:['type'],SET_LAUNCH:['type','field','value'],REVIEW_LAUNCH:['type'],REVISE_LAUNCH:['type'],HAND_OVER_LAUNCH:['type'],PROPOSE_GROUP_CHANGE:['type'],RESTORE_GROUP_SPEC:['type','briefId'],KEEP_STUDIO_PROJECT:['type'],REVISE_STUDIO_PROJECT:['type'],OPEN_STUDIO_PROJECT:['type','direction'],CLOSE_STUDIO_PROJECT:['type'],SET_STUDIO_PROJECT:['type','field','value'],REVIEW_STUDIO_PROJECT:['type'],SIGN_STUDIO_PROJECT_ORDER:['type'],WAIT_STUDIO_PROJECT:['type'],SIGN_CATALOGUE_ORDER:['type','lampVersion'],APPROVE_CASE_LAMP:['type','model'],SIGN_APPROVED_CASE_LAMP:['type','terms'],OPEN_ACCOUNT_EXPANSION:['type'],SIGN_ACCOUNT_EXPANSION:['type'],FULFIL_ACCOUNT_EXPANSION:['type'],WAIT_CASE_CALLOFF:['type','products'],SIGN_CASE_CALLOFF:['type','agreement','products','packaging','terms'],WAIT_CASE_GROWTH:['type','products'],OPEN_CASE_GROWTH:['type','referrerId'],CLOSE_CASE_GROWTH:['type'],SIGN_CASE_GROWTH:['type','agreement','products','packaging','terms'],FULFIL_CASE_GROWTH:['type'],SIGN_CURATION_SAMPLE:['type','products','quantity','packaging','lampVersion'],VIEW_DEVELOPMENT:['type'],CLOSE_SAMPLE:['type'],START_DEVELOPMENT:['type'],CLOSE_DEVELOPMENT:['type'],COMMISSION_SAMPLE:['type','factory'],RECEIVE_SAMPLE:['type'],ACCEPT_SAMPLE:['type'],WAIT_FOR_BUYER:['type','clientId'],START_RETAIL_PLANNING:['type'],BACK_FROM_CLIENTS:['type'],WAIT_FOR_RETAIL:['type'],OPEN_COLLECTION_PITCH:['type','buyerId'],BACK_COLLECTION_PITCH:['type'],SIGN_COLLECTION_PITCH:['type','optionId'],START_COLLECTION:['type'],BACK_FROM_COLLECTION:['type'],SIGN_COLLECTION:['type','model','style'],SIGN_COLLECTION_ORDER:['type','buyerId'],FULFIL_COLLECTION:['type'],CLOSE_COLLECTION:['type'],OPEN_COLLECTION:['type'],START_ACCOUNT:['type','referrerId'],BACK_FROM_ACCOUNT:['type'],SIGN_ACCOUNT:['type','optionId'],FULFIL_ACCOUNT:['type'],CLOSE_ACCOUNT:['type'],BACK_FROM_CURATION:['type'],START_CURATION:['type','clientId'],SIGN_CURATION:['type','products','quantity','packaging'],FULFIL_CURATION:['type'],START_CLIENT_PROJECTS:['type'],PROPOSE:['type','optionId'],ADVANCE:['type'],NEXT_CLIENT:['type'],CONTINUE_BUSINESS:['type'],SELECT_CLIENT:['type','clientId'],BACK_TO_CLIENTS:['type'],START_SUPPLY_PLAN:['type','clientId','firstBatch','payment'],ADVANCE_SUPPLY_PLAN:['type'],FULFIL_SUPPLY_PLAN:['type']};
 function canonicalAction(a){
+  if(a&&Object.hasOwn(LIFE_ACTION_KEYS,a.type))return canonicalLifeAction(a);
   if(!a||typeof a!=='object'||Array.isArray(a)||!actionKeys[a.type])return null;
   if(a.type==='SET_LAUNCH'&&!({arrangement:['set','individual'],lead:['mira','samir','ines']}[a.field]?.includes(a.value)))return null;
   if(a.type==='RESTORE_GROUP_SPEC'&&!['bedside','welcome'].includes(a.briefId))return null;
@@ -619,6 +622,12 @@ export function normalizeDealRoom(raw){
   let state=createDealRoom();
   for(const a of raw.history){const next=reduceDealRoom(state,a);if(next===state)throw new Error('谈单记录无效');state=next;}
   function stable(v){if(Array.isArray(v))return v.map(stable);if(v&&typeof v==='object')return Object.fromEntries(Object.keys(v).sort().map(k=>[k,stable(v[k])]));return v;}
-  if(JSON.stringify(stable(raw))!==JSON.stringify(stable(state)))throw new Error('谈单账目不一致');
+  // v18 briefly changed only the saved purchase feedback sentence. Accept that
+  // exact released wording, but still compare every financial/journal field.
+  let comparable=raw;
+  if(state.feedback?.kind==='personal-life'&&raw.feedback?.kind==='personal-life'&&
+    raw.feedback.message===state.feedback.message.replace('这是个人消费，不会提高订单收益。','给自己的下班时间添了一件喜欢的东西。'))
+    comparable={...raw,feedback:{...raw.feedback,message:state.feedback.message}};
+  if(JSON.stringify(stable(comparable))!==JSON.stringify(stable(state)))throw new Error('谈单账目不一致');
   return state;
 }
