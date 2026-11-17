@@ -30,3 +30,39 @@
 /* Keep the narrow price tape compact: its generic small rule must not revive this note. */
 @media(max-width:1050px){.market-tape .price-rule{display:none}}
 @media(max-width:760px){.goal-track{top:96px}.harbor-art,.harbor>img{top:122px}}
+
+/* Optional save tools stay out of the trading loop. */
+.save-tools{padding:16px 24px;border-top:1px solid var(--line);background:#f1ecd9;color:#45646a;font-size:12px;line-height:1.7}.save-tools summary{cursor:pointer;font-weight:650}.save-tools p{margin:8px 0}.save-tools button{padding:9px 12px;margin:0 12px 8px 0;border:1px solid #a5b4a4;border-radius:6px;background:#fffdf4}.save-tools label{display:inline-block;max-width:100%}.save-tools input{display:block;max-width:100%;margin-top:5px}.save-tools :focus-visible{outline:3px solid #a96535;outline-offset:3px}
+
+/* Real customer identities, paired with the numbered destination plaques. */
+.scene-partner-legend{position:absolute;right:12px;top:210px;display:grid;gap:5px;max-width:190px;pointer-events:none}.scene-partner-legend>div{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:6px;background:#f6eddaed;color:#355857}.scene-partner-legend b{display:block;font-size:11px}.scene-partner-legend small{display:block;font-size:10px;margin-top:2px}.partner-number{font-weight:700;color:#6d694e}.scene-partner-legend .trusted{background:#f5dfa7ed}@media(max-width:760px){.scene-partner-legend{top:auto;bottom:7px;left:10px;right:10px;max-width:none;grid-template-columns:1fr 1fr}.scene-partner-legend>div{padding:4px 6px}.scene-partner-legend b{font-size:10px}.scene-partner-legend small{font-size:9px}}
+
+.demand-preview{margin:10px 0;border:1px solid #d4dbc6;border-radius:8px;background:#f5f1df;padding:11px 12px;font-size:11px}.demand-preview summary{cursor:pointer;color:#466d61;font-weight:700}.demand-preview>div{padding-top:10px;line-height:1.6}.demand-preview b,.demand-preview span,.demand-preview small{display:block}.demand-preview small{color:#637c7c}.demand-kind{display:inline-block;color:#55765f;background:#e8edda;border-radius:4px;padding:3px 7px;font-size:10px;margin:4px 0}
+
+.review-ledger{font-size:11px;color:#6d7d6b;border-bottom:1px solid var(--line);padding:10px 0}.review-ledger summary{cursor:pointer}.review-ledger>div{display:flex;justify-content:space-between;gap:12px;margin-top:9px}.review-ledger b{white-space:nowrap;color:#426b59}.review-ledger small{display:block;line-height:1.6;margin-top:10px}
+
+/* Harbor art pass: readable scene-led workspace, quieter supporting records. */
+.customer-summary{margin:0 0 12px;border-bottom:1px solid var(--line);padding:8px 0;font-size:11px;color:#5c7567}.customer-summary summary{cursor:pointer}.customer-summary .customer-ledger{margin-top:12px}
+.harbor{background:linear-gradient(#bdd8d2 0%,#7eb1b3 48%,#386e81 100%)}
+.harbor-art .berthed-vessel{filter:drop-shadow(2px 7px 3px #20475930)}
+.harbor-art .in-transit{animation:sailing-bob 4s ease-in-out infinite alternate}
+@keyframes sailing-bob{from{translate:120px -75px}to{translate:123px -78px}}
+@media(min-width:761px){.scene-title{top:24px;left:26px}.scene-title>span{letter-spacing:1.5px}.scene-title h1{font-size:25px}.harbor-art{top:135px}.workbench{padding:22px}.business-board .customer-ledger{font-size:11px}.scene-caption{color:#dce7d5}.harbor-sign{box-shadow:0 6px 14px #20444e25}.order-card{box-shadow:0 3px 0 #c7c8b833}.order-top .goods-icon{width:38px;height:38px}}
+@media(prefers-reduced-motion:reduce){.harbor-art .in-transit{animation:none}}
+
+/* Painted working harbor: real stateful vessels over authored scene art. */
+.harbor{background:#183e4b}.harbor-art{top:130px;filter:none}.harbor-art .vessel-cargo{opacity:1}.harbor-art .painted-sailing{animation:painted-swell 4s ease-in-out infinite alternate}.harbor-art .berthed-vessel{filter:drop-shadow(0 8px 5px #072e4050)}
+@keyframes painted-swell{to{translate:2px -3px}}
+.scene-title>span,.scene-title p{color:#c5d4c8}.scene-title h1{color:#f8e5be}.scene-title{left:26px;top:22px}.goal-track{top:98px!important;left:26px;right:auto}.scene-caption{color:#c8d7cc}.scene-partner-legend{top:auto!important;bottom:106px!important;right:18px!important;background:#163c48df;border:1px solid #9eaa8b55;border-radius:8px;padding:6px}.scene-partner-legend div{background:transparent!important;color:#f5e6c4!important}.scene-partner-legend small{color:#c0d0bf!important}.harbor-sign{transform:none!important;left:22px!important;top:auto!important;bottom:100px!important;background:#f1dfbaed;border:1px solid #a38f60;box-shadow:0 5px 15px #082d4033}.berth-controls{bottom:20px!important}.investment-result{background:#163c48e8!important;color:#f3e4bd!important;border-color:#80978b!important}.investment-result small{color:#b9ccc1!important}
+@media(min-width:761px){.harbor{min-height:650px;align-self:start}.workbench{border-left:1px solid #b9c1af;background:linear-gradient(120deg,#f8f2df,#eee5ce)}.inspector{box-shadow:0 8px 24px #6b614219}}
+@media(max-width:760px){.harbor{height:470px;max-height:none;min-height:0}.harbor-art{top:128px}.scene-title h1{font-size:22px}.scene-partner-legend{bottom:85px!important;max-width:43%}.harbor-sign{bottom:86px!important;font-size:11px}.berth-controls{bottom:12px!important}.cargo-pin{top:auto;bottom:25px}.receipt-pin{top:auto;bottom:25px;left:auto;right:12px}.investment-result{display:none}}
+@media(prefers-reduced-motion:reduce){.harbor-art .painted-sailing{animation:none}}
+.investment-result>span,.investment-result b{color:#f3e4bd}.investment-result{bottom:16px!important;right:18px;max-width:190px}.scene-caption{display:none}
+/* Real UI review: progress must clear the subtitle; cargo now lives on the deck. */
+.goal-track{top:112px!important}.harbor-art{top:150px}.cargo-stack{display:none}.cargo-pin{top:auto;bottom:25px}.receipt-pin{top:auto;bottom:25px;left:auto;right:18px}
+@media(max-width:760px){.harbor-art{top:150px}.goal-track{top:112px!important}.harbor{height:490px}}
+/* 388px real-window check: clear the old 250px heading cap before placing progress. */
+@media(max-width:760px){.scene-title{left:18px;right:18px;top:19px}.scene-title h1{font-size:20px;max-width:none;line-height:1.35;margin:7px 0}.scene-title p{line-height:1.5}.goal-track{top:105px!important;left:18px}.harbor-art{top:143px}.harbor{height:clamp(420px,calc(58.333vw + 210px),490px)}}
+
+.customer-receipt{display:grid;gap:7px;padding:13px 15px;margin:0 0 16px;border-left:3px solid #b99550;background:#edf0df;color:#597565;font-size:11px}.customer-receipt b{color:#346e5b;font-weight:600}
+@media(min-width:761px){.scene-partner-legend{bottom:148px!important}}

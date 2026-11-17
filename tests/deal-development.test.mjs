@@ -1,0 +1,22 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {createDealRoom,reduceDealRoom,normalizeDealRoom,quoteOptions,previewOffer} from '../src/deal-room-engine.js';
+import {developmentOffer,developmentView,SAMPLE_FACTORIES} from '../src/deal-room-development.js';
+const act=(s,type,extra={})=>reduceDealRoom(s,{type,...extra});
+const finish=(s,id)=>act(act(act(s,'PROPOSE',{optionId:id}),'ADVANCE'),'NEXT_CLIENT');
+function eligible(){let s=finish(finish(finish(createDealRoom(),'trial'),'ready'),'season');s=act(s,'CONTINUE_BUSINESS');for(let i=0;i<2;i++){s=act(s,'SELECT_CLIENT',{clientId:'mira'});s=finish(s,'repeat-small');}return act(act(s,'START_SUPPLY_PLAN',{clientId:'mira',firstBatch:'small',payment:'delivery'}),'FULFIL_SUPPLY_PLAN');}
+test('sample development is optional, charges once, and unlocks only after physical sample acceptance',()=>{for(const factory of Object.keys(SAMPLE_FACTORIES)){let s=eligible();const cash=s.cash,day=s.day,old=structuredClone(s.contracts);s=act(s,'START_DEVELOPMENT');s=act(s,'COMMISSION_SAMPLE',{factory});assert.equal(developmentOffer(s),null);assert.equal(act(s,'COMMISSION_SAMPLE',{factory}),s);s=act(s,'RECEIVE_SAMPLE');assert.equal(developmentOffer(s),null);s=act(s,'ACCEPT_SAMPLE');const f=SAMPLE_FACTORIES[factory];assert.equal(s.cash,cash-f.cost-f.days*30);assert.equal(s.day,day+f.days);assert.deepEqual(s.contracts,old);assert.deepEqual(normalizeDealRoom(s),s);const cashBeforeView=s.cash;s=act(s,'VIEW_DEVELOPMENT');assert.equal(s.productDevelopment.status,'active');s=act(s,'CLOSE_SAMPLE');assert.equal(s.cash,cashBeforeView);assert.deepEqual(normalizeDealRoom(s),s);s=act(s,'CONTINUE_BUSINESS');s=act(s,'SELECT_CLIENT',{clientId:'mira'});const q=previewOffer(s,'developed-lamp');assert.equal(q.quantity,f.quantity);assert.equal(q.valid,true);assert.equal(quoteOptions(s).length,3);s=finish(s,'developed-lamp');assert.equal(s.contracts.at(-1).specification,'developed-'+factory);assert.equal(s.contracts.at(-1).product,f.title);assert.deepEqual(normalizeDealRoom(s),s);}});
+test('uncommissioned draft can leave without cost; prototype controls reflect real available feature',()=>{const initial=eligible(),draft=act(initial,'START_DEVELOPMENT'),back=act(draft,'CLOSE_DEVELOPMENT');assert.equal(back.cash,initial.cash);assert.equal(back.day,initial.day);assert.equal(back.productDevelopment,undefined);assert.match(developmentView({productDevelopment:{status:'received',factory:'studio'}}),/data-light/);assert.doesNotMatch(developmentView({productDevelopment:{status:'received',factory:'line'}}),/data-light/);});
+
+test('active sample shows only its actual paid factory-version delivery and keeps trial controls',()=>{
+ const paid={status:'paid',optionId:'developed-lamp',specification:'developed-studio',clientName:'Mira · Forma 家居',quantity:60,deliveryDay:101};
+ const s={productDevelopment:{status:'active',factory:'studio'},contracts:[paid]},before=structuredClone(s),html=developmentView(s);
+ assert.match(html,/Mira · Forma 家居 · 60 盏/);assert.match(html,/第 101 天交付 · 货款已收齐/);assert.equal((html.match(/data-light=/g)||[]).length,3);assert.match(html,/data-action="CLOSE_SAMPLE"/);assert.deepEqual(s,before);
+ for(const contract of [{...paid,status:'fulfilling'},{...paid,status:'receivable'},{...paid,specification:'developed-line'},{...paid,optionId:'repeat-small'}])assert.doesNotMatch(developmentView({...s,contracts:[contract]}),/sample-adoption/);
+ assert.doesNotMatch(developmentView({...s,contracts:[]}),/sample-adoption/);assert.doesNotMatch(developmentView({...s,productDevelopment:{status:'received',factory:'studio'}}),/sample-adoption/);
+ const line=developmentView({productDevelopment:{status:'active',factory:'line'},contracts:[{...paid,specification:'developed-line',quantity:180}]});assert.match(line,/180 盏/);assert.doesNotMatch(line,/data-light=/);
+ assert.match(developmentView({...s,contracts:[{...paid,clientName:'<img>'}]}),/&lt;img&gt;/);
+});
+test('natural developed order becomes a sample receipt after payment without state migration',()=>{
+ let s=eligible();s=act(s,'START_DEVELOPMENT');s=act(s,'COMMISSION_SAMPLE',{factory:'studio'});s=act(s,'RECEIVE_SAMPLE');s=act(s,'ACCEPT_SAMPLE');s=act(s,'CONTINUE_BUSINESS');s=act(s,'SELECT_CLIENT',{clientId:'mira'});s=finish(s,'developed-lamp');
+ const contract=s.contracts.at(-1);assert.match(developmentView(s),new RegExp(`第 ${contract.deliveryDay} 天交付`));assert.match(developmentView(s),/Mira · Forma 家居 · 60 盏/);assert.deepEqual(normalizeDealRoom(s),s);
+});

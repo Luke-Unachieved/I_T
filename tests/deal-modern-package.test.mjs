@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';import{createHash}from'node:crypto';import vm from'node:vm';
+import{buildDealHtml,modernManifest,modernReadme}from'../scripts/build-deal-standalone.mjs';
+test('modern candidate identifies its exact bytes without claiming device or release acceptance',async()=>{
+ const html=await buildDealHtml(),m=modernManifest(html);assert.equal(m.sha256,createHash('sha256').update(html).digest('hex'));assert.equal(m.bytes,Buffer.byteLength(html));assert.equal(m.edition,'modern-trade-workshop');assert.equal(m.channel,'development-candidate');assert.equal(m.backupFormat,'deal-room');assert.match(m.entry,/开发候选/);assert.equal(m.saveKey,'trade-tycoon:deal-room-offline:v1');assert.match(m.targetDeviceVerification,/not yet verified/);assert.match(modernReadme,/旧港口存档不兼容/);assert.match(modernReadme,/核对日期和资金/);assert.doesNotMatch(html,/<script[^>]+src=|<link[^>]+href=/);assert.doesNotMatch(html,/url\(['"]?\.\.\/assets\//);assert.ok(html.includes('cooperationChapter'));new vm.Script(html.match(/<script>([\s\S]*)<\/script>/)[1]);
+});

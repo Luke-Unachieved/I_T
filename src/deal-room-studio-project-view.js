@@ -1,0 +1,46 @@
+import {groupStudioPurchaseEligibility} from './deal-room-group-use-eligibility.js';
+import {stockProcurementInvite,stockStudioOption} from './deal-room-stock-view.js';
+import {allocationView} from './deal-room-allocation-view.js';
+import {studioProjectEligibility,studioProjectReview,previewStudioProjectOrder,groupProjectChange} from './deal-room-studio-project.js';
+import {sampleSvg} from './deal-room-samples.js';
+const cash=n=>`¥${Number(n||0).toLocaleString('zh-CN')}`;
+const briefs={'reading-drink':{name:'阅读与饮水',products:['mira','samir']},reading:{name:'阅读一角',products:['mira','ines']},hosting:{name:'待客茶席',products:['samir','ines']},bedside:{name:'客房晚间床头',products:['mira','samir']},welcome:{name:'迎宾茶台',products:['samir','ines']}};
+const goods={mira:['lamp','台灯'],samir:['cup','保温杯'],ines:['linen','桌布']};
+function onlyDeliveredUse(state,direction){
+ const e=studioProjectEligibility(state,direction);
+ return e.valid&&e.briefs.length===1&&(state.caseGrowthHistory||[]).some(h=>h.status==='paid'&&h.purpose==='studio-project'&&h.studioDirection===direction&&h.referrerId===e.referrerId&&h.studioBrief===e.briefs[0]);
+}
+export function studioProjectInvite(state){
+ const available=['independent','group'].filter(d=>studioProjectEligibility(state,d).valid);
+ if(!available.length)return '';
+ return `<section class="studio-invite"><small>工作室用途合作</small><h3>${available.every(d=>onlyDeliveredUse(state,d))?'回看已交付的用途方案':'不只交货，提出下一种用途'}</h3>${available.map(d=>`<button ${d==='independent'&&studioProjectEligibility(state,d).briefs.includes('reading-drink')?'data-action="OPEN_STUDIO_READING_PAIR"':`data-studio-direction="${d}"`}><strong>${onlyDeliveredUse(state,d)?'回访已确认方案':d==='independent'?'给概念店做工作室主题':'替集团主持场所方案'}</strong><span>${onlyDeliveredUse(state,d)?'已交付；按实际余货与需求谈补货':state.studioProjectDrafts?.[d]?'继续准备中的新主题':state.studioProjectPlans?.[d]?.status==='approved'?'已有确认方案，继续经营':d==='independent'?'自己决定陈列组合，后续可调整主题':'按具体使用场所验样，确认后保留固定规格'}</span></button>`).join('')}</section>`;
+}
+function groupUseProgress(state){
+ const p=state.studioProject;if(p.direction!=='group')return '';
+ const history=(state.caseGrowthHistory||[]).filter(h=>h.status==='paid'&&h.purpose==='studio-project'&&h.studioDirection==='group'&&h.referrerId===p.referrerId);
+ if(!history.length)return '';
+ return `<section class="group-use-progress" aria-label="集团两处场所的实际交付"><h4>这批货，用到了哪里</h4><div>${['bedside','welcome'].map(id=>{const h=history.filter(x=>x.allocationVersion===1?x.allocation[id]>0:x.studioBrief===id).at(-1);return `<article class="${h?'delivered':'unfilled'}"><strong>${id==='bedside'?'客房床头':'前厅茶台'}</strong>${h?`<div class="group-use-products">${(h.allocationVersion===1?(id==='bedside'?['mira','samir']:['samir','ines']):h.products).map(g=>sampleSvg(goods[g][0])).join('')}</div><small>第 ${h.deliveryDay} 天 · ${h.allocationVersion===1?h.allocation[id]:h.quantity} 组已交付</small><p>${id==='bedside'?'调暗灯光，水杯放在伸手处。':'茶台铺好桌布，接待用杯不必连灯一起采购。'}</p>`:'<p>还没有交付这个用途。</p><small>可另做方案，不影响现有合作。</small>'}</article>`;}).join('')}</div></section>`;
+}
+// Each comparison uses its own already-approved specification, never the current draft.
+function groupSpecSwitches(state,change){
+ if(!change)return '';
+ const p=state.studioProject,ids=Object.keys(change.approved),confirmed=ids.filter(id=>change.approved[id].status==='approved'&&studioProjectReview(state,change.approved[id]).valid);
+ const compare=confirmed.length===2;
+ return `<div class="group-specs">${ids.filter(id=>id!==p.briefId||p.status!=='approved').map(id=>{
+  const spec=change.approved[id],use=groupStudioPurchaseEligibility(state,spec),q=compare&&confirmed.includes(id)&&use.canPurchase?previewStudioProjectOrder(state,spec):null;
+  let detail=use.canPurchase?'':'<small class="group-spec-comparison">已用于客户场所 · 回看规格，不重复采购</small>';
+  if(q){
+   const waiting=q.waitingUntil>state.day;
+   const after=waiting?previewStudioProjectOrder({...state,day:q.waitingUntil,cash:state.cash-q.waitingCost},spec):q;
+   detail=`<small class="group-spec-comparison">${q.valid?'现在可采购':q.reason}${waiting?` · 等至第 ${q.waitingUntil} 天，等候支出 ${cash(q.waitingCost)}`:''}${Number.isFinite(after.netProfit)?`<br>${waiting?'等候后按当前条件：':'按当前条件：'}采购净赚 ${cash(after.netProfit)} · 第 ${after.paymentDay} 天收齐${waiting?'（另计上述等候支出）':''}`:''} · 尚未签约</small>`;
+  }
+  return `<div><button class="quiet" data-action="RESTORE_GROUP_SPEC" data-brief-id="${id}">回到${briefs[id].name}已确认规格</button>${detail}</div>`;
+ }).join('')}</div>`;
+}
+export function studioProjectView(state,allocationChoice='bedside'){
+ const allocationPanel=allocationView(state,allocationChoice);
+ const p=state.studioProject,indie=p.direction==='independent',b=briefs[p.briefId],approved=p.status==='approved',review=studioProjectReview(state,p),q=approved?previewStudioProjectOrder(state,p):null,hasLamp=b.products.includes('mira'),change=groupProjectChange(state);
+ const use=groupStudioPurchaseEligibility(state);
+ if(approved&&!indie&&!use.canPurchase&&!allocationPanel)return `<div class="studio-detail"><button class="back-clients" data-action="KEEP_STUDIO_PROJECT">← 回工作室</button><h3>${b.name} · 已在使用</h3><p class="brief">这份用途已经交付。没有新的场所或补缺需求，不再整套重买。</p>${groupUseProgress(state)}${groupSpecSwitches(state,change)}${change?.available?`<aside class="group-change"><p>${change.message}</p><button data-action="PROPOSE_GROUP_CHANGE">看看${briefs[change.next].name}的新需求 →</button></aside>`:''}${stockProcurementInvite(state)}<small>原合同、已确认规格和客户用品保留。</small></div>`;
+ return `<div class="${allocationPanel?'allocation-active':'studio-detail'}"><button class="back-clients" data-action="KEEP_STUDIO_PROJECT">← 回工作室</button><h3>${allocationPanel?'同一批采购，先谈覆盖哪些场所':indie?'这次，陈列由你提':'先把场所里的用途试清楚'}</h3><blockquote class="buyer-counter" ${allocationPanel?'hidden':''}>${indie?'“别只递给我一张货单。把两件产品摆成一个主题，陈列怎样呈现，给我看看。”':'“采购表留到后面。先做一个能落地的使用场景，样品和以后送来的规格要一致。”'}</blockquote><div class="studio-project-scene ${p.layout} ${p.light==='soft'&&p.lampVersion==='developed'?'soft':''}" aria-label="${b.name} · ${p.layout==='table'?'桌面陈列':'高架陈列'} · ${hasLamp?(p.light==='soft'&&p.lampVersion==='developed'?'柔光':'阅读光'):'不含灯具'}">${b.products.map(id=>`<div class="studio-object ${id}">${sampleSvg(goods[id][0])}<span>${id==='mira'&&p.lampVersion==='developed'?'三档调光台灯':goods[id][1]}</span></div>`).join('')}<div class="studio-surface"></div></div>${allocationPanel?`<details><summary>此前已交付的两份规格</summary>${groupUseProgress(state)}</details>`:groupUseProgress(state)}${groupSpecSwitches(state,change)}${approved&&allocationPanel?allocationPanel:approved?`<div class="case-route-seal"><strong>${b.name} · 客户已确认</strong><span>${indie?(onlyDeliveredUse(state,p.direction)?'这份陈列已交付，确认方案与原稿保留；按实际需要再谈补货。':'这份工作室陈列由你署名，后续可以提出另一个主题。'):'这份场所规格留给本集团采购，旧目录和工作室原稿不改变。'}</span></div>${q.valid?`<div class="offer"><div><small>这批净赚</small><strong>${cash(q.netProfit)}</strong></div><div><small>收齐</small><strong>第 ${q.paymentDay} 天</strong></div></div>`:`<p class="counter">${q.reason}</p>`}${q.waitingUntil>state.day?`<button class="quiet case-wait" data-action="WAIT_STUDIO_PROJECT" ${state.cash>=q.waitingCost?'':'disabled'}>等所需商品到第 ${q.waitingUntil} 天 · ${cash(q.waitingCost)}</button>`:''}<details><summary>采购条件</summary><p>每款${q.quantity}件 · 制作${cash(q.cost)} · 先收${cash(q.deposit)} · 日常${cash(q.operatingCost)}</p></details>${stockStudioOption(state)}<button class="primary" data-action="SIGN_STUDIO_PROJECT_ORDER" ${q.valid?'':'disabled'}>${stockStudioOption(state)?'全部新做，确认这份采购':'按这份方案安排采购'} →</button>${indie?(onlyDeliveredUse(state,p.direction)?'':'<button class="quiet" data-action="REVISE_STUDIO_PROJECT">调整下一次主题</button>'):change?.available?`<aside class="group-change"><p>${change.message}</p><button data-action="PROPOSE_GROUP_CHANGE">另做${briefs[change.next].name}方案</button><small>也可继续上面的原规格；不接新用途，不扣钱、不失去客户。</small></aside>`:''}`:`<fieldset class="growth-products"><legend>${indie?'这次想呈现什么':'客户准备使用在哪里'}</legend>${studioProjectEligibility(state,p.direction).briefs.map(id=>`<button data-studio-field="briefId" data-studio-value="${id}" aria-pressed="${p.briefId===id}">${briefs[id].name}</button>`).join('')}</fieldset><fieldset class="growth-products"><legend>把实物放在哪里</legend>${[['table','摆到桌面'],['shelf','放上高架']].map(([id,label])=>`<button data-studio-field="layout" data-studio-value="${id}" aria-pressed="${p.layout===id}">${label}</button>`).join('')}</fieldset>${hasLamp?`<fieldset class="growth-products"><legend>拿哪一版实物灯</legend>${[['standard','标准暖光'],['developed','已验调光样']].map(([id,label])=>`<button data-studio-field="lampVersion" data-studio-value="${id}" aria-pressed="${p.lampVersion===id}" ${id==='developed'&&!(state.productDevelopment?.status==='active'&&state.productDevelopment.factory==='studio')?'disabled':''}>${label}</button>`).join('')}</fieldset><fieldset class="growth-products"><legend>现场试光</legend>${[['reading','阅读亮度'],['soft','睡前柔光']].map(([id,label])=>`<button data-studio-field="light" data-studio-value="${id}" aria-pressed="${p.light===id}">${label}</button>`).join('')}</fieldset>`:''}${state.feedback?.kind==='counter'?`<p class="counter" role="status">${state.feedback.message}</p>`:''}<button class="primary" data-action="REVIEW_STUDIO_PROJECT">请客户看这份实物方案 →</button><small>这里只确认用途，还不签采购、不扣款。</small>`}</div>`;
+}

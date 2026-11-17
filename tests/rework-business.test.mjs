@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createOpeningGame,reduceOpening,normalizeOpeningSave,quoteOpening,currentOpeningOrders,businessCustomers,paymentOptions,cargoCapacity,berthUpgrade,outstandingPayment} from '../src/rework-opening.js';
+import {createOpeningGame,reduceOpening,normalizeOpeningSave,quoteOpening,currentOpeningOrders,businessCustomers,paymentOptions,cargoCapacity,berthUpgrade,outstandingPayment,nextBusinessDemand} from '../src/rework-opening.js';
 function move(s,type,orderId,route,extra={}){const r=reduceOpening(s,{type,orderId,route,...extra});assert.equal(r.feedback.ok,true,r.feedback.message);return r.state;}
 function sale(s,id,route='sea'){for(const t of ['PURCHASE','SHIP','DELIVER'])s=move(s,t,id,route);return s;}
 function completed(){let s=createOpeningGame();s=sale(s,'quick');s=sale(s,'urgent','express');s=sale(s,'large');s=move(s,'COLLECT','large');s=move(s,'INVEST',null,null,{choice:'express'});s=sale(s,'port-quick','express');s=sale(s,'port-large','express');s=sale(s,'port-urgent','express');s=move(s,'COLLECT','port-large');s=move(s,'NEXT_STAGE');s=sale(s,'choice-bulk','express');s=sale(s,'choice-regular','sea');s=move(s,'COLLECT','choice-bulk');return s;}
@@ -67,4 +67,76 @@ test('deposit save schema rejects early money, wrong amounts and grafted deposit
 test('first second-repeat payment announces trust once, including automatic simultaneous payment',()=>{
  let s=finishRound(business());s=move(s,'NEXT_BUSINESS_ROUND');s.cash=20000;s=move(s,'EXPAND_BERTH');const [a,b]=currentOpeningOrders(s);for(const [o,route] of [[a,'express'],[b,'sea']]){s=move(s,'PURCHASE',o.id);s=move(s,'SHIP',o.id,route);}s=move(s,'DELIVER',a.id);s=move(s,'DELIVER',b.id);
  const result=reduceOpening(s,{type:'COLLECT',orderId:a.id});assert.equal(result.feedback.ok,true);assert.equal((result.feedback.message.match(/愿意先付定金了/g)||[]).length,2);s=move(result.state,'NEXT_BUSINESS_ROUND');const c=currentOpeningOrders(s)[0];s=sale(s,c.id,'express');const later=reduceOpening(s,{type:'COLLECT',orderId:c.id});assert.equal(later.feedback.ok,true);assert.doesNotMatch(later.feedback.message,/愿意先付定金了/);
+});
+
+
+test('public demand preview matches new contracts and rotates bounded real quantities and terms',()=>{
+ assert.deepEqual(nextBusinessDemand(createOpeningGame()),[]);let s=finishRound(trusted());
+ const before=JSON.stringify(s),preview=nextBusinessDemand(s);assert.equal(JSON.stringify(s),before);assert.deepEqual(preview.map(o=>[o.demandType,o.quantity,o.deadlineDays,o.payLag]),[['urgent',48,2,1],['bulk',29,6,5]]);
+ s=move(s,'NEXT_BUSINESS_ROUND');assert.deepEqual(currentOpeningOrders(s).map(({status,...o})=>o),preview);assert.ok(normalizeOpeningSave(s));
+ for(let i=0;i<3;i++){s=finishRound(s);s=move(s,'NEXT_BUSINESS_ROUND');assert.ok(normalizeOpeningSave(s));}assert.deepEqual(currentOpeningOrders(s).map(o=>o.demandType),preview.map(o=>o.demandType));
+});
+test('legacy fixed contracts stay byte-identical at every lifecycle status, only the next batch upgrades',()=>{
+ let s=business();delete s.demandStartRound;for(const o of s.orders){delete o.demandVersion;delete o.demandType;delete o.demandLabel;}
+ const id=currentOpeningOrders(s)[0].id;
+ for(const type of ['PURCHASE','SHIP','DELIVER','COLLECT']){const before=JSON.stringify(s.orders);const restored=normalizeOpeningSave(s);assert.ok(restored);assert.equal(JSON.stringify(restored.orders),before);s=move(restored,type,id,'express');}
+ s=finishRoundRemaining(s);const history=JSON.stringify(s.orders);s=move(s,'NEXT_BUSINESS_ROUND');assert.equal(s.demandStartRound,2);assert.equal(JSON.stringify(s.orders.slice(0,-2)),history);assert.ok(normalizeOpeningSave(s));
+});
+function finishRoundRemaining(s){for(const o of currentOpeningOrders(s).filter(o=>o.status==='open'))s=sale(s,o.id,'express');for(const o of currentOpeningOrders(s).filter(o=>o.status==='receivable').sort((a,b)=>a.collectionDay-b.collectionDay)){if(s.orders.find(x=>x.id===o.id).status==='receivable')s=move(s,'COLLECT',o.id);}return s;}
+test('demand save validation rejects mismatched variants, versions, quantities, prices and migration boundary',()=>{
+ const s=move(finishRound(trusted()),'NEXT_BUSINESS_ROUND');for(const mutate of [x=>currentOpeningOrders(x)[0].demandVersion=2,x=>currentOpeningOrders(x)[0].demandType='regular',x=>currentOpeningOrders(x)[0].quantity++,x=>currentOpeningOrders(x)[0].baseRevenue++,x=>currentOpeningOrders(x)[0].deadlineDays++,x=>currentOpeningOrders(x)[0].payLag++,x=>delete x.demandStartRound,x=>x.demandStartRound=5]){const bad=structuredClone(s);mutate(bad);assert.equal(normalizeOpeningSave(bad),null);}
+});
+test('mixed urgent and bulk demand supports deposit-funded parallel shipment without skipping delivery',()=>{
+ let s=move(finishRound(trusted()),'NEXT_BUSINESS_ROUND');s.cash=12000;s=move(s,'EXPAND_BERTH');const [a,b]=currentOpeningOrders(s);for(const o of [a,b])s=move(s,'SET_PAYMENT',o.id,null,{paymentTerms:'deposit'});
+ for(const [o,route] of [[a,'express'],[b,'sea']]){assert.equal(quoteOpening(s,o.id,route).valid,true);s=move(s,'PURCHASE',o.id);s=move(s,'SHIP',o.id,route);assert.ok(normalizeOpeningSave(s));}
+ assert.equal(reduceOpening(s,{type:'DELIVER',orderId:b.id}).feedback.ok,false);s=move(s,'DELIVER',a.id);s=move(s,'COLLECT',a.id);s=move(s,'DELIVER',b.id);s=move(s,'COLLECT',b.id);assert.ok(s.ending);assert.ok(normalizeOpeningSave(s));
+});
+
+test('every customer demand has a profitable funded route at worst published purchase prices',()=>{
+ const base=completed();let minimum=Infinity;const comparisons=[];
+ // Quote matrix, not a claim of player playthrough: preserve canonical customer terms,
+ // vary investment and published price extremes to detect mandatory losing contracts.
+ for(const investment of ['warehouse','express'])for(let round=4;round<=6;round++){
+  const seed=structuredClone(base);seed.investment=investment;seed.businessRound=round-1;
+  for(const o of seed.orders.filter(o=>o.stage===3))o.status='paid';
+  const offers=nextBusinessDemand(seed);
+  for(const offer of offers){const s={...seed,day:100,cash:20000,prices:{cups:45,lights:80,textiles:55},orders:[...seed.orders,{...offer,status:'open'}],businessRound:round};
+   const quotes=['sea','express'].map(r=>quoteOpening(s,offer.id,r)).filter(q=>q.valid);assert.ok(quotes.length,offer.customerId+offer.demandType);
+   const best=Math.max(...quotes.map(q=>q.profit-q.operatingReserve));minimum=Math.min(minimum,best);assert.ok(best>0,`${investment}/${offer.customerId}/${offer.demandType}: ${best}`);
+   if(investment==='warehouse'&&offer.demandType==='bulk'&&quotes.length===2){const sea=quotes.find(q=>q.route==='sea'),fast=quotes.find(q=>q.route==='express');assert.ok(sea.profit-sea.operatingReserve>fast.profit-fast.operatingReserve);comparisons.push(offer.customerId);}
+  }
+ }
+ assert.equal(minimum,42);assert.equal(comparisons.length,4);
+});
+
+test('two hundred repeat contracts survive legal bounded play and save round trips',t=>{
+ let s=business();const startCash=s.cash;
+ for(let round=1;round<=100;round++){
+  if(round>1)s=move(s,'NEXT_BUSINESS_ROUND');
+  s=finishRound(s);const raw=JSON.stringify(s),restored=normalizeOpeningSave(raw);assert.ok(restored,`round ${round}`);assert.equal(restored.cash,s.cash);assert.equal(restored.completed,s.completed);assert.ok(Number.isSafeInteger(s.cash)&&s.cash>=0);s=restored;
+ }
+ assert.equal(s.completed,208);assert.ok(s.cash>startCash);assert.equal(businessCustomers(s).reduce((n,c)=>n+c.repeatPaid,0),200);assert.ok(Buffer.byteLength(JSON.stringify(s))<5*1024*1024);
+ t.diagnostic(`100 batches / 200 repeat contracts; day=${s.day}; cash=${s.cash}; save bytes=${Buffer.byteLength(JSON.stringify(s))}`);
+});
+
+test('one completed repeat permits passing only the other unsigned contract without money or trust rewards',()=>{
+ let s=business();const [a,b]=currentOpeningOrders(s);
+ assert.equal(reduceOpening(s,{type:'PASS_BUSINESS_ORDER',orderId:b.id}).feedback.ok,false);
+ s=move(s,'SET_PAYMENT',a.id,null,{paymentTerms:'cash'});s=sale(s,a.id,'express');const before=structuredClone(s),counts=businessCustomers(s).map(x=>x.repeatPaid);
+ s=move(s,'PASS_BUSINESS_ORDER',b.id);assert.equal(s.cash,before.cash);assert.equal(s.day,before.day);assert.equal(s.completed,before.completed);assert.equal(s.stageTarget,1);assert.equal(s.ending,true);assert.deepEqual(businessCustomers(s).map(x=>x.repeatPaid),counts);assert.ok(normalizeOpeningSave(s));
+ assert.equal(reduceOpening(s,{type:'PASS_BUSINESS_ORDER',orderId:b.id}).feedback.ok,false);assert.equal(reduceOpening(s,{type:'PURCHASE',orderId:b.id}).feedback.ok,false);
+ s=move(normalizeOpeningSave(s),'NEXT_BUSINESS_ROUND');assert.equal(currentOpeningOrders(s).length,2);assert.equal(s.stageTarget,2);assert.ok(currentOpeningOrders(s).every(x=>x.status==='open'));assert.ok(normalizeOpeningSave(s));
+});
+test('passing cannot cancel cargo or receivables and forged skipped rounds are rejected',()=>{
+ let s=business();const [a,b]=currentOpeningOrders(s);s=move(s,'SET_PAYMENT',a.id,null,{paymentTerms:'cash'});s=sale(s,a.id,'express');const unsigned=structuredClone(s);
+ s=move(s,'PURCHASE',b.id);for(const type of ['PASS_BUSINESS_ORDER'])assert.equal(reduceOpening(s,{type,orderId:b.id}).feedback.ok,false);
+ s=move(s,'SHIP',b.id,'express');assert.equal(reduceOpening(s,{type:'PASS_BUSINESS_ORDER',orderId:b.id}).feedback.ok,false);s=move(s,'DELIVER',b.id);assert.equal(reduceOpening(s,{type:'PASS_BUSINESS_ORDER',orderId:b.id}).feedback.ok,false);
+ const skipped=move(unsigned,'PASS_BUSINESS_ORDER',b.id);
+ for(const mutate of [x=>delete x.orders.find(o=>o.id===b.id).passed,x=>x.orders.find(o=>o.id===b.id).purchaseCost=0,x=>x.orders.find(o=>o.id===b.id).depositReceived=1,x=>{x.orders.find(o=>o.id===a.id).status='declined';x.orders.find(o=>o.id===a.id).passed=true;}]){const bad=structuredClone(skipped);mutate(bad);assert.equal(normalizeOpeningSave(bad),null);}
+});
+
+test('selective batches preserve customer growth and save validity over a bounded 30-round run',()=>{
+ let s=business();const expected=new Map(businessCustomers(s).map(c=>[c.id,0]));
+ for(let n=1;n<=30;n++){const orders=currentOpeningOrders(s),chosen=orders[n%2],passed=orders[(n+1)%2];s=move(s,'SET_PAYMENT',chosen.id,null,{paymentTerms:'cash'});s=sale(s,chosen.id,'express');expected.set(chosen.customerId,expected.get(chosen.customerId)+1);s=move(s,'PASS_BUSINESS_ORDER',passed.id);const restored=normalizeOpeningSave(JSON.stringify(s));assert.ok(restored);assert.equal(restored.cash,s.cash);assert.equal(restored.stageTarget,1);assert.deepEqual(businessCustomers(restored).map(c=>[c.id,c.repeatPaid]),[...expected]);s=restored;if(n<30)s=move(s,'NEXT_BUSINESS_ROUND');}
+ assert.equal(s.completed,38);assert.equal(businessCustomers(s).every(c=>c.depositUnlocked),true);
 });

@@ -1,0 +1,687 @@
+[
+  {
+    "type": "PROPOSE",
+    "optionId": "trial"
+  },
+  {
+    "type": "ADVANCE"
+  },
+  {
+    "type": "NEXT_CLIENT"
+  },
+  {
+    "type": "PROPOSE",
+    "optionId": "ready"
+  },
+  {
+    "type": "ADVANCE"
+  },
+  {
+    "type": "NEXT_CLIENT"
+  },
+  {
+    "type": "PROPOSE",
+    "optionId": "season"
+  },
+  {
+    "type": "ADVANCE"
+  },
+  {
+    "type": "NEXT_CLIENT"
+  },
+  {
+    "type": "CONTINUE_BUSINESS"
+  },
+  {
+    "type": "SELECT_CLIENT",
+    "clientId": "mira"
+  },
+  {
+    "type": "PROPOSE",
+    "optionId": "repeat-small"
+  },
+  {
+    "type": "ADVANCE"
+  },
+  {
+    "type": "NEXT_CLIENT"
+  },
+  {
+    "type": "SELECT_CLIENT",
+    "clientId": "mira"
+  },
+  {
+    "type": "PROPOSE",
+    "optionId": "repeat-small"
+  },
+  {
+    "type": "ADVANCE"
+  },
+  {
+    "type": "NEXT_CLIENT"
+  },
+  {
+    "type": "START_SUPPLY_PLAN",
+    "clientId": "mira",
+    "firstBatch": "small",
+    "payment": "delivery"
+  },
+  {
+    "type": "FULFIL_SUPPLY_PLAN"
+  },
+  {
+    "type": "START_DEVELOPMENT"
+  },
+  {
+    "type": "COMMISSION_SAMPLE",
+    "factory": "studio"
+  },
+  {
+    "type": "RECEIVE_SAMPLE"
+  },
+  {
+    "type": "ACCEPT_SAMPLE"
+  },
+  {
+    "type": "START_CLIENT_PROJECTS"
+  },
+  {
+    "type": "SELECT_CLIENT",
+    "clientId": "mira"
+  },
+  {
+    "type": "PROPOSE",
+    "optionId": "project-focus"
+  },
+  {
+    "type": "ADVANCE"
+  },
+  {
+    "type": "NEXT_CLIENT"
+  },
+  {
+    "type": "SELECT_CLIENT",
+    "clientId": "samir"
+  },
+  {
+    "type": "PROPOSE",
+    "optionId": "project-focus"
+  },
+  {
+    "type": "ADVANCE"
+  },
+  {
+    "type": "NEXT_CLIENT"
+  },
+  {
+    "type": "SELECT_CLIENT",
+    "clientId": "ines"
+  },
+  {
+    "type": "PROPOSE",
+    "optionId": "project-focus"
+  },
+  {
+    "type": "ADVANCE"
+  },
+  {
+    "type": "NEXT_CLIENT"
+  },
+  {
+    "type": "START_CURATION",
+    "clientId": "mira"
+  },
+  {
+    "type": "SIGN_CURATION_SAMPLE",
+    "products": [
+      "ines",
+      "mira",
+      "samir"
+    ],
+    "quantity": 40,
+    "packaging": "gift",
+    "lampVersion": "developed"
+  },
+  {
+    "type": "FULFIL_CURATION"
+  },
+  {
+    "type": "START_CURATION",
+    "clientId": "samir"
+  },
+  {
+    "type": "BACK_FROM_CURATION"
+  },
+  {
+    "type": "START_CURATION",
+    "clientId": "samir"
+  },
+  {
+    "type": "BACK_FROM_CURATION"
+  },
+  {
+    "type": "OPEN_CASE_GROWTH",
+    "referrerId": "mira"
+  },
+  {
+    "type": "CLOSE_CASE_GROWTH"
+  },
+  {
+    "type": "OPEN_CASE_GROWTH",
+    "referrerId": "mira"
+  },
+  {
+    "type": "SIGN_CASE_GROWTH",
+    "agreement": "portfolio",
+    "products": [
+      "ines",
+      "mira",
+      "samir"
+    ],
+    "packaging": "plain",
+    "terms": "delivery"
+  },
+  {
+    "type": "FULFIL_CASE_GROWTH"
+  },
+  {
+    "type": "CLOSE_CASE_GROWTH"
+  },
+  {
+    "type": "OPEN_CASE_GROWTH",
+    "referrerId": "mira"
+  },
+  {
+    "type": "WAIT_CASE_GROWTH",
+    "products": [
+      "mira",
+      "samir"
+    ]
+  },
+  {
+    "type": "SIGN_CASE_GROWTH",
+    "agreement": "portfolio",
+    "products": [
+      "mira",
+      "samir"
+    ],
+    "packaging": "plain",
+    "terms": "delivery"
+  },
+  {
+    "type": "FULFIL_CASE_GROWTH"
+  },
+  {
+    "type": "CLOSE_CASE_GROWTH"
+  },
+  {
+    "type": "OPEN_CASE_GROWTH",
+    "referrerId": "mira"
+  },
+  {
+    "type": "CLOSE_CASE_GROWTH"
+  },
+  {
+    "type": "START_CURATION",
+    "clientId": "samir"
+  },
+  {
+    "type": "SIGN_CURATION",
+    "products": [
+      "ines",
+      "mira",
+      "samir"
+    ],
+    "quantity": 40,
+    "packaging": "plain"
+  },
+  {
+    "type": "FULFIL_CURATION"
+  },
+  {
+    "type": "OPEN_CASE_GROWTH",
+    "referrerId": "samir"
+  },
+  {
+    "type": "SIGN_CASE_GROWTH",
+    "agreement": "private",
+    "products": [
+      "ines",
+      "mira",
+      "samir"
+    ],
+    "packaging": "plain",
+    "terms": "delivery"
+  },
+  {
+    "type": "FULFIL_CASE_GROWTH"
+  },
+  {
+    "type": "CLOSE_CASE_GROWTH"
+  },
+  {
+    "type": "OPEN_CASE_GROWTH",
+    "referrerId": "samir"
+  },
+  {
+    "type": "CLOSE_CASE_GROWTH"
+  },
+  {
+    "type": "OPEN_CASE_GROWTH",
+    "referrerId": "mira"
+  },
+  {
+    "type": "CLOSE_CASE_GROWTH"
+  },
+  {
+    "type": "OPEN_CASE_GROWTH",
+    "referrerId": "samir"
+  },
+  {
+    "type": "WAIT_CASE_CALLOFF",
+    "products": [
+      "samir"
+    ]
+  },
+  {
+    "type": "SIGN_CASE_CALLOFF",
+    "agreement": "private",
+    "products": [
+      "samir"
+    ],
+    "packaging": "plain",
+    "terms": "delivery"
+  },
+  {
+    "type": "FULFIL_CASE_GROWTH"
+  },
+  {
+    "type": "CLOSE_CASE_GROWTH"
+  },
+  {
+    "type": "OPEN_CASE_GROWTH",
+    "referrerId": "samir"
+  },
+  {
+    "type": "CLOSE_CASE_GROWTH"
+  },
+  {
+    "type": "START_ACCOUNT",
+    "referrerId": "mira"
+  },
+  {
+    "type": "SIGN_ACCOUNT",
+    "optionId": "pilot"
+  },
+  {
+    "type": "FULFIL_ACCOUNT"
+  },
+  {
+    "type": "CLOSE_ACCOUNT"
+  },
+  {
+    "type": "OPEN_ACCOUNT_EXPANSION"
+  },
+  {
+    "type": "BACK_FROM_ACCOUNT"
+  },
+  {
+    "type": "OPEN_ACCOUNT_EXPANSION"
+  },
+  {
+    "type": "SIGN_ACCOUNT_EXPANSION"
+  },
+  {
+    "type": "FULFIL_ACCOUNT_EXPANSION"
+  },
+  {
+    "type": "CLOSE_ACCOUNT"
+  },
+  {
+    "type": "OPEN_CASE_GROWTH",
+    "referrerId": "samir"
+  },
+  {
+    "type": "APPROVE_CASE_LAMP",
+    "model": "standard"
+  },
+  {
+    "type": "APPROVE_CASE_LAMP",
+    "model": "developed"
+  },
+  {
+    "type": "SIGN_APPROVED_CASE_LAMP",
+    "terms": "delivery"
+  },
+  {
+    "type": "FULFIL_CASE_GROWTH"
+  },
+  {
+    "type": "CLOSE_CASE_GROWTH"
+  },
+  {
+    "type": "OPEN_CASE_GROWTH",
+    "referrerId": "samir"
+  },
+  {
+    "type": "CLOSE_CASE_GROWTH"
+  },
+  {
+    "type": "START_COLLECTION"
+  },
+  {
+    "type": "SIGN_COLLECTION",
+    "model": "own",
+    "style": "botanical"
+  },
+  {
+    "type": "OPEN_COLLECTION_PITCH",
+    "buyerId": "northline"
+  },
+  {
+    "type": "BACK_COLLECTION_PITCH"
+  },
+  {
+    "type": "OPEN_COLLECTION_PITCH",
+    "buyerId": "atelier"
+  },
+  {
+    "type": "BACK_COLLECTION_PITCH"
+  },
+  {
+    "type": "CLOSE_COLLECTION"
+  },
+  {
+    "type": "CONTINUE_BUSINESS"
+  },
+  {
+    "type": "BACK_FROM_CLIENTS"
+  },
+  {
+    "type": "OPEN_COLLECTION"
+  },
+  {
+    "type": "OPEN_COLLECTION_PITCH",
+    "buyerId": "atelier"
+  },
+  {
+    "type": "SIGN_COLLECTION_PITCH",
+    "optionId": "sleeve"
+  },
+  {
+    "type": "FULFIL_COLLECTION"
+  },
+  {
+    "type": "CLOSE_COLLECTION"
+  },
+  {
+    "type": "OPEN_COLLECTION"
+  },
+  {
+    "type": "CLOSE_COLLECTION"
+  },
+  {
+    "type": "OPEN_CASE_GROWTH",
+    "referrerId": "mira"
+  },
+  {
+    "type": "SIGN_CATALOGUE_ORDER",
+    "lampVersion": "developed"
+  },
+  {
+    "type": "FULFIL_CASE_GROWTH"
+  },
+  {
+    "type": "CLOSE_CASE_GROWTH"
+  },
+  {
+    "type": "OPEN_COLLECTION"
+  },
+  {
+    "type": "OPEN_COLLECTION_PITCH",
+    "buyerId": "northline"
+  },
+  {
+    "type": "BACK_COLLECTION_PITCH"
+  },
+  {
+    "type": "CLOSE_COLLECTION"
+  },
+  {
+    "type": "OPEN_CASE_GROWTH",
+    "referrerId": "mira"
+  },
+  {
+    "type": "CLOSE_CASE_GROWTH"
+  },
+  {
+    "type": "OPEN_CASE_GROWTH",
+    "referrerId": "mira"
+  },
+  {
+    "type": "CLOSE_CASE_GROWTH"
+  },
+  {
+    "type": "OPEN_STUDIO_PROJECT",
+    "direction": "group"
+  },
+  {
+    "type": "REVIEW_STUDIO_PROJECT"
+  },
+  {
+    "type": "SET_STUDIO_PROJECT",
+    "field": "lampVersion",
+    "value": "developed"
+  },
+  {
+    "type": "SET_STUDIO_PROJECT",
+    "field": "light",
+    "value": "soft"
+  },
+  {
+    "type": "SET_STUDIO_PROJECT",
+    "field": "layout",
+    "value": "table"
+  },
+  {
+    "type": "REVIEW_STUDIO_PROJECT"
+  },
+  {
+    "type": "SIGN_STUDIO_PROJECT_ORDER"
+  },
+  {
+    "type": "FULFIL_CASE_GROWTH"
+  },
+  {
+    "type": "CLOSE_CASE_GROWTH"
+  },
+  {
+    "type": "OPEN_STUDIO_PROJECT",
+    "direction": "independent"
+  },
+  {
+    "type": "SET_STUDIO_PROJECT",
+    "field": "briefId",
+    "value": "hosting"
+  },
+  {
+    "type": "SET_STUDIO_PROJECT",
+    "field": "layout",
+    "value": "table"
+  },
+  {
+    "type": "REVIEW_STUDIO_PROJECT"
+  },
+  {
+    "type": "SIGN_STUDIO_PROJECT_ORDER"
+  },
+  {
+    "type": "FULFIL_CASE_GROWTH"
+  },
+  {
+    "type": "CLOSE_CASE_GROWTH"
+  },
+  {
+    "type": "OPEN_STUDIO_PROJECT",
+    "direction": "independent"
+  },
+  {
+    "type": "REVISE_STUDIO_PROJECT"
+  },
+  {
+    "type": "SET_STUDIO_PROJECT",
+    "field": "briefId",
+    "value": "reading"
+  },
+  {
+    "type": "CLOSE_STUDIO_PROJECT"
+  },
+  {
+    "type": "OPEN_STUDIO_PROJECT",
+    "direction": "group"
+  },
+  {
+    "type": "PROPOSE_GROUP_CHANGE"
+  },
+  {
+    "type": "RESTORE_GROUP_SPEC",
+    "briefId": "bedside"
+  },
+  {
+    "type": "PROPOSE_GROUP_CHANGE"
+  },
+  {
+    "type": "REVIEW_STUDIO_PROJECT"
+  },
+  {
+    "type": "SIGN_STUDIO_PROJECT_ORDER"
+  },
+  {
+    "type": "FULFIL_CASE_GROWTH"
+  },
+  {
+    "type": "CLOSE_CASE_GROWTH"
+  },
+  {
+    "type": "OPEN_STUDIO_PROJECT",
+    "direction": "group"
+  },
+  {
+    "type": "RESTORE_GROUP_SPEC",
+    "briefId": "bedside"
+  },
+  {
+    "type": "RESTORE_GROUP_SPEC",
+    "briefId": "welcome"
+  },
+  {
+    "type": "KEEP_STUDIO_PROJECT"
+  },
+  {
+    "type": "OPEN_STUDIO_PROJECT",
+    "direction": "group"
+  },
+  {
+    "type": "RESTORE_GROUP_SPEC",
+    "briefId": "bedside"
+  },
+  {
+    "type": "WAIT_STUDIO_ALLOCATION",
+    "allocation": "mixed"
+  },
+  {
+    "type": "SIGN_STUDIO_ALLOCATION",
+    "allocation": "mixed"
+  },
+  {
+    "type": "FULFIL_CASE_GROWTH"
+  },
+  {
+    "type": "CLOSE_CASE_GROWTH"
+  },
+  {
+    "type": "OPEN_STUDIO_PROJECT",
+    "direction": "group"
+  },
+  {
+    "type": "KEEP_STUDIO_PROJECT"
+  },
+  {
+    "type": "OPEN_COLLECTION"
+  },
+  {
+    "type": "OPEN_COLLECTION_PITCH",
+    "buyerId": "northline"
+  },
+  {
+    "type": "SIGN_COLLECTION_PITCH",
+    "optionId": "retain"
+  },
+  {
+    "type": "FULFIL_COLLECTION"
+  },
+  {
+    "type": "CLOSE_COLLECTION"
+  },
+  {
+    "type": "OPEN_STUDIO_PROJECT",
+    "direction": "group"
+  },
+  {
+    "type": "RESTORE_GROUP_SPEC",
+    "briefId": "welcome"
+  },
+  {
+    "type": "RESTORE_GROUP_SPEC",
+    "briefId": "bedside"
+  },
+  {
+    "type": "KEEP_STUDIO_PROJECT"
+  },
+  {
+    "type": "OPEN_COLLECTION_REVISION"
+  },
+  {
+    "type": "COMMISSION_COLLECTION_REVISION"
+  },
+  {
+    "type": "RECEIVE_COLLECTION_REVISION"
+  },
+  {
+    "type": "SIGN_COLLECTION_REVISION",
+    "buyerId": "northline",
+    "scope": "revision-exclusive"
+  },
+  {
+    "type": "FULFIL_COLLECTION_REVISION"
+  },
+  {
+    "type": "CLOSE_COLLECTION_REVISION"
+  },
+  {
+    "type": "OPEN_STUDIO_PROJECT",
+    "direction": "independent"
+  },
+  {
+    "type": "REVISE_STUDIO_PROJECT"
+  },
+  {
+    "type": "SET_STUDIO_PROJECT",
+    "field": "briefId",
+    "value": "reading"
+  },
+  {
+    "type": "REVIEW_STUDIO_PROJECT"
+  },
+  {
+    "type": "KEEP_STUDIO_PROJECT"
+  },
+  {
+    "type": "OPEN_STUDIO_PROJECT",
+    "direction": "group"
+  },
+  {
+    "type": "RESTORE_GROUP_SPEC",
+    "briefId": "bedside"
+  }
+]

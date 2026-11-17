@@ -1,0 +1,12 @@
+import {previewStudioAllocation} from './deal-room-allocation.js';
+import {sampleSvg} from './deal-room-samples.js';
+const cash=n=>`¥${Number(n||0).toLocaleString('zh-CN')}`;
+const names={mira:'调光台灯',samir:'保温杯',ines:'桌布'};
+export function allocationReceipt(q,{compact=false}={}){
+ if(q?.allocationVersion!==1)return '';
+ return `${compact?'':`<div class="allocation-result" aria-label="这一批的实际用途分配"><div><strong>${q.allocation.bedside}</strong><span>处客房床头</span></div><div><strong>${q.allocation.welcome}</strong><span>处前厅茶台</span></div></div>`}<p class="brief">${Object.entries(q.productQuantities).filter(([,n])=>n>0).map(([id,n])=>`${names[id]} ${n} 件`).join(' · ')}。${q.allocation.welcome?'本批少配 20 处床头，腾给前厅；未覆盖位置不自动追加采购。':'前厅请求本批不纳入。'}</p>`;
+}
+export function allocationView(state,selection='bedside'){
+ const q=previewStudioAllocation(state,selection);if(!q?.available||(state.caseGrowthHistory||[]).some(h=>h.status==='paid'&&h.allocationVersion===1&&h.referrerId===state.studioProject.referrerId))return '';
+ return `<section class="allocation-proposal" aria-label="同一批采购的用途协商"><blockquote class="buyer-counter">“本批仍采购 60 处。前厅也想用 20 处，能从床头安排里分出来吗？也可以先按原方案。”</blockquote><div class="allocation-options">${['bedside','mixed'].map(id=>`<button data-studio-allocation="${id}" aria-pressed="${id===selection}"><strong>${id==='bedside'?'60 床头':'40 床头 + 20 茶台'}</strong><span>${id==='bedside'?'保留客房覆盖':'让出部分客房覆盖给前厅'}</span></button>`).join('')}</div><div class="allocation-scenes" aria-label="${q.allocation.bedside} 处床头，${q.allocation.welcome} 处前厅"><div class="allocation-room bedroom">${sampleSvg('lamp')}${sampleSvg('cup')}<b>${q.allocation.bedside} 处床头</b></div><div class="allocation-room welcome ${q.allocation.welcome?'':'not-included'}">${sampleSvg('cup')}${sampleSvg('linen')}<b>${q.allocation.welcome?q.allocation.welcome+' 处茶台':'前厅 · 本批未采购'}</b></div></div>${allocationReceipt(q,{compact:true})}<div class="offer"><div><small>整批净赚</small><strong>${cash(q.netProfit)}</strong></div><div><small>实际制作</small><strong>${cash(q.cost)}</strong></div></div>${q.valid?'':`<p class="counter">${q.reason}</p>`}${q.waitingUntil>state.day?`<button class="quiet" data-action="WAIT_STUDIO_ALLOCATION" ${state.cash>=q.waitingCost?'':'disabled'}>等这批所需商品到第 ${q.waitingUntil} 天 · ${cash(q.waitingCost)}</button>`:''}<button class="primary" data-action="SIGN_STUDIO_ALLOCATION" ${q.valid?'':'disabled'}>确认这一批的用途与采购 →</button><small>只调整这次未签采购；两份已确认规格和旧合同保留。</small></section>`;
+}

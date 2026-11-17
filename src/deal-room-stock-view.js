@@ -1,0 +1,17 @@
+import {stockProcurementOpportunity,previewStockProcurement,previewStudioProjectFromStock} from './deal-room-stock-procurement.js';
+const money=n=>`¥${Number(n||0).toLocaleString('zh-CN')}`;
+export function stockProcurementInvite(state){
+ const p=state.stockProcurement,o=stockProcurementOpportunity(state);
+ if(!p&&!o.available)return '';
+ return `<section class="stock-invite"><small>集团采购 · 使用后的新需求</small><h3>${p?.status==='paid'?(p.remaining?'已供新用途，余货由你经营':'客户供货与余货均已兑现'):'新增12处阅读位，只补需要的灯'}</h3><p>${p?.status==='paid'?`${p.delivered} 盏已交付；${p.remaining?`工作室还有 ${p.remaining} 盏通用调光灯，成本 ${money(p.inventoryCost)}。未售不是收入。`:'没有未售余货，原采购与后续用货记录保留。'}`:'旧客房用品继续使用。这次只问调光灯，不追加杯和布。'}</p><button data-action="OPEN_STOCK_PROCUREMENT">${p?.status==='paid'?'查看这次供货与余货':'先看客户数量与工厂报价'} →</button></section>`;
+}
+export function stockProcurementView(state,mode='small'){
+ const p=state.stockProcurement;if(!p)return '';
+ const q=previewStockProcurement(state,mode),draft=p.status==='draft',producing=p.status==='production';
+ if(!draft)return `<h3>${producing?'工厂制作中，先兑现客户数量':p.remaining?'新用途已交付，余货不是利润':'客户补缺已完成'}</h3><div class="stock-facts"><article><small>${producing?'客户确认采购':'客户已收到'}</small><strong>12 盏</strong><span>通用三档调光灯</span></article><article><small>${producing?'本批制作':'工作室余货'}</small><strong>${producing?p.factoryQuantity:p.remaining} 盏</strong><span>${producing?'到货前不能重复出库':`成本 ${money(p.inventoryCost)} · 未售`}</span></article></div><p class="brief">${producing?`已付制作 ${money(p.cost)}，第 ${p.deliveryDay} 天交付，只收本次12盏货款 ${money(p.revenue)}。`:`本次收款 ${money(p.revenue)}，原采购 ${money(p.cost)}，日常 ${money(p.operatingCost)}；这笔供货的现金变化 ${p.cashChange<0?'−':'+'}${money(Math.abs(p.cashChange))}。`}</p>${producing?'<button class="primary" data-action="FULFIL_STOCK_PROCUREMENT">等工厂完成，交付客户的12盏 →</button>':`<p>${p.remaining?'余货可用于规格相符的已确认自主方案；新客户没有承诺包销。':'本次没有未售余货。旧合同与客户用品保持。'}</p><button class="primary" data-action="CLOSE_STOCK_PROCUREMENT">回工作室，按真实需求接单 →</button>`}`;
+ return `<button class="back-clients" data-action="CLOSE_STOCK_PROCUREMENT">← 先不承接</button><h3>客户要12盏，采购怎样安排？</h3><blockquote class="buyer-counter">“新加的阅读位只缺12盏调光灯。旧房间用品不动，也不需要专属铭牌。”</blockquote><div class="stock-options">${['small','batch'].map(id=>{const x=previewStockProcurement(state,id);return `<button data-stock-mode="${id}" aria-pressed="${id===mode}"><strong>${id==='small'?'只做这12盏':'自己备60盏'}</strong><span>先付 ${money(x.cost)} · ${id==='small'?'不留计划外余货':'交12，余48由你承担'}</span></button>`;}).join('')}</div><div class="stock-facts"><article><small>本次收款</small><strong>${money(q.revenue)}</strong><span>第 ${q.deliveryDay} 天</span></article><article><small>收齐后现金</small><strong>${money(q.cashAfterPayment)}</strong><span>含制作与日常支出</span></article></div><p class="brief">${mode==='batch'?`余48盏成本 ${money(q.inventoryCost)} 已由你支付，没有保证买家，不算收入。`:'小批单价较高，但只为确认的需求付款。两份报价都不改变已验型号。'}</p>${q.valid?'':`<p class="counter">${q.reason}</p>`}<button class="primary" data-action="SIGN_STOCK_PROCUREMENT" ${q.valid?'':'disabled'}>确认这份采购安排 →</button>`;
+}
+export function stockStudioOption(state){
+ const q=previewStudioProjectFromStock(state);if(!q.valid)return '';
+ return `<section class="stock-studio-option"><strong>先用工作室的 ${q.stockUsed} 盏现货？</strong><p>型号与这份方案相符。其余商品和包装照旧制作，新付 ${money(q.newProductionCost)}；已付灯具成本 ${money(q.stockCost)} 仍计入这单，不重复算利润。</p><button class="primary" data-action="SIGN_STUDIO_PROJECT_FROM_STOCK">用现货并确认这份采购 →</button><small>签约即预留这些灯，不能再交给另一单。下方仍可选择全部新做。</small></section>`;
+}

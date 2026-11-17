@@ -38,16 +38,24 @@ function earlierPaidRepeats(state,o){return state.orders.filter(x=>x.customerId=
 export function outstandingPayment(order){return order.status==='paid'?0:Math.max(0,order.revenue-(order.depositReceived||0));}
 function procurementDeposit(state,o){return o.status==='open'&&o.paymentTerms==='deposit'&&earlierPaidRepeats(state,o)>=DEPOSIT_REPEAT_TARGET?Math.floor(o.baseRevenue*30/100):0;}
 export function businessCustomers(state){return state.orders.filter(o=>o.stage===3&&!o.businessRound&&o.status==='paid').map(o=>({id:o.id,name:o.name,product:o.product,repeatPaid:state.orders.filter(x=>x.customerId===o.id&&x.businessRound&&x.status==='paid').length,completed:state.orders.filter(x=>x.customerId===o.id&&x.businessRound&&x.status==='paid').length,repeatTarget:DEPOSIT_REPEAT_TARGET,depositUnlocked:state.orders.filter(x=>x.customerId===o.id&&x.businessRound&&x.status==='paid').length>=DEPOSIT_REPEAT_TARGET}));}
-function repeatTemplates(state,round){return businessCustomers(state).map(c=>{const t=THIRD_ORDERS.find(o=>o.id===c.id);return {...t,id:`repeat-${round}-${t.id}`,customerId:t.id,businessRound:round,stage:3,baseRevenue:t.revenue,paymentTerms:'credit',payLag:Math.max(3,t.payLag)};});}
+function demandContract(t,round,index){
+ const type=round<=3?'regular':['urgent','bulk','regular'][(round-4+index)%3];
+ const quantity=type==='urgent'?Math.max(1,Math.floor(t.quantity*.8)):type==='bulk'?Math.ceil(t.quantity*1.2):t.quantity;
+ return {...t,quantity,revenue:Math.floor(t.revenue*quantity/t.quantity),deadlineDays:type==='urgent'?2:type==='bulk'?6:t.deadlineDays,payLag:type==='urgent'?1:Math.max(3,t.payLag)+(type==='bulk'?2:0),demandVersion:1,demandType:type,demandLabel:{regular:'常规补货',urgent:'临时急补',bulk:'集中采购'}[type]};
+}
+function repeatTemplates(state,round,version=0){return businessCustomers(state).map((c,index)=>{const original=THIRD_ORDERS.find(o=>o.id===c.id),t=version===1?demandContract(original,round,index):{...original,payLag:Math.max(3,original.payLag)};return {...t,id:`repeat-${round}-${t.id}`,customerId:t.id,businessRound:round,stage:3,baseRevenue:t.revenue,paymentTerms:'credit'};});}
+export function canPassBusinessOrder(state,id){const o=find(state,id);return !!state.businessRound&&o?.businessRound===state.businessRound&&o.status==='open'&&currentOpeningOrders(state).some(x=>x.id!==id&&x.status==='paid');}
+export function nextBusinessDemand(state){if(!state.businessRound)return [];return repeatTemplates(state,(state.businessRound||0)+1,1);}
+
 export function paymentOptions(state,id){
- const o=find(state,id);if(!o?.businessRound)return [];const payLag=Math.max(3,THIRD_ORDERS.find(t=>t.id===o.customerId).payLag),unlocked=earlierPaidRepeats(state,o)>=DEPOSIT_REPEAT_TARGET;
+ const o=find(state,id);if(!o?.businessRound)return [];const payLag=(o.demandVersion===1?repeatTemplates(state,o.businessRound,1).find(t=>t.customerId===o.customerId).payLag:Math.max(3,THIRD_ORDERS.find(t=>t.id===o.customerId).payLag)),unlocked=earlierPaidRepeats(state,o)>=DEPOSIT_REPEAT_TARGET;
  return [{id:'credit',payment:'credit',selected:o.paymentTerms==='credit',revenue:o.baseRevenue,payLag,discount:0},{id:'cash',payment:'cash',selected:o.paymentTerms==='cash',revenue:Math.floor(o.baseRevenue*92/100),payLag:0,discount:o.baseRevenue-Math.floor(o.baseRevenue*92/100)},{id:'deposit',payment:'deposit',selected:o.paymentTerms==='deposit',revenue:o.baseRevenue,payLag,discount:0,deposit:Math.floor(o.baseRevenue*30/100),disabled:!unlocked,reason:unlocked?'':`这位客户复购收齐${DEPOSIT_REPEAT_TARGET}单后愿付定金。`,requiredRepeats:DEPOSIT_REPEAT_TARGET}];
 }
 function transportEstimate(state,o,day=state.day){return ROUTES.map(r=>{const days=r.id==='express'&&o.stage>=2&&state.investment!=='express'?2:r.days;return {freight:r.id==='express'&&state.investment==='express'?180:r.cost,arrivalDay:day+days,collectionDay:day+days+o.payLag};}).filter(r=>r.arrivalDay<=(o.deadlineDay??day+o.deadlineDays)).sort((a,b)=>(a.freight+(a.collectionDay-day)*(state.dailyOperatingCost||0))-(b.freight+(b.collectionDay-day)*(state.dailyOperatingCost||0)))[0];}
 export function berthUpgrade(state){
  let reason='';if(!state.businessRound)reason='先完成三程，开始经营长期客户。';else if(cargoCapacity(state)===2)reason='第二泊位已经投入使用。';
  else if(state.orders.some(o=>['packed','shipping'].includes(o.status)))reason='先把码头这批货交付，再扩建泊位。';
- else {const remaining=state.cash-SECOND_BERTH_COST;const candidates=currentOpeningOrders(state).filter(o=>o.status==='open');const orders=candidates.length?candidates:repeatTemplates(state,(state.businessRound||0)+1);const minimum=Math.min(...orders.map(o=>{const estimate=transportEstimate(state,o);return costFor(state,o).purchaseCost-procurementDeposit(state,o)+estimate.freight+(estimate.collectionDay-state.day)*(state.dailyOperatingCost||0);}));const dueDays=Math.max(0,...state.orders.filter(o=>o.status==='receivable').map(o=>o.collectionDay-state.day));if(remaining<Math.max(minimum,dueDays*(state.dailyOperatingCost||0)))reason='扩建后还要留够一笔生意的货款、运费与日常周转。';}
+ else {const remaining=state.cash-SECOND_BERTH_COST;const candidates=currentOpeningOrders(state).filter(o=>o.status==='open');const orders=candidates.length?candidates:nextBusinessDemand(state);const minimum=Math.min(...orders.map(o=>{const estimate=transportEstimate(state,o);return costFor(state,o).purchaseCost-procurementDeposit(state,o)+estimate.freight+(estimate.collectionDay-state.day)*(state.dailyOperatingCost||0);}));const dueDays=Math.max(0,...state.orders.filter(o=>o.status==='receivable').map(o=>o.collectionDay-state.day));if(remaining<Math.max(minimum,dueDays*(state.dailyOperatingCost||0)))reason='扩建后还要留够一笔生意的货款、运费与日常周转。';}
  return {cost:SECOND_BERTH_COST,available:!reason,reason};
 }
 export function availableInvestments(state){return INVESTMENTS.map(i=>{let reason='';
@@ -65,8 +73,9 @@ export function normalizeOpeningSave(raw){
   s.businessRound??=0;s.berthCount??=1;s.berthInvestmentCost??=0;if(!integer(s.businessRound)||![1,2].includes(s.berthCount)||s.berthInvestmentCost!==(s.berthCount===2?SECOND_BERTH_COST:0)||(!s.businessRound&&s.berthCount!==1))return null;
   s.investment??=null;s.stage=s.investment?(s.stage===3?3:2):1;s.investmentCost=s.investment?700:0;
   const legacyCosts=s.operatingCostPaid==null;s.dailyOperatingCost=s.stage>=2?DAILY_OPERATING_COST:0;s.operatingCostPaid??=0;if(!integer(s.operatingCostPaid))return null;
+  if(s.demandStartRound!=null&&(!integer(s.demandStartRound)||s.demandStartRound<1||s.demandStartRound>s.businessRound))return null;
   let templates=s.stage===3?[...ORDERS,...SECOND_ORDERS,...THIRD_ORDERS]:s.stage===2?[...ORDERS,...SECOND_ORDERS]:ORDERS;
-  if(s.businessRound){if(s.stage!==3||s.orders.length!==10+s.businessRound*2||businessCustomers(s).length!==2||s.orders.some(o=>!o.businessRound&&o.stage===3&&!['paid','declined'].includes(o.status)))return null;for(let n=1;n<=s.businessRound;n++)templates.push(...repeatTemplates(s,n));}
+  if(s.businessRound){if(s.stage!==3||s.orders.length!==10+s.businessRound*2||businessCustomers(s).length!==2||s.orders.some(o=>!o.businessRound&&o.stage===3&&!['paid','declined'].includes(o.status)))return null;for(let n=1;n<=s.businessRound;n++)templates.push(...repeatTemplates(s,n,s.demandStartRound!=null&&n>=s.demandStartRound?1:0));}
   if(s.orders.length!==templates.length||new Set(s.orders.map(o=>o.id)).size!==templates.length)return null;
   for(const o of s.orders){const template=templates.find(t=>t.id===o.id);if(!template||!['open','packed','shipping','receivable','paid','declined'].includes(o.status))return null;
    for(const key of ['depositReceived','berthIndex','purchaseCost','basePurchaseCost','unitCost','deadlineDay','freight','arrivalDay','collectionDay','deliveredDay','transitDays','shipDay'])if(o[key]!=null&&!integer(o[key]))return null;
@@ -75,24 +84,25 @@ export function normalizeOpeningSave(raw){
    if(!PRODUCTS.some(p=>p.id===o.product)||typeof o.name!=='string'||o.name.length>120)return null;
    if(!['quantity','revenue','deadlineDays','payLag'].every(k=>integer(o[k]))||o.quantity<1||o.deadlineDays<1)return null;
    if(legacyCosts&&signed(o))o.legacySettlement=true;
-   if(template.businessRound){if(o.businessRound!==template.businessRound||o.customerId!==template.customerId||o.baseRevenue!==template.baseRevenue||!['cash','credit','deposit'].includes(o.paymentTerms)||['declined'].includes(o.status)||(o.businessRound<s.businessRound&&o.status!=='paid'))return null;for(const key of ['name','product','quantity','deadlineDays'])if(o[key]!==template[key])return null;const terms=paymentOptions(s,o.id).find(x=>x.id===o.paymentTerms);if(terms.disabled||o.revenue!==terms.revenue||o.payLag!==terms.payLag)return null;
-    if(o.paymentTerms==='deposit'){if(o.status==='open'?o.depositReceived!=null:o.depositReceived!==terms.deposit)return null;}else if(o.depositReceived!=null)return null;
+   if(template.businessRound){for(const key of ['demandVersion','demandType','demandLabel'])if(o[key]!==template[key])return null;if(o.businessRound!==template.businessRound||o.customerId!==template.customerId||o.baseRevenue!==template.baseRevenue||!['cash','credit','deposit'].includes(o.paymentTerms)||(o.status==='declined'?o.passed!==true:o.passed!=null)||(o.businessRound<s.businessRound&&!['paid','declined'].includes(o.status)))return null;for(const key of ['name','product','quantity','deadlineDays'])if(o[key]!==template[key])return null;const terms=paymentOptions(s,o.id).find(x=>x.id===o.paymentTerms);if(terms.disabled||o.revenue!==terms.revenue||o.payLag!==terms.payLag)return null;
+    if(o.paymentTerms==='deposit'){if(['open','declined'].includes(o.status)?o.depositReceived!=null:o.depositReceived!==terms.deposit)return null;}else if(o.depositReceived!=null)return null;
     const procurement=['purchaseCost','basePurchaseCost','unitCost','deadlineDay','berthIndex'],shipment=['freight','arrivalDay','collectionDay','transitDays','shipDay'];
-    if(o.status==='open'&&[...procurement,...shipment,'deliveredDay'].some(k=>o[k]!=null))return null;
+    if(['open','declined'].includes(o.status)&&[...procurement,...shipment,'deliveredDay'].some(k=>o[k]!=null))return null;
     if(o.status==='packed'&&[...shipment,'deliveredDay'].some(k=>o[k]!=null))return null;
     if(signed(o)&&(!procurement.every(k=>integer(o[k]))||o.berthIndex>=cargoCapacity(s)||o.basePurchaseCost!==o.unitCost*o.quantity||o.purchaseCost!==Math.floor(o.basePurchaseCost*(s.investment==='warehouse'?90:100)/100)))return null;
     if(['shipping','receivable','paid'].includes(o.status)&&(!shipment.every(k=>integer(o[k]))||o.arrivalDay!==o.shipDay+o.transitDays||o.collectionDay!==o.arrivalDay+o.payLag||o.arrivalDay>o.deadlineDay))return null;
     if(['receivable','paid'].includes(o.status)&&(!integer(o.deliveredDay)||o.deliveredDay<o.arrivalDay||o.deliveredDay>s.day))return null;
-   }else if(o.businessRound||o.customerId||o.paymentTerms||o.baseRevenue!=null||o.depositReceived!=null)return null;
+   }else if(o.passed!=null||o.demandVersion!=null||o.demandType!=null||o.demandLabel!=null||o.businessRound||o.customerId||o.paymentTerms||o.baseRevenue!=null||o.depositReceived!=null)return null;
    o.stage=template.businessRound||THIRD_ORDERS.some(t=>t.id===o.id)?3:SECOND_ORDERS.some(t=>t.id===o.id)?2:1;
    if(o.route&&o.transitDays==null)o.transitDays=ROUTES.find(r=>r.id===o.route).days;
   }
+  for(let n=1;n<=s.businessRound;n++){const batch=s.orders.filter(o=>o.businessRound===n);if(batch.some(o=>o.status==='declined')&&(batch.filter(o=>o.status==='declined').length!==1||batch.filter(o=>o.status==='paid').length!==1))return null;}
   const active=s.orders.filter(o=>['packed','shipping'].includes(o.status));if(active.length>cargoCapacity(s))return null;const occupied=new Set();for(const o of active){if(o.berthIndex==null)o.berthIndex=[0,1].find(i=>!occupied.has(i));if(o.berthIndex>=cargoCapacity(s)||occupied.has(o.berthIndex))return null;occupied.add(o.berthIndex);}
   const prices=p=>p&&PRODUCTS.every(x=>integer(p[x.id])&&p[x.id]>0);
   if(!prices(s.prices))return null;s.nextPrices={...priceAt(s.round+1)};
   s.history=Array.isArray(s.history)?s.history:[];
   s.priceHistory=Array.isArray(s.priceHistory)?s.priceHistory.filter(p=>integer(p.day)&&p.day<=s.day&&prices(p.prices)):[];
-  s.completed=s.orders.filter(o=>o.status==='paid').length;const current=currentOpeningOrders(s);s.stageCompleted=current.filter(o=>o.status==='paid').length;s.stageTarget=s.stage===3?2:3;s.stageSigned=current.filter(signed).length;if(s.stageSigned>s.stageTarget)return null;if(s.stage===3){if(s.orders.some(o=>o.stage<3&&o.status!=='paid'))return null;if(!s.businessRound)for(const o of current){if(s.stageSigned===2&&o.status==='open')o.status='declined';if(s.stageSigned<2&&o.status==='declined')return null;}}s.portUnlocked=s.stageCompleted===s.stageTarget;s.ending=s.stage>=2&&s.portUnlocked;return s;
+  s.completed=s.orders.filter(o=>o.status==='paid').length;const current=currentOpeningOrders(s);s.stageCompleted=current.filter(o=>o.status==='paid').length;s.stageTarget=s.businessRound?2-current.filter(o=>o.status==='declined').length:s.stage===3?2:3;s.stageSigned=current.filter(signed).length;if(s.stageSigned>s.stageTarget)return null;if(s.stage===3){if(s.orders.some(o=>o.stage<3&&o.status!=='paid'))return null;if(!s.businessRound)for(const o of current){if(s.stageSigned===2&&o.status==='open')o.status='declined';if(s.stageSigned<2&&o.status==='declined')return null;}}s.portUnlocked=s.stageCompleted===s.stageTarget;s.ending=s.stage>=2&&s.portUnlocked;return s;
  }catch{return null;}
 }
 export function createOpeningGame(){return {version:1,stage:1,businessRound:0,berthCount:1,berthInvestmentCost:0,investment:null,investmentCost:0,dailyOperatingCost:0,operatingCostPaid:0,stageCompleted:0,stageTarget:3,stageSigned:0,ending:false,day:1,round:0,cash:1800,prices:{...PRICES[0]},priceHistory:[{day:1,prices:{...PRICES[0]}}],nextPrices:{...PRICES[1]},orders:ORDERS.map(o=>({...o,stage:1,status:'open'})),completed:0,portUnlocked:false,history:[]};}
@@ -132,9 +142,14 @@ function reject(state,message){return {state,feedback:{ok:false,message}};}
  */
 export function reduceOpening(state,action){
  if(action?.type==='RESTART')return {state:createOpeningGame(),feedback:{ok:true,message:'重新开张。'}};
+ if(action?.type==='PASS_BUSINESS_ORDER'){
+  if(!canPassBusinessOrder(state,action.orderId))return reject(state,'本批先收齐一单，另一份未签约的生意才可以不接。');
+  const next=structuredClone(state),o=find(next,action.orderId);o.status='declined';o.passed=true;next.stageTarget=1;next.stageCompleted=1;next.portUnlocked=true;next.ending=true;
+  const feedback={ok:true,message:'这份未签约生意本批不接，不收钱、不扣钱。客户下批仍会来；这次不增加复购记录。',action:action.type,orderId:o.id,cashDelta:0,daysAdvanced:0,operatingCost:0};next.history.push({...feedback,day:next.day});return {state:next,feedback};
+ }
  if(['START_BUSINESS','NEXT_BUSINESS_ROUND'].includes(action?.type)){
   const starting=action.type==='START_BUSINESS';if(state.stage!==3||!state.ending||businessCustomers(state).length!==2||(starting?!!state.businessRound:!state.businessRound))return reject(state,'先收齐当前生意的货款。');
-  const next=structuredClone(state);next.businessRound=(state.businessRound||0)+1;next.orders.push(...repeatTemplates(next,next.businessRound).map(o=>({...o,status:'open'})));Object.assign(next,{ending:false,portUnlocked:false,stageCompleted:0,stageSigned:0,stageTarget:2});
+  const next=structuredClone(state);next.businessRound=(state.businessRound||0)+1;next.demandStartRound??=next.businessRound;next.orders.push(...repeatTemplates(next,next.businessRound,1).map(o=>({...o,status:'open'})));Object.assign(next,{ending:false,portUnlocked:false,stageCompleted:0,stageSigned:0,stageTarget:2});
   const feedback={ok:true,message:starting?'两位老客户带来了回头单。付款方式由你来定。':'老客户的新一批订单到了，采购价按今天行情。',action:action.type,cashDelta:0,daysAdvanced:0,operatingCost:0};next.history.push({...feedback,day:next.day});return {state:next,feedback};
  }
  if(action?.type==='SET_PAYMENT'){

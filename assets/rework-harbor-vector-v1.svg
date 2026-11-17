@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700">
+<defs>
+ <linearGradient id="sea" x2="0" y2="1"><stop stop-color="#b9d8d4"/><stop offset=".45" stop-color="#7bb3b5"/><stop offset="1" stop-color="#356f83"/></linearGradient>
+ <linearGradient id="land" x2="0" y2="1"><stop stop-color="#f2dfb6"/><stop offset="1" stop-color="#b6a17a"/></linearGradient>
+ <pattern id="ripples" width="160" height="75" patternUnits="userSpaceOnUse"><path d="M12 35q20 7 40 0m50 28q16 6 32 0" stroke="#e7f1df" stroke-width="2" fill="none" opacity=".35"/></pattern>
+ <filter id="soft"><feGaussianBlur stdDeviation="8"/></filter>
+ <g id="crate"><path d="M0 0l25-13 25 13-25 14z" fill="#efc17f"/><path d="M0 0v25l25 15V14z" fill="#bc8350"/><path d="M25 14l25-14v25L25 40z" fill="#dca45f"/><path d="M7 4v22m35-22v21M25 18v16" stroke="#9b6e45" stroke-width="2"/></g>
+ <g id="palm"><path d="M0 0q-12-35-5-76" fill="none" stroke="#ac8754" stroke-width="8"/><path d="M-6-68q-39-17-52 6 36-7 52 2m0-8q10-34 39-27-27 10-35 34m-4-7q-4-31-33-29 19 14 29 30m3 0q35-11 49 16-31-14-46-8" fill="#427a67"/></g>
+ <g id="warehouse"><path d="M5 94l124-64 148 81-123 69z" fill="#3f6b6a" opacity=".14"/><path d="M0 0l120-65 145 78-120 67z" fill="#d19b68"/><path d="M0 0v105l145 81V80z" fill="#e8c395"/><path d="M145 80l120-67v105l-120 68z" fill="#ccaa7f"/><path d="M-10-8l127-73 160 83-132 76z" fill="#b36646"/><path d="M-10-8v13l155 86V78z" fill="#8f4e3c"/><path d="M145 78L277 2v15L145 91z" fill="#9f5c41"/><path d="M8-8l111-63 139 73-111 64z" fill="url(#roof-light)"/><path d="M45-27l137 74m-92-99l138 75M19 11l111 62" stroke="#e5b37b" opacity=".5" stroke-width="3"/><path d="M21 45l63 35v73l-63-35z" fill="#3d6570"/><path d="M28 59l49 27v11L28 70zm0 22l49 27v11L28 92zm0 22l49 27v11L28 114z" fill="#557e80"/><path d="M99 87l27 15v32l-27-15z" fill="#fff0be"/><path d="M112 94v31m-13-22l27 15" stroke="#b99565" stroke-width="3"/><path d="M174 90l66-37v15l-66 37z" fill="#ece6b6"/><path d="M174 119l25-14v35l-25 14zm38-21l25-14v35l-25 14z" fill="#53767b"/></g>
+
+ <linearGradient id="hull" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#365c68"/><stop offset="1" stop-color="#193e50"/></linearGradient>
+ <linearGradient id="roof-light" x2="1" y2="1"><stop stop-color="#db9c6b"/><stop offset="1" stop-color="#a75c45"/></linearGradient>
+ <pattern id="paving" width="60" height="36" patternUnits="userSpaceOnUse" patternTransform="skewY(29)"><path d="M0 0h60v36H0zM30 0v18M0 18h60" fill="none" stroke="#fff4d0" stroke-opacity=".24" stroke-width="1"/></pattern>
+ <g id="bollard"><ellipse cx="0" cy="5" rx="11" ry="6" fill="#385e64" opacity=".25"/><path d="M-5 2v-13h10V2" fill="#425c60"/><ellipse cy="-11" rx="9" ry="4" fill="#677b73"/></g>
+ <g id="docker"><ellipse cy="6" rx="11" ry="5" fill="#395b59" opacity=".2"/><path d="M-4 4v-13m9 13v-13" stroke="#35505b" stroke-width="4"/><path d="M-5-12v-15h12v15" fill="#d99e4a"/><path d="M-7-24l-6 14m21-13l7 10" stroke="#c59666" stroke-width="3"/><circle cx="1" cy="-32" r="6" fill="#d5a775"/><path d="M-7-35h16l-4-5H-2z" fill="#f0c76a"/></g>
+ <g id="harbor-lamp"><ellipse rx="13" ry="5" fill="#49696b" opacity=".16"/><path d="M0 0v-58l16-8" fill="none" stroke="#3c5d64" stroke-width="4"/><path d="M10-69l13-6 10 6-14 8z" fill="#405b60"/><path d="M14-67l12-5v8l-12 5z" fill="#fff1bb"/></g>
+</defs>
+<rect width="1200" height="700" fill="url(#sea)"/><rect width="1200" height="700" fill="url(#ripples)"/>
+<!-- Layered working coastline: low contrast behind the playable quays. -->
+<g opacity=".35" fill="#749c96"><path d="M0 40L150 3l163 46L475 0l153 39 158-27 118 41 296-35v55H0z"/><path d="M24 60V22l42-15 37 16v36m34-8V7l50-15 31 33v33m292 5V13l53-18 51 28v46"/></g>
+<path d="M0 73Q200 101 416 75T846 85" fill="none" stroke="#dce6cd" stroke-width="3" opacity=".5"/>
+<g transform="translate(772 119) scale(.7)"><path d="M0 25l110-60 52 27-110 63z" fill="#aab7a2"/><path d="M52 55v13L162 8V-8z" fill="#718e87"/><path d="M62 3l22-12v-65L63-62z" fill="#e5dec0"/><path d="M84-9l17 9v-64l-17-10z" fill="#b1baaa"/><path d="M60-65l23-14 21 12-22 13z" fill="#43696d"/><path d="M65-59v13l17 9v-15zm20 8v13l12-7v-13z" fill="#f6dea1"/><path d="M60-65v-14l23-14 21 12v14l-22 13z" fill="#b96e4c"/><path d="M56-80l26-19 26 17-25 15z" fill="#5a7974"/></g>
+<!-- Far coast: deliberately quiet space for the new-market destination. -->
+<path d="M870-10h330v265l-155 65-149-83-80-133z" fill="#73978a" opacity=".28"/><path d="M895-10h305v231l-153 69-125-76-69-120z" fill="url(#land)"/>
+<path d="M972 173l119 66 109-53v46l-111 59-117-66z" fill="#b09b72"/><path d="M969 170l121 65 110-56v16l-111 59-120-68z" fill="#f0e4bd"/>
+<g transform="translate(980 72)"><path d="M0 0l69-36 92 48-69 39z" fill="#546f68"/><path d="M0 0v71l92 50V51z" fill="#e0c6a0"/><path d="M92 51l69-39v71l-69 38z" fill="#b69d7b"/><path d="M-7-5l76-43 100 53-77 42z" fill="#586f64"/><path d="M13 21l23 12v18L13 38zm37 20l23 12v18L50 58m56-1l19-11v20l-19 11m29-38l17-10v20l-17 10" fill="#f8ecc4"/><path d="M14 60l64 34v20L14 80z" fill="#3e7376"/><path d="M12 53l66 35 10 10-67-35z" fill="#d78b57"/><path d="M27 61v26m23-14v26m23-13v26" stroke="#ead9b4" stroke-width="4"/></g><use href="#palm" transform="translate(1142 151) scale(.85)"/><use href="#palm" transform="translate(929 122) scale(.6)"/>
+<path d="M1047 234l-57 31m72-23l-57 31m72-23l-57 31" stroke="#d2bd8d" stroke-width="6"/><path d="M1074 193v-48m0 0l37 12-37 12" stroke="#6d6851" stroke-width="3" fill="#dd9b4b"/>
+<!-- Isometric working harbor, with waterfront thickness and stacked levels. -->
+<ellipse cx="390" cy="500" rx="330" ry="120" fill="#477d85" opacity=".17" filter="url(#soft)"/>
+<path d="M0 195l254-120 382 208-31 155L286 631 0 471z" fill="#a99c77"/><path d="M0 175L254 54l385 207-32 155L286 606 0 450z" fill="url(#land)"/>
+<path d="M0 450l286 156 321-190v25L286 631 0 471z" fill="#a39371"/><path d="M286 606v25m-71-64v25m143-63v25m70-67v25m71-67v25m70-67v25" stroke="#8e866b" stroke-width="3"/>
+<path d="M58 244l222-113 295 159-23 98-269 157L42 414z" fill="#e7d7b0" opacity=".6"/><path d="M76 365l202 111 255-145" fill="none" stroke="#c4b38b" stroke-width="3" stroke-dasharray="9 7"/>
+<path d="M58 244l222-113 295 159-23 98-269 157L42 414z" fill="url(#paving)"/>
+<g transform="translate(110 214)"><use href="#warehouse"/></g>
+<g transform="translate(411 294)"><use href="#crate"/><use href="#crate" transform="translate(51 29)"/><use href="#crate" transform="translate(0 -28)"/><use href="#crate" transform="translate(51 1)"/></g>
+<g transform="translate(306 450)"><path d="M-33-6l68-38 78 44-69 40z" fill="#b6a67e"/><use href="#crate"/><use href="#crate" transform="translate(51 29)"/></g>
+<g transform="translate(423 406)"><path d="M0 0l68-38 78 44-69 40z" fill="none" stroke="#fff0b9" stroke-width="3" stroke-dasharray="8 5"/><path d="M55 0l30 16m-29 0L84 0" stroke="#b6a57d" stroke-width="3"/></g>
+<!-- Quayside crane -->
+<path d="M524 319l34-18 35 19-34 20z" fill="#899282"/><path d="M546 309V147l25 14v163" fill="#426c71"/><path d="M545 147l86-48 83 46-15 9-68-37-62 35z" fill="#c68b43"/><path d="M551 172l68-38m-64 54l64-38" stroke="#6c7b6d" stroke-width="5"/><path d="M699 151v95l-10 9 10 9 10-9" stroke="#486a69" stroke-width="3" fill="none"/><path d="M550 205l-31 79m52-72l28 94" stroke="#426c71" stroke-width="7"/>
+<g class="yard-life">
+<path d="M17 269l60-32 70 38-60 34z" fill="#416568" opacity=".13"/>
+<g transform="translate(28 247)"><path d="M0 0l42-22 52 28-42 25z" fill="#69958d"/><path d="M0 0v27l52 28V31z" fill="#47766e"/><path d="M52 31L94 6v27L52 55z" fill="#315c58"/><path d="M5 4l41 23v19L5 23" fill="none" stroke="#8fac98" stroke-width="2"/><path d="M94 6l26 14v28L94 33z" fill="#e3b364"/><path d="M94 6V-9l26 14v15z" fill="#f1cf85"/><path d="M99-4l16 9v10l-16-9z" fill="#4e7177"/><ellipse cx="14" cy="32" rx="8" ry="12" fill="#284e54"/><ellipse cx="72" cy="48" rx="8" ry="12" fill="#284e54"/><ellipse cx="108" cy="43" rx="7" ry="10" fill="#284e54"/></g>
+<use href="#docker" transform="translate(395 365)"/><use href="#docker" transform="translate(329 421) scale(.85)"/>
+<use href="#harbor-lamp" transform="translate(107 403)"/><use href="#harbor-lamp" transform="translate(473 410)"/>
+<path d="M479 430l85-48" stroke="#f6d785" stroke-width="5" stroke-dasharray="13 7"/>
+<use href="#bollard" transform="translate(515 455)"/><use href="#bollard" transform="translate(459 488)"/><use href="#bollard" transform="translate(397 524)"/>
+<path d="M290 614q163-85 320-186" stroke="#d2e4d3" stroke-width="5" fill="none" opacity=".5"/>
+</g>
+<!-- Berthed vessel; the gameplay overlay supplies the moving ship. -->
+<g class="berthed-vessel" transform="translate(661 430)"><ellipse cx="55" cy="80" rx="132" ry="33" fill="#528791" opacity=".35"/><path d="M-60 1L65-68l139 71-116 95-118-61z" fill="#325664"/><path d="M-60 1l126-65 132 67-113 70-116-61z" fill="#e6d8ad"/><path d="M-60 1v24l29 22 116 61 119-92V3L85 82-31 19z" fill="url(#hull)"/><path d="M-42 21l129 69 105-69" fill="none" stroke="#e8bd6b" stroke-width="5"/><path d="M-22-6l46-25 42 22-45 27z" fill="#f5edcc"/><path d="M-22-6v-49l45-26 43 24v48L21 18z" fill="#f4e7c7"/><path d="M21-32l45-25v48L21 18z" fill="#c2d2ca"/><path d="M-13-50l24 13v14l-24-13zm42 11l28-16v14L29-25z" fill="#4b7985"/><path d="M0-68v-25h13v32" fill="#b76a48"/><path d="M-50-1l116-60 119 61M-50-1v-12m34-4v-12m34-5v-12m34-5v-12m36 14v-12m34 30v-12m34 30v-12" fill="none" stroke="#f4e9cb" stroke-width="2"/><path d="M-44 30l126 66 100-75" fill="none" stroke="#182f3f" stroke-width="2"/><ellipse cx="-9" cy="37" rx="6" ry="9" fill="#25424a"/><ellipse cx="43" cy="64" rx="6" ry="9" fill="#25424a"/><ellipse cx="132" cy="62" rx="6" ry="9" fill="#25424a"/><path d="M7-91v-18m0 0l19 6-19 5" fill="#f1c56f" stroke="#48636b" stroke-width="2"/><use class="vessel-cargo" href="#crate" transform="translate(65 -21) scale(.8)"/><use class="vessel-cargo" href="#crate" transform="translate(106 1) scale(.8)"/><use class="vessel-cargo" href="#crate" transform="translate(65 -43) scale(.8)"/></g>
+<use href="#palm" transform="translate(52 373) scale(1.2)"/><use href="#palm" transform="translate(25 409) scale(.8)"/>
+<g fill="#f6f1d5"><path d="M771 87q9-11 18 0 9-11 18 0-9-5-18 4-9-9-18-4z"/><path d="M826 65q6-8 12 0 6-8 12 0-6-3-12 3-6-6-12-3z"/></g>
+</svg>

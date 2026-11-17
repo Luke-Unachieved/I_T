@@ -1,0 +1,14 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {createGapProcurement,reduceGapProcurement as reduce,previewExistingStudioStock as preview} from '../src/customer-gap-procurement-experiment.js';
+const main=()=>({phase:'studio-project',day:119,cash:49800,history:[],collection:{model:'own',style:'botanical',products:['mira','samir','ines'],orders:[{status:'paid',buyerId:'atelier',scope:'nonexclusive'}]},curationHistory:[{referrerId:'mira',status:'paid',products:['mira','samir','ines'],packaging:'plain',buyer:'Atelier'}],caseGrowthHistory:[{status:'paid',agreement:'portfolio',referrerId:'mira',designVersion:'original',purpose:'studio-series',products:['mira','samir','ines'],quantity:40,deliveryDay:90}],productDevelopment:{status:'active',factory:'studio'},studioProject:{direction:'independent',briefId:'reading',lampVersion:'developed',layout:'table',light:'reading',status:'approved',referrerId:'mira',products:['mira','ines']}});
+function stock(){let m=createGapProcurement(main(),{clientId:'trial',quantity:12,unitPrice:75});return reduce(reduce(m,{type:'BUY_FACTORY_BATCH',factoryMode:'batch'}),{type:'FULFIL_FACTORY_INQUIRY'});}
+test('actual 40-lamp independent quote can use 40 of 48 generic lamps with no double-expensed cost or extra profit',()=>{
+ const s=main(),m=stock(),before=structuredClone({s,m}),q=preview(m,s);assert.equal(q.valid,true,q.reason);assert.equal(q.usedStock,40);assert.equal(q.remaining,8);assert.equal(q.originalQuote.cost,3080);assert.equal(q.newProductionCost,1280);assert.equal(q.stockCostConsumed,1800);assert.equal(q.costOfGoodsSold,3080);assert.equal(q.netProfit,q.originalNetProfit);assert.equal(q.netProfitDifference,0);assert.equal(q.cashChangeDifference,1800);assert.equal(q.stockReserved,false);assert.deepEqual({s,m},before);
+});
+test('partial remaining stock offsets only actual lamps while other components and original scope remain',()=>{
+ let m=stock();m=reduce(m,{type:'ADD_INQUIRY',inquiry:{clientId:'trial2',quantity:40,unitPrice:75,stockDeliveryDays:1}});m=reduce(m,{type:'FULFIL_STOCK_INQUIRY'});const q=preview(m,main());assert.equal(q.valid,true);assert.equal(q.usedStock,8);assert.equal(q.remaining,0);assert.equal(q.newProductionCost,3080-360);assert.equal(q.netProfitDifference,0);
+});
+test('unapproved, standard, exclusive, custom, in-flight or inconsistent stock is rejected',()=>{
+ for(const mutate of [s=>s.studioProject.lampVersion='standard',s=>s.studioProject.status='draft',s=>s.collection.exclusiveBuyer='northline',s=>s.caseGrowth={status:'production'},s=>s.studioProject.requiresNameplate=true]){const s=main();mutate(s);assert.equal(preview(stock(),s).valid,false);}
+ for(const mutate of [m=>m.batch.status='production',m=>m.batch.requiresNameplate=true,m=>m.batch.unitCost=60,m=>m.batch.remaining++,m=>m.activeInquiryId='pending']){const m=stock();mutate(m);assert.equal(preview(m,main()).valid,false);}
+});

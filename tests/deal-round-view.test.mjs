@@ -1,0 +1,11 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {roundCashView,roundProductionView,roundQuoteNote} from '../src/deal-room-round-view.js';
+const state=()=>({phase:'portfolio',day:10,cash:10000,businessRound:2,businessSigned:0,roundReceivables:{active:true,round:2},contracts:[]});
+test('empty opt-in offers cancellation and distinguishes cash from unpaid balances',()=>{const h=roundCashView(state());assert.match(h,/CANCEL_ROUND_RECEIVABLES/);assert.match(h,/现在能用/);assert.match(h,/已交货，待到账/);});
+test('last signed order never promises a third order and unpaid money is not paid',()=>{const s=state();s.businessSigned=2;s.phase='fulfilling';s.contracts=[{roundReceivable:true,businessRound:2,clientId:'ines',clientName:'Inês',quantity:200,status:'receivable',deliveryDay:12,paymentDay:20,balanceDue:5000,operatingCost:60},{roundReceivable:true,businessRound:2,clientId:'mira',clientName:'Mira',quantity:150,status:'fulfilling',deliveryDay:16,paymentDay:20,balanceDue:3000,operatingCost:0}];assert.doesNotMatch(roundProductionView(s),/就能谈本轮下一单/);assert.match(roundProductionView(s),/两单已签齐/);const h=roundCashView(s);assert.match(h,/¥5,000/);assert.doesNotMatch(h,/CANCEL_ROUND_RECEIVABLES/);assert.doesNotMatch(h,/两单都已收齐/);});
+
+test('settled first order permits leaving without inventing a receivable',()=>{const s=state();s.businessSigned=1;s.contracts=[{roundReceivable:true,businessRound:2,clientId:'samir',clientName:'Samir',quantity:80,status:'paid',deliveryDay:12,paymentDay:12,balanceDue:3100,operatingCost:60}];const h=roundCashView(s);assert.match(h,/CLOSE_SETTLED_ROUND/);assert.doesNotMatch(h,/先等已交货的尾款/);assert.doesNotMatch(h,/WAIT_ROUND_RECEIPT/);});
+
+test('round quote retains the real small-versus-large replenishment consequence',()=>{const s={...state(),retailPlanning:true};assert.match(roundQuoteNote(s,{quantity:80,deliveryDay:86},'samir'),/卖 5 天，预计第 91 天再补货/);assert.match(roundQuoteNote(s,{quantity:160,deliveryDay:88},'samir'),/卖 10 天，预计第 98 天再补货/);assert.doesNotMatch(roundQuoteNote(state(),{quantity:80,deliveryDay:86},'samir'),/门店/);});
+
+test('second quote never invites a third signing',()=>{assert.doesNotMatch(roundQuoteNote({...state(),businessSigned:1},{quantity:80,deliveryDay:12},'samir'),/可谈下一单/);});

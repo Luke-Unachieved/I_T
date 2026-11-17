@@ -13,7 +13,8 @@
     "check:release-art": "node scripts/check-release-assets.mjs",
     "build:data": "node scripts/build-standalone.mjs && node scripts/build-data.mjs",
     "build:classic": "node scripts/build-standalone.mjs",
-    "pretest": "npm run build"
+    "pretest": "npm run build",
+    "build:modern": "node scripts/build-deal-standalone.mjs"
   },
   "engines": {
     "node": ">=20"
