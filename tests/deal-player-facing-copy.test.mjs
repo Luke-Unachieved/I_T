@@ -1,3 +1,4 @@
+import {playerStatusText} from '../src/deal-room-curation-view.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -47,3 +48,7 @@ test('inventory status is natural but canonical source is untouched',async()=>{c
 test('cooperation payoff uses ordinary earnings language and repeat contact explains demand',()=>{const home=readFileSync(new URL('../src/deal-room-home.js',import.meta.url),'utf8'),view=readFileSync(new URL('../src/deal-room-case-growth-view.js',import.meta.url),'utf8');assert.match(home,/三份合作共赚到/);assert.doesNotMatch(home,/三份合作净增/);assert.match(view,/请找原来的联系人继续洽谈，门店暂时还不需要补货/);const core=readFileSync(new URL('../src/deal-room-case-growth.js',import.meta.url),'utf8');assert.match(core,/另一份案例不会重置门店库存/);});
 
 test('first introductions and adoption describe the deal rather than progression bookkeeping',async()=>{const {playerStatusText,curationDemoView}=await import('../src/deal-room-curation-view.js');assert.equal(playerStatusText('首次合作直接采用已交付的工作室原稿。范围已签，待交付后记入实际采用。'),'买手订下了工作室原稿这一版，接下来安排制作和交付。');assert.equal(playerStatusText('Mira 介绍了一份选品委托。保留已交付的那件产品，再搭配一件，不必先做返单。'),'Mira 介绍了一份选品委托。以之前交付的那件产品为主角，再搭配一件给买手看看。');assert.match(curationDemoView({open:true,developed:false,room:'night',level:0}),/这盏灯只有一档亮度，换到夜间看看效果/);const core=readFileSync(new URL('../src/deal-room-engine.js',import.meta.url),'utf8');assert.match(core,/待交付后记入实际采用/);assert.match(core,/不必先做返单/);});
+
+test('routine proposal edits and return visits speak to the next player step, not state preservation',async()=>{const {playerStatusText}=await import('../src/deal-room-curation-view.js');for(const old of ['方案已调整，还没有改变采购承诺。','回到已确认规格，未签的新用途没有改变旧采购。','回到工作室，本次询盘和库存记录保留。','尚未签约，已换成这位买手实际采用过的版本；旧客户合同保持不变。']){assert.doesNotMatch(playerStatusText(old),/没有改变|记录保留|保持不变/);assert.ok(readFileSync(new URL('../src/deal-room-engine.js',import.meta.url),'utf8').includes(old));}assert.equal(playerStatusText('Atelier 已收到潮汐分格版并付清货款，旧版订单没有改变。'),'Atelier 已收到潮汐分格版并付清货款。');});
+
+test('shop signed status does not promise returns for an all-bought contract',()=>{assert.equal(playerStatusText('12盏灯已送到小店，按约定陈列4天后收款、收回留样。'),'12盏灯已送到小店，按约定陈列4天后收款。');});

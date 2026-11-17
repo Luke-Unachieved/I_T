@@ -12,7 +12,7 @@ test('already developed group source counts, portfolio and unfulfilled contracts
 test('active pages get no misleading shortcuts, standard sample never promises dimming',()=>{const s={...base(),curationHistory:[source('mira')],productDevelopment:{status:'active',factory:'line'},caseGrowthHistory:[{status:'paid',agreement:'private',referrerId:'mira',products:['mira']}]};assert.match(project(s,'product').step,/不能承诺客房调光/);assert.ok(careerProjects({...s,phase:'account'}).every(p=>p.actions.length===0));});
 test('volume sample has a reachable paid adoption route instead of an impossible dimming goal',()=>{
  const s={...base(),productDevelopment:{status:'active',factory:'line'}};
- assert.equal(project(s,'product').done,false);assert.deepEqual(project(s,'product').actions,[{type:'CONTINUE_BUSINESS',label:'找 Mira 谈量产样采购'}]);
+ assert.equal(project(s,'product').done,false);assert.deepEqual(project(s,'product').actions,[{type:'OPEN_PRODUCT_REORDER',factory:'line',label:'找 Mira 谈量产样采购'}]);
  const paid={status:'paid',clientId:'mira',specification:'developed-line',quantity:180,product:'暖光标准台灯'};
  assert.equal(project({...s,contracts:[{...paid,status:'fulfilling'}]},'product').done,false);
  const p=project({...s,contracts:[paid]},'product');assert.equal(p.done,true);assert.match(p.achievement,/180 盏.*Mira/);assert.doesNotMatch(p.achievement,/调光|集团/);
@@ -30,7 +30,7 @@ test('actual paid Mira studio-model delivery completes adoption without inventin
  const line=project({...s,contracts:[{...paid,specification:'developed-line'}]},'product');assert.doesNotMatch(line.achievement,/三档调光/);
 });
 test('accepted studio sample offers real existing Mira small-batch route, not compulsory group setup',()=>{
- const s={...base(),productDevelopment:{status:'active',factory:'studio'},contracts:[{clientId:'mira',status:'paid',optionId:'trial',specification:'standard'}]},p=project(s,'product');assert.equal(p.done,false);assert.equal(p.actions[0].type,'CONTINUE_BUSINESS');assert.match(p.actions[0].label,/Mira.*小批/);assert.match(p.step,/60 盏/);assert.doesNotMatch(p.step,/还需要.*集团|集团.*已批准/);assert.equal(s.caseGrowthHistory,undefined);
+ const s={...base(),productDevelopment:{status:'active',factory:'studio'},contracts:[{clientId:'mira',status:'paid',optionId:'trial',specification:'standard'}]},p=project(s,'product');assert.equal(p.done,false);assert.equal(p.actions[0].type,'OPEN_PRODUCT_REORDER');assert.equal(p.actions[0].factory,'studio');assert.match(p.actions[0].label,/Mira.*小批/);assert.match(p.step,/60 盏/);assert.doesNotMatch(p.step,/还需要.*集团|集团.*已批准/);assert.equal(s.caseGrowthHistory,undefined);
  assert.equal(project({...s,phase:'fulfilling'},'product').actions.length,0);
 });
 test('paid studio adoption recognizes either supplier identity without accepting wrong client, spec or unpaid order',()=>{

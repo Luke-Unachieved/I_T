@@ -1,3 +1,4 @@
+import {shopTrialAccounting} from './deal-room-shop-trial.js';
 import {acceptedLampSample} from './deal-room-development.js';
 import {SAMPLE_FACTORIES} from './deal-room-development.js';
 import {previewStudioProjectOrder} from './deal-room-studio-project.js';
@@ -33,6 +34,6 @@ export function stockProcurementAccounting(state){
  const p=state.stockProcurement;
  if(!p||p.status==='draft')return {realizedProfit:0,cashChange:0,inventoryCost:0,reservedInventoryCost:0,inTransitCost:0,reusedStockCost:0};
  if(p.status==='production')return {realizedProfit:0,cashChange:-p.cost,inventoryCost:0,reservedInventoryCost:0,inTransitCost:p.cost,reusedStockCost:0};
- const active=state.caseGrowth?.status==='production'?state.caseGrowth.active:null;
- return {realizedProfit:p.revenue-p.soldCost-p.operatingCost,cashChange:p.cashChange,inventoryCost:p.remaining*p.unitCost,reservedInventoryCost:active?.stockCost||0,inTransitCost:0,reusedStockCost:(p.stockUsed||0)*p.unitCost};
+ const active=state.caseGrowth?.status==='production'?state.caseGrowth.active:null,trial=shopTrialAccounting(state);
+ return {realizedProfit:p.revenue-p.soldCost-p.operatingCost+trial.realizedProfit,cashChange:p.cashChange+trial.cashChange,inventoryCost:p.remaining*p.unitCost,reservedInventoryCost:(active?.stockCost||0)+trial.outsideInventoryCost,inTransitCost:0,reusedStockCost:(p.stockUsed||0)*p.unitCost};
 }

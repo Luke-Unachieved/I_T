@@ -1,3 +1,4 @@
+import {reduceDealRoom,quoteOptions} from './deal-room-engine.js';
 import {hasLampDevelopmentCase,acceptedLampSample} from './deal-room-development.js';
 import {accountCoverage,canExpandAccount,accountCollectionBasis} from './deal-room-account.js';
 import {caseGrowthOffers} from './deal-room-case-growth.js';
@@ -30,10 +31,10 @@ export function careerProjects(state){
  else if(adopted){product.step='集团收到新型号台灯，货款也收齐了。';product.achievement=`${adopted.productNames?.join('、')||'调光台灯'} · ${adopted.quantity} 件已交付并收齐货款`;}
  else if(!state.productDevelopment){if(hasLampDevelopmentCase(state)){product.step='你已交付过灯具组合，可以带着案例比较工厂新样；看完再决定是否出样。';product.actions=[action('START_CASE_DEVELOPMENT','带灯具案例看工厂新样')];}else if(state.supplyPlanHistory?.length){product.step='供货计划已经完成；可比较两家工厂的能力，再决定是否付出样费。';product.actions=[action('START_DEVELOPMENT','看看工厂的新样能力')];}}
  else if(state.productDevelopment.status!=='active'){product.step='工厂正在准备新样，验过实物后再带去谈单。';}
- else if(state.productDevelopment.factory==='line'&&!acceptedLampSample(state,'studio')){product.title='让量产新样进入客户采购';product.step='带验过的暖光样找 Mira 谈 180 盏整批供货。不需要改成调光，也不能承诺客房调光。';product.actions=[action(state.supplyPlanHistory?.length?'CONTINUE_RETAIL_BUSINESS':'CONTINUE_BUSINESS','找 Mira 谈量产样采购')];}
+ else if(state.productDevelopment.factory==='line'&&!acceptedLampSample(state,'studio')){product.title='让量产新样进入客户采购';product.step='带验过的暖光样找 Mira 谈 180 盏整批供货。不需要改成调光，也不能承诺客房调光。';product.actions=[{type:'OPEN_PRODUCT_REORDER',factory:'line',label:'找 Mira 谈量产样采购'}];}
  else if(!!acceptedLampSample(state,'studio')&&(state.contracts||[]).some(c=>c.clientId==='mira'&&c.status==='paid')){
   product.step='Mira 对小批调光灯感兴趣，带着实物样去谈 60 盏采购。';
-  product.actions=[action(state.supplyPlanHistory?.length?'CONTINUE_RETAIL_BUSINESS':'CONTINUE_BUSINESS','找 Mira 谈调光样小批采购')];
+  product.actions=[{type:'OPEN_PRODUCT_REORDER',factory:'studio',label:'找 Mira 谈调光样小批采购'}];
   const group=caseGrowthOffers(state).filter(c=>c.agreement==='private'&&c.sourceProducts.includes('mira'));
   if(group.length)product.actions.push(...byCase('OPEN_CASE_GROWTH','也可回访现有集团采购',group));
  }
@@ -60,4 +61,10 @@ export function careerProjects(state){
  // Home shortcuts never interrupt an active contract or invent a resume action.
  if(!home)for(const p of [stores,series,product]){p.actions=[];if(!p.done)p.step+=' 先处理当前页面，再回工作室继续。';}
  return [stores,series,product];
+}
+
+export function openProductReorder(state,factory){
+ if(!['review','complete'].includes(state.phase)||state.clientProjectActive||!['studio','line'].includes(factory)||!acceptedLampSample(state,factory))return {state,selected:''};
+ let next=reduceDealRoom(state,{type:state.supplyPlanHistory?.length?'CONTINUE_RETAIL_BUSINESS':'CONTINUE_BUSINESS'});if(next===state)return {state,selected:''};next=reduceDealRoom(next,{type:'SELECT_CLIENT',clientId:'mira'});
+ const quote=next.phase==='negotiating'?quoteOptions(next).find(q=>q.specification==='developed-'+factory):null;return {state:next,selected:quote?.id||''};
 }

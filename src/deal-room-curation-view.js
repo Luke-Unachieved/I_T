@@ -39,6 +39,12 @@ export function toggleCurationProduct(draft,id,anchor){
 
 // Presentation-only wording. Historical feedback remains untouched for replay.
 const playerStatusCopies=Object.freeze({
+ '12盏灯已送到小店，按约定陈列4天后收款、收回留样。':'12盏灯已送到小店，按约定陈列4天后收款。',
+ '尚未签约，回工作室看看其他业务。':'回到工作室，看看接下来做什么。',
+ '方案已调整，还没有改变采购承诺。':'这一版摆好了，看看客户觉得合不合适。',
+ '回到已确认规格，未签的新用途没有改变旧采购。':'先按上次确认的样子做，这份新想法以后再谈。',
+ '回到工作室，本次询盘和库存记录保留。':'先回工作室，这份询盘留着再看。',
+ '尚未签约，已换成这位买手实际采用过的版本；旧客户合同保持不变。':'这次拿买手用过的这版来谈，先看看门店的报价。',
  '首次合作直接采用已交付的工作室原稿。范围已签，待交付后记入实际采用。':'买手订下了工作室原稿这一版，接下来安排制作和交付。',
  '12盏已交付并收款。余货是工作室库存成本，不是收入或利润。':'12盏已交付，货款已收到。余下的灯留在工作室，等合适的新订单。',
  '现货已按合同预留扣出，只支付剩余商品与包装制作款；已付灯具成本仍计入本单成本。':'现货已留给这位客户，其他商品和包装也已安排制作。',
@@ -51,7 +57,7 @@ const playerStatusCopies=Object.freeze({
 });
 export function playerStatusText(text){
  const value=String(text??'');
- return playerStatusCopies[value]||value.replace('，这是个人消费，不会提高订单收益。','。').replace('保留已交付的那件产品，再搭配一件，不必先做返单。','以之前交付的那件产品为主角，再搭配一件给买手看看。');
+ return playerStatusCopies[value]||value.replace('，这是个人消费，不会提高订单收益。','。').replace('，旧版订单没有改变。','。').replace('保留已交付的那件产品，再搭配一件，不必先做返单。','以之前交付的那件产品为主角，再搭配一件给买手看看。');
 }
 
 export function curationReceiptView(state){
