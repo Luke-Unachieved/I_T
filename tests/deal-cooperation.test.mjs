@@ -66,3 +66,19 @@ test('buyer-only sleeve and original adoption are distinct paid facts, without a
  const {cooperationView}=await import('../src/deal-room-cooperation-view.js');assert.match(cooperationView(s),/交接这套系列的陈列/);
  s=handover(s);const c=cooperationChapter(s);assert.match(c.nextAction.label,/回看/);assert.equal(c.facts.some(f=>f.kind==='same-version-stores'),false);assert.match(cooperationView(s),/上市交接已完成/);assert.deepEqual(normalizeDealRoom(s),s);
  });
+
+
+test('cooperation signposts describe customer next steps instead of internal bookkeeping',async()=>{
+ const {cooperationView}=await import('../src/deal-room-cooperation-view.js');
+ const signed=act(act(paidCase(),'START_COLLECTION'),'SIGN_COLLECTION',{model:'private',style:'cream'});
+ const before=structuredClone(signed),h=cooperationView(signed);
+ assert.match(h,/系列订单已经签好，接下来安排制作、交货和收款/);
+ assert.doesNotMatch(h,/不能把签约当作交付/);assert.deepEqual(signed,before);
+ assert.match(cooperationChapter(signed).step,/不能把签约当作交付/);
+ const atelier=series('own','atelier','exclusive'),a=cooperationView(atelier);
+ assert.match(a,/和 Atelier 确认实物与陈列/);assert.doesNotMatch(a,/不重新问归属/);
+ const independent=series('own','northline','retain');
+ // Two referral cases is a display-only fixture; neither is yet a signed new contact.
+ const multiple={...independent,caseGrowthHistory:[],curationHistory:[...independent.curationHistory,{...independent.curationHistory[0],referrerId:'ines',referrerName:'Inês'}]};
+ const m=cooperationView(multiple);assert.match(m,/带着原稿去和概念店买手谈一谈/);assert.doesNotMatch(m,/不把转介自动算成采用/);
+});

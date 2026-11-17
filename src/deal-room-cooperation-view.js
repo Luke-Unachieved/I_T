@@ -3,7 +3,13 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 export function cooperationView(state){
  const chapter=cooperationChapter(state);if(!chapter.relation)return '';
  const {relation,stage,facts,step,nextAction}=chapter;
- const playerStep=step==='这份已交付案例可以带来合作；先选择合作方式，尚未约定为概念店或集团采购。'?'带着这份案例，去谈概念店选品或集团供货。':step;
+ const playerSteps={
+  '这份已交付案例可以带来合作；先选择合作方式，尚未约定为概念店或集团采购。':'带着这份案例，去谈概念店选品或集团供货。',
+  '先完成已经签下的系列采购，尚不能把签约当作交付。':'系列订单已经签好，接下来安排制作、交货和收款。',
+  '先选择实际合作的概念店联系人，不把转介自动算成采用。':'带着原稿去和概念店买手谈一谈，看看对方是否愿意采购。',
+  '向已经签约的这位买方交接实物与陈列，不重新问归属。':'和 Atelier 确认实物与陈列，把谈好的独家系列送上货架。'
+ };
+ const playerStep=playerSteps[step]||step;
  const mixed=facts.find(f=>f.kind==='mixed-approved-version-stores');
  const title=mixed?'Northline · 两批门店已收货':relation.buyerId==='northline'?(nextAction?.type==='OPEN_LAUNCH_PROJECT'?(facts.some(f=>f.kind==='launch-handed')?'Northline · 上市交接已完成':'Northline · 交接这套系列的陈列'):'Northline · 把这套系列交到门店'):relation.buyerId==='atelier'?'Atelier · 做成这份独家合作':chapter.closed&&!facts.some(f=>f.kind==='use-delivered')?'工作室原稿 · 已被客户采用':'工作室原稿 · 从采用到实际用途';
  const delivered=facts.filter(f=>f.kind==='series-delivered').reduce((n,f)=>n+(f.sets||0),0);

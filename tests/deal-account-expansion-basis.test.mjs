@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {createDealRoom,reduceDealRoom,normalizeDealRoom} from '../src/deal-room-engine.js';
-import {accountExpansionBases,previewAccount} from '../src/deal-room-account.js';
+import {accountExpansionBases,previewAccount,accountView} from '../src/deal-room-account.js';
 const act=(s,type,x={})=>{const n=reduceDealRoom(s,{type,...x});assert.notEqual(n,s,type);return n;};
 function ready(){let s=createDealRoom();for(const optionId of ['trial','ready','small'])for(const a of [{type:'PROPOSE',optionId},{type:'ADVANCE'},{type:'NEXT_CLIENT'}])s=reduceDealRoom(s,a);s=act(s,'START_OPENING_CURATION',{clientId:'mira'});s=act(s,'SIGN_CURATION',{products:['mira','samir','ines'],quantity:40,packaging:'plain'});s=act(s,'FULFIL_CURATION');s=act(s,'START_COLLECTION');s=act(s,'SIGN_COLLECTION',{model:'own',style:'botanical'});for(const buyerId of ['northline','atelier']){s=act(s,'OPEN_COLLECTION_PITCH',{buyerId});s=act(s,'SIGN_COLLECTION_PITCH',{optionId:'retain'});s=act(s,'FULFIL_COLLECTION');}return act(s,'CLOSE_COLLECTION');}
 function sample(s){s=act(s,'OPEN_COLLECTION_REVISION');s=act(s,'COMMISSION_COLLECTION_REVISION');return act(s,'RECEIVE_COLLECTION_REVISION');}
@@ -28,3 +28,5 @@ test('no unapproved, wrong-buyer, unpaid or non-expansion basis; old unchanged e
  const good=act(pilot(base),'OPEN_ACCOUNT_EXPANSION');for(const field of ['buyerId','status']){const bad=structuredClone(good);bad.collectionRevision.orders[0][field]=field==='buyerId'?'atelier':'production';assert.deepEqual(accountExpansionBases(bad).map(o=>o.basisId),['previous']);}
  const unpaid=structuredClone(good);unpaid.accountHistory[0].status='fulfilling';assert.deepEqual(accountExpansionBases(unpaid),[]);
 });
+
+test('expansion choice cards compare approved variants without changing the saved offer',()=>{const s=act(pilot(versions()),'OPEN_ACCOUNT_EXPANSION'),before=structuredClone(s),h=accountView(s,'remaining');for(const c of accountExpansionBases(s)){const q=previewAccount({...s,account:{...s.account,...c.basis}},'remaining');assert.ok(h.includes('预计赚到 ¥'+q.netProfit.toLocaleString('zh-CN')));assert.ok(h.includes((q.cashAfterSigning<0?'采购款还差':'签完还剩')+' ¥'+Math.abs(q.cashAfterSigning).toLocaleString('zh-CN')));}assert.deepEqual(s,before);assert.deepEqual(normalizeDealRoom(s),s);});
