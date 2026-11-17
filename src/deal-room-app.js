@@ -200,9 +200,9 @@ function render(){
  root.querySelectorAll('[data-desk-client]').forEach(b=>b.onclick=()=>{deskPlan={clientId:b.dataset.deskClient,optionId:b.dataset.deskOption};render();root.querySelector(`[data-desk-client="${deskPlan.clientId}"][data-desk-option="${deskPlan.optionId}"]`)?.focus({preventScroll:true});});
  root.querySelector('#use-desk-plan')?.addEventListener('click',()=>{if(!projectDeskPreview(state,deskPlan.clientId,deskPlan.optionId))return;state=reduceDealRoom(state,{type:'SELECT_CLIENT',clientId:deskPlan.clientId});selected=deskPlan.optionId;event='arriving';save();render();});
  root.querySelectorAll('[data-client]').forEach(b=>b.onclick=()=>{state=reduceDealRoom(state,{type:'SELECT_CLIENT',clientId:b.dataset.client});selected='';event='arriving';save();render();});
- root.querySelectorAll('[data-sample]').forEach(b=>b.onclick=()=>{selected=sampleSelection(b.dataset.sample,selected==='branded'?'restock':'opening');event='sample-change';render();});
+ root.querySelectorAll('[data-sample]').forEach(b=>b.onclick=()=>{selected=sampleSelection(b.dataset.sample,selected==='branded'?'restock':'opening');event='sample-change';renderKeepingChoiceFocus(b,'data-sample');});
  root.querySelectorAll('[data-repair]').forEach(b=>b.onclick=()=>{selected=b.dataset.repair==='plain'?sampleSelection('plain'):sampleSelection('custom','restock');event='sample-change';render();});
- root.querySelectorAll('[data-select]').forEach(b=>b.onclick=()=>{selected=b.dataset.select;event='choosing';render();});
+ root.querySelectorAll('[data-select]').forEach(b=>b.onclick=()=>{selected=b.dataset.select;event='choosing';renderKeepingChoiceFocus(b,'data-select');});
  root.querySelectorAll('[data-revision-open]').forEach(b=>b.onclick=()=>{revisionOpen=!revisionOpen;render();});
  root.querySelectorAll('[data-revision-scope]').forEach(b=>b.onclick=()=>{revisionScope=b.dataset.revisionScope;render();});
  root.querySelectorAll('[data-revision-sign]').forEach(b=>b.onclick=()=>{state=reduceDealRoom(state,{type:'SIGN_COLLECTION_REVISION',buyerId:b.dataset.buyer,scope:b.dataset.scope});save();render();});
@@ -211,3 +211,13 @@ function render(){
  root.querySelector('#motion').onclick=()=>{document.documentElement.classList.toggle('reduce-motion');try{localStorage.setItem(SAVE_KEY+':reduced-motion',document.documentElement.classList.contains('reduce-motion')?'1':'0');}catch{}render();root.querySelector('#motion')?.focus({preventScroll:true});};
 }
 render();
+
+// Restore the same semantic control after replacing the rendered subtree.
+function renderKeepingChoiceFocus(button, attribute) {
+ const value=button.getAttribute(attribute);
+ const matching=()=>[...root.querySelectorAll(`[${attribute}]`)].filter(node=>node.getAttribute(attribute)===value);
+ const occurrence=matching().indexOf(button);
+ render();
+ const next=matching();
+ (next[occurrence]||next[0])?.focus({preventScroll:true});
+}
