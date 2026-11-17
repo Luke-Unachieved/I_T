@@ -5,12 +5,12 @@ import {quoteCommitmentView,quoteOptionExplanation} from '../src/deal-room-quote
 const finish=(s,id)=>reduceDealRoom(reduceDealRoom(reduceDealRoom(s,{type:'PROPOSE',optionId:id}),{type:'ADVANCE'}),{type:'NEXT_CLIENT'});
 test('quote clearly declares actual signing and separates price, outlay, cash and projected gain',()=>{
  const s=createDealRoom(),before=structuredClone(s),q=previewOffer(s,'trial'),html=quoteCommitmentView(s,q);
- assert.match(html,/确认签约并安排备货/);assert.match(html,/不是只发送询价/);assert.match(html,/合同总价/);assert.match(html,/¥2,400/);assert.match(html,/本次净垫资/);assert.match(html,/¥1,800/);assert.match(html,/¥3,200/);assert.match(html,/预计净收益/);assert.match(html,/¥510/);assert.match(html,/尚未实现/);assert.deepEqual(s,before);
+ assert.match(html,/确认签约并安排备货/);assert.match(html,/不是只发送询价/);assert.match(html,/合同总价/);assert.match(html,/¥2,400/);assert.doesNotMatch(html,/本次净垫资|签约收到定金/);assert.match(html,/立即支付采购及履约/);assert.match(html,/¥1,800/);assert.match(html,/¥3,200/);assert.match(html,/预计净收益/);assert.match(html,/¥510/);assert.match(html,/尚未实现/);assert.deepEqual(s,before);
  const signed=reduceDealRoom(s,{type:'PROPOSE',optionId:q.id});assert.equal(signed.cash,q.cashAfterSigning);assert.equal(signed.phase,'fulfilling');assert.equal(signed.contracts.length,1);assert.equal(reduceDealRoom(signed,{type:'PROPOSE',optionId:q.id}),signed);
 });
 test('deposit does not get confused with full contract revenue or net outlay',()=>{
  const s=finish(finish(createDealRoom(),'trial'),'ready'),q=previewOffer(s,'season'),html=quoteCommitmentView(s,q);
- assert.equal(q.deposit,1860);assert.match(html,/¥1,860/);assert.match(html,/¥2,440/);assert.match(html,/¥4,340/);const signed=reduceDealRoom(s,{type:'PROPOSE',optionId:q.id});assert.equal(signed.cash,s.cash+1860-4300);
+ assert.equal(q.deposit,1860);assert.match(html,/本次净垫资（支付减定金）/);assert.match(html,/签约收到定金/);assert.match(html,/¥1,860/);assert.match(html,/¥2,440/);assert.match(html,/¥4,340/);const signed=reduceDealRoom(s,{type:'PROPOSE',optionId:q.id});assert.equal(signed.cash,s.cash+1860-4300);
 });
 test('rejected quote only solicits a reply and never promises signing',()=>{
  const s=finish(createDealRoom(),'trial'),q=previewOffer(s,'promise'),html=quoteCommitmentView(s,q,{counterMessage:'<img src=x onerror=alert(1)>'});

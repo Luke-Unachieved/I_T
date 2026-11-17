@@ -25,3 +25,17 @@ test('only the two intended handlers call the helper',()=>{
   assert.ok(line.includes(`renderKeepingChoiceFocus(b,'${match[1]}')`));
  }
 });
+
+test('repair choices focus the resulting sample without saving or changing engine',()=>{
+ const line=source.split('\n').find(l=>l.includes("querySelectorAll('[data-repair]').forEach"));
+ assert.ok(!line.includes('save('));assert.ok(!line.includes('reduceDealRoom('));
+ for(const repair of ['plain','restock']){
+  let handler,focused=null,renders=0;
+  const button={dataset:{repair}};
+  const context={selected:'promise',event:'',sampleSelection:(s,mode)=>s==='plain'?'ready':mode==='restock'?'branded':'promise',render:()=>renders++,root:{querySelectorAll:()=>[button],querySelector:selector=>({focus:opts=>{focused={selector,opts};}})}};
+  vm.createContext(context);vm.runInContext(line,context);button.onclick();
+  assert.equal(context.selected,repair==='plain'?'ready':'branded');
+  assert.equal(focused.selector,`[data-sample="${repair==='plain'?'plain':'custom'}"]`);
+  assert.equal(focused.opts.preventScroll,true);assert.equal(renders,1);
+ }
+});
