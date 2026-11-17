@@ -11,3 +11,5 @@
 @media(prefers-reduced-motion:reduce){.life-arrived{animation:none}}.reduce-motion .life-arrived{animation:none}
 
 .life-book-shelf{display:flex;align-items:center;gap:1rem;padding:1rem;background:#e5d5bc;border-bottom:5px solid #967454;color:#423c31}.life-book-shelf>span{font-size:2.6rem;color:#526b67}.life-book-shelf button{margin-left:auto}.life-reading p{line-height:1.9}
+
+.life-record-choices{display:flex;gap:.5rem;flex-wrap:wrap}.life-record-choices button{min-height:44px;flex:1 1 8rem}.life-panel .life-record-choices button[aria-pressed="true"]{background:#d1e1d6;color:#233e34;border-color:#546c65}.life-listening>*{min-width:0}.life-listening h3{overflow-wrap:anywhere}

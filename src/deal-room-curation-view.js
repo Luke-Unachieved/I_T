@@ -27,7 +27,7 @@ export function curationDemoModel(brief,draft,{open=false,room='day',brightness=
  return {open,room:night?'night':'day',developed,level,glow:night?[.25,.6,1][level]:[.12,.3,.65][level],message,buyer:brief.giftAllowed?'Élise':'Adrian'};
 }
 export function curationDemoView(demo){
- return `<section class="buyer-demo"><button class="demo-toggle" id="toggle-buyer-demo" aria-expanded="${demo.open}">${demo.open?'收起试用':'和买手一起试灯'} ${demo.open?'↑':'→'}</button>${demo.open?`<div class="demo-controls"><div class="buyer-demo-preview ${demo.room}" role="img" aria-label="${demo.developed?'调光样品':'旧款样品'} · ${demo.room==='night'?'夜间':'白天'} · ${['柔光','阅读亮度','亮光'][demo.level]}" style="--sample-light:${demo.glow};--lamp-brightness:${[.75,.95,1.12][demo.level]}"><div class="sample-glow"></div><div class="trial-lamp"></div></div><div role="group" aria-label="试用环境">${[['day','白天陈列'],['night','夜间使用']].map(([id,name])=>`<button data-demo-room="${id}" aria-pressed="${demo.room===id}">${name}</button>`).join('')}</div>${demo.developed?`<div role="group" aria-label="给买手试灯亮度">${['柔光','阅读','亮光'].map((name,i)=>`<button data-demo-light="${i}" aria-pressed="${demo.level===i}">${name}</button>`).join('')}</div>`:'<small>旧款固定亮度；切换环境不会改产品。</small>'}<p role="status"><strong>${demo.buyer}</strong>：${demo.message}</p><small>只试样，不签单、不收费。成交仍按下面的方案。</small></div>`:''}</section>`;
+ return `<section class="buyer-demo"><button class="demo-toggle" id="toggle-buyer-demo" aria-expanded="${demo.open}">${demo.open?'收起试用':'和买手一起试灯'} ${demo.open?'↑':'→'}</button>${demo.open?`<div class="demo-controls"><div class="buyer-demo-preview ${demo.room}" role="img" aria-label="${demo.developed?'调光样品':'旧款样品'} · ${demo.room==='night'?'夜间':'白天'} · ${['柔光','阅读亮度','亮光'][demo.level]}" style="--sample-light:${demo.glow};--lamp-brightness:${[.75,.95,1.12][demo.level]}"><div class="sample-glow"></div><div class="trial-lamp"></div></div><div role="group" aria-label="试用环境">${[['day','白天陈列'],['night','夜间使用']].map(([id,name])=>`<button data-demo-room="${id}" aria-pressed="${demo.room===id}">${name}</button>`).join('')}</div>${demo.developed?`<div role="group" aria-label="给买手试灯亮度">${['柔光','阅读','亮光'].map((name,i)=>`<button data-demo-light="${i}" aria-pressed="${demo.level===i}">${name}</button>`).join('')}</div>`:'<small>这盏灯只有一档亮度，换到夜间看看效果。</small>'}<p role="status"><strong>${demo.buyer}</strong>：${demo.message}</p><small>只试样，不签单、不收费。成交仍按下面的方案。</small></div>`:''}</section>`;
 }
 
 export function toggleCurationProduct(draft,id,anchor){
@@ -39,6 +39,7 @@ export function toggleCurationProduct(draft,id,anchor){
 
 // Presentation-only wording. Historical feedback remains untouched for replay.
 const playerStatusCopies=Object.freeze({
+ '首次合作直接采用已交付的工作室原稿。范围已签，待交付后记入实际采用。':'买手订下了工作室原稿这一版，接下来安排制作和交付。',
  '12盏已交付并收款。余货是工作室库存成本，不是收入或利润。':'12盏已交付，货款已收到。余下的灯留在工作室，等合适的新订单。',
  '现货已按合同预留扣出，只支付剩余商品与包装制作款；已付灯具成本仍计入本单成本。':'现货已留给这位客户，其他商品和包装也已安排制作。',
  '未签约，资金和日期保持不变。':'这份采购先放一放。',
@@ -50,7 +51,7 @@ const playerStatusCopies=Object.freeze({
 });
 export function playerStatusText(text){
  const value=String(text??'');
- return playerStatusCopies[value]||value.replace('，这是个人消费，不会提高订单收益。','。');
+ return playerStatusCopies[value]||value.replace('，这是个人消费，不会提高订单收益。','。').replace('保留已交付的那件产品，再搭配一件，不必先做返单。','以之前交付的那件产品为主角，再搭配一件给买手看看。');
 }
 
 export function curationReceiptView(state){

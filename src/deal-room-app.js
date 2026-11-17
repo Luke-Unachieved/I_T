@@ -1,3 +1,5 @@
+import {annexView,bindAnnex} from './deal-room-annex-view.js';
+let annexOpen=false,annexUI={};
 import {officeAvailable} from './deal-room-office.js';
 import {officeImprovementView,bindOfficeImprovement} from './deal-room-office-view.js';
 let officeOpen=false,officeUI={};
@@ -80,6 +82,10 @@ const root=document.querySelector('#deal-room');
 const money=n=>`¥${Number(n).toLocaleString('zh-CN')}`;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function render(){
+ if(annexOpen&&officeAvailable(state)&&state.officeImprovement){
+  root.innerHTML=annexView(state,annexUI)+`<p class="save-state" role="status">${esc(saveNotice)}</p>`+dealSaveView(savePanel);
+  bindAnnex(root,{getState:()=>state,getUI:()=>annexUI,setUI:next=>{annexUI=next;render();},dispatch:action=>{const next=reduceDealRoom(state,action);if(next!==state){state=next;save();}render();},close:()=>{annexOpen=false;annexUI={};render();root.querySelector('#open-office-annex')?.focus();}});bindSaveTools();return;
+ }
  if(officeOpen&&officeAvailable(state)){
   root.innerHTML=officeImprovementView(state,officeUI)+`<p class="save-state" role="status">${esc(saveNotice)}</p>`+dealSaveView(savePanel);
   bindOfficeImprovement(root,state,officeUI,action=>{const next=reduceDealRoom(state,action);if(next!==state){state=next;save();}render();},render,()=>{officeOpen=false;officeUI={};render();root.querySelector('#open-office-improvement')?.focus();});
@@ -160,6 +166,7 @@ function render(){
  if(home&&officeAvailable(state)&&!showCareerRecap){
   const place=root.querySelector('.business');
   place?.insertAdjacentHTML('beforeend',`<p class="office-entry"><button id="open-office-improvement">${state.officeImprovement?'看看自己的窗边工作室':'给工作室换个布置 · 可选'}</button></p>`);
+  if(state.officeImprovement){place?.insertAdjacentHTML('beforeend',`<p class="office-entry"><button id="open-office-annex">${state.officeAnnex?'去样品会客室':'想要一间样品会客室 · 先参观'}</button></p>`);root.querySelector('#open-office-annex')?.addEventListener('click',()=>{annexOpen=true;annexUI={};render();root.querySelector('[data-annex-close]')?.focus();});}
   root.querySelector('#open-office-improvement')?.addEventListener('click',()=>{officeOpen=true;officeUI={};render();root.querySelector('[data-office-close]')?.focus();});
  }
  if(home&&lifeAvailable(state)&&!showCareerRecap){
