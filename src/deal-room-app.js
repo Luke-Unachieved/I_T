@@ -1,3 +1,6 @@
+import {officeAvailable} from './deal-room-office.js';
+import {officeImprovementView,bindOfficeImprovement} from './deal-room-office-view.js';
+let officeOpen=false,officeUI={};
 import {quoteOptionExplanation,quoteCommitmentView,quoteBuyerBrief} from './deal-room-quote-view.js';
 import {lifeAvailable} from './deal-room-life.js';
 import {lifeRoomView,bindLifeRoom} from './deal-room-life-view.js';
@@ -77,6 +80,11 @@ const root=document.querySelector('#deal-room');
 const money=n=>`¥${Number(n).toLocaleString('zh-CN')}`;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function render(){
+ if(officeOpen&&officeAvailable(state)){
+  root.innerHTML=officeImprovementView(state,officeUI)+`<p class="save-state" role="status">${esc(saveNotice)}</p>`+dealSaveView(savePanel);
+  bindOfficeImprovement(root,state,officeUI,action=>{const next=reduceDealRoom(state,action);if(next!==state){state=next;save();}render();},render,()=>{officeOpen=false;officeUI={};render();});
+  bindSaveTools();return;
+ }
  if(personalRoomOpen&&lifeAvailable(state)){
   root.innerHTML=lifeRoomView(state,personalRoomUI)+`<p class="save-state" role="status">${esc(saveNotice)}</p>`+dealSaveView(savePanel);
   bindLifeRoom(root,{getState:()=>state,getUI:()=>personalRoomUI,setUI:next=>{personalRoomUI=next;render();},dispatch:action=>{const next=reduceDealRoom(state,action);if(next!==state){state=next;save();}render();},close:()=>{personalRoomOpen=false;personalRoomUI={};render();root.querySelector('#open-personal-life')?.focus();}});
@@ -122,7 +130,7 @@ function render(){
  const p=selected?previewOffer(state,selected):null,contract=state.contracts.at(-1),paid=state.contracts.filter(c=>c.status==='paid');
  const quoteLampSample=developedQuoteSample(state,selected,sampleBrightness);
  root.innerHTML=`<header><div class="brand"><small>再开一单就下班</small><h1>我的贸易工作室</h1></div><div class="wallet"><span>第 ${state.day} 天</span><strong>${money(state.cash)}</strong><small>可用资金</small></div></header>
- <section class="workspace ${accountVisual?.seriesSource?'account-version-scene':''} ${esc(event)} ${buyerScene?'buyer-scene':''} ${collectionVisual||growthVisual?.designStyle||accountVisual?.seriesSource?'collection-mode':''} ${demo?.open?'demo-active demo-'+demo.room:''}" style="--demo-glow:${demo?.glow||0};--demo-lamp:${[.75,.95,1.12][demo?.level??1]}" aria-label="${buyerScene?'已交付买手店陈列':'现代贸易工作空间'}"><div class="room-light"></div><div class="desk-label">${buyerScene?esc(curationBrief.buyer)+' · 你的组合已上新':completedCooperations?'合作交付 · '+completedCooperations+' 笔已回款':'今天，从一笔好生意开始'}</div>
+ <section class="workspace ${state.officeImprovement&&!buyerScene?'office-upgraded-workspace':''} ${accountVisual?.seriesSource?'account-version-scene':''} ${esc(event)} ${buyerScene?'buyer-scene':''} ${collectionVisual||growthVisual?.designStyle||accountVisual?.seriesSource?'collection-mode':''} ${demo?.open?'demo-active demo-'+demo.room:''}" style="--demo-glow:${demo?.glow||0};--demo-lamp:${[.75,.95,1.12][demo?.level??1]}" aria-label="${buyerScene?'已交付买手店陈列':'现代贸易工作空间'}"><div class="room-light"></div><div class="desk-label">${buyerScene?esc(curationBrief.buyer)+' · 你的组合已上新':completedCooperations?'合作交付 · '+completedCooperations+' 笔已回款':'今天，从一笔好生意开始'}</div>
  ${collectionVisual?`<div class="collection-sleeve style-${esc((receipt&&receiptMode==='delivered'?receipt.style:null)||pitchVisual?.style||state.collection.style||collectionDraft.style)}"><strong>${collectionVisual.buyer}</strong><span>${COLLECTION_STYLES[(receipt&&receiptMode==='delivered'?receipt.style:null)||pitchVisual?.style||state.collection.style||collectionDraft.style]}</span></div>`:''}
  ${accountVisual?.seriesSource?`<div class="collection-sleeve style-${esc(accountVisual.seriesSource.style)}"><strong>${esc(accountVisual.seriesSource.label)}</strong><span>${accountVisual.seriesSource.style==='tidal-grid'?'潮汐波线 · 分格内托':COLLECTION_STYLES[accountVisual.seriesSource.style]} · ${esc(accountVisual.seriesSource.signature)}</span></div>`:''}
  ${growthVisual?.designStyle?`<div class="collection-sleeve style-${esc(growthVisual.designStyle)}"><strong>工作室系列 · 署名保留</strong><span>${COLLECTION_STYLES[growthVisual.designStyle]}</span></div>`:''}
@@ -148,6 +156,11 @@ function render(){
  </section><footer><span>${esc(saveNotice)}</span><button id="motion" aria-pressed="${document.documentElement.classList.contains('reduce-motion')}">减少动态</button></footer>${dealSaveView(savePanel)}`;
  bindSaveTools();
 
+ if(home&&officeAvailable(state)&&!showCareerRecap){
+  const place=root.querySelector('.business');
+  place?.insertAdjacentHTML('beforeend',`<p class="office-entry"><button id="open-office-improvement">${state.officeImprovement?'看看自己的窗边工作室':'给工作室换个布置 · 可选'}</button></p>`);
+  root.querySelector('#open-office-improvement')?.addEventListener('click',()=>{officeOpen=true;officeUI={};render();});
+ }
  if(home&&lifeAvailable(state)&&!showCareerRecap){
   const place=root.querySelector('.business');
   place?.insertAdjacentHTML('beforeend','<p class="personal-life-entry"><button id="open-personal-life">下班回家 · 可选</button><small>赚到的钱，也可以花在自己的生活里。</small></p>');

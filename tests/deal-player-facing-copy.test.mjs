@@ -33,6 +33,6 @@ test('view copy bans only specific developer explanations, not financial or righ
   'deal-room-revision-view.js':[/不和旧版授权混算/,/这单净赚不等于整版回本/]
  };
  for(const [file,patterns] of Object.entries(targets)){const source=readFileSync(new URL('../src/'+file,import.meta.url),'utf8');for(const pattern of patterns)assert.doesNotMatch(source,pattern);}
- const account=readFileSync(new URL('../src/deal-room-account.js',import.meta.url),'utf8');assert.match(account,/本单不含原 3 家店换货/);assert.match(account,/新增 3 店预计净赚/);
+ const account=readFileSync(new URL('../src/deal-room-account.js',import.meta.url),'utf8');assert.match(account,/本单不含原 3 家店换货/);assert.match(account,/新增 3 店预计赚到/);
  const revision=readFileSync(new URL('../src/deal-room-revision-view.js',import.meta.url),'utf8');assert.match(revision,/未计入本单预计净赚/);assert.match(revision,/仅潮汐版专供Northline/);
 });

@@ -28,7 +28,7 @@ function lifeRitual(state,ui){
  if(!state.personalLife?.purchases?.some(p=>p.itemId===ui.using))return '';
  if(ui.using==='chair'){
   const n=Math.max(0,Math.min(2,Number.isInteger(ui.page)?ui.page:0)),page=LIFE_PAGES[n];
-  return `<section tabindex="-1" class="life-ritual life-reading" aria-label="我的阅读角"><div class="life-book"><div class="life-book-left"><small>给自己的三页故事</small><h3>${page.title}</h3><span>${n+1} / 3</span></div><div class="life-book-right"><p>${page.text}</p></div></div><div class="life-ritual-controls"><button data-life-page="${n-1}" ${n===0?'disabled':''}>往前翻</button><button data-life-page="${n+1}" ${n===2?'disabled':''}>再读一页</button><button data-life-end>合上书，留待下次</button></div></section>`;
+  return `<section tabindex="-1" class="life-ritual life-reading" aria-label="我的阅读角"><div class="life-book"><div class="life-book-left"><small>给自己的三页故事</small><h3>${page.title}</h3><span>${n+1} / 3</span></div><div class="life-book-right"><p>${page.text}</p></div></div><div class="life-ritual-controls"><button data-life-page-step="previous" data-life-page="${n-1}" ${n===0?'disabled':''}>往前翻</button><button data-life-page-step="next" data-life-page="${n+1}" ${n===2?'disabled':''}>再读一页</button><button data-life-end>合上书，留待下次</button></div></section>`;
  }
  if(ui.using==='coffee'){
   const short=ui.coffee==='short';
@@ -61,7 +61,23 @@ async function startLifeSound(win){
  }catch{stopLifeSound();return false;}
 }
 let removeLifeVisibility=null;
-export function bindLifeRoom(root,{getState,getUI,setUI,dispatch,close}){
+export function bindLifeRoom(root,{getState,getUI,setUI:renderUI,dispatch,close}){
+ // Capture at render time, not at click time: an async sound result must not
+ // steal focus back after the player has moved to another control.
+ const setUI=next=>{
+  const active=root.ownerDocument.activeElement;
+  const attrs=['data-life-page-step','data-life-coffee','data-life-sound','data-life-mute','data-life-end','data-life-use','data-life-room-use','data-life-place','data-life-preview','data-life-buy','data-life-cancel','data-life-close'];
+  const attr=attrs.find(a=>active?.hasAttribute?.(a));
+  const value=attr?active.getAttribute(attr):null;
+  const scope=['.life-actions','.life-welcome','.life-ritual','.life-panel header'].find(s=>active?.closest?.(s));
+  const matching=()=>attr?[...root.querySelectorAll('['+attr+']')].filter(e=>e.getAttribute(attr)===value&&(!scope||e.closest?.(scope))):[];
+  const index=matching().indexOf(active);
+  const ritualFocused=active===root.querySelector('.life-ritual');
+  renderUI(next);
+  const target=index>=0?matching()[index]:null;
+  if(target&&!target.disabled)target.focus?.({preventScroll:true});
+  else if(ritualFocused||index>=0&&attr==='data-life-page-step')root.querySelector('.life-ritual')?.focus?.({preventScroll:true});
+ };
  const reveal=selector=>{const el=root.querySelector(selector);el?.focus?.({preventScroll:true});el?.scrollIntoView?.({block:'nearest'});};
  const end=()=>{stopLifeSound();setUI({...getUI(),using:'',arrival:'',soundOn:false,soundError:false});};
  const use=id=>{const ending=getUI().using===id;if(ending&&id==='record')stopLifeSound();setUI({...getUI(),using:ending?'':id,arrival:'',soundOn:ending&&id==='record'?false:!!getUI().soundOn,soundError:false});if(!ending)reveal('.life-ritual');};

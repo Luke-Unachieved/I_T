@@ -1,0 +1,14 @@
+import {officePreview,officeCompletedWork,OFFICE_IMPROVEMENT} from './deal-room-office.js';
+const money=n=>'¥'+n.toLocaleString('en-US');
+const names={mira:'Mira 的台灯',samir:'Samir 的保温杯',ines:'Inês 的桌布'};
+export function officeImprovementView(state,ui={}){
+ const q=officePreview(state),modern=q.owned||ui.compare!=='original';
+ const works=officeCompletedWork(state),ids=[...new Set(works.map(w=>w.clientId))].filter(id=>names[id]);
+ return `<section class="office-improvement-panel"><header><div><small>让工作的地方，也合自己的心意</small><h2>${q.owned?'自己的窗边工作室':'给工作室换个布置'}</h2></div><button data-office-close>回工作室</button></header><section class="office-environment ${modern?'office-improved':''} ${ui.shade?'office-shaded':''} ${ui.rest&&modern?'office-resting':''}" aria-label="${modern?'窗边工作室布置':'现在的工作室'}"><div class="office-curtain"></div>${modern?`<button class="office-window-control" data-office-shade aria-pressed="${!!ui.shade}">${ui.shade?'让阳光进来':'拉上纱帘'}</button><button class="office-bench-control" data-office-rest aria-pressed="${!!ui.rest}">${ui.rest?'回到桌前':'去窗边坐一会儿'}</button>${ids.length?`<button class="office-shelf-control" data-office-works aria-expanded="${!!ui.works}">熟客订单 · ${works.length} 笔</button>`:''}`:''}<p class="office-scene-note">${ui.rest&&modern?'换到窗边，给自己留一个舒服的位置。':modern?'陈列有自己的位置，窗边也留出了休息角。':'熟悉的桌子，照样能把生意做好。'}</p></section>${ui.works&&modern?`<section class="office-work-memory"><h3>留在这里的合作</h3>${ids.map(id=>`<p>${names[id]} · ${works.filter(w=>w.clientId===id).length} 笔已收齐货款</p>`).join('')}</section>`:''}${!q.owned?`<div class="office-comparison"><button data-office-compare="original">现在的布置</button><button data-office-compare="improved">看看新布置</button></div><h3>${OFFICE_IMPROVEMENT.name}</h3><p>整理陈列角，添上窗边软垫休息位和纱帘。一次布置费，无后续租金。</p><p>一次花费 <strong>${money(q.price)}</strong> · ${q.cashAfter>=0?'布置完还剩 '+money(q.cashAfter):'还差 '+money(q.shortfall)}</p><div class="office-purchase-actions"><button data-office-buy ${q.valid?'':'disabled'}>就按这个布置</button><button data-office-close>先不花这笔钱</button></div>`:'<p>不用赶着接下一单。拉上纱帘，或到窗边歇一会儿。</p>'}<small>手头 ${money(state.cash)}</small></section>`;
+}
+export function bindOfficeImprovement(root,state,ui,dispatch,render,close){
+ root.querySelectorAll('[data-office-close]').forEach(b=>b.addEventListener('click',close));
+ root.querySelectorAll('[data-office-compare]').forEach(b=>b.addEventListener('click',()=>{ui.compare=b.dataset.officeCompare;ui.rest=false;ui.works=false;render();root.querySelector('[data-office-compare="'+ui.compare+'"]')?.focus();}));
+ for(const key of ['shade','rest','works'])root.querySelector('[data-office-'+key+']')?.addEventListener('click',()=>{ui[key]=!ui[key];render();root.querySelector('[data-office-'+key+']')?.focus();});
+ root.querySelector('[data-office-buy]')?.addEventListener('click',()=>{if(officePreview(state).valid)dispatch({type:'BUY_OFFICE_IMPROVEMENT'});});
+}
