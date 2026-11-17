@@ -16,14 +16,14 @@ test('selected record persists canonically without touching old purchase feedbac
  assert.equal(act(old,'SELECT_LIFE_RECORD',{itemId:'records',track:'rain'}),old);const tampered=structuredClone(s);tampered.personalLife.recordTrack='rain';assert.throws(()=>normalizeDealRoom(tampered));
 });
 function audioHarness(initial,initialUI={using:'records'}){
- let s=initial,ui=initialUI,created=0,closed=0,focused='';const notes=[],handlers=new Map();
+ let s=initial,ui=initialUI,created=0,closed=0,focused='',rendered=0;const notes=[],gains=[],handlers=new Map();
  const gain=()=>({gain:{value:0,setValueAtTime(){},linearRampToValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){}});
- class Audio{constructor(){created++;this.currentTime=0;this.destination={};}async resume(){}createGain(){return gain();}createOscillator(){const note={frequency:{value:0},connect(){},start(time){notes.push({frequency:this.frequency.value,type:this.type,time});},stop(){}};return note;}async close(){closed++;}}
+ class Audio{constructor(){created++;this.currentTime=0;this.destination={};}async resume(){}createGain(){const g=gain();gains.push(g);return g;}createOscillator(){const note={frequency:{value:0},connect(){},start(time){notes.push({frequency:this.frequency.value,type:this.type,time});},stop(){}};return note;}async close(){closed++;}}
  const doc={defaultView:{AudioContext:Audio},addEventListener(type,fn){handlers.set(type,fn);},removeEventListener(){},activeElement:null};
  const tracks=['evening','rain','dance'].map(track=>({dataset:{lifeTrack:track},focus(){focused=track;}}));
  const root={ownerDocument:doc,querySelectorAll(sel){return sel==='[data-life-track]'?tracks:[];},querySelector(sel){return tracks.find(e=>sel===`[data-life-track="${e.dataset.lifeTrack}"]`)||{addEventListener(type,fn){handlers.set(sel,fn);}};}};
- const draw=()=>bindLifeRoom(root,{getState:()=>s,getUI:()=>ui,setUI:n=>{ui=n;},dispatch:a=>{s=reduceDealRoom(s,a);draw();},close:()=>{ui={};}});draw();
- return {notes,handlers,tracks,doc,state:()=>s,ui:()=>ui,created:()=>created,closed:()=>closed,focused:()=>focused,clickSound:()=>handlers.get('[data-life-sound]')({currentTarget:{}})};
+ const draw=()=>bindLifeRoom(root,{getState:()=>s,getUI:()=>ui,setUI:n=>{ui=n;rendered++;},dispatch:a=>{s=reduceDealRoom(s,a);draw();},close:()=>{ui={};}});draw();
+ return {notes,gains,handlers,tracks,doc,rendered:()=>rendered,state:()=>s,ui:()=>ui,created:()=>created,closed:()=>closed,focused:()=>focused,clickSound:()=>handlers.get('[data-life-sound]')({currentTarget:{}})};
 }
 test('two purchased sides produce genuinely different notes, tempos and timbres; choosing a record is silent and focused',async()=>{
  const h=audioHarness(buy(buy(earned(),'record'),'records'));assert.equal(h.created(),0);
@@ -38,3 +38,9 @@ test('preview only plays six notes after click, expires quietly, and cancel clos
 test('hidden page stops owned music and no audio is started by rendering or importing',async()=>{
  const s=buy(buy(earned(),'record'),'records'),h=audioHarness(parseDealBackup(encodeDealBackup(s)).state);lifeRoomView(s,{using:'records'});assert.equal(h.created(),0);await h.clickSound();h.doc.hidden=true;h.handlers.get('visibilitychange')();assert.equal(h.closed(),1);assert.equal(h.ui().soundOn,false);
 });
+
+
+test('volume is explicit, keyboard-ready and silent until playback; live adjustment does not restart notes',async()=>{const s=buy(buy(earned(),'record'),'records'),h=audioHarness(s);const html=lifeRoomView(s,{using:'records'});assert.match(html,/data-life-volume type="range" min="0" max="100" step="5" value="55" aria-label="唱片音量"/);h.handlers.get('[data-life-volume]')({currentTarget:{value:'80'}});assert.equal(h.created(),0);assert.equal(h.ui().volume,80);assert.equal(h.rendered(),0,'dragging must not replace the range element');await h.clickSound();assert.equal(h.gains[0].gain.value,.08);const notes=h.notes.length;h.handlers.get('[data-life-volume]')({currentTarget:{value:'0'}});assert.equal(h.gains[0].gain.value,0);assert.equal(h.notes.length,notes);assert.deepEqual(h.state(),s);h.handlers.get('[data-life-close]')();});
+
+
+test('zero listening volume is described as muted instead of claiming audible music',()=>{const s=buy(buy(earned(),'record'),'records');assert.match(lifeRoomView(s,{using:'records',soundOn:true,volume:0}),/唱片在转，当前静音/);});
