@@ -33,6 +33,13 @@ test('actual reusable full original and accepted physical model are required; ra
 
 test('first original UI exposes rights confirmation and distinguishes signed from delivered',async()=>{
  const {caseGrowthView}=await import('../src/deal-room-case-growth-view.js');let s=a(ready(),'OPEN_CASE_GROWTH',{referrerId:'ines'});const d={agreement:'portfolio',products:['mira','samir','ines'],packaging:'plain',terms:'delivery'};
- assert.match(caseGrowthView(s,d),/id="open-series-proposal"/);const preview=caseGrowthView(s,d,{catalogueMode:true});assert.match(preview,/SIGN_FIRST_CATALOGUE_ORDER/);assert.match(preview,/确认前不建立合作/);assert.match(preview,/¥2,490/);
+ assert.match(caseGrowthView(s,d),/id="open-series-proposal"/);const preview=caseGrowthView(s,d,{catalogueMode:true});assert.match(preview,/SIGN_FIRST_CATALOGUE_ORDER/);assert.match(preview,/沿用工作室署名/);assert.doesNotMatch(preview,/确认前不建立合作/);assert.match(preview,/¥2,490/);
  s=a(s,'SIGN_FIRST_CATALOGUE_ORDER',draft);assert.match(caseGrowthView(s,d),/原稿采购已签，等待交付/);assert.doesNotMatch(caseGrowthView(s,d),/工作室系列已被采用/);s=a(s,'FULFIL_CASE_GROWTH');assert.match(caseGrowthView(s,d),/工作室系列已在概念店上架/);
+});
+
+test('ineligible sample proposal never invents forty units or zero-price purchase',async()=>{
+ const {catalogueOrderView}=await import('../src/deal-room-case-growth-view.js');
+ const s=a(ready('sleeve','atelier'),'OPEN_CASE_GROWTH',{referrerId:'ines'}),q=previewFirstCatalogueOrder(s,draft),before=structuredClone(s);
+ assert.equal(q.valid,false);assert.equal(q.quantity,undefined);
+ const html=catalogueOrderView(s);assert.match(html,/买手想先看看原系列交付后的样子/);assert.match(html,/disabled/);assert.doesNotMatch(html,/每款 40 件|整单 ¥0|制作 ¥0|这份采购的报价|undefined/);assert.deepEqual(s,before);
 });

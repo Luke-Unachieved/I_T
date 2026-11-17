@@ -43,11 +43,16 @@ function writeVerified(storage,key,raw){
 /** Autosave never overwrites unreadable progress. UI retains its in-memory state
  * on ok:false and must not display a successful save notice.
  */
-export function saveDealProgress(storage,state,{key=DEAL_SAVE_KEY}={}){
+export function saveDealProgress(storage,state,options={}){
+ const {key=DEAL_SAVE_KEY}=options;
  try{
   checkKey(key);const canonical=normalizeDealRoom(state),raw=checkText(JSON.stringify(canonical));
-  const previous=loadDealSave(storage,key);if(!previous.ok)return {ok:false,status:previous.status,error:previous.status==='corrupt'?'已有进度无法读取，原数据保留，未覆盖。':previous.error,raw:previous.raw};
-  writeVerified(storage,key,raw);return {ok:true,status:'saved',state:canonical,summary:summaryFor(canonical)};
+  const previous=loadDealSave(storage,key);
+  // Opt-in raw comparison, including null for an empty key. Legacy callers that
+  // omit expectedRaw retain their old behavior. This is not atomic cross-tab CAS.
+  if(previous.status!=='unavailable'&&Object.hasOwn(options,'expectedRaw')&&previous.raw!==options.expectedRaw)return {ok:false,status:'conflict',error:'其他页面已更新进度，本页已暂停自动保存。'};
+  if(!previous.ok)return {ok:false,status:previous.status,error:previous.status==='corrupt'?'已有进度无法读取，原数据保留，未覆盖。':previous.error,raw:previous.raw};
+  writeVerified(storage,key,raw);return {ok:true,status:'saved',raw,state:canonical,summary:summaryFor(canonical)};
  }catch(e){return {ok:false,status:'failed',error:errorText(e)};}
 }
 /** Two-step restore. First call returns needsConfirmation + summary + expectedRaw.

@@ -1,7 +1,9 @@
+import {quoteCommitmentView} from './deal-room-quote-view.js';
 const money=n=>`¥${Number(n||0).toLocaleString('zh-CN')}`;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export function curationView(brief,draft,q,development=null,demo=null){return `<section class="curation-controls"><button class="back-clients" data-action="BACK_FROM_CURATION">← 换一份引荐</button><h3>这次，由你搭配整组产品</h3><p class="brief">${esc(brief.purpose)}</p><div class="curation-budget"><span>整单报价 <b>${money(q.revenue)}</b></span><span>预算 ${money(brief.budget)}</span><progress aria-label="报价占预算" max="${brief.budget}" value="${Math.min(q.revenue||0,brief.budget)}"></progress></div>${sampleControls(brief,draft,development)}${demo?curationDemoView(demo):''}<fieldset><legend>每种产品各多少件</legend>${[40,60].map(n=>`<button data-curation-quantity="${n}" aria-pressed="${draft.quantity===n}">${n} 套</button>`).join('')}</fieldset><fieldset><legend>怎么呈现</legend><button data-curation-pack="plain" aria-pressed="${draft.packaging==='plain'}">常规包装</button><button data-curation-pack="gift" aria-pressed="${draft.packaging==='gift'}" ${brief.giftAllowed?'':'disabled'}>${brief.giftAllowed?'整组礼盒':'日常补货，无需礼盒'}</button></fieldset>${q.valid?`<div class="offer"><div><small>这组净赚</small><strong>${money(q.netProfit)}</strong></div><div><small>交货</small><strong>第 ${q.deliveryDay} 天</strong></div><div><small>收齐</small><strong>第 ${q.paymentDay} 天</strong></div></div>`:`<p class="counter" role="status">${esc(q.reason)}</p>`}<details><summary>报价与支出</summary><p>每套报价 ${money(q.price)} · 采购包装 ${money(q.cost)} · 日常支出 ${money(q.operatingCost)}<br>先收五成 ${money(q.deposit)}，余款 ${money(q.balanceDue)}</p></details><button class="primary" data-action="SIGN_CURATION" ${q.valid?'':'disabled'}>把这组搭配交给买手 →</button></section>`;}
+export function curationView(brief,draft,q,development=null,demo=null){return `<section class="curation-controls"><button class="back-clients" data-action="BACK_FROM_CURATION">← 换一份引荐</button><h3>这次，由你搭配整组产品</h3><p class="brief">${esc(brief.purpose)}</p><div class="curation-budget"><span>整单报价 <b>${money(q.revenue)}</b></span><span>预算 ${money(brief.budget)}</span><progress aria-label="报价占预算" max="${brief.budget}" value="${Math.min(q.revenue||0,brief.budget)}"></progress></div>${sampleControls(brief,draft,development)}${demo?curationDemoView(demo):''}<fieldset><legend>每种产品各多少件</legend>${[40,60].map(n=>`<button data-curation-quantity="${n}" aria-pressed="${draft.quantity===n}">${n} 套</button>`).join('')}</fieldset><fieldset><legend>怎么呈现</legend><button data-curation-pack="plain" aria-pressed="${draft.packaging==='plain'}">常规包装</button><button data-curation-pack="gift" aria-pressed="${draft.packaging==='gift'}" ${brief.giftAllowed?'':'disabled'}>${brief.giftAllowed?'整组礼盒':'日常补货，无需礼盒'}</button></fieldset>${quoteCommitmentView({},q,{action:'SIGN_CURATION',quantityLabel:`${draft.quantity} 套`})}</section>`;}
 export function businessFeedback(state,{viewingCase=null,supplyDraft=null}={}){
+ if(state.feedback?.kind==='account-back')return '这份采购先放一放。';
  if(state.history?.at(-1)?.type==='CLOSE_CASE_GROWTH'&&state.caseGrowth?.status==='paid')return '这批已结清，客户留在合作簿里；下次按门店实际需求继续谈。';
  if(viewingCase)return `${viewingCase.buyer} · 第 ${viewingCase.deliveryDay} 天已交付，货款已收齐。`;
  if(supplyDraft)return '按客户两次收货日期，谈妥付款安排。';
@@ -33,4 +35,18 @@ export function toggleCurationProduct(draft,id,anchor){
  const next={...draft,products:draft.products.includes(id)?draft.products.filter(p=>p!==id):[...draft.products,id]};
  if(!next.products.includes('mira'))delete next.lampVersion;
  return next;
+}
+
+// Presentation-only wording. Historical feedback remains untouched for replay.
+const playerStatusCopies=Object.freeze({
+ '未签约，资金和日期保持不变。':'这份采购先放一放。',
+ '回到工作室。未签方案没有改变任何案例权限。':'这次先不签，案例仍留在工作室。',
+ '工厂收到出样委托。样品还未验收，不会提前加入报价。':'工厂正在打样，收到后先试灯再谈订单。',
+ '把方案摆出来，再请客户判断用途。旧合作不会因此取消。':'把产品摆出来，看看客户想怎样使用。',
+ '方案留在工作室，未签采购不会扣款。':'这份方案先留在工作室。',
+ '先回工作室做别的业务。已交付案例保留，专题日期不会重排。':'先做别的生意，记得客户原定的收货日期。'
+});
+export function playerStatusText(text){
+ const value=String(text??'');
+ return playerStatusCopies[value]||value.replace('，这是个人消费，不会提高订单收益。','。');
 }

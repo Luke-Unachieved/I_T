@@ -13,7 +13,7 @@ a('START_ACCOUNT_FROM_REVISION');a('SIGN_ACCOUNT',{optionId:'pilot'});a('FULFIL_
 
 test('legal buyer-sleeve path can later promise original exclusive and fulfil two separately approved Northline versions',()=>{
  const s=reachable();assert.equal(s.day,59);assert.equal(s.cash,38060);assert.deepEqual(normalizeDealRoom(s),s);
- const before=structuredClone(s),chapter=cooperationChapter(s);assert.equal(chapter.relation.route,'exclusive');assert.equal(chapter.closed,true);assert.equal(chapter.nextAction,null);assert.match(cooperationView(s),/两批门店承诺已兑现/);assert.match(cooperationView(s),/6 家店按各自确认版本交付/);assert.doesNotMatch(cooperationView(s),/6 家店收到同版商品/);
+ const before=structuredClone(s),chapter=cooperationChapter(s);assert.equal(chapter.relation.route,'exclusive');assert.equal(chapter.closed,true);assert.equal(chapter.nextAction,null);assert.match(cooperationView(s),/两批门店已收货/);assert.match(cooperationView(s),/6 家店按各自确认版本交付/);assert.doesNotMatch(cooperationView(s),/6 家店收到同版商品/);
  const fact=chapter.facts.find(f=>f.kind==='mixed-approved-version-stores');assert.equal(fact.stores,6);assert.equal(fact.batches.length,2);assert.equal(fact.batches[0].seriesSource.versionId,'revision:tidal-grid');assert.equal(fact.batches[1].seriesSource.scope,'whole-exclusive');assert.deepEqual(s,before);
 });
 test('two actual original adopters block later exclusive, rather than pretending all mixed routes enter exclusive chapter',()=>{

@@ -56,3 +56,22 @@ test('retained copies are read-only, modern-key scoped and independently validat
  assert.equal(loadDealSave(db,DEAL_SAVE_KEY,{copy:'focus'}).status,'unavailable');assert.equal(loadDealSave(db,'old',{copy:'before-restore'}).status,'unavailable');assert.equal(loadDealSave(storage(),DEAL_SAVE_KEY,{copy:'before-restore'}).status,'empty');assert.deepEqual(db.writes,[]);assert.equal(db.getItem(DEAL_SAVE_KEY),'main untouched');
  const offline='trade-tycoon:deal-room-offline:v1',local=storage({[offline+':before-restore']:valid});assert.equal(loadDealSave(local,offline,{copy:'before-restore'}).status,'valid');assert.equal(loadDealSave(local,DEAL_SAVE_KEY,{copy:'before-restore'}).status,'empty');
 });
+
+test('opt-in autosave rejects stale tab, deletion and changed corrupt raw without any writes',()=>{
+ const initial=JSON.stringify(createDealRoom()),db=storage({[DEAL_SAVE_KEY]:initial});
+ const first=saveDealProgress(db,progress(),{expectedRaw:initial});assert.equal(first.ok,true);assert.equal(first.raw,db.getItem(DEAL_SAVE_KEY));
+ const writes=db.writes.length;
+ assert.equal(saveDealProgress(db,createDealRoom(),{expectedRaw:initial}).status,'conflict');assert.equal(db.getItem(DEAL_SAVE_KEY),first.raw);assert.equal(db.writes.length,writes);
+ db.map.delete(DEAL_SAVE_KEY);assert.equal(saveDealProgress(db,progress(),{expectedRaw:first.raw}).status,'conflict');
+ db.map.set(DEAL_SAVE_KEY,'bad newer raw');assert.equal(saveDealProgress(db,progress(),{expectedRaw:first.raw}).status,'conflict');assert.equal(db.getItem(DEAL_SAVE_KEY),'bad newer raw');assert.equal(db.writes.length,writes);
+ assert.equal(saveDealProgress(db,progress(),{expectedRaw:'bad newer raw'}).status,'corrupt');
+});
+test('empty-key token, successful token advancement, restore and legacy compatibility',()=>{
+ const db=storage(),a=saveDealProgress(db,createDealRoom(),{expectedRaw:null});assert.equal(a.ok,true);
+ assert.equal(saveDealProgress(db,progress(),{expectedRaw:null}).status,'conflict');
+ const b=saveDealProgress(db,progress(),{expectedRaw:a.raw});assert.equal(b.ok,true);
+ const restored=restore(db,encodeDealBackup(createDealRoom()));assert.equal(restored.ok,true);
+ assert.equal(saveDealProgress(db,progress(),{expectedRaw:b.raw}).status,'conflict');
+ const reloaded=loadDealSave(db);assert.equal(saveDealProgress(db,progress(),{expectedRaw:reloaded.raw}).ok,true);
+ assert.equal(saveDealProgress(db,createDealRoom()).ok,true); // documented old callers remain opt-out
+});

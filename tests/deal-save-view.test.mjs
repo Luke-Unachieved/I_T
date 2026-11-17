@@ -41,3 +41,23 @@ test('copy retrieval exports valid envelopes or exact invalid text without repla
 test('missing retained copy is explicit and produces no download',()=>{
  const h=harness();h.click('#deal-save-before');assert.match(h.panel.message,/没有保留这份恢复前进度/);h.click('#deal-save-unreadable');assert.match(h.panel.message,/没有保留这份异常进度原件/);assert.equal(h.downloads.length,0);
 });
+
+test('conflict recovery requires explicit reload confirmation and exports the in-memory copy',()=>{
+ const panel={conflict:true,open:true,text:'',message:''},nodes=new Map(),downloads=[];let reloads=0;
+ const newer=JSON.stringify(progressed()),storage={getItem:()=>newer,setItem(){assert.fail('recovery controls must not write');}};
+ const root={querySelector:k=>{if(!nodes.has(k))nodes.set(k,{});return nodes.get(k);}};
+ const render=()=>bindDealSaveTools(root,{panel,storage,getState:createDealRoom,render,onReload:()=>reloads++,download:(...args)=>downloads.push(args)});render();
+ const click=id=>nodes.get(id).onclick();
+ click('#deal-save-reload-confirm');assert.equal(reloads,0);
+ click('#deal-save-reload');assert.equal(reloads,0);assert.match(dealSaveView(panel),/放弃本页尚未保存/);
+ click('#deal-save-reload-cancel');click('#deal-save-reload-confirm');assert.equal(reloads,0);assert.equal(panel.conflict,true);
+ click('#deal-save-download');assert.deepEqual(JSON.parse(downloads[0][0]).state,createDealRoom());assert.equal(storage.getItem(),newer);
+ click('#deal-save-reload');click('#deal-save-reload-confirm');assert.equal(reloads,1);
+});
+test('app advances raw token only after successful save and exposes recovery in personal room too',async()=>{
+ const app=await readFile(new URL('../src/deal-room-app.js',import.meta.url),'utf8');
+ assert.match(app,/expectedSaveRaw=loadedDeal.raw/);assert.match(app,/expectedRaw:expectedSaveRaw/);
+ assert.match(app,/if\(result.ok\)\{expectedSaveRaw=result.raw/);
+ assert.match(app,/result.status==='conflict'[\s\S]*?saveAllowed=false/);
+ assert.match(app,/lifeRoomView[\s\S]*?dealSaveView\(savePanel\)[\s\S]*?bindSaveTools\(\)/);
+});

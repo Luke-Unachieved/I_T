@@ -5,8 +5,8 @@ const state=(chair='window',coffee='window',record='window')=>({phase:'complete'
 test('all eight independent arrangements keep coffee and record in separate horizontal lanes',()=>{
  for(const chair of ['window','inside'])for(const coffee of ['window','inside'])for(const record of ['window','inside']){
   const svg=lifeRoomArt(state(chair,coffee,record));
-  assert.match(svg,new RegExp(`data-life-object="coffee" transform="translate\\(0,${coffee==='inside'?-116:0}\\)"`));
-  assert.match(svg,new RegExp(`data-life-object="record" transform="translate\\(0,${record==='inside'?-116:0}\\)"`));
+  assert.match(svg,new RegExp(`data-life-object="coffee"[^>]*transform="translate\\(0,${coffee==='inside'?-116:0}\\)"`));
+  assert.match(svg,new RegExp(`data-life-object="record"[^>]*transform="translate\\(0,${record==='inside'?-116:0}\\)"`));
   // Coffee occupies x420..484, record x508..607; neither mode changes x.
   assert.ok(484<508);assert.match(svg,/M420 183h64v57h-64z/);assert.match(svg,/M508 210h99v30h-99z/);
  }
