@@ -33,3 +33,20 @@ test('accepted studio sample offers real existing Mira small-batch route, not co
  const s={...base(),productDevelopment:{status:'active',factory:'studio'},contracts:[{clientId:'mira',status:'paid',optionId:'trial',specification:'standard'}]},p=project(s,'product');assert.equal(p.done,false);assert.equal(p.actions[0].type,'CONTINUE_BUSINESS');assert.match(p.actions[0].label,/Mira.*小批/);assert.match(p.step,/60 盏/);assert.doesNotMatch(p.step,/还需要.*集团|集团.*已批准/);assert.equal(s.caseGrowthHistory,undefined);
  assert.equal(project({...s,phase:'fulfilling'},'product').actions.length,0);
 });
+test('paid studio adoption recognizes either supplier identity without accepting wrong client, spec or unpaid order',()=>{
+ for(const optionId of ['developed-lamp','second-developed-lamp']){
+  const s={...base(),productDevelopment:{status:'active',factory:optionId==='developed-lamp'?'studio':'line'},...(optionId==='second-developed-lamp'?{secondSupplier:{status:'active',factory:'studio'}}:{})};
+  const paid={clientId:'mira',status:'paid',optionId,specification:'developed-studio',quantity:60};const before=structuredClone(s);
+  const p=project({...s,contracts:[paid]},'product');assert.equal(p.done,true);assert.match(p.achievement,/60 盏已交付给 Mira/);assert.deepEqual(p.actions,[]);assert.deepEqual(s,before);
+  for(const c of [{...paid,status:'fulfilling'},{...paid,status:'receivable'},{...paid,clientId:'samir'},{...paid,specification:'standard'},{...paid,optionId:'made-up'}])assert.equal(project({...s,contracts:[c]},'product').done,false);
+ }
+});
+test('career signposts report outcomes and next business steps rather than defensive developer explanations',()=>{
+ const states=[{...base(),accountHistory:[{stores:3,status:'paid',seriesSource:{label:'原款'}},{stores:3,status:'paid',seriesSource:{label:'潮汐版'}}]},
+ {...base(),caseGrowthHistory:[{status:'paid',agreement:'private',products:['mira'],lampVersion:'developed',quantity:60}]},
+ {...base(),productDevelopment:{status:'active',factory:'studio'}}];
+ for(const s of states){const before=structuredClone(s),text=JSON.stringify(careerProjects(s));assert.doesNotMatch(text,/没有改写首批承诺|不只是获得批准|冒认为集团批准|未验样品不能当作已采用|旧目录不会自动换款/);assert.deepEqual(s,before);}
+ assert.match(project(states[0],'stores').achievement,/3店 · 原款；3店 · 潮汐版/);
+ assert.match(project(states[1],'product').step,/集团收到.*货款也收齐/);
+ assert.match(project(states[2],'product').step,/台灯组合.*介绍集团采购/);
+});

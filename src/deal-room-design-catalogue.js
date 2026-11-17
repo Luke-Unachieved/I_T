@@ -1,3 +1,4 @@
+import {acceptedLampSample} from './deal-room-development.js';
 import {revisionCatalogueVersion} from './deal-room-collection-revision.js';
 /** Rights facts only. A version is not a new customer, order or inventory pool.
  * These are fictional game agreements, not a real-world legal interpretation. */
@@ -40,7 +41,7 @@ export function catalogueProposal(state,draft={}){
  if(!Array.isArray(products)||!selected.length||new Set(selected).size!==selected.length||selected.some(id=>!PRODUCT_IDS.has(id))||selected.length!==version.products.length||selected.some(id=>!version.products.includes(id)))return fail('沿用这份系列需要保留原稿实际整套产品；删换商品请回原自主选品，不把新组合说成原系列。');
  if(draft.lampVersion!==undefined&&!['standard','developed'].includes(draft.lampVersion))return fail('台灯型号无法确认，请选择实际已有的型号。');
  if(hasLamp&&lampVersion==='developed'){
-  const sample=state.productDevelopment;if(sample?.status!=='active')return fail('先验收调光实物样，不能仅凭改写型号采用新品。');
+  const sample=acceptedLampSample(state,'studio')||state.productDevelopment;if(sample?.status!=='active')return fail('先验收调光实物样，不能仅凭改写型号采用新品。');
   if(sample.factory!=='studio')return fail('180 盏起做的批量暖光样不是三档调光样，不能当作小批调光型号复用。');
  }
  if(route==='private')return fail('集团尚未确认这套工作室系列，原目录不会因为提案自动改动；需要另行确认实际用途与规格。');

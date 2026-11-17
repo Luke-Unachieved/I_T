@@ -80,7 +80,7 @@ test('calloff permission cannot be borrowed across customers or change the sourc
 });
 
 test('standalone bundle renders trusted calloffs and their future stock consequence',async()=>{
- const {buildDealHtml}=await import('../scripts/build-deal-standalone.mjs');const vm=await import('node:vm');let s=a(a(a(earnedCase(),'OPEN_CASE_GROWTH',{referrerId:'mira'}),'SIGN_CASE_GROWTH',privateDraft),'FULFIL_CASE_GROWTH');s=a(a(s,'CLOSE_CASE_GROWTH'),'OPEN_CASE_GROWTH',{referrerId:'mira'});s=a(s,'WAIT_CASE_CALLOFF',{products:['samir']});const script=(await buildDealHtml()).match(/<script>([\s\S]*)<\/script>/)[1].split('let growthDraft=null;')[0];const context={state:s,draft:{...privateDraft,products:['samir']}};vm.runInNewContext(script+';result=caseGrowthView(state,draft);',context);assert.match(context.result,/已获目录补货权限/);assert.match(context.result,/整套最早第/);
+ const {buildDealHtml}=await import('../scripts/build-deal-standalone.mjs');const vm=await import('node:vm');let s=a(a(a(earnedCase(),'OPEN_CASE_GROWTH',{referrerId:'mira'}),'SIGN_CASE_GROWTH',privateDraft),'FULFIL_CASE_GROWTH');s=a(a(s,'CLOSE_CASE_GROWTH'),'OPEN_CASE_GROWTH',{referrerId:'mira'});s=a(s,'WAIT_CASE_CALLOFF',{products:['samir']});const script=(await buildDealHtml()).match(/<script>([\s\S]*)<\/script>/)[1].split('let growthDraft=null;')[0];const context={state:s,draft:{...privateDraft,products:['samir']}};vm.runInNewContext(script+';result=caseGrowthView(state,draft);',context);assert.match(context.result,/这批按款补货/);assert.match(context.result,/整套最早第/);
 });
 
 // Approval is earned on an existing contact; the original assortment stays intact.

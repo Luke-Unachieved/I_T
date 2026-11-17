@@ -1,3 +1,4 @@
+import {acceptedLampSample} from './deal-room-development.js';
 /** Case presentation permission is separate from product/design ownership.
  * Opt-in follow-up projects do not rewrite any earlier client's agreement. */
 const PRODUCTS=[{id:'mira',name:'便携台灯',price:55,cost:30},{id:'samir',name:'保温杯',price:48,cost:26},{id:'ines',name:'棉麻桌布',price:42,cost:24}];
@@ -20,7 +21,7 @@ export function canCalloffCase(state,referrerId){return (state.caseGrowthHistory
 // New approval adds one specification, never edits a source case or prior contract.
 function caseLampBasis(state,referrerId){
  const source=(state.curationHistory||[]).find(c=>c.referrerId===referrerId&&c.status==='paid');
- return source?.products.includes('mira')&&source.lampVersion!=='developed'&&canCalloffCase(state,referrerId)&&state.productDevelopment?.status==='active'&&state.productDevelopment.factory==='studio'?source:null;
+ return source?.products.includes('mira')&&source.lampVersion!=='developed'&&canCalloffCase(state,referrerId)&&!!acceptedLampSample(state,'studio')?source:null;
 }
 export function canProposeCaseLamp(state,referrerId){return !!caseLampBasis(state,referrerId)&&!state.caseLampApprovals?.[referrerId];}
 export function previewApprovedCaseLamp(state,{terms}={}){

@@ -1,3 +1,4 @@
+import {acceptedLampSample} from './deal-room-development.js';
 import {catalogueProposal,catalogueVersions} from './deal-room-design-catalogue.js';
 import {caseGrowthDemand,caseGrowthOffers} from './deal-room-case-growth.js';
 /** A real original-series quote uses the existing gift-order economics.
@@ -33,6 +34,6 @@ export function previewFirstCatalogueOrder(state,draft={}){
  const version=catalogueVersions(state).find(v=>v.id==='original');
  if(!version?.reusable)return fail(version?.reason||'没有可复用的工作室原稿。');
  if(!version.delivered)return fail('这份原稿还没有实际交付，不能只凭样品建立首次采用。');
- if(lampVersion==='developed'&&version.products.includes('mira')&&(state.productDevelopment?.status!=='active'||state.productDevelopment.factory!=='studio'))return fail('先验收真实调光样，标准暖光与未验样不能代替。');
+ if(lampVersion==='developed'&&version.products.includes('mira')&&(!acceptedLampSample(state,'studio')))return fail('先验收真实调光样，标准暖光与未验样不能代替。');
  return catalogueQuote(state,source,{valid:true,products:[...version.products],style:version.style},{lampVersion});
 }

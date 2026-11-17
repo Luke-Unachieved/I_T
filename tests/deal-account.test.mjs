@@ -21,3 +21,5 @@ test('six-store and unearned accounts cannot obtain an extra expansion',()=>{
 });
 
 test('cash guidance only offers feasible alternatives and never asks funded quote for more deposit',()=>{const base=act(paidCase(),'START_ACCOUNT',{referrerId:'mira'});const low={...base,cash:15000};assert.match(accountView(low,'funded'),/当前可行：先铺三店/);assert.doesNotMatch(accountView(low,'funded'),/可提高定金/);const empty={...base,cash:0};assert.match(accountView(empty,'pilot'),/可先不签/);assert.doesNotMatch(accountView(empty,'pilot'),/当前可行/);});
+
+test('funding display distinguishes supplier shortfall from total working cash including daily costs',()=>{const s={...act(paidCase(),'START_ACCOUNT',{referrerId:'mira'}),cash:0},q=previewAccount(s,'pilot'),html=accountView(s,'pilot');assert.match(html,/采购款还差/);assert.ok(html.includes('加上 ¥'+q.operatingCost.toLocaleString('zh-CN')+' 日常开销，需再备 ¥'+q.requiredCash.toLocaleString('zh-CN')));assert.ok(html.includes('¥'+Math.abs(q.cashAfterSigning).toLocaleString('zh-CN')));});

@@ -39,6 +39,8 @@ export function toggleCurationProduct(draft,id,anchor){
 
 // Presentation-only wording. Historical feedback remains untouched for replay.
 const playerStatusCopies=Object.freeze({
+ '12盏已交付并收款。余货是工作室库存成本，不是收入或利润。':'12盏已交付，货款已收到。余下的灯留在工作室，等合适的新订单。',
+ '现货已按合同预留扣出，只支付剩余商品与包装制作款；已付灯具成本仍计入本单成本。':'现货已留给这位客户，其他商品和包装也已安排制作。',
  '未签约，资金和日期保持不变。':'这份采购先放一放。',
  '回到工作室。未签方案没有改变任何案例权限。':'这次先不签，案例仍留在工作室。',
  '工厂收到出样委托。样品还未验收，不会提前加入报价。':'工厂正在打样，收到后先试灯再谈订单。',
@@ -49,4 +51,10 @@ const playerStatusCopies=Object.freeze({
 export function playerStatusText(text){
  const value=String(text??'');
  return playerStatusCopies[value]||value.replace('，这是个人消费，不会提高订单收益。','。');
+}
+
+export function curationReceiptView(state){
+ const c=state.curation;
+ if(state.feedback?.kind!=='curation-paid'||c?.status!=='paid'||![c.balanceDue,c.netProfit,state.cash,c.quantity].every(Number.isFinite))return '';
+ return `<section class="curation-receipt" aria-label="这笔合作的回款"><small>这一单做成了</small><h3>${esc(c.buyer)} 已收齐这组产品</h3><p>${c.products.length} 款产品，各 ${c.quantity} 件，已经摆进客户的店里。</p><dl><div><dt>尾款到账</dt><dd>${money(c.balanceDue)}</dd></div><div><dt>${c.netProfit<0?'本单亏损':'这次净赚'}</dt><dd>${money(Math.abs(c.netProfit))}</dd></div><div><dt>手头现在有</dt><dd>${money(state.cash)}</dd></div></dl><small>货款已收齐。可以看看下一份合作，也可以下班回家。</small></section>`;
 }

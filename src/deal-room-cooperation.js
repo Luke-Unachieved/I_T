@@ -45,7 +45,7 @@ export function cooperationChapter(state){
     result.nextAction=next('OPEN_STUDIO_PROJECT',onlyDelivered?'可选 · 回访已确认方案':'可选 · 继续提出新的用途',{direction});
     if(onlyDelivered)result.step=result.step.replace('新的用途可以另行选择。','已交付的用途方案保留，后续按实际需求再谈补货。');
    }
-   else if(home&&directions.length>1)result.nextAction=next('OPEN_COLLECTION','可选 · 查看客户后再选新用途');
+   else if(home&&directions.length>1)result.nextAction=next('OPEN_COLLECTION','回看系列与买手合作');
    return result;
   }
   const offers=caseGrowthOffers(state).filter(o=>o.agreement==='portfolio');

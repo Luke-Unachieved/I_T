@@ -10,5 +10,5 @@ export function bindOfficeImprovement(root,state,ui,dispatch,render,close){
  root.querySelectorAll('[data-office-close]').forEach(b=>b.addEventListener('click',close));
  root.querySelectorAll('[data-office-compare]').forEach(b=>b.addEventListener('click',()=>{ui.compare=b.dataset.officeCompare;ui.rest=false;ui.works=false;render();root.querySelector('[data-office-compare="'+ui.compare+'"]')?.focus();}));
  for(const key of ['shade','rest','works'])root.querySelector('[data-office-'+key+']')?.addEventListener('click',()=>{ui[key]=!ui[key];render();root.querySelector('[data-office-'+key+']')?.focus();});
- root.querySelector('[data-office-buy]')?.addEventListener('click',()=>{if(officePreview(state).valid)dispatch({type:'BUY_OFFICE_IMPROVEMENT'});});
+ root.querySelector('[data-office-buy]')?.addEventListener('click',()=>{if(officePreview(state).valid){dispatch({type:'BUY_OFFICE_IMPROVEMENT'});root.querySelector('[data-office-shade]')?.focus();}});
 }

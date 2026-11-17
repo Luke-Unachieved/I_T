@@ -14,7 +14,8 @@ export function sampleSvg(kind,custom=false){
 
 /** Visual only. The accepted studio sample follows the selected real Mira quote. */
 export function developedQuoteSample(state,selected,brightness=1){
- if(state.phase!=='negotiating'||!state.businessRound||state.clientProjectActive||state.clientIndex!==0||selected!=='developed-lamp'||state.productDevelopment?.status!=='active'||state.productDevelopment.factory!=='studio')return '';
+ const d=selected==='second-developed-lamp'?state.secondSupplier:state.productDevelopment;
+ if(state.phase!=='negotiating'||!state.businessRound||state.clientProjectActive||state.clientIndex!==0||!['developed-lamp','second-developed-lamp'].includes(selected)||d?.status!=='active'||d.factory!=='studio')return '';
  const level=[0,1,2].includes(brightness)?brightness:1;
  return `<div class="sample-piece picked single quote-lamp-sample"><div class="lamp-trial" aria-label="已验三档调光台灯 · ${['夜间柔光','桌面阅读','陈列亮光'][level]}" style="--sample-light:${[.25,.55,1][level]};--lamp-brightness:${[.75,.95,1.12][level]}"><div class="sample-glow"></div><div class="trial-lamp"></div></div><span>已验三档调光样 · 本次报价型号</span><div class="sample-switch" role="group" aria-label="试报价中的实物灯">${['夜间柔光','桌面阅读','陈列亮光'].map((name,i)=>`<button data-light="${i}" aria-pressed="${level===i}">${name}</button>`).join('')}</div></div>`;
 }

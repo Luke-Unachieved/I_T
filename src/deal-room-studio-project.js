@@ -1,3 +1,4 @@
+import {acceptedLampSample} from './deal-room-development.js';
 import { catalogueVersions } from './deal-room-design-catalogue.js';
 import { caseGrowthDemand } from './deal-room-case-growth.js';
 const ITEMS=[{id:'mira',name:'便携台灯',price:55,cost:30},{id:'samir',name:'保温杯',price:48,cost:26},{id:'ines',name:'棉麻桌布',price:42,cost:24}];
@@ -25,7 +26,7 @@ export function studioProjectReview(state,project){
  if(!['draft','approved'].includes(project.status)||!['standard','developed'].includes(project.lampVersion)||!['table','shelf'].includes(project.layout)||!['soft','reading'].includes(project.light))return fail('摆放、灯光或型号记录无法确认。',products);
  if(products.some(id=>!e.original.products.includes(id)))return fail('原系列没有交付过这个方案需要的商品，不能凭用途名称创造实物依据。',products);
  const lamp=products.includes('mira');
- if(lamp&&project.lampVersion==='developed'&&(state.productDevelopment?.status!=='active'||state.productDevelopment.factory!=='studio'))return fail('请先验收真实三档调光样，批量暖光样不能代替。',products);
+ if(lamp&&project.lampVersion==='developed'&&(!acceptedLampSample(state,'studio')))return fail('请先验收真实三档调光样，批量暖光样不能代替。',products);
  if(['reading','reading-drink'].includes(project.briefId)&&project.light!=='reading')return fail('这是阅读桌面，请展示照亮书页的阅读光，不是睡前柔光。',products);
  if(project.briefId==='bedside'&&(project.lampVersion!=='developed'||project.light!=='soft'))return fail('客房晚间需要可以调暗的床头光，请用已验调光灯展示柔光。',products);
  if(project.briefId==='bedside'&&project.layout!=='table')return fail('请放在床头桌上，让客人伸手能取水和调灯；展示架不是实际使用位置。',products);

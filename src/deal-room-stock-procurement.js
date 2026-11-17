@@ -1,3 +1,4 @@
+import {acceptedLampSample} from './deal-room-development.js';
 import {SAMPLE_FACTORIES} from './deal-room-development.js';
 import {previewStudioProjectOrder} from './deal-room-studio-project.js';
 /** One authored follow-up inquiry, not a historical fact or guaranteed inventory buyer.
@@ -5,7 +6,7 @@ import {previewStudioProjectOrder} from './deal-room-studio-project.js';
 export function stockProcurementOpportunity(state){
  const rows=(state.caseGrowthHistory||[]).filter(h=>h.status==='paid'&&h.purpose==='studio-project'&&h.studioDirection==='group'&&h.agreement==='private'&&h.lampVersion==='developed'&&h.products?.includes('mira'));
  const refs=[...new Set(rows.map(h=>h.referrerId))],source=rows.at(-1);
- const reason=state.stockProcurement?'本次新用途询盘已经建立，不重复生成。':state.productDevelopment?.status!=='active'||state.productDevelopment.factory!=='studio'?'需要实际验收的三档调光样。':refs.length!==1?'需要唯一现有集团客户已交付的调光用途依据。':'';
+ const reason=state.stockProcurement?'本次新用途询盘已经建立，不重复生成。':!acceptedLampSample(state,'studio')?'需要实际验收的三档调光样。':refs.length!==1?'需要唯一现有集团客户已交付的调光用途依据。':'';
  return {available:!reason,reason,referrerId:refs.length===1?refs[0]:null,sourceHistoryIndex:source?(state.caseGrowthHistory||[]).lastIndexOf(source):-1,quantity:12,unitPrice:75,purpose:'public-reading',specification:'developed-studio',packaging:'generic',newInquiry:true};
 }
 export function previewStockProcurement(state,factoryMode='small'){
