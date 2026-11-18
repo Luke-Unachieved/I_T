@@ -23,6 +23,24 @@ export function accountRevisionBasis(state){
  if(!Number.isSafeInteger(price)||!Number.isSafeInteger(cost)||price<=0||cost<0||!['standard','developed'].includes(o.lampVersion))return null;
  return {products:[...o.products],unitPrice:Math.floor(price*.75),unitCost:cost,lampVersion:o.lampVersion,seriesSource:{versionId:o.versionId,revisionOrderIndex,buyerId:'northline',scope:o.scope,style:o.style,packaging:o.packaging,signature:o.scope==='revision-exclusive'?'Northline':'工作室署名',label:'Northline 已采用 · 潮汐分格系列'}};
 }
+/** Actual settled store contracts with a traceable, matching buyer approval.
+ * A case referral or separate packaging version must never stand in for this one. */
+export function paidSeriesStoreOrders(state){
+ const c=state.collection;if(!c)return [];
+ return (state.accountHistory||[]).filter(a=>{
+  const src=a.seriesSource;if(a.status!=='paid'||!src||![3,6].includes(a.stores))return false;
+  let expected,approval;
+  if(src.versionId==='revision:tidal-grid'){
+   const r=state.collectionRevision,i=src.revisionOrderIndex;
+   if(!r||!Number.isInteger(i)||i<0||i>=r.orders.length)return false;
+   approval=r.orders[i];expected=accountRevisionBasis({...state,collectionRevision:{...r,orders:r.orders.slice(0,i+1)}});
+  }else{
+   const i=src.orderIndex;if(src.versionId||!Number.isInteger(i)||i<0||i>=c.orders.length)return false;
+   approval=c.orders[i];expected=accountCollectionBasis({...state,collection:{...c,orders:c.orders.slice(0,i+1)}});
+  }
+  return expected&&approval.status==='paid'&&approval.paymentDay<=a.signedDay&&JSON.stringify(src)===JSON.stringify(expected.seriesSource)&&JSON.stringify(a.products)===JSON.stringify(expected.products)&&(a.lampVersion||'standard')===(expected.lampVersion||'standard')&&a.unitPrice===expected.unitPrice&&a.unitCost===expected.unitCost;
+ });
+}
 /** Alternative bases are existing Northline approvals, not upgrades to old stores. */
 export function accountExpansionBases(state){
  const old=state.accountHistory?.[0],a=state.account;

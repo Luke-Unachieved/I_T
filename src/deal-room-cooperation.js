@@ -1,4 +1,4 @@
-import {accountCollectionBasis,accountRevisionBasis,canExpandAccount} from './deal-room-account.js';
+import {accountCollectionBasis,canExpandAccount,paidSeriesStoreOrders} from './deal-room-account.js';
 import {catalogueVersions} from './deal-room-design-catalogue.js';
 import {launchBasis,launchReview} from './deal-room-launch.js';
 import {caseGrowthOffers} from './deal-room-case-growth.js';
@@ -58,20 +58,7 @@ export function cooperationChapter(state){
  if(buyerId==='atelier'&&!handed){result.step='向已经签约的这位买方交接实物与陈列，不重新问归属。';if(home&&launch?.buyerId===buyerId)result.nextAction=next('OPEN_LAUNCH_PROJECT','和原买方完成上市交接');return result;}
  if(handed)result.facts.push({kind:'launch-handed',buyerId,day:state.launchProject.handedDay});
  if(buyerId==='atelier')return close('Atelier 已收到独家系列和上市陈列，原稿继续按这份独家约定供货。');
- // Count only each batch's own paid Northline approval; generic stock is not a series.
- const accounts=(state.accountHistory||[]).filter(a=>{
-  const src=a.seriesSource;if(a.status!=='paid'||!src||![3,6].includes(a.stores))return false;
-  let expected,approval;
-  if(src.versionId==='revision:tidal-grid'){
-   const r=state.collectionRevision,i=src.revisionOrderIndex;
-   if(!r||!Number.isInteger(i)||i<0||i>=r.orders.length)return false;
-   approval=r.orders[i];expected=accountRevisionBasis({...state,collectionRevision:{...r,orders:r.orders.slice(0,i+1)}});
-  }else{
-   const i=src.orderIndex;if(src.versionId||!Number.isInteger(i)||i<0||i>=c.orders.length)return false;
-   approval=c.orders[i];expected=accountCollectionBasis({...state,collection:{...c,orders:c.orders.slice(0,i+1)}});
-  }
-  return expected&&approval.status==='paid'&&approval.paymentDay<=a.signedDay&&JSON.stringify(src)===JSON.stringify(expected.seriesSource)&&JSON.stringify(a.products)===JSON.stringify(expected.products)&&(a.lampVersion||'standard')===(expected.lampVersion||'standard')&&a.unitPrice===expected.unitPrice&&a.unitCost===expected.unitCost;
- });
+ const accounts=paidSeriesStoreOrders(state);
  // A missing seriesSource alone is not evidence of a generic first order.
  // Generic pilots originate in a paid buyer case, not another approved series.
  const history=state.accountHistory||[],pilot=history[0];

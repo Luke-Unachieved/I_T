@@ -11,7 +11,7 @@ test('pitch exposes true reserve and cash after signing; sleeve sample is includ
 });
 test('series accounts use invested, remaining break-even and earned, not negative gain',()=>{
  const s=state();s.collection.status='sample';assert.match(collectionView(s,{}),/还差 ¥2,490 回本/);
- s.collection.orders=[{buyerId:'atelier',buyer:'Atelier',netProfit:2490,sets:50}];assert.match(collectionView(s,{}),/出样已回本/);
+ s.collection.orders=[{buyerId:'atelier',buyer:'Atelier',status:'paid',netProfit:2490,sets:50}];assert.match(collectionView(s,{}),/出样已回本/);
  s.collection.orders[0].netProfit=3000;assert.match(collectionView(s,{}),/已赚到 ¥510/);assert.doesNotMatch(collectionView(s,{}),/净增|¥-/);
 });
 test('private-label draft names actual funding while relationship board avoids tutorial voice',()=>{
