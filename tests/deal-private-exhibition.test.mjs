@@ -36,3 +36,5 @@ test('account sources reject unpaid, impossible and injected batches and keep hi
  assert.equal(exhibitionWorks({...s,accountHistory:[{...c,status:'fulfilling'},c]}).find(w=>w.kind==='account').sourceId,'account-1');
  const n=a(s,'SAVE_PRIVATE_EXHIBITION',{theme:'journey',entries:[{sourceId:'account-0',note:'made-it',work:{stores:99}}]});assert.equal(n,s);
 });
+
+test('wall niches contain products rather than full series text labels',()=>{let s=accountReady();s=a(s,'FULFIL_ACCOUNT');s=a(s,'CLOSE_ACCOUNT');const h=exhibitionView(s,{draft:{theme:'journey',entries:[{sourceId:'account-0',note:'made-it'},null,null]}});const wall=h.split('</div></div><p>')[0];assert.match(wall,/exhibition-products/);assert.doesNotMatch(wall,/class="exhibition-series/);const tour=exhibitionView(s,{draft:{theme:'journey',entries:[{sourceId:'account-0',note:'made-it'},null,null]},touring:true});assert.match(tour,/枝叶纹样/);});
