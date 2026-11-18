@@ -62,3 +62,5 @@
 
 /* A print proof is generated from the actual selected stock-keeping option. */
 .shelf-proof{margin:.5rem 0;color:#35493e}.shelf-proof summary{cursor:pointer;font-weight:650;font-size:.83rem}.shelf-proof svg{display:block;width:100%;max-width:380px;height:auto;margin:.4rem 0 .1rem}.shelf-proof p{font-size:.79rem;margin:.2rem 0;line-height:1.5}
+
+.line-slot{border:1px solid #d4c6a9;padding:.65rem .8rem;margin:.65rem 0;border-radius:8px;background:#faf5e8;color:#3b4c40}.line-slot summary{cursor:pointer;font-weight:650}.line-slot p{font-size:.88rem;line-height:1.55}.line-slot-calendar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;font-size:.75rem}.line-slot-calendar span{padding:.32rem .12rem;text-align:center;background:#dce5d2;border-top:3px solid #748b6a}
