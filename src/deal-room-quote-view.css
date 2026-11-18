@@ -47,3 +47,15 @@
 .mode-2:checked~.study-frame .linen-place{opacity:1}.mode-2:checked~.study-frame :is(.setting-left,.setting-right,.linen-paired-flask){transform:translate(0,0)}
 @media(prefers-reduced-motion:reduce){.material-study *,.material-study .study-frame *{animation:none!important;transition:none!important}.mode-1:checked~.study-frame .flask-steam{opacity:.7}}
 @media(max-width:420px){.material-study .study-switches>label{min-height:44px;padding:4px .55rem}}
+
+/* Miniature modern shop windows are purpose forecasts, not fulfilled sales. */
+.opening-shop-sketch{margin:0 0 .45rem;position:relative;overflow:hidden;border:1px solid #c3b49c;border-radius:8px;background:#d8d5c3}
+.opening-shop-sketch svg{display:block;width:100%;height:auto;max-height:107px;object-fit:contain;background:#d8d5c3}
+.opening-shop-sketch figcaption{position:relative;padding:.18rem .5rem;background:#f3eddf;color:#39493f;font-size:.71rem;line-height:1.35}
+.opening-shop-sketch .shop-stock{animation:stock-window-set .52s var(--bay-delay,0s) ease-out both}
+.opening-shop-sketch .display-light{animation:window-light-on .7s var(--bay-delay,0s) ease-out both}
+.opening-shop-sketch :is(.opening-pennant,.linen-banner){transform-origin:center top;transform-box:fill-box;animation:window-hang .7s ease-out both}
+@keyframes stock-window-set{from{opacity:.2;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes window-light-on{from{opacity:0}to{opacity:.52}}
+@keyframes window-hang{0%{opacity:.2;transform:rotate(-5deg)}65%{transform:rotate(1.5deg)}100%{opacity:1;transform:rotate(0)}}
+@media(prefers-reduced-motion:reduce){.opening-shop-sketch *{animation:none!important;transition:none!important}}
