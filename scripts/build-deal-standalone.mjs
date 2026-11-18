@@ -2,12 +2,26 @@ import {createHash} from 'node:crypto';
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import path from 'node:path';import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('../',import.meta.url));
-export async function buildDealHtml(){
- const read=async p=>(await readFile(path.join(root,p),'utf8')).replace(/\r\n?/g,'\n');
+async function sourceReader(commit){
+ if(commit===null)return p=>readFile(path.join(root,p));
+ if(typeof commit!=='string'||!/^[a-f0-9]{40}$/.test(commit))throw new Error('Expected a full Git commit identity.');
+ const {execFile}=await import('node:child_process'),{promisify}=await import('node:util');
+ const git=promisify(execFile),mode={cwd:root,windowsHide:true,encoding:'buffer',maxBuffer:8*1024*1024};
+ const actual=(await git('git',['rev-parse','--verify',commit+'^{commit}'],mode)).stdout.toString().trim();
+ if(actual!==commit)throw new Error('The requested revision is not a local commit.');
+ // Read only the modern files that the existing bundler actually requests.
+ // Internal asset paths are normalized, never accepted from a save or the player.
+ return async p=>{if(!/^(?:src\/deal-room[\w.-]*\.(?:js|css)|assets\/deal[\w.-]*\.webp)$/.test(p))throw new Error('Unexpected pinned build input: '+p);
+  return (await git('git',['cat-file','blob',commit+':'+p],mode)).stdout;
+ };
+}
+export async function buildDealHtml(sourceCommit=null){
+ const bytesAt=await sourceReader(sourceCommit);
+ const read=async p=>(await bytesAt(p)).toString('utf8').replace(/\r\n?/g,'\n');
  const [studioProject,studioView,catalogueOrder,catalogue,focus,caseGrowth,caseGrowthUi,development,demand,home,relationships,collection,account,engine,samples,supply,curation,app]=await Promise.all(['src/deal-room-studio-project.js','src/deal-room-studio-project-view.js','src/deal-room-catalogue-order.js','src/deal-room-design-catalogue.js','src/deal-room-career-focus.js','src/deal-room-case-growth.js','src/deal-room-case-growth-view.js','src/deal-room-development.js','src/deal-room-demand.js','src/deal-room-home.js','src/deal-room-relationships.js','src/deal-room-collection.js','src/deal-room-account.js','src/deal-room-engine.js','src/deal-room-samples.js','src/deal-room-supply-view.js','src/deal-room-curation-view.js','src/deal-room-app.js'].map(read));
  let css=await read('src/deal-room.css')+'\n'+await read('src/deal-room-life.css')+'\n'+await read('src/deal-room-quote-view.css')+'\n'+await read('src/deal-room-office.css');
  for(const [raw,file] of [...css.matchAll(/url\(['"]?(\.\.\/assets\/[^)'" ]+)['"]?\)/g)].map(m=>[m[0],m[1]])){
-  const bytes=await readFile(path.join(root,'src',file));css=css.replaceAll(raw,`url(data:image/webp;base64,${bytes.toString('base64')})`);
+  const bytes=await bytesAt(path.posix.normalize('src/'+file));css=css.replaceAll(raw,`url(data:image/webp;base64,${bytes.toString('base64')})`);
  }
  const launch=await read('src/deal-room-launch.js'),launchViewSource=await read('src/deal-room-launch-view.js');
  const scopedLaunch=`const {launchBasis,launchReview}=(()=>{${launch.replace(/^export /gm,'')}return {launchBasis,launchReview};})();`;
@@ -54,7 +68,7 @@ export async function buildDealHtml(){
  const saveSource=await read('src/deal-room-save.js'),saveViewSource=await read('src/deal-room-save-view.js');
  const scopedSave=`const {DEAL_SAVE_KEY,DEAL_BACKUP_MAX_BYTES,encodeDealBackup,parseDealBackup,loadDealSave,saveDealProgress,restoreDealBackup}=(()=>{${saveSource.replace(/^import .*;\n/gm,'').replace(/^export /gm,'')}return {DEAL_SAVE_KEY,DEAL_BACKUP_MAX_BYTES,encodeDealBackup,parseDealBackup,loadDealSave,saveDealProgress,restoreDealBackup};})();`;
  const scopedSaveView=`const {dealSaveView,bindDealSaveTools}=(()=>{${saveViewSource.replace(/^import .*;\n/gm,'').replace(/^export /gm,'')}return {dealSaveView,bindDealSaveTools};})();`;
- const atlas=await readFile(path.join(root,'assets/deal-products-v1.webp'));
+ const atlas=await bytesAt('assets/deal-products-v1.webp');
  const roundSource=await read('src/deal-room-round-receivables.js'),roundViewSource=await read('src/deal-room-round-view.js');
  const scopedRound=`const {roundReceivablesActive,roundReceivableSummary,previewRoundSigning,advanceRoundTime}=(()=>{${roundSource.replace(/^export /gm,'')} return {roundReceivablesActive,roundReceivableSummary,previewRoundSigning,advanceRoundTime};})();`;
  const scopedRoundView=`const {roundCashView,roundProductionView,roundQuoteNote}=(()=>{${roundViewSource.replace(/^import .*;\n/gm,'').replace(/^export /gm,'')} return {roundCashView,roundProductionView,roundQuoteNote};})();`;
@@ -79,16 +93,16 @@ export async function buildDealHtml(){
  const scopedExhibition=`const {EXHIBITION_THEMES,EXHIBITION_NOTES,EXHIBITION_ACTION_KEYS,exhibitionAvailable,exhibitionWorks,canonicalExhibitionAction,applyExhibitionAction}=(()=>{${exhibitionSource.replace(/^import .*;\n/gm,'').replace(/^export /gm,'')}return {EXHIBITION_THEMES,EXHIBITION_NOTES,EXHIBITION_ACTION_KEYS,exhibitionAvailable,exhibitionWorks,canonicalExhibitionAction,applyExhibitionAction};})();`;
  const scopedExhibitionView=`const {exhibitionView,bindExhibition}=(()=>{${exhibitionViewSource.replace(/^import .*;\n/gm,'').replace(/^export /gm,'')}return {exhibitionView,bindExhibition};})();`;
  let script=[scopedGoodsPrices,scopedFreight,scopedAtelierRestock,scopedShop,scopedExhibition,scopedExhibitionView,scopedSpending,scopedAnnex,scopedAnnexView,scopedOffice,scopedOfficeView,scopedQuoteView,scopedLife,scopedLifeArt,scopedLifeView,scopedRevision,scopedRevisionRelationships,scopedRevisionView,scopedRound,scopedRoundView,scopedCatalogue,scopedCaseGrowth,scopedLaunch,scopedLaunchView,scopedStudioProject,scopedAllocation,scopedAllocationView,scopedStock,scopedStockView,scopedGroupUse,scopedStudioView,scopedCatalogueOrder,scopedCaseGrowthUi,scopedDevelopment,scopedDemand,scopedCollection,scopedRelationships,scopedAccount,scopedFocus,scopedCooperation,scopedCooperationView,scopedTradingChapter,scopedHome,engine,scopedSave,scopedSaveView,samples,scopedSupply,scopedCuration,app].map(s=>s.replace(/^import .*;\n/gm,'').replace(/^export /gm,'')).join('\n').replaceAll('assets/deal-products-v1.webp',`data:image/webp;base64,${atlas.toString('base64')}`).replaceAll('trade-tycoon:deal-room:v1','trade-tycoon:deal-room-offline:v1').replace(/<\/script/gi,'<\\/script');
- for(const name of ['deal-life-folding.webp','deal-life-furniture.webp','deal-life-empty.webp'])script=script.replaceAll('assets/'+name,'data:image/webp;base64,'+(await readFile(path.join(root,'assets',name))).toString('base64'));
+ for(const name of ['deal-life-folding.webp','deal-life-furniture.webp','deal-life-empty.webp'])script=script.replaceAll('assets/'+name,'data:image/webp;base64,'+(await bytesAt('assets/'+name)).toString('base64'));
  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>再开一单就下班 · 贸易工作室</title><style>${css}</style></head><body><main id="deal-room"></main><script>${script}</script></body></html>`;
 }
-export function modernManifest(html){
+export function modernManifest(html,sourceCommit=null){
  const sha256=createHash('sha256').update(html).digest('hex');
- return {title:'再开一单就下班',edition:'modern-trade-workshop',channel:'development-candidate',entry:'再开一单就下班-开发候选.html',sha256,buildId:sha256.slice(0,12),bytes:Buffer.byteLength(html),saveKey:'trade-tycoon:deal-room-offline:v1',backupFormat:'deal-room',networkAssetsRequired:false,targetDeviceVerification:'Windows offline not yet verified'};
+ return {title:'再开一单就下班',edition:'modern-trade-workshop',channel:'development-candidate',...(sourceCommit?{sourceCommit}:{}),entry:'再开一单就下班-开发候选.html',sha256,buildId:sha256.slice(0,12),bytes:Buffer.byteLength(html),saveKey:'trade-tycoon:deal-room-offline:v1',backupFormat:'deal-room',networkAssetsRequired:false,targetDeviceVerification:'Windows offline not yet verified'};
 }
 export const modernReadme=`再开一单就下班 · 现代外贸工作室 · 开发候选
 
-打开同目录“再开一单就下班-开发候选.html”。这是现代外贸工作室，不是旧港口版，也不是可上架正式版。无需安装，图片和脚本在 HTML 内。
+先将整个 ZIP 解压到固定文件夹，再打开同目录“再开一单就下班-开发候选.html”。这是现代外贸工作室，不是旧港口版，也不是可上架正式版。无需安装，图片和脚本在 HTML 内。
 
 进度保存在当前浏览器与文件位置下，不会同步在线版。继续使用同一浏览器、同一位置；更新、移动文件或清理浏览器之前，先在“备份与恢复”下载自己的 JSON 备份。无痕模式或拒绝存储可能使进度无法保留，遇到保存警告请先保全备份。
 
@@ -99,5 +113,5 @@ export const modernReadme=`再开一单就下班 · 现代外贸工作室 · 开
 正式在线站、旧港口包与旧存档不由本包改动。
 `;
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
- const dir=path.resolve(process.argv[2]||path.join(root,'artifacts/deal-room'));await mkdir(dir,{recursive:true});const html=await buildDealHtml(),manifest=modernManifest(html),out=path.join(dir,manifest.entry);await writeFile(out,html);await writeFile(path.join(dir,'版本信息.json'),JSON.stringify(manifest,null,2)+'\n');await writeFile(path.join(dir,'先读我.txt'),modernReadme);console.log(out);
+ const sourceCommit=process.argv[3]??null,dir=path.resolve(process.argv[2]||path.join(root,'artifacts/deal-room'));await mkdir(dir,{recursive:true});const html=await buildDealHtml(sourceCommit),manifest=modernManifest(html,sourceCommit),out=path.join(dir,manifest.entry);await writeFile(out,html);await writeFile(path.join(dir,'版本信息.json'),JSON.stringify(manifest,null,2)+'\n');await writeFile(path.join(dir,'先读我.txt'),modernReadme);console.log(out);
 }
