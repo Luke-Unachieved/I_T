@@ -36,3 +36,13 @@
 @media(max-width:850px){.workspace.shop-window{min-height:0;height:auto;padding:8px}.shop-window-card{width:min(100%,425px)}}
 @media(prefers-reduced-motion:reduce){.shop-window-card .shop-real-lamp{animation:none!important}}
 .reduce-motion .shop-window-card .shop-real-lamp{animation:none!important}
+
+/* Cross-border fulfilment: one physical bale stands for ten cloths. */
+.workspace.freight-workspace{display:grid;place-items:center;min-width:0;box-sizing:border-box;padding:16px;background:#cbd7c9;background-image:repeating-linear-gradient(35deg,transparent 0 50px,#acbcaa66 51px 53px,transparent 54px 98px)}
+.freight-board{margin:0;padding:clamp(14px,2vw,26px);width:min(100%,460px);box-sizing:border-box;background:#fff5d9;border:2px solid #61796a;border-radius:4px;color:#354a3d;box-shadow:5px 6px 0 #7a8c7666}
+.freight-board h2{font-size:clamp(19px,3vw,28px);margin:5px 0 16px}.freight-board small,.freight-board figcaption{font-size:12px}
+.freight-zones{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.freight-zones>div{min-width:0;padding:9px;border:1px dashed #81987c;background:#e8eacf}.freight-zones strong{font-size:13px}.freight-bales{display:flex;align-content:flex-start;flex-wrap:wrap;gap:5px;margin-top:6px;min-height:56px}
+.freight-bale{width:21px;height:15px;display:block;border-radius:3px;border:1px solid #6a6d50;background:repeating-linear-gradient(0deg,#e7d0a6 0 3px,#b7986c 4px 5px);box-sizing:border-box;position:relative}
+.freight-bale:after{content:'';position:absolute;inset:-1px 7px;background:#f5e7c2;border-inline:1px solid #7f856c}.freight-bale.arrived:after{background:#91aa82;border-color:#577650}
+.freight-card{padding:10px 12px;margin:10px 0;background:#f9f6e9;border:1px solid #c5cbb6;border-radius:8px}.freight-card h3{margin:0}.freight-card p{margin:6px 0;font-size:.9rem}
+@media(max-width:850px){.workspace.freight-workspace{height:auto;min-height:0;padding:8px}.freight-board{padding:12px}}

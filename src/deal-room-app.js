@@ -29,6 +29,7 @@ import {previewCaseGrowth,previewCaseCalloff,previewApprovedCaseLamp,canCalloffC
 import {caseGrowthView,caseClientLabel} from './deal-room-case-growth-view.js';
 import {developmentView,SAMPLE_FACTORIES} from './deal-room-development.js';
 import {retailWait,demandView,buyerWaitView} from './deal-room-demand.js';
+import {linenFreightView} from './deal-room-linen-freight.js';
 import {atelierRestockBasis,atelierRestockView} from './deal-room-atelier-restock.js';
 import {tradingChapter,tradingChapterVisual} from './deal-room-trading-chapter.js';
 import {businessHomeView,careerRecapView,projectDeskView,projectDeskPreview} from './deal-room-home.js';
@@ -133,6 +134,12 @@ const root=document.querySelector('#deal-room');
 const money=n=>`¥${Number(n).toLocaleString('zh-CN')}`;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function render(){
+ if(state.phase==='linen-freight'){
+  root.innerHTML=linenFreightView(state)+`<p class="save-state" role="status">${esc(saveNotice)}</p>`+dealSaveView(savePanel);
+  root.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>{const next=reduceDealRoom(state,{type:b.dataset.action});if(next===state)return;state=next;save();render();const target=root.querySelector(state.phase==='linen-freight'?'.business h2':'[data-action="OPEN_LINEN_FREIGHT"]');target?.focus({preventScroll:true});});
+  bindSaveTools();return;
+ }
+
  if(exhibitionOpen&&exhibitionAvailable(state)){
   root.innerHTML=exhibitionView(state,exhibitionUI)+`<p class="save-state" role="status">${esc(saveNotice)}</p>`+dealSaveView(savePanel);
   bindExhibition(root,{getState:()=>state,getUI:()=>exhibitionUI,setUI:next=>{exhibitionUI=next;render();},dispatch:action=>{const next=reduceDealRoom(state,action);if(next!==state){state=next;save();}render();},close:()=>{exhibitionOpen=false;exhibitionUI={};annexOpen=true;render();root.querySelector('#open-private-exhibition')?.focus();}});bindSaveTools();return;
@@ -197,7 +204,7 @@ function render(){
  const counterRelevant=quoteState===state&&state.feedback?.kind==='counter'&&(state.history.at(-1)?.optionId===selected||(state.phase==='studio-project'||state.phase==='case-growth'&&proposalOpen&&proposalModel==='standard'&&state.history.at(-1)?.type==='APPROVE_CASE_LAMP'));
  const mood=(['fulfilling','paid','planning-fulfillment'].includes(state.phase)||state.feedback?.kind==='supply-complete')?2:counterRelevant?1:0;
  const feedbackText=restockBasis?(state.atelierRestock.status==='draft'?'Élise 邀你沿用首单的实物和包装。':state.atelierRestock.status==='paid'?'Atelier 已收到补货，货款已结清。':state.feedback.message):quoteState!==state?'先看看这位客户的需求，还没有签单。':state.phase==='negotiating'&&selected==='developed-lamp'?'把验过的新样摆出来，再和客户确认这批订单。':state.phase==='collection-revision'&&state.feedback.kind==='revision'&&state.collectionRevision?.status!=='draft'?'继续看看潮汐系列的样品和订单。':roundActive&&state.phase==='portfolio'&&state.businessSigned>=2?(state.contracts.some(c=>c.roundReceivable&&c.businessRound===state.businessRound&&c.status==='receivable')?'本轮两批已交付；未到账的尾款仍在客户名下。':'本轮两单尾款已收齐，可以回工作室。'):roundActive?state.feedback.message:receipt?(receiptMode==='delivered'?receipt.buyer.company+' 已收到这批产品。':'看看确认的设计与交到客户手上的成品。'):recapVisual?'已交付的作品与承诺留在这里，继续经营由你决定。':state.phase==='studio-project'?state.feedback.message:['WAIT_FOR_BUYER','WAIT_FOR_RETAIL'].includes(state.history.at(-1)?.type)?state.feedback.message:state.retailPlanning&&state.phase==='portfolio'?'看看哪些门店需要补货，或回工作室经营其他业务。':state.collection?.status==='pitch'?(state.collection.pitchBuyer==='northline'?'买方想改成自有品牌线。先核清能授权的范围。':'买方希望主题陈列独家。可以拆开原系列与买方专用纸套来谈。'):businessFeedback(state,{viewingCase,supplyDraft});
- const completedCooperations=(state.atelierRestock?.status==='paid'?1:0)+(state.stockProcurement?.status==='paid'?1:0)+(state.collectionRevision?.orders||[]).filter(o=>o.status==='paid').length+state.contracts.filter(c=>c.status==='paid').length+(state.supplyPlanHistory||[]).length+(state.curationHistory||[]).length+(state.caseGrowthHistory||[]).filter(c=>c.status==='paid').length+(state.accountHistory||[]).length+(state.collection?.orders||[]).filter(c=>c.status==='paid').length;
+ const completedCooperations=(state.linenFreight?.status==='paid'?1:0)+(state.atelierRestock?.status==='paid'?1:0)+(state.stockProcurement?.status==='paid'?1:0)+(state.collectionRevision?.orders||[]).filter(o=>o.status==='paid').length+state.contracts.filter(c=>c.status==='paid').length+(state.supplyPlanHistory||[]).length+(state.curationHistory||[]).length+(state.caseGrowthHistory||[]).filter(c=>c.status==='paid').length+(state.accountHistory||[]).length+(state.collection?.orders||[]).filter(c=>c.status==='paid').length;
  const p=selected?previewOffer(quoteState,selected):null,contract=state.contracts.at(-1),paid=state.contracts.filter(c=>c.status==='paid');
  const quoteLampSample=developedQuoteSample(state,selected,sampleBrightness);
  root.innerHTML=`<header><div class="brand"><small>再开一单就下班</small><h1>我的贸易工作室</h1></div><div class="wallet"><span>第 ${state.day} 天</span><strong>${money(state.cash)}</strong><small>可用资金</small></div></header>
