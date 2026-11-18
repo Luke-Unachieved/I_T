@@ -77,6 +77,17 @@ function reorderContext(state,clientId){
   if(clientId==='mira'&&state.productDevelopment?.status==='active'){for(const o of options)o.title='旧款 · '+o.title;options.push(developmentOffer(state));const second=secondDevelopmentOffer(state);if(second)options.push(second);}
   return {client,last,basis,consequence:consequence+(clientId==='samir'?(branded?' 沿用上批定制版样，不再重新打样。':' 沿用无印字现货，补货 2 天交付。'):''),options};
 }
+// Unanswered opening inquiries. Browsing projects a different buyer onto the same day/cash;
+// only a submitted alternate proposal becomes a journal entry.
+export function openFirstBuyers(state){
+ if(!state||state.phase!=='negotiating'||state.businessRound||state.clientProjectActive)return [];
+ const contracted=new Set(state.contracts.map(o=>o.clientId));
+ return CLIENTS.filter(c=>!contracted.has(c.id)).map(c=>({id:c.id,name:c.name,product:c.product,index:CLIENTS.indexOf(c)}));
+}
+export function firstBuyerProjection(state,id){
+ const c=openFirstBuyers(state).find(c=>c.id===id);
+ return c&&state.clientIndex!==c.index?{...state,clientIndex:c.index}:state;
+}
 /** A single finite client season. Explicit opt-in preserves all previous journals. */
 const PROJECTS={
  mira:{title:'新店灯光橱窗',offset:5,brief:'新店橱窗要亮起来。可以先布置一个角落，也可以把整套灯光系列一次铺齐。',small:[60,2800,1800,2,0],large:[150,6200,4100,4,4],regular:[2500,5700],labels:['先布置样板角','完整灯光系列']},
@@ -239,6 +250,13 @@ export function previewSupplyPlan(state,{clientId,firstBatch,payment}={}){
 }
 
 function apply(state,action){
+  if(action.type==='PROPOSE_OPENING_QUOTE'){
+    const projected=firstBuyerProjection(state,action.clientId);
+    if(projected===state)return state;
+    const next=apply(projected,{type:'PROPOSE',optionId:action.optionId});
+    if(next===projected)return state;
+    next.openingOrderChosen=true;return next;
+  }
   if(Object.hasOwn(SHOP_TRIAL_ACTIONS,action.type))return applyShopTrialAction(state,action);
   if(Object.hasOwn(EXHIBITION_ACTION_KEYS,action.type))return applyExhibitionAction(state,action);
   if(Object.hasOwn(ANNEX_ACTION_KEYS,action.type))return applyAnnexAction(state,action);
@@ -585,13 +603,16 @@ function apply(state,action){
     const s=copy(state);
     if(s.clientProjectActive){const done=clientProjects(s).every(p=>p.completed);s.phase=done?'review':'portfolio';if(done)s.clientProjectActive=false;s.feedback={kind:done?'projects-complete':'projects',message:done?'三份客户计划已收齐。看看哪些货赶上了专题，哪些转成了常规补货。':'这位客户的计划已交付，其他专题日期不会随之延后。'};return s;}
     if(s.businessRound){s.phase=s.businessSigned>=s.businessTarget?'review':'portfolio';s.feedback={kind:s.phase,message:s.phase==='review'?'本次两笔经营已结清，可以查看账目并继续经营。':'这笔已结清，下一笔继续同客或换客由你决定。'};return s;}
-    s.clientIndex++;
+    if(s.openingOrderChosen){
+      const pending=CLIENTS.findIndex(c=>!s.contracts.some(o=>o.clientId===c.id&&o.status==='paid'&&!o.businessRound&&!o.projectId));
+      s.clientIndex=pending<0?CLIENTS.length:pending;
+    }else s.clientIndex++;
     s.phase=s.clientIndex<CLIENTS.length?'negotiating':'complete';
     s.feedback={kind:s.phase==='complete'?'complete':'new-client',message:s.phase==='complete'?'三位客户的生意已收齐。':'新询盘到了，先看这位客户在意什么。'};return s;
   }
   return state;
 }
-const actionKeys={CONTINUE_RETAIL_BUSINESS:['type'],OPEN_STOCK_PROCUREMENT:['type'],CLOSE_STOCK_PROCUREMENT:['type'],SIGN_STOCK_PROCUREMENT:['type','factoryMode'],FULFIL_STOCK_PROCUREMENT:['type'],SIGN_STUDIO_PROJECT_FROM_STOCK:['type'],SET_ACCOUNT_EXPANSION_BASIS:['type','basisId'],START_ACCOUNT_FROM_REVISION:['type'],SET_ACCOUNT_VERSION:['type','versionId'],OPEN_COLLECTION_REVISION:['type'],CLOSE_COLLECTION_REVISION:['type'],COMMISSION_COLLECTION_REVISION:['type'],RECEIVE_COLLECTION_REVISION:['type'],SIGN_COLLECTION_REVISION:['type','buyerId','scope'],FULFIL_COLLECTION_REVISION:['type'],START_CASE_DEVELOPMENT:['type'],OPEN_STUDIO_READING_PAIR:['type'],CLOSE_SETTLED_ROUND:['type'],CANCEL_ROUND_RECEIVABLES:['type'],ENABLE_ROUND_RECEIVABLES:['type'],DELIVER_ROUND_ORDER:['type'],WAIT_ROUND_RECEIPT:['type'],FINISH_ROUND_RECEIVABLES:['type'],SIGN_FIRST_CATALOGUE_ORDER:['type','referrerId','lampVersion'],START_OPENING_CURATION:['type','clientId'],SIGN_STUDIO_ALLOCATION:['type','allocation'],WAIT_STUDIO_ALLOCATION:['type','allocation'],START_ACCOUNT_FROM_COLLECTION:['type'],PAUSE_CLIENT_PROJECTS:['type'],RESUME_CLIENT_PROJECTS:['type'],OPEN_LAUNCH_PROJECT:['type'],CLOSE_LAUNCH_PROJECT:['type'],SET_LAUNCH:['type','field','value'],REVIEW_LAUNCH:['type'],REVISE_LAUNCH:['type'],HAND_OVER_LAUNCH:['type'],PROPOSE_GROUP_CHANGE:['type'],RESTORE_GROUP_SPEC:['type','briefId'],KEEP_STUDIO_PROJECT:['type'],REVISE_STUDIO_PROJECT:['type'],OPEN_STUDIO_PROJECT:['type','direction'],CLOSE_STUDIO_PROJECT:['type'],SET_STUDIO_PROJECT:['type','field','value'],REVIEW_STUDIO_PROJECT:['type'],SIGN_STUDIO_PROJECT_ORDER:['type'],WAIT_STUDIO_PROJECT:['type'],SIGN_CATALOGUE_ORDER:['type','lampVersion'],APPROVE_CASE_LAMP:['type','model'],SIGN_APPROVED_CASE_LAMP:['type','terms'],OPEN_ACCOUNT_EXPANSION:['type'],SIGN_ACCOUNT_EXPANSION:['type'],FULFIL_ACCOUNT_EXPANSION:['type'],WAIT_CASE_CALLOFF:['type','products'],SIGN_CASE_CALLOFF:['type','agreement','products','packaging','terms'],WAIT_CASE_GROWTH:['type','products'],OPEN_CASE_GROWTH:['type','referrerId'],CLOSE_CASE_GROWTH:['type'],SIGN_CASE_GROWTH:['type','agreement','products','packaging','terms'],FULFIL_CASE_GROWTH:['type'],SIGN_CURATION_SAMPLE:['type','products','quantity','packaging','lampVersion'],VIEW_DEVELOPMENT:['type'],CLOSE_SAMPLE:['type'],START_DEVELOPMENT:['type'],CLOSE_DEVELOPMENT:['type'],COMMISSION_SAMPLE:['type','factory'],RECEIVE_SAMPLE:['type'],ACCEPT_SAMPLE:['type'],WAIT_FOR_BUYER:['type','clientId'],START_RETAIL_PLANNING:['type'],BACK_FROM_CLIENTS:['type'],WAIT_FOR_RETAIL:['type'],OPEN_COLLECTION_PITCH:['type','buyerId'],BACK_COLLECTION_PITCH:['type'],SIGN_COLLECTION_PITCH:['type','optionId'],START_COLLECTION:['type'],BACK_FROM_COLLECTION:['type'],SIGN_COLLECTION:['type','model','style'],SIGN_COLLECTION_ORDER:['type','buyerId'],FULFIL_COLLECTION:['type'],CLOSE_COLLECTION:['type'],OPEN_COLLECTION:['type'],START_ACCOUNT:['type','referrerId'],BACK_FROM_ACCOUNT:['type'],SIGN_ACCOUNT:['type','optionId'],FULFIL_ACCOUNT:['type'],CLOSE_ACCOUNT:['type'],BACK_FROM_CURATION:['type'],START_CURATION:['type','clientId'],SIGN_CURATION:['type','products','quantity','packaging'],FULFIL_CURATION:['type'],START_CLIENT_PROJECTS:['type'],PROPOSE:['type','optionId'],ADVANCE:['type'],NEXT_CLIENT:['type'],CONTINUE_BUSINESS:['type'],SELECT_CLIENT:['type','clientId'],BACK_TO_CLIENTS:['type'],START_SUPPLY_PLAN:['type','clientId','firstBatch','payment'],ADVANCE_SUPPLY_PLAN:['type'],FULFIL_SUPPLY_PLAN:['type']};
+const actionKeys={PROPOSE_OPENING_QUOTE:['type','clientId','optionId'],CONTINUE_RETAIL_BUSINESS:['type'],OPEN_STOCK_PROCUREMENT:['type'],CLOSE_STOCK_PROCUREMENT:['type'],SIGN_STOCK_PROCUREMENT:['type','factoryMode'],FULFIL_STOCK_PROCUREMENT:['type'],SIGN_STUDIO_PROJECT_FROM_STOCK:['type'],SET_ACCOUNT_EXPANSION_BASIS:['type','basisId'],START_ACCOUNT_FROM_REVISION:['type'],SET_ACCOUNT_VERSION:['type','versionId'],OPEN_COLLECTION_REVISION:['type'],CLOSE_COLLECTION_REVISION:['type'],COMMISSION_COLLECTION_REVISION:['type'],RECEIVE_COLLECTION_REVISION:['type'],SIGN_COLLECTION_REVISION:['type','buyerId','scope'],FULFIL_COLLECTION_REVISION:['type'],START_CASE_DEVELOPMENT:['type'],OPEN_STUDIO_READING_PAIR:['type'],CLOSE_SETTLED_ROUND:['type'],CANCEL_ROUND_RECEIVABLES:['type'],ENABLE_ROUND_RECEIVABLES:['type'],DELIVER_ROUND_ORDER:['type'],WAIT_ROUND_RECEIPT:['type'],FINISH_ROUND_RECEIVABLES:['type'],SIGN_FIRST_CATALOGUE_ORDER:['type','referrerId','lampVersion'],START_OPENING_CURATION:['type','clientId'],SIGN_STUDIO_ALLOCATION:['type','allocation'],WAIT_STUDIO_ALLOCATION:['type','allocation'],START_ACCOUNT_FROM_COLLECTION:['type'],PAUSE_CLIENT_PROJECTS:['type'],RESUME_CLIENT_PROJECTS:['type'],OPEN_LAUNCH_PROJECT:['type'],CLOSE_LAUNCH_PROJECT:['type'],SET_LAUNCH:['type','field','value'],REVIEW_LAUNCH:['type'],REVISE_LAUNCH:['type'],HAND_OVER_LAUNCH:['type'],PROPOSE_GROUP_CHANGE:['type'],RESTORE_GROUP_SPEC:['type','briefId'],KEEP_STUDIO_PROJECT:['type'],REVISE_STUDIO_PROJECT:['type'],OPEN_STUDIO_PROJECT:['type','direction'],CLOSE_STUDIO_PROJECT:['type'],SET_STUDIO_PROJECT:['type','field','value'],REVIEW_STUDIO_PROJECT:['type'],SIGN_STUDIO_PROJECT_ORDER:['type'],WAIT_STUDIO_PROJECT:['type'],SIGN_CATALOGUE_ORDER:['type','lampVersion'],APPROVE_CASE_LAMP:['type','model'],SIGN_APPROVED_CASE_LAMP:['type','terms'],OPEN_ACCOUNT_EXPANSION:['type'],SIGN_ACCOUNT_EXPANSION:['type'],FULFIL_ACCOUNT_EXPANSION:['type'],WAIT_CASE_CALLOFF:['type','products'],SIGN_CASE_CALLOFF:['type','agreement','products','packaging','terms'],WAIT_CASE_GROWTH:['type','products'],OPEN_CASE_GROWTH:['type','referrerId'],CLOSE_CASE_GROWTH:['type'],SIGN_CASE_GROWTH:['type','agreement','products','packaging','terms'],FULFIL_CASE_GROWTH:['type'],SIGN_CURATION_SAMPLE:['type','products','quantity','packaging','lampVersion'],VIEW_DEVELOPMENT:['type'],CLOSE_SAMPLE:['type'],START_DEVELOPMENT:['type'],CLOSE_DEVELOPMENT:['type'],COMMISSION_SAMPLE:['type','factory'],RECEIVE_SAMPLE:['type'],ACCEPT_SAMPLE:['type'],WAIT_FOR_BUYER:['type','clientId'],START_RETAIL_PLANNING:['type'],BACK_FROM_CLIENTS:['type'],WAIT_FOR_RETAIL:['type'],OPEN_COLLECTION_PITCH:['type','buyerId'],BACK_COLLECTION_PITCH:['type'],SIGN_COLLECTION_PITCH:['type','optionId'],START_COLLECTION:['type'],BACK_FROM_COLLECTION:['type'],SIGN_COLLECTION:['type','model','style'],SIGN_COLLECTION_ORDER:['type','buyerId'],FULFIL_COLLECTION:['type'],CLOSE_COLLECTION:['type'],OPEN_COLLECTION:['type'],START_ACCOUNT:['type','referrerId'],BACK_FROM_ACCOUNT:['type'],SIGN_ACCOUNT:['type','optionId'],FULFIL_ACCOUNT:['type'],CLOSE_ACCOUNT:['type'],BACK_FROM_CURATION:['type'],START_CURATION:['type','clientId'],SIGN_CURATION:['type','products','quantity','packaging'],FULFIL_CURATION:['type'],START_CLIENT_PROJECTS:['type'],PROPOSE:['type','optionId'],ADVANCE:['type'],NEXT_CLIENT:['type'],CONTINUE_BUSINESS:['type'],SELECT_CLIENT:['type','clientId'],BACK_TO_CLIENTS:['type'],START_SUPPLY_PLAN:['type','clientId','firstBatch','payment'],ADVANCE_SUPPLY_PLAN:['type'],FULFIL_SUPPLY_PLAN:['type']};
 function canonicalAction(a){
   if(a&&Object.hasOwn(SHOP_TRIAL_ACTIONS,a.type))return canonicalShopTrialAction(a);
   if(a&&Object.hasOwn(EXHIBITION_ACTION_KEYS,a.type))return canonicalExhibitionAction(a);
@@ -600,6 +621,7 @@ function canonicalAction(a){
   if(a&&Object.hasOwn(LIFE_ACTION_KEYS,a.type))return canonicalLifeAction(a);
   if(a&&Object.hasOwn(SECOND_SUPPLIER_ACTIONS,a.type))return canonicalSecondSupplierAction(a);
   if(!a||typeof a!=='object'||Array.isArray(a)||!actionKeys[a.type])return null;
+  if(a.type==='PROPOSE_OPENING_QUOTE'&&(!CLIENTS.some(c=>c.id===a.clientId)||typeof a.optionId!=='string'))return null;
   if(a.type==='SET_LAUNCH'&&!({arrangement:['set','individual'],lead:['mira','samir','ines']}[a.field]?.includes(a.value)))return null;
   if(a.type==='RESTORE_GROUP_SPEC'&&!['bedside','welcome'].includes(a.briefId))return null;
   if(a.type==='OPEN_STUDIO_PROJECT'&&!['independent','group'].includes(a.direction))return null;
