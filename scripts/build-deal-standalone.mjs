@@ -51,9 +51,9 @@ export async function buildDealHtml(){
  const scopedRound=`const {roundReceivablesActive,roundReceivableSummary,previewRoundSigning,advanceRoundTime}=(()=>{${roundSource.replace(/^export /gm,'')} return {roundReceivablesActive,roundReceivableSummary,previewRoundSigning,advanceRoundTime};})();`;
  const scopedRoundView=`const {roundCashView,roundProductionView,roundQuoteNote}=(()=>{${roundViewSource.replace(/^import .*;\n/gm,'').replace(/^export /gm,'')} return {roundCashView,roundProductionView,roundQuoteNote};})();`;
  const lifeSource=await read('src/deal-room-life.js'),lifeViewSource=await read('src/deal-room-life-view.js');
- const scopedLife=`const {LIFE_ACTION_KEYS,LIFE_ITEMS,lifeAvailable,lifePurchasePreview,canonicalLifeAction,applyLifeAction}=(()=>{${lifeSource.replace(/^export /gm,'')}return {LIFE_ACTION_KEYS,LIFE_ITEMS,lifeAvailable,lifePurchasePreview,canonicalLifeAction,applyLifeAction};})();`;
+ const scopedLife=`const {LIFE_ACTION_KEYS,LIFE_ITEMS,lifeAvailable,lifePurchasePreview,canonicalLifeAction,applyLifeAction,lifeReadingLampBasis,lifeCatalogue,lifeLightLevel}=(()=>{${lifeSource.replace(/^export /gm,'')}return {LIFE_ACTION_KEYS,LIFE_ITEMS,lifeAvailable,lifePurchasePreview,canonicalLifeAction,applyLifeAction,lifeReadingLampBasis,lifeCatalogue,lifeLightLevel};})();`;
  const lifeArtSource=await read('src/deal-room-life-art.js');
- const scopedLifeArt=`const {paintedLifeRoomArt}=(()=>{${lifeArtSource.replace(/^export /gm,'')}return {paintedLifeRoomArt};})();`;
+ const scopedLifeArt=`const {paintedLifeRoomArt}=(()=>{${lifeArtSource.replace(/^import .*;\n/gm,'').replace(/^export /gm,'')}return {paintedLifeRoomArt};})();`;
  const scopedLifeView=`const {lifeRoomView,bindLifeRoom}=(()=>{${lifeViewSource.replace(/^import .*;\n/gm,'').replace(/^export /gm,'')}return {lifeRoomView,bindLifeRoom};})();`;
  const quoteViewSource=await read('src/deal-room-quote-view.js');
  const scopedQuoteView=`const {quoteOptionExplanation,quoteCommitmentView,quoteBuyerBrief}=(()=>{${quoteViewSource.replace(/^export /gm,'')}return {quoteOptionExplanation,quoteCommitmentView,quoteBuyerBrief};})();`;

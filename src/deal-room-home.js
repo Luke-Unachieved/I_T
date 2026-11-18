@@ -1,3 +1,4 @@
+import {lifeReadingLampBasis} from './deal-room-life.js';
 import {supplyLotsView} from './deal-room-supply-view.js';
 import {shopTrialInvite} from './deal-room-shop-trial.js';
 import {stockProcurementAccounting} from './deal-room-stock-procurement.js';
@@ -47,9 +48,9 @@ export function accountCompletionGlance(state){
 export function homeLifeView(state){
  if(!['review','complete'].includes(state.phase)||!(state.contracts||[]).some(c=>c.status==='paid'))return '';
  const ids=new Set((state.personalLife?.purchases||[]).map(p=>p.itemId));
- const names=[['chair','阅读角'],['coffee','自己的咖啡'],['books','手工书册'],['record','唱片机'],['records','周末唱片']].filter(([id])=>ids.has(id)).map(([,name])=>name);
+ const names=[['chair','阅读角'],['coffee','自己的咖啡'],['books','手工书册'],['record','唱片机'],['records','周末唱片'],['readinglamp','调光阅读角']].filter(([id])=>ids.has(id)).map(([,name])=>name);
  const spent=Number.isSafeInteger(state.personalLife?.spent)?state.personalLife.spent:0;
- return `<section class="home-life" aria-label="赚钱以后的生活"><div><small>生意之外，也有自己的生活</small><p>${names.length?names.join(' · '):'家里还没添置新物件。想给自己挑一件，还是把钱留给下一单？'}</p>${spent?`<span>已经为家里添置 ¥${spent.toLocaleString('zh-CN')}</span>`:''}</div><div class="home-life-links"><button id="open-personal-life">${names.length?'回家享受一下':'去看看喜欢的物件'}</button><button id="open-office-improvement">${state.officeImprovement?'去窗边工作室':'想换个办公环境'}</button>${state.officeImprovement?`<button id="open-office-annex">${state.officeAnnex?'去自己的会客室':'看看更宽敞的会客室'}</button>`:''}</div></section>`;
+ return `<section class="home-life" aria-label="赚钱以后的生活"><div><small>生意之外，也有自己的生活</small><p>${names.length?names.join(' · '):'家里还没添置新物件。想给自己挑一件，还是把钱留给下一单？'}</p>${!ids.has('readinglamp')&&lifeReadingLampBasis(state)?'<p>Mira 已付清调光灯货款。回家看看：现在也能另订一盏，摆在自己的阅读椅旁。</p>':''}${spent?`<span>已经为家里添置 ¥${spent.toLocaleString('zh-CN')}</span>`:''}</div><div class="home-life-links"><button id="open-personal-life">${names.length?'回家享受一下':'去看看喜欢的物件'}</button><button id="open-office-improvement">${state.officeImprovement?'去窗边工作室':'想换个办公环境'}</button>${state.officeImprovement?`<button id="open-office-annex">${state.officeAnnex?'去自己的会客室':'看看更宽敞的会客室'}</button>`:''}</div></section>`;
 }
 export function businessHomeView(state,{career,referrals,focus='',directionsOpen=false}){
  const openingOffers=openingCurationOffers(state);
