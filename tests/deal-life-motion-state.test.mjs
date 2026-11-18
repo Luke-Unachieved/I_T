@@ -14,3 +14,9 @@ test('silent state removes the rotating record even while another ritual is open
 test('an unowned record player does not appear merely because sound is enabled',()=>{
  assert.doesNotMatch(paintedLifeRoomArt({}, {soundOn:true}),/class="life-disc"/);
 });
+
+test('purchase arrival unwraps owned furniture but never an unpaid preview',()=>{
+ assert.match(paintedLifeRoomArt(owned,{arrival:'record'}),/class="life-unwrapping"/);
+ assert.doesNotMatch(paintedLifeRoomArt({}, {preview:'record',arrival:'record'}),/class="life-unwrapping"/);
+ assert.doesNotMatch(paintedLifeRoomArt(owned,{}),/class="life-unwrapping"/);
+});

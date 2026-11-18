@@ -20,3 +20,12 @@
 @keyframes life-coffee-pour{0%{stroke-dashoffset:52;opacity:0}20%{opacity:.85}55%{stroke-dashoffset:0;opacity:.85}100%{stroke-dashoffset:-52;opacity:0}}
 @media(prefers-reduced-motion:reduce){.life-coffee-pour{animation:none;opacity:0}}
 .reduce-motion .life-coffee-pour{animation:none;opacity:0}
+/* Purchased furniture is unwrapped once; previews never use this reward. */
+.life-wrap-left,.life-wrap-right{transform-box:fill-box;transform-origin:center;animation:life-unwrap-left 1s ease-in-out both}
+.life-wrap-right{animation-name:life-unwrap-right}
+.life-wrap-ribbon{animation:life-unwrap-ribbon .7s ease both}
+@keyframes life-unwrap-left{0%,20%{opacity:1;transform:translateX(0) rotate(0)}100%{opacity:0;transform:translateX(-35%) rotate(-12deg)}}
+@keyframes life-unwrap-right{0%,20%{opacity:1;transform:translateX(0) rotate(0)}100%{opacity:0;transform:translateX(35%) rotate(12deg)}}
+@keyframes life-unwrap-ribbon{0%,15%{opacity:1}65%,100%{opacity:0}}
+@media(prefers-reduced-motion:reduce){.life-unwrapping{display:none}.life-unwrapping *{animation:none!important}}
+.reduce-motion .life-unwrapping{display:none}.reduce-motion .life-unwrapping *{animation:none!important}

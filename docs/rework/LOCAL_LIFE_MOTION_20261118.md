@@ -31,3 +31,7 @@ Reused the existing renderKeepingChoiceFocus helper for 17 additional passive op
 Added three independently authored SVG/CSS gestures: writing a contract signature, handing over a parcel, and stamping a receipt with a coin dropping toward the ledger. Chosen from actual feedback categories; unsuccessful unchanged actions clear the gesture. Delivery without confirmed receipt is not presented as payment. Animations are finite (under two seconds), pointer-transparent, and disabled for reduced motion. No external images, timers, amounts or game rules are introduced.
 
 This is not a claim of rich finished art: layout/occlusion, mobile composition, rhythm and perceived reward need the later complete Windows visual acceptance. Existing exhibition artwork/feedback was reviewed only; no blocked descendant animation was copied or reimplemented.
+
+## Purchased furniture reveal
+
+Added a finite paper-unwrapping reveal for newly purchased chair, coffee machine and record player, using authored SVG layers over the existing artwork. Unowned trial placement never receives the purchase reveal. Reduced-motion skips wrapping entirely. Added regression coverage for owned arrival versus preview, and business gesture classification (delivery is not receipt). Tests are authored and syntax parsed, not behavior-executed.
