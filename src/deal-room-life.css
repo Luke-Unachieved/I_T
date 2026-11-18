@@ -15,3 +15,8 @@
 .life-record-choices{display:flex;gap:.5rem;flex-wrap:wrap}.life-record-choices button{min-height:44px;flex:1 1 8rem}.life-panel .life-record-choices button[aria-pressed="true"]{background:#d1e1d6;color:#233e34;border-color:#546c65}.life-listening>*{min-width:0}.life-listening h3{overflow-wrap:anywhere}
 
 .life-volume{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}.life-volume input{flex:1;min-width:120px;min-height:44px;accent-color:#486b5b}.life-volume output{min-width:3ch;color:#233e34}
+/* A finite brewing gesture, not a permanent loading animation. */
+.life-coffee-pour{stroke-dasharray:52;stroke-dashoffset:52;animation:life-coffee-pour 1.2s ease-in-out both;pointer-events:none}
+@keyframes life-coffee-pour{0%{stroke-dashoffset:52;opacity:0}20%{opacity:.85}55%{stroke-dashoffset:0;opacity:.85}100%{stroke-dashoffset:-52;opacity:0}}
+@media(prefers-reduced-motion:reduce){.life-coffee-pour{animation:none;opacity:0}}
+.reduce-motion .life-coffee-pour{animation:none;opacity:0}
