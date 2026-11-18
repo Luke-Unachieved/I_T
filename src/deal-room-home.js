@@ -1,4 +1,4 @@
-import {marketAvailable} from './deal-room-market.js';
+import {marketAvailable,marketBook} from './deal-room-market.js';
 import {MARKET_PRODUCTS} from './deal-room-market-data.js';
 import {goodsPriceRecords,priorSupplyAgreements} from './deal-room-goods-prices.js';
 import {linenFreightInvite} from './deal-room-linen-freight.js';
@@ -61,7 +61,7 @@ export function homeLifeView(state){
 function realizedBusinessNet(state){
  const paid=(state.contracts||[]).filter(c=>c.status==='paid'),cases=state.curationHistory||[],orders=state.collection?.orders||[];
  const revisionNet=(state.collectionRevision?.orders||[]).filter(o=>o.status==='paid').reduce((n,o)=>n+o.netProfit,0)-(state.collectionRevision?.investment||0);
- return (state.marketHistory||[]).filter(o=>o.status==='paid').reduce((sum,o)=>sum+o.netProfit,0)+(state.linenFreight?.status==='paid'?state.linenFreight.netProfit:0)+atelierRestockProfit(state)+stockProcurementAccounting(state).realizedProfit+revisionNet+paid.reduce((n,o)=>n+o.netProfit,0)+(state.supplyPlanHistory||[]).reduce((n,o)=>n+o.netProfit,0)+cases.reduce((n,o)=>n+o.netProfit,0)+(state.accountHistory||[]).reduce((n,o)=>n+o.netProfit,0)+orders.reduce((n,o)=>n+o.netProfit,0)+(state.caseGrowthHistory||[]).reduce((n,o)=>n+(o.netProfit||0),0)-(state.caseGrowthOperatingCost||0)-(state.collection?.sampleCost||0)-(state.retailOperatingCost||0)-(state.lineFactorySlot?.fee||0)-(state.productDevelopment?.investment||0)-(state.secondSupplier?.investment||0);
+ return (state.marketHistory?.length?marketBook(state).net:0)+(state.linenFreight?.status==='paid'?state.linenFreight.netProfit:0)+atelierRestockProfit(state)+stockProcurementAccounting(state).realizedProfit+revisionNet+paid.reduce((n,o)=>n+o.netProfit,0)+(state.supplyPlanHistory||[]).reduce((n,o)=>n+o.netProfit,0)+cases.reduce((n,o)=>n+o.netProfit,0)+(state.accountHistory||[]).reduce((n,o)=>n+o.netProfit,0)+orders.reduce((n,o)=>n+o.netProfit,0)+(state.caseGrowthHistory||[]).reduce((n,o)=>n+(o.netProfit||0),0)-(state.caseGrowthOperatingCost||0)-(state.collection?.sampleCost||0)-(state.retailOperatingCost||0)-(state.lineFactorySlot?.fee||0)-(state.productDevelopment?.investment||0)-(state.secondSupplier?.investment||0);
 }
 export function businessHomeView(state,{career,referrals,focus='',directionsOpen=false}){
  const trade=tradingChapter(state);
@@ -113,8 +113,8 @@ export function settledUnitPricesView(contracts){
 /** A factual session recap, not a score, ending unlock, or invented promotion. */
 export function careerRecap(state){
  const paid=state.contracts.filter(o=>o.status==='paid'),clients=new Set(paid.map(o=>o.clientId));
- const series=state.collection,orders=series?.orders||[];
- return {day:state.day,clients:clients.size,paid:paid.length,stores:accountCoverage(state),
+ const series=state.collection,orders=series?.orders||[],market=state.marketHistory?.length?marketBook(state):null;
+ return {day:state.day,clients:clients.size+(market?.buyers.length||0),paid:paid.length+(market?.receipts.length||0),stores:accountCoverage(state),
   designs:orders.length?(series.model==='private'?'替客户完成了专用系列':series.exclusiveBuyer?'原系列已约定独家供货':orders.some(o=>o.scope==='buyer-sleeve')?'原稿留下，买方另有专用版本':'自己的系列已被买手采用'):'',
   cases:(state.curationHistory||[]).length,
   openDesign:series?.model==='own'&&orders.length>0&&!series.exclusiveBuyer,
@@ -122,7 +122,9 @@ export function careerRecap(state){
 }
 export function careerRecapView(state,{route='auto',evidence='chain'}={}){
  const latestSupply=(state.supplyPlanHistory||[]).findLast(p=>p.status==='paid'&&Array.isArray(p.lots));
- const ledger=`<p class="brief">可用资金 ${money(state.cash)}。</p>${settledUnitPricesView(goodsPriceRecords(state))}${latestSupply?`<details class="settled-prices"><summary>最近结清的两批供货 · ${escape(String(latestSupply.clientName||'客户').split(' · ')[0])}</summary>${supplyLotsView(latestSupply)}</details>`:''}`;
+ const market=state.marketHistory?.length?marketBook(state):null;
+ const marketLedger=market?.receipts.length?`<details class="settled-prices"><summary>新品生意 · ${market.receipts.length} 笔已结清</summary><p>${market.buyers.length} 家买方收下了 ${market.products} 种新品，已收货款 ${money(market.received)}。扣除采购、运输和日常开支，${market.net===0?'这些合同合计不赚不亏':market.net>0?'合计赚了 '+money(market.net):'合计亏了 '+money(-market.net)}。</p>${market.repeat?`<p><strong>从试单做到铺货</strong> · ${escape(market.repeat.bulk.buyer)} 先试了 ${market.repeat.trial.quantity}${escape(market.repeat.trial.unit)}${escape(market.repeat.trial.productName)}，后来又采购 ${market.repeat.bulk.quantity}${escape(market.repeat.bulk.unit)}。两笔都已付清，最近一笔在第 ${market.repeat.bulk.paidDay} 天到账。</p>`:''}</details>`:'';
+ const ledger=`<p class="brief">可用资金 ${money(state.cash)}。</p>${marketLedger}${settledUnitPricesView(goodsPriceRecords(state))}${latestSupply?`<details class="settled-prices"><summary>最近结清的两批供货 · ${escape(String(latestSupply.clientName||'客户').split(' · ')[0])}</summary>${supplyLotsView(latestSupply)}</details>`:''}`;
  const trade=(route==='trade'||!state.collection)&&tradingChapter(state);
  if(trade)return tradingChapterView(trade,evidence,ledger);
  const boutique=route==='auto'&&!state.collection&&!state.accountHistory?.length&&tradingChapter(state,'boutique',realizedBusinessNet(state));

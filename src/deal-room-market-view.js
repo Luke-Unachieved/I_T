@@ -1,6 +1,6 @@
 import {marketPlate} from './deal-room-market-art.js';
 import {MARKET_PRODUCTS} from './deal-room-market-data.js';
-import {previewMarket} from './deal-room-market.js';
+import {previewMarket,marketBook} from './deal-room-market.js';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>Number.isSafeInteger(n)?`¥${n.toLocaleString('zh-CN')}`:'—';
 const modeName=m=>m==='bulk'?'铺货':'试单';
@@ -15,7 +15,7 @@ function draftOf(ui){
  const suggested=Math.ceil((f.unitCost+expenses/o.quantity)*1.3);
  return {productId:p.id,mode,source,unitPrice:ui.unitPrice??suggested};
 }
-const paidReceipts=s=>(s.marketHistory||[]).filter(r=>r.status==='paid'&&r.delivered===r.quantity&&r.received===r.revenue);
+const paidReceipts=s=>marketBook(s).receipts;
 function historyView(state,ui){
  const rows=paidReceipts(state);if(!rows.length)return '';
  const pageSize=6,pages=Math.ceil(rows.length/pageSize),page=Math.min(pages-1,Math.max(0,Number.isSafeInteger(ui.historyPage)?ui.historyPage:0));

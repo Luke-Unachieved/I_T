@@ -10,6 +10,23 @@ export function canonicalMarketAction(a){
  if(a.type==='SIGN_MARKET'&&(!MARKET_PRODUCTS.some(p=>p.id===a.productId)||!['trial','bulk'].includes(a.mode)||!['stock','factory'].includes(a.source)||!safe(a.unitPrice)||a.unitPrice<1||a.unitPrice>100000))return null;
  return Object.fromEntries(keys.map(k=>[k,a[k]]));
 }
+// A fulfilled lot and an unpaid receivable are not a paid order. The active
+// receipt is also copied into marketHistory at settlement; never count both.
+export function marketBook(state){
+ const receipts=(state.marketHistory||[]).filter(r=>r.status==='paid'&&
+  Number.isSafeInteger(r.paidDay)&&r.paidDay<=state.day&&r.delivered===r.quantity&&r.received===r.revenue&&
+  r.quantity>0&&r.unitPrice*r.quantity===r.revenue&&r.netProfit===r.revenue-r.cost-r.operatingCost);
+ let net=0,received=0,repeat=null;
+ const products=new Set(),buyers=new Map(),firstTrials=new Map();
+ for(const r of receipts){
+  net+=r.netProfit;received+=r.received;products.add(r.productId);
+  buyers.set(r.buyer,1+(buyers.get(r.buyer)||0));
+  const key=JSON.stringify([r.buyer,r.productId]),trial=firstTrials.get(key);
+  if(r.mode==='trial'&&!trial)firstTrials.set(key,r);
+  if(r.mode==='bulk'&&trial&&r.signedDay>=trial.paidDay&&r.quantity>trial.quantity)repeat={trial,bulk:r};
+ }
+ return {receipts,net,received,products:products.size,buyers:[...buyers].map(([name,count])=>({name,count})),repeat};
+}
 export function marketAvailable(s){
  return !!s&&['review','complete'].includes(s.phase)&&safe(s.cash)&&safe(s.day)&&(s.contracts||[]).some(c=>c.status==='paid')&&!(s.contracts||[]).some(c=>c.status!=='paid')&&(!s.market||['draft','paid'].includes(s.market.status));
 }

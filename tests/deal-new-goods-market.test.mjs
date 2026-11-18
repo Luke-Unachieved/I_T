@@ -62,3 +62,22 @@ test('the web quote desk keeps actionable prices, stock and accounts aligned wit
  s=take(s,'DELIVER_MARKET');assert.match(marketView(s,{}),/COLLECT_MARKET/);
  s=take(s,'COLLECT_MARKET');assert.match(marketView(s,{}),/已经收齐的商品订单 · 1 单/);
 });
+
+test('the workshop and closing recap count only settled new goods contracts and actual repeat buyers',async()=>{
+ const {marketBook}=await import('../src/deal-room-market.js');
+ const {careerRecap,careerRecapView}=await import('../src/deal-room-home.js');
+ let s=workshop();const original=s.cash;
+ const quote=(mode,productId='tray')=>{const p=MARKET_PRODUCTS.find(p=>p.id===productId);return {productId,mode,source:mode==='trial'?'stock':'factory',unitPrice:p.offers[mode].maxUnitPrice};};
+ s=take(s,'OPEN_MARKET');s=take(s,'SIGN_MARKET',quote('trial'));s=take(s,'DELIVER_MARKET');s=take(s,'CLOSE_MARKET');
+ assert.equal(s.cash-original,317);assert.equal(careerRecap(s).paid,4);assert.equal(careerRecap(s).clients,4);
+ let b=marketBook(s);assert.equal(b.net,317);assert.equal(b.repeat,null);assert.equal(b.received,1332);
+ s=take(s,'OPEN_MARKET');s=take(s,'SIGN_MARKET',quote('bulk'));s=take(s,'DELIVER_MARKET');
+ assert.equal(s.market.status,'receivable');assert.equal(careerRecap(s).paid,4);assert.equal(marketBook(s).received,1332);
+ assert.doesNotMatch(careerRecapView(s),/从试单做到铺货/);
+ s=take(take(s,'COLLECT_MARKET'),'CLOSE_MARKET');
+ b=marketBook(s);assert.deepEqual(b.buyers,[{name:'岚岸餐饮采购社',count:2}]);
+ assert.equal(b.products,1);assert.equal(b.net,1386);assert.equal(b.received,5172);assert.equal(b.net,s.cash-original);
+ assert.equal(careerRecap(s).paid,5);assert.equal(careerRecap(s).clients,4);
+ const html=careerRecapView(s);assert.match(html,/1 家买方收下了 1 种新品，已收货款 ¥5,172/);
+ assert.match(html,/合计赚了 ¥1,386/);assert.match(html,/从试单做到铺货/);assert.match(html,/36只可叠放餐盘托盘，后来又采购 120只/);
+});
