@@ -1,10 +1,10 @@
 /** Visible samples bind to real quote identities; no cosmetic-only choices. */
-export function sampleSelection(sample,purpose='opening'){
+export function sampleSelection(sample,purpose='opening',openingCustom=false){
  if(sample==='plain')return 'ready';
- if(sample==='custom')return purpose==='restock'?'branded':'promise';
+ if(sample==='custom')return purpose==='restock'?'branded':openingCustom?'branded-opening':'promise';
  return null;
 }
-export function selectedSample(option){return option==='ready'?'plain':['branded','promise'].includes(option)?'custom':null;}
+export function selectedSample(option){return option==='ready'?'plain':['branded','branded-opening','promise'].includes(option)?'custom':null;}
 const productAtlas='assets/deal-products-v1.webp';
 export function sampleSvg(kind,custom=false){
  const index=kind==='lamp'?0:kind==='cup'?1:2;

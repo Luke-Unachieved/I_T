@@ -161,13 +161,23 @@ export function currentClient(state){
   const c=CLIENTS[state.clientIndex]; if(!c)return null;
   if(state.clientProjectActive){const p=clientProjectContext(state,c.id);return {...c,brief:p.brief,requirements:p.options.some(o=>o.projectOnTime)?[`第 ${p.deadline} 天前交货用于${p.title}`,'日期来不及，可改谈门店补货']:['门店常规补货，保留原规格'],windowNote:'先做谁，会改变其他客户能否赶上专题。'};}
   if(state.businessRound){const r=reorderContext(state,c.id),last=state.contracts.at(-1);return {id:c.id,name:c.name,country:c.country,product:['fulfilling','paid'].includes(state.phase)&&last?.optionId==='developed-lamp'?last.product:c.product,brief:r.consequence,requirements:['沿用已确认规格，不降低品质','小批交货付款；规模备货先付 30%，尾款留账期'],windowNote:'主动选择经营哪位客户；本次结清后可继续同客，也可换客。'};}
+  if(samirOpeningCustom(state))return {id:c.id,name:c.name,country:c.country,product:c.product,brief:c.brief,requirements:['第 7 天开业前交货','无印字现货做 2 天；定制包装做 5 天，交货后 3 天结清'],windowNote:'今天下单，两款都赶得上开业；定制款交货后还要等三天回款。'};
   return {id:c.id,name:c.name,country:c.country,product:c.product,brief:c.brief,requirements:[...c.requirements],windowNote:state.clientIndex===0?'下一位客户的开业批要在第 7 天前送到。':state.clientIndex===1?(state.day+2<=7?'现货还赶得上第 7 天开业。':'开业批已关闭，现货改按常规补货预算。')+' 下一位客户第 11 天前到货的陈列批有 400 溢价，备货需 5 天。':'陈列批第 11 天前到货有 400 溢价；之后仍可做常规备货。'};
+}
+// The same five-day customised cup and three-day terms can serve the opening
+// only while there are five manufacturing days left. Keep historical proposal
+// identities untouched: the earlier "promise" counter was never a signed order.
+function samirOpeningCustom(state){
+ if(state.phase!=='negotiating'||state.businessRound||state.clientProjectActive||state.clientIndex!==1)return null;
+ const branded=CLIENTS[1].options.find(o=>o.id==='branded');
+ return state.day+branded.deliveryDays<=7?{...branded,id:'branded-opening',title:'120 只定制 · 开业陈列',exchange:'定制包装照原工期制作；赶上开业，交货后三天结清。',specification:'branded'}:null;
 }
 export function quoteOptions(state){
   if(!currentClient(state))return [];
   if(state.clientProjectActive)return copy(clientProjectContext(state,CLIENTS[state.clientIndex].id).options);
   if(state.businessRound)return copy(reorderContext(state,CLIENTS[state.clientIndex].id).options);
-  const options=copy(CLIENTS[state.clientIndex].options);
+  const options=copy(CLIENTS[state.clientIndex].options),timelySamir=samirOpeningCustom(state);
+  if(timelySamir)options[2]=timelySamir;
   if(state.clientIndex===1 && state.day+2>7){
     Object.assign(options[0],{title:'80 只现货 · 常规补货',exchange:'开业批已关闭；按常规预算、5 天交货，不必支付加急费用。',revenue:2800,cost:2000,deliveryDays:5});
   }
@@ -184,7 +194,9 @@ function projectScheduleNote(state,o,paymentDay){
  return own+(!remaining.length?'这笔收齐，三位客户的计划就都落地了。':lost.length?`这单收齐后，${lost.map(p=>p.title).join('、')}只能改做常规补货。`:open.length?'收齐后仍有其他专题机会，接下一单时再看日期。':'余下客户也按常规补货安排，不再追专题日期。');
 }
 export function previewOffer(state,optionId){
-  const o=quoteOptions(state).find(x=>x.id===optionId);
+  const o=quoteOptions(state).find(x=>x.id===optionId)
+    // Older proposals used this distinct rejected identity even on day one.
+    ||(optionId==='promise'&&samirOpeningCustom(state)?CLIENTS[1].options.find(x=>x.id===optionId):null);
   if(!o)return {valid:false,reason:'没有这份报价。'};
   const demand=state.businessRound&&!state.clientProjectActive?retailDemand(state,CLIENTS[state.clientIndex].id):null;
   if(demand&&!demand.ready)return {...o,valid:false,reason:`门店约余 ${demand.remaining} 件，第 ${demand.readyDay} 天才需要补货。先看其他客户，或做工作室的其他业务。`};
@@ -587,6 +599,7 @@ function apply(state,action){
     s.cash=q.cashAfterSigning;s.phase='fulfilling';if(s.businessRound&&!s.clientProjectActive)s.businessSigned++;
     s.contracts.push({clientId:c.id,clientName:c.name,product:c.product,optionId:q.id,quantity:q.quantity,revenue:q.revenue,cost:q.cost,deposit:q.deposit,balanceDue:q.balanceDue,profit:q.profit,operatingCost:q.operatingCost,netProfit:q.netProfit,signedDay:s.day,deliveryDay:q.deliveryDay,paymentDay:q.paymentDay,status:'fulfilling'});
     if(s.businessRound){s.contracts.at(-1).businessRound=s.businessRound;s.contracts.at(-1).specification=q.specification;}
+    if(q.id==='branded-opening')s.contracts.at(-1).specification='branded';
     if(q.id==='second-developed-lamp')s.contracts.at(-1).product=SAMPLE_FACTORIES[s.secondSupplier.factory].title;
     if(q.id==='developed-lamp')s.contracts.at(-1).product=SAMPLE_FACTORIES[s.productDevelopment.factory].title;
     if(s.retailPlanning&&s.businessRound&&!s.clientProjectActive)s.contracts.at(-1).retailPlanning=true;

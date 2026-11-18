@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import vm from 'node:vm';
 import {buildDealHtml} from '../scripts/build-deal-standalone.mjs';
-import {createDealRoom,reduceDealRoom,normalizeDealRoom,openFirstBuyers,firstBuyerProjection,previewOffer,openingCurationOffers} from '../src/deal-room-engine.js';
+import {createDealRoom,reduceDealRoom,normalizeDealRoom,openFirstBuyers,firstBuyerProjection,quoteOptions,previewOffer,openingCurationOffers} from '../src/deal-room-engine.js';
 
 import {encodeDealBackup,parseDealBackup} from '../src/deal-room-save.js';
 const ids=['mira','samir','ines'], options={mira:['trial','rollout'],samir:['ready','branded'],ines:['small','season']};
@@ -71,7 +71,7 @@ test('out-of-order partial orders export and restore without new unlocks or rewr
  const forged=JSON.parse(encodeDealBackup(next));forged.state.contracts[0].quantity++;assert.throws(()=>parseDealBackup(JSON.stringify(forged)));
  const changed=JSON.parse(encodeDealBackup(next));changed.state.history[0].clientId='mira';assert.throws(()=>parseDealBackup(JSON.stringify(changed)));
 });
-test('shipped module bindings browse without saving and sign the viewed customer, including reload after a counter',async()=>{
+async function openingDesk(){
  const script=(await buildDealHtml()).match(/<script>([\s\S]*?)<\/script>/)[1];
  const key='trade-tycoon:deal-room-offline:v1',values=new Map();let writes=0;
  const localStorage={getItem:k=>values.get(k)??null,setItem(k,v){writes++;values.set(k,v);}};
@@ -92,14 +92,18 @@ test('shipped module bindings browse without saving and sign the viewed customer
   function press(attr,v){const n=root.querySelectorAll('['+attr+']').find(x=>x.getAttribute()===v);assert.ok(n,attr+'='+v);n.onclick();}
   return {root,press};
  }
+ return {load,values,key,get writes(){return writes;}};
+}
+test('shipped module bindings browse without saving and sign the viewed customer, including reload after a counter',async()=>{
+ const desk=await openingDesk(),{load,values,key}=desk;
  let {root,press}=load();
  root.querySelector('#opening-inbox-toggle').onclick();assert.match(root.innerHTML,/未接的客户询盘/);
  press('data-first-buyer','ines');assert.match(root.innerHTML,/<h2[^>]*>Inês/);
- press('data-select','season');assert.match(root.innerHTML,/三成定金|30% 定金/);assert.equal(writes,0);
+ press('data-select','season');assert.match(root.innerHTML,/三成定金|30% 定金/);assert.equal(desk.writes,0);
  press('data-select','all-now');press('data-action','PROPOSE');
  const refused=JSON.parse(values.get(key));assert.equal(refused.cash,5000);assert.equal(refused.contracts.length,0);assert.equal(refused.clientIndex,2);
  ({root,press}=load());assert.match(root.innerHTML,/<h2[^>]*>Inês/);
- root.querySelector('#opening-inbox-toggle').onclick();press('data-first-buyer','samir');assert.equal(writes,1);
+ root.querySelector('#opening-inbox-toggle').onclick();press('data-first-buyer','samir');assert.equal(desk.writes,1);
  press('data-action','PROPOSE');assert.match(root.innerHTML,/Samir/);
  let saved=JSON.parse(values.get(key));assert.equal(saved.phase,'fulfilling');assert.equal(saved.contracts[0].clientId,'samir');assert.equal(saved.cash,2400);
  assert.doesNotMatch(root.innerHTML,/id="opening-inbox-toggle"/);
@@ -108,3 +112,37 @@ test('shipped module bindings browse without saving and sign the viewed customer
  root.querySelector('#opening-inbox-toggle').onclick();assert.doesNotMatch(root.innerHTML,/data-first-buyer="samir"/);
 });
 
+
+test('timely branded opening delivery preserves existing costs and earns the branded reorder, not a second deadline reward',()=>{
+ const s=createDealRoom(),samir=firstBuyerProjection(s,'samir'),q=previewOffer(samir,'branded-opening'),restock=previewOffer(samir,'branded');
+ assert.equal(q.accepted,true);assert.equal(q.valid,true);
+ for(const k of ['quantity','revenue','cost','deposit','deliveryDay','paymentDay','netProfit'])assert.equal(q[k],restock[k],k);
+ assert.deepEqual([q.quantity,q.deliveryDay,q.paymentDay,q.netProfit],[120,6,9,1560]);
+ assert.ok(!quoteOptions(samir).some(o=>o.id==='promise'));
+ const order=['samir','ines','mira'],plain=route(order,{samir:'ready',ines:'season',mira:'trial'}),custom=route(order,{samir:q.id,ines:'season',mira:'trial'});
+ assert.deepEqual([custom.day,custom.cash],[23,8240]);assert.deepEqual([plain.day,plain.cash],[17,8520]);
+ assert.equal(custom.contracts[0].specification,'branded');assert.equal(custom.contracts[1].revenue,5800);assert.equal(plain.contracts[1].revenue,6200);
+ const back=act(act(custom,{type:'CONTINUE_BUSINESS'}),{type:'SELECT_CLIENT',clientId:'samir'});
+ assert.equal(previewOffer(back,'repeat-small').specification,'branded');assert.equal(previewOffer(back,'branded-opening').valid,false);
+});
+test('the custom opening order is unavailable after another first delivery; regular branded replenishment remains possible',()=>{
+ let s=createDealRoom();for(const a of [{type:'PROPOSE',optionId:'trial'},{type:'ADVANCE'},{type:'NEXT_CLIENT'}])s=act(s,a);
+ assert.equal(s.day,4);assert.equal(quoteOptions(s).some(o=>o.id==='branded-opening'),false);
+ assert.equal(reduceDealRoom(s,{type:'PROPOSE',optionId:'branded-opening'}),s);assert.equal(previewOffer(s,'promise').accepted,false);
+ assert.equal(previewOffer(s,'ready').deliveryDay,6);assert.equal(previewOffer(s,'branded').deliveryDay,9);
+ // The contractual cutoff itself is inclusive; day 2 is a boundary fixture, not another natural start.
+ const samir=firstBuyerProjection(createDealRoom(),'samir');
+ assert.equal(previewOffer({...samir,day:2},'branded-opening').deliveryDay,7);
+ assert.equal(previewOffer({...samir,day:3},'branded-opening').valid,false);
+});
+test('selecting the actual custom cup on the first morning signs the opening order, and the paid receipt survives reload',async()=>{
+ const desk=await openingDesk(),{load,values,key}=desk;let {root,press}=load();
+ root.querySelector('#opening-inbox-toggle').onclick();assert.match(root.innerHTML,/现货、定制都赶得上第 7 天开业/);
+ press('data-first-buyer','samir');press('data-sample','custom');
+ assert.match(root.innerHTML,/定制包装第 6 天到，赶上第 7 天开业；第 9 天收齐货款/);assert.doesNotMatch(root.innerHTML,/data-repair=|定制包装要延后/);
+ assert.equal(desk.writes,0);press('data-action','PROPOSE');let s=JSON.parse(values.get(key));
+ assert.deepEqual([s.phase,s.cash,s.contracts[0].optionId,s.contracts[0].specification],['fulfilling',2200,'branded-opening','branded']);
+ ({root,press}=load());assert.match(root.innerHTML,/class="sample-box"/);
+ press('data-action','ADVANCE');s=JSON.parse(values.get(key));assert.deepEqual([s.day,s.cash,s.contracts[0].status],[9,6560,'paid']);
+ ({root}=load());assert.match(root.innerHTML,/开业定制杯第 6 天交付，货款已收齐/);
+});
