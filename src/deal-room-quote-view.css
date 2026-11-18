@@ -14,3 +14,36 @@
 .cash-path-context{display:block;margin-top:7px;font-size:11px;line-height:1.5;color:#746c5d}
 
 .cash-path-values.cash-path-four{grid-template-columns:repeat(4,minmax(0,1fr))}.cash-path-four small{line-height:1.2;overflow-wrap:anywhere}@media(max-width:360px){.cash-path-values.cash-path-four{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:8px}}
+
+/* Original material studies: the sample only moves when the buyer chooses a pose. */
+.material-study{border:1px solid #cbbda5;border-radius:10px;background:#faf6ed;margin:.45rem 0;color:#303e38;overflow:hidden}
+.material-study>summary{padding:.42rem .7rem;cursor:pointer;font-weight:650;font-size:.89rem}
+.material-study>summary span{font-weight:400;color:#59685c;font-size:.75rem;margin-inline-start:.65rem}
+.material-study .study-switches{display:block;min-inline-size:0;border:0;margin:0;padding:0 .65rem .55rem;position:relative}
+.material-study .study-switches>legend{font-size:.74rem;padding:0;color:#526358}
+.material-study .study-choice{position:absolute;width:1px;height:1px;margin:0;padding:0;border:0;clip-path:inset(50%);overflow:hidden}
+.material-study .study-switches>label{display:inline-flex;align-items:center;min-height:32px;cursor:pointer;line-height:1.2;border:1px solid #cbbda5;background:#fffaf1;color:#3e4f44;border-radius:15px;padding:3px .65rem;margin:3px .25rem 6px 0;font-size:.78rem}
+.material-study .study-choice:checked+label{background:#3d6054;color:#fff9ec;border-color:#3d6054}
+.material-study .study-choice:focus-visible+label{outline:3px solid #a65c35;outline-offset:2px}
+.study-frame{max-width:480px;margin:auto}.study-frame>svg{display:block;width:100%;height:auto;border-radius:8px}
+.material-study .study-caption{display:none;color:#394e42;line-height:1.45;font-size:.8rem;margin:.3rem 0 0}
+.mode-0:checked~.study-frame .caption-0,.mode-1:checked~.study-frame .caption-1,.mode-2:checked~.study-frame .caption-2{display:block}
+.flask-vessel,.flask-cap,.study-pitcher,.flask-shadow,.linen-open,.linen-fold,.setting-left,.setting-right,.linen-paired-flask{transition:transform .52s cubic-bezier(.23,.69,.3,1),opacity .36s}
+.flask-cap{transform-origin:188px 61px}.flask-vessel{transform-origin:189px 139px}
+.study-pitcher{transform-origin:139px 48px;transform:translate(-16px,4px) rotate(-12deg);opacity:.45}
+.flask-steam,.flask-stream{opacity:0}.flask-stream{stroke-dasharray:50;stroke-dashoffset:50}
+.mode-1:checked~.study-frame .flask-cap{transform:translate(44px,65px) rotate(-12deg)}
+.mode-1:checked~.study-frame .study-pitcher{transform:translate(7px,-8px) rotate(24deg);opacity:1}
+.mode-1:checked~.study-frame .flask-stream{animation:study-pour 1.6s .31s ease-out 1 both}
+.mode-1:checked~.study-frame .flask-steam{opacity:.84;animation:study-steam 1.3s .38s ease-out 2}
+.mode-2:checked~.study-frame .flask-vessel{transform:translate(14px,-10px) rotate(12deg)}
+.mode-2:checked~.study-frame .flask-shadow{transform:translate(14px,1px) scaleX(.91);transform-origin:190px 140px;opacity:.16}
+@keyframes study-pour{0%{opacity:0;stroke-dashoffset:50}14%{opacity:1}55%,85%{opacity:1;stroke-dashoffset:0}100%{opacity:0;stroke-dashoffset:0}}
+@keyframes study-steam{from{transform:translateY(3px);opacity:.15}70%{opacity:.9}to{transform:translateY(-2px);opacity:.35}}
+.linen-fold,.linen-open{transform-origin:182px 95px}.linen-open{transform:scale(.3,.24);opacity:0}.linen-place{opacity:0}
+.mode-1:checked~.study-frame .linen-fold,.mode-2:checked~.study-frame .linen-fold{transform:scale(1.2,.65);opacity:0}
+.mode-1:checked~.study-frame .linen-open,.mode-2:checked~.study-frame .linen-open{transform:scale(1);opacity:1}
+.setting-left{transform:translate(-24px,6px)}.setting-right{transform:translate(25px,-6px)}.linen-paired-flask{transform:translateY(-9px)}
+.mode-2:checked~.study-frame .linen-place{opacity:1}.mode-2:checked~.study-frame :is(.setting-left,.setting-right,.linen-paired-flask){transform:translate(0,0)}
+@media(prefers-reduced-motion:reduce){.material-study *,.material-study .study-frame *{animation:none!important;transition:none!important}.mode-1:checked~.study-frame .flask-steam{opacity:.7}}
+@media(max-width:420px){.material-study .study-switches>label{min-height:44px;padding:4px .55rem}}
