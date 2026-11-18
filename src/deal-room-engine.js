@@ -621,13 +621,70 @@ function canonicalAction(a){
   if(['SIGN_CURATION','SIGN_CURATION_SAMPLE'].includes(a.type)&&(!Array.isArray(a.products)||a.products.some(p=>typeof p!=='string')||!Number.isSafeInteger(a.quantity)||typeof a.packaging!=='string'))return null;
   return Object.fromEntries(keys.map(k=>[k,k==='products'?[...a[k]].sort():a[k]]));
 }
-export function reduceDealRoom(state,action){
+function reduceRecordedDeal(state,action){
   const a=canonicalAction(action);if(!a)return state;
   // Counteroffers do not grow the save indefinitely; one repeated identical reply is enough.
   if(state.feedback.kind==='counter'&&JSON.stringify(state.history.at(-1))===JSON.stringify(a))return state;
   if(state.history.length>=MAX_DEAL_ACTIONS)return state;
   const next=apply(state,a);if(next===state)return state;
   next.history.push(a);return next;
+}
+// Consecutive decor adjustments carry only final positions/bookmarks/track choices.
+// Keep commercial and saved-exhibition history intact, including old journals.
+const decorJournalTypes=new Set(['ARRANGE_LIFE_ITEM','READ_LIFE_BOOK','SELECT_LIFE_RECORD']);
+// Replay-only fast path: these three setters never inspect the journal.
+// Actions are still canonicalized and applied by the same domain reducer.
+// Internal replay owns its journal, so it need not deep-copy all prior entries
+// for every position change; no caller-owned action object is reused.
+function replayRecordedDeal(state,action){
+ if(!decorJournalTypes.has(action?.type)||state.feedback.kind==='counter')return reduceRecordedDeal(state,action);
+ const a=canonicalAction(action);if(!a||state.history.length>=MAX_DEAL_ACTIONS)return state;
+ const input={...state,history:[]},next=applyLifeAction(input,a);
+ if(next===input)return state;
+ next.history=state.history.concat(a);return next;
+}
+function compactDecorTail(state){
+ let start=state.history.length;
+ while(start>0&&decorJournalTypes.has(state.history[start-1]?.type))start--;
+ if(state.history.length-start<128)return state;
+ let base=createDealRoom();
+ for(const action of state.history.slice(0,start)){const next=reduceRecordedDeal(base,action);if(next===base)return state;base=next;}
+ const last=new Map();
+ for(const action of state.history.slice(start)){const key=action.type+':'+action.itemId;last.delete(key);last.set(key,action);}
+ for(const action of last.values()){const next=reduceRecordedDeal(base,action);if(next!==base)base=next;}
+ const withoutJournal=value=>{const {history,...rest}=value;return JSON.stringify(rest);};
+ // Do not compact unless replay proves every non-journal field is unchanged.
+ return withoutJournal(base)===withoutJournal(state)?base:state;
+}
+export function reduceDealRoom(state,action){
+ if(!canonicalAction(action))return state;
+ const compacted=compactDecorTail(state),next=reduceRecordedDeal(compacted,action);
+ return next===compacted?state:next;
+}
+// Only successful, fully compared replays enter this process-local cache.
+// Serialized snapshots never alias caller-owned objects. At most four entries,
+// each snapshot at most 1M UTF-16 code units, are retained. Action strings
+// duplicate at most the journal within that bound (plus bounded array overhead).
+// Eviction changes speed, never validity.
+const VERIFIED_REPLAY_LIMIT = 4;
+const VERIFIED_REPLAY_CHARS = 1024 * 1024;
+const verifiedReplays = [];
+function replayPrefix(history) {
+  const actions = history.map(a => JSON.stringify(a));
+  let best;
+  for (const entry of verifiedReplays) {
+    if (entry.actions.length > actions.length || (best && entry.actions.length <= best.actions.length)) continue;
+    if (entry.actions.every((a, i) => a === actions[i])) best = entry;
+  }
+  return best ? JSON.parse(best.snapshot) : createDealRoom();
+}
+function rememberVerifiedReplay(state) {
+  const snapshot = JSON.stringify(state);
+  if (snapshot.length > VERIFIED_REPLAY_CHARS) return;
+  const existing = verifiedReplays.findIndex(entry => entry.snapshot === snapshot);
+  if (existing !== -1) verifiedReplays.splice(existing, 1);
+  verifiedReplays.push({snapshot, actions: state.history.map(a => JSON.stringify(a))});
+  if (verifiedReplays.length > VERIFIED_REPLAY_LIMIT) verifiedReplays.shift();
 }
 /** Strict canonical replay rejects edited money, unknown keys and old-game saves.
  * A tiny action journal avoids accepting guessed financial fields as trusted state.
@@ -638,8 +695,8 @@ export function normalizeDealRoom(raw){
   // one contact through several referrals. The app retains rejected raw saves.
   const caseOwners=new Map(),caseRecords=[...(Array.isArray(raw.caseGrowthHistory)?raw.caseGrowthHistory:[]),...(raw.caseGrowth?.status==='production'?[raw.caseGrowth.active]:[])];
   for(const c of caseRecords){if(!c||!['portfolio','private'].includes(c.agreement))continue;if(caseOwners.has(c.agreement)&&caseOwners.get(c.agreement)!==c.referrerId)throw new Error('旧实验曾将同一客户复制到多个案例；原存档未修改，请保留并使用对应实验版本读取。');caseOwners.set(c.agreement,c.referrerId);}
-  let state=createDealRoom();
-  for(const a of raw.history){const next=reduceDealRoom(state,a);if(next===state)throw new Error('谈单记录无效');state=next;}
+  let state=replayPrefix(raw.history);
+  for(const a of raw.history.slice(state.history.length)){const next=replayRecordedDeal(state,a);if(next===state)throw new Error('谈单记录无效');state=next;}
   function stable(v){if(Array.isArray(v))return v.map(stable);if(v&&typeof v==='object')return Object.fromEntries(Object.keys(v).sort().map(k=>[k,stable(v[k])]));return v;}
   // v18 briefly changed only the saved purchase feedback sentence. Accept that
   // exact released wording, but still compare every financial/journal field.
@@ -648,5 +705,6 @@ export function normalizeDealRoom(raw){
     raw.feedback.message===state.feedback.message.replace('这是个人消费，不会提高订单收益。','给自己的下班时间添了一件喜欢的东西。'))
     comparable={...raw,feedback:{...raw.feedback,message:state.feedback.message}};
   if(JSON.stringify(stable(comparable))!==JSON.stringify(stable(state)))throw new Error('谈单账目不一致');
+  rememberVerifiedReplay(state);
   return state;
 }
