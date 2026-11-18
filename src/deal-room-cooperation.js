@@ -72,9 +72,27 @@ export function cooperationChapter(state){
   }
   return expected&&approval.status==='paid'&&approval.paymentDay<=a.signedDay&&JSON.stringify(src)===JSON.stringify(expected.seriesSource)&&JSON.stringify(a.products)===JSON.stringify(expected.products)&&(a.lampVersion||'standard')===(expected.lampVersion||'standard')&&a.unitPrice===expected.unitPrice&&a.unitCost===expected.unitCost;
  });
+ // A missing seriesSource alone is not evidence of a generic first order.
+ // Generic pilots originate in a paid buyer case, not another approved series.
+ const history=state.accountHistory||[],pilot=history[0];
+ const genericPilot=pilot?.status==='paid'&&pilot.optionId==='pilot'&&pilot.stores===3&&!pilot.expansion&&!pilot.seriesSource&&
+  pilot.buyer==='Northline · 区域连锁采购'&&(state.curationHistory||[]).some(source=>
+   source.status==='paid'&&source.referrerId===pilot.referrerId&&source.referrerName===pilot.referrerName&&
+   Array.isArray(source.products)&&JSON.stringify(source.products)===JSON.stringify(pilot.products)&&
+   (source.lampVersion||'standard')===(pilot.lampVersion||'standard')&&source.paymentDay<=pilot.signedDay);
  const stores=accounts.reduce((n,a)=>n+a.stores,0),mixed=new Set(accounts.map(a=>JSON.stringify(a.seriesSource))).size>1;
  if(stores)result.facts.push(mixed?{kind:'mixed-approved-version-stores',buyerId,stores,batches:accounts.map(a=>({stores:a.stores,seriesSource:JSON.parse(JSON.stringify(a.seriesSource))}))}:{kind:'same-version-stores',buyerId,stores});
  if(stores>=6)return close(mixed?'Northline 已采用的不同版本分别交付给两批门店，六家店的合作已兑现；首批没有被改款。':'Northline 已确认的系列按同一版本铺到六家门店。这段合作已兑现，上市陈列仍可按需要查看。');
+ if(genericPilot&&history.length===2&&accounts.length===1&&accounts[0]===history[1]&&accounts[0].expansion===true&&accounts[0].optionId==='remaining'&&accounts[0].stores===3&&accounts[0].buyer===pilot.buyer&&accounts[0].signedDay>=pilot.paymentDay){
+  result.facts.push({kind:'generic-then-series-stores',genericStores:pilot.stores,seriesStores:stores});
+  close('六家门店都已收货：首批三家选了通用组合，后三家收到已确认的系列。两批各按自己的合同交付。');
+  if(!handed&&home&&launch?.buyerId===buyerId)result.nextAction=next('OPEN_LAUNCH_PROJECT','可选 · 为系列布置上市陈列');
+  return result;
+ }
+ if(genericPilot&&home&&canExpandAccount(state)&&accountCollectionBasis(state)){
+  result.step='首批三家已收到通用组合。余下三家可以沿用它，也可以改用 Northline 已确认的系列。';
+  result.nextAction=next('OPEN_ACCOUNT_EXPANSION','看看余下三家的供货方案');return result;
+ }
  result.step=stores===3?'已确认版本已经铺到三店，下一步可谈余下三店；首批合同保持不变。':'把 Northline 已确认的版本带到门店，继续同一份合作。';
  if(home&&stores===3&&canExpandAccount(state))result.nextAction=next('OPEN_ACCOUNT_EXPANSION','沿原版本谈余下三店');
  else if(home&&!state.accountHistory?.length&&accountCollectionBasis(state))result.nextAction=next('START_ACCOUNT_FROM_COLLECTION','用已确认版本谈门店采购');
