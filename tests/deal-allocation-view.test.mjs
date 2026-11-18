@@ -6,3 +6,13 @@ test('mixed receipt and production never claim every product is 60 or invent a n
  for(const status of ['production','paid']){const html=caseGrowthView({caseGrowth:{status,active:q}},null);assert.match(html,/40 件/);assert.match(html,/20 件/);assert.doesNotMatch(html,/每款 60|你已能直接接目录补货|新用途固定规格/);}
  assert.equal(allocationReceipt({}), '');
 });
+
+test('a paid bedside-only mandate never reports a tea-station delivery; the mixed mandate confirms the two actual quantities',()=>{
+ for(const [bedside,welcome] of [[60,0],[40,20]]){
+  const quote={...q,allocation:{bedside,welcome},productQuantities:{mira:bedside,samir:60,ines:welcome},products:welcome?['mira','samir','ines']:['mira','samir']};
+  const html=caseGrowthView({caseGrowth:{status:'paid',active:quote}},null),signed=caseGrowthView({caseGrowth:{status:'production',active:quote}},null);
+  assert.match(html,/货款已收齐/);assert.doesNotMatch(signed,/这批只送到|用品都已交付|本批已交付/);
+  if(!welcome){assert.match(html,/这批只送到 60 处客房床头/);assert.match(html,/前厅茶台没有采购/);assert.doesNotMatch(html,/两处用品均已|分别送到两处|本批两处用途分配|桌布 20 件/);}
+  else{assert.match(html,/40 处客房床头和 20 处前厅茶台的用品都已交付/);assert.doesNotMatch(html,/前厅茶台没有采购/);}
+ }
+});
