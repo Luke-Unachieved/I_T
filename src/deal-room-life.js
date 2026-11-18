@@ -33,7 +33,7 @@ export function applyLifeAction(state,action){
   const q=lifePurchasePreview(state,a.itemId);if(!q.valid)return state;
   const next=structuredClone(state),life=next.personalLife||{purchases:[],positions:{},spent:0};
   life.purchases.push({itemId:a.itemId,price:q.item.price,day:state.day});life.spent+=q.item.price;life.positions[a.itemId]='window';
-  next.personalLife=life;next.cash=q.cashAfter;next.feedback={kind:'personal-life',message:a.itemId==='records'?'两面周末唱片到了。今晚，想听哪一种节奏？':a.itemId==='books'?'《沿街走走》送到了，书签也夹好了。今晚读一篇吧。':`${q.item.name}送到了家里。花了 ¥${q.item.price}，这是个人消费，不会提高订单收益。`};return next;
+  next.personalLife=life;next.cash=q.cashAfter;next.feedback={kind:'personal-life',message:a.itemId==='records'?'两面周末唱片到了。今晚，想听哪一种节奏？':a.itemId==='books'?'《沿街走走》送到了，书签也夹好了。今晚读一篇吧。':`${q.item.name}送到了家里。花了 ¥${q.item.price}，把忙碌换成一点自己的日常。`};return next;
  }
  if(a.type==='SELECT_LIFE_RECORD'){
   if(!owned||a.track===(state.personalLife.recordTrack||'evening'))return state;
