@@ -38,3 +38,16 @@ test('mixed wait follows the later cloth need and only charges elapsed days once
  const waited=a(fixture,'WAIT_STUDIO_ALLOCATION',{allocation:'mixed'});assert.equal(waited.day,q.waitingUntil);assert.equal(waited.cash,fixture.cash-q.waitingCost);assert.equal(a(waited,'WAIT_STUDIO_ALLOCATION',{allocation:'mixed'}),waited);assert.equal(previewStudioAllocation(waited,'mixed').valid,true);
  const poor={...s,cash:0};assert.equal(previewStudioAllocation(poor,'mixed').available,true);assert.equal(a(poor,'SIGN_STUDIO_ALLOCATION',{allocation:'mixed'}),poor);
 });
+
+test('the actual first-use receipt and the second approved but unsupplied use stay separate from the proposed 60 positions',async()=>{
+ const {studioProjectView}=await import('../src/deal-room-studio-project-view.js');
+ const {groupStudioPurchaseEligibility:coverage}=await import('../src/deal-room-group-use-eligibility.js');
+ const before=allocationReady(),prior=structuredClone(before);assert.deepEqual(coverage(before).delivered,{bedside:60,welcome:0});
+ for(const [type,bedside,welcome] of [['bedside',60,0],['mixed',40,20]]){
+  const html=studioProjectView(before,type);assert.match(html,/此前已交货：床头用品 60 组，前厅用品 0 组/);assert.match(html,new RegExp('本批拟供 '+bedside+' 处床头，'+welcome+' 处前厅'));assert.doesNotMatch(html,/此前已交付的两份规格/);
+ }
+ assert.deepEqual(before,prior);
+ const ready=a(before,'WAIT_STUDIO_ALLOCATION',{allocation:'mixed'}),signed=a(ready,'SIGN_STUDIO_ALLOCATION',{allocation:'mixed'});
+ assert.deepEqual(coverage(signed,prior.studioProject).delivered,{bedside:60,welcome:0});
+ const paid=a(signed,'FULFIL_CASE_GROWTH');assert.deepEqual(coverage(paid,prior.studioProject).delivered,{bedside:100,welcome:20});
+});
