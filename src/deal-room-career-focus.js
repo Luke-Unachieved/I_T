@@ -1,4 +1,4 @@
-import {reduceDealRoom,quoteOptions} from './deal-room-engine.js';
+import {reduceDealRoom,quoteOptions,businessOpportunities} from './deal-room-engine.js';
 import {hasLampDevelopmentCase,acceptedLampSample} from './deal-room-development.js';
 import {accountCoverage,canExpandAccount,accountCollectionBasis} from './deal-room-account.js';
 import {caseGrowthOffers} from './deal-room-case-growth.js';
@@ -63,6 +63,18 @@ export function careerProjects(state){
    else if(!state.clientProjectActive&&intros.length){p.step='已有客户用途案例，可以带给引荐的买手做组合。';p.actions=intros.map(c=>({type:'START_CURATION',label:`${c.clientName?.split(' · ')[0]||c.clientId} 的买手引荐`,clientId:c.projectId}));}
   }
  }
+ // A sample is not a purchase order. Preserve all alternative buyers, but don't
+ // offer a direct Mira negotiation while her shop is still selling old stock.
+ if(home&&state.retailPlanning&&product.actions.some(a=>a.type==='OPEN_PRODUCT_REORDER')){
+  const buyer=businessOpportunities(state).find(b=>b.id==='mira'),d=buyer?.demand;
+  if(d&&!d.ready){
+   product.step=`新样已验好。Mira 店里还约有 ${d.remaining} 盏灯，预计第 ${d.readyDay} 天再补货。现在不能向她签这批新灯；可以先接其他客户。`;
+   product.actions=product.actions.map(a=>a.type==='OPEN_PRODUCT_REORDER'?action(state.supplyPlanHistory?.length?'CONTINUE_RETAIL_BUSINESS':'CONTINUE_BUSINESS','进入熟客补货，选客户或看等候安排'):a);
+  }else if(!buyer?.available){
+   product.step=buyer?.reason?`新样已验好，Mira 的采购暂时谈不了：${buyer.reason}`:'新样已验好；有实际采购机会时，再带给 Mira。';
+   product.actions=product.actions.filter(a=>a.type!=='OPEN_PRODUCT_REORDER');
+  }
+ }
  // Home shortcuts never interrupt an active contract or invent a resume action.
  if(!home)for(const p of [stores,series,product]){p.actions=[];if(!p.done)p.step+=' 先处理当前页面，再回工作室继续。';}
  return [stores,series,product];
@@ -71,5 +83,5 @@ export function careerProjects(state){
 export function openProductReorder(state,factory){
  if(!['review','complete'].includes(state.phase)||state.clientProjectActive||!['studio','line'].includes(factory)||!acceptedLampSample(state,factory))return {state,selected:''};
  let next=reduceDealRoom(state,{type:state.supplyPlanHistory?.length?'CONTINUE_RETAIL_BUSINESS':'CONTINUE_BUSINESS'});if(next===state)return {state,selected:''};next=reduceDealRoom(next,{type:'SELECT_CLIENT',clientId:'mira'});
- const quote=next.phase==='negotiating'?quoteOptions(next).find(q=>q.specification==='developed-'+factory):null;return {state:next,selected:quote?.id||''};
+ const quote=next.phase==='negotiating'?quoteOptions(next).find(q=>q.specification==='developed-'+factory):null;return quote?{state:next,selected:quote.id}:{state,selected:''};
 }
