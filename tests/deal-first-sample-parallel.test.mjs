@@ -21,3 +21,16 @@ test('a later retrieval neither rewinds time nor bills days twice; uninterrupted
  let s=run(c,'PAUSE_FIRST_SAMPLE');s=trade(s,'ines');s=trade(s,'samir');assert.ok(s.day>c.productDevelopment.sampleDay);const receipt=s.contracts.at(-1),day=s.day,cash=s.cash;
  s=run(s,'COLLECT_FIRST_SAMPLE');assert.equal(s.day,day);assert.equal(s.cash,cash);assert.equal(s.productDevelopment.investment,1800);assert.deepEqual(s.contracts.at(-1),receipt);assert.deepEqual(normalizeDealRoom(s),s);
 });
+
+test('the completed topic desk keeps an existing sample reachable, without buying another or resetting the project result',async()=>{
+ const {businessHomeView}=await import('../src/deal-room-home.js');
+ const {careerOpportunity}=await import('../src/deal-room-engine.js');
+ let s=['trial','ready','season'].reduce(finish,createDealRoom());s=run(s,'CONTINUE_BUSINESS');
+ for(const clientId of ['mira','ines'])s=finish(run(s,'SELECT_CLIENT',{clientId}),'repeat-small');
+ s=run(run(s,'START_SUPPLY_PLAN',{clientId:'mira',firstBatch:'small',payment:'delivery'}),'FULFIL_SUPPLY_PLAN');
+ s=run(run(run(s,'START_DEVELOPMENT'),'COMMISSION_SAMPLE',{factory:'studio'}),'PAUSE_FIRST_SAMPLE');const due=s.productDevelopment.sampleDay;
+ s=run(s,'START_CLIENT_PROJECTS');for(const clientId of ['samir','mira','ines'])s=finish(run(s,'SELECT_CLIENT',{clientId}),'project-series');
+ assert.equal(s.feedback.kind,'projects-complete');assert.equal(due,33);assert.equal(s.day,54);
+ const desk=businessHomeView(s,{career:careerOpportunity(s),referrals:[]});assert.match(desk,/本轮客户计划已兑现/);assert.match(desk,/data-action="COLLECT_FIRST_SAMPLE"/);assert.match(desk,/拆看已经到货/);
+ const picked=run(s,'COLLECT_FIRST_SAMPLE');assert.equal(picked.day,s.day);assert.equal(picked.cash,s.cash);assert.deepEqual(picked.contracts,s.contracts);assert.deepEqual(normalizeDealRoom(picked),picked);
+});
