@@ -9,7 +9,7 @@ const fixture=()=>migrateDealRoomToV2(old());
 test('v1 import validates and migrates; v2 export includes exact total and pending contract',()=>{
  const raw=old(),text=JSON.stringify({type:'deal-room',version:1,state:raw});
  const parsed=parseDealBackup(text);assert.deepEqual(parsed.state.contracts,raw.contracts);assert.equal(parsed.summary.actions,1);
- const encoded=encodeDealBackup(parsed.state);assert.equal(JSON.parse(encoded).version,2);
+ const encoded=encodeDealBackup(parsed.state);assert.equal(JSON.parse(encoded).type,'deal-room-snapshot');assert.equal(JSON.parse(encoded).state.version,2);
  assert.deepEqual(parseDealBackup(encoded).state,parsed.state);
  const wrong=JSON.parse(encoded);wrong.state.cash++;assert.throws(()=>parseDealBackup(JSON.stringify(wrong)));
  wrong.version=3;assert.throws(()=>parseDealBackup(JSON.stringify(wrong)));

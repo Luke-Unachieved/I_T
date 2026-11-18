@@ -63,7 +63,7 @@ function cacheVerified(state){
  verified.push(value);verifiedBytes+=bytes;
  while(verified.length>4||verifiedBytes>CACHE_BYTES)verifiedBytes-=2*verified.shift().length;
 }
-export function normalizeSegmentedDealRoom(raw){
+export function validateSegmentedJournalShape(raw){
  if(!raw||raw.version!==2||!Array.isArray(raw.history)||raw.history.length>=LEDGER_SEGMENT_LENGTH||
   !keys(raw.journal,['version','segments','totalActions'])||raw.journal.version!==1||
   !Array.isArray(raw.journal.segments)||!Number.isSafeInteger(raw.journal.totalActions)||raw.journal.totalActions<0)error();
@@ -84,6 +84,11 @@ export function normalizeSegmentedDealRoom(raw){
  }
  count+=raw.history.length-(raw.journal.segments.length?1:0);
  if(count!==raw.journal.totalActions)error();
+ return count;
+}
+// Explicit recovery derives all business fields solely from recorded events.
+export function rebuildSegmentedDealRoom(raw){
+ validateSegmentedJournalShape(raw);
  const cached=cachedPrefix(raw),start=cached?.segmentKeys.length||0;
  let state=cached?cached.domain:createDealRoom(),total=cached?.total||0;
  const segments=raw.journal.segments.slice(0,start).map(s=>freeze(copy(s)));
@@ -101,7 +106,12 @@ export function normalizeSegmentedDealRoom(raw){
   const next=replayRecordedDeal(state,action);if(next===state)error();state=next;total++;
  }
  const expected=wrap(state,journal(segments,total));
- if(total!==raw.journal.totalActions||!equal(expected,raw))error();
+ if(total!==raw.journal.totalActions)error();
+ return expected;
+}
+export function normalizeSegmentedDealRoom(raw){
+ const expected=rebuildSegmentedDealRoom(raw);
+ if(!equal(expected,raw))error();
  cacheVerified(expected);
  return expected;
 }

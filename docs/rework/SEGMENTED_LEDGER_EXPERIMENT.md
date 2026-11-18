@@ -1,3 +1,3 @@
-# Experimental segmented ledger backup
+# Experimental segmented ledger and snapshot backup
 
-This branch preserves the isolated prototype at development commit d76b2d7. It is not integrated into the game UI and is not released. It includes strict segmented replay, a versioned-save migration adapter and a weighted LRU cache. Cold replay remains about 40 seconds for the measured 2025-contract fixture; browser acceptance remains incomplete. See SEGMENTED_LEDGER_PROTOTYPE_20261118.md for measurements and limitations. Do not treat this branch as production or the release candidate.
+This branch preserves isolated prototype dab4edd (code 9dc2cbd). It is not integrated into the game UI and is not released. Ordinary versioned snapshot loading uses CRC32 for accidental corruption detection, not authentication or anti-cheat. Complete history and explicit strict reconstruction remain available. Measured cloud Node storage load is 215 ms for 2025 contracts; strict recovery remains about 37 seconds. Browser and Windows acceptance remain incomplete. See CHECKSUMMED_SNAPSHOT_20261118.md for the format, measurements and limits.
