@@ -13,7 +13,7 @@ npm run build
 npm run check
 ```
 
-现代源码入口为 `deal-room.html`，主要界面/规则为 `src/deal-room-app.js`、`src/deal-room-engine.js`。根地址 `/` 与 `index.html` 仍为 legacy，不用于现代验收。
+现代源码入口为 `deal-room.html`，主要界面/规则为 `src/deal-room-app.js`、`src/deal-room-engine.js`。本地 `npm start` 的根地址 `/` 已打开现代 `deal-room.html`；仓库 `index.html` 与既有静态托管站仍为 legacy，未自动更新，不用于现代验收。
 
 `npm run build` 默认调用 `build:modern`，生成 `artifacts/deal-room/再开一单就下班-开发候选.html`、`版本信息.json`、`先读我.txt`。按此次清单核对内容编号、SHA256 与大小。HTML 已内联资源；构建不自动打 ZIP、不上传、不更新正式站。
 

@@ -1,0 +1,128 @@
+{
+  "scope": "Modern runtime WebP assets only. Legacy 46/46 artwork review is not evidence for these assets.",
+  "reviewDate": "2026-11-18",
+  "assets": [
+    {
+      "file": "assets/deal-annex-room-v1.webp",
+      "bytes": 336362,
+      "sha256": "0ac71029d316ec6926a2b635212cefba3d3b51ad6ac0f61e5cc67fb978b9bbd8",
+      "references": [
+        "src/deal-room-office.css"
+      ],
+      "sourceDocument": "assets/deal-annex-room-v1.source.md",
+      "provenanceStatus": "repository document claims built-in generation; original generation receipt not recovered",
+      "permissionStatus": "not independently verified per asset; not evidence of missing permission",
+      "dateIssue": null
+    },
+    {
+      "file": "assets/deal-buyer-boutique-v1.webp",
+      "bytes": 351718,
+      "sha256": "924f8f72826bd3b67418a7b3d09164272a0bbf4e08950246ca5169e7ea05c377",
+      "references": [
+        "src/deal-room.css"
+      ],
+      "sourceDocument": null,
+      "provenanceStatus": "individual generation receipt not found in this checkout",
+      "permissionStatus": "not independently verified per asset; not evidence of missing permission",
+      "dateIssue": null
+    },
+    {
+      "file": "assets/deal-buyers-v1.webp",
+      "bytes": 202814,
+      "sha256": "fc479c6344957b2b77f750554d9835a0f441311f006eb39215a0bd2ae1594ccc",
+      "references": [
+        "src/deal-room.css"
+      ],
+      "sourceDocument": null,
+      "provenanceStatus": "individual generation receipt not found in this checkout",
+      "permissionStatus": "not independently verified per asset; not evidence of missing permission",
+      "dateIssue": null
+    },
+    {
+      "file": "assets/deal-customers-v1.webp",
+      "bytes": 233060,
+      "sha256": "589b66b241184b5cab3ae3f3c70f4aa8818ec5d6f185e3e0c47bb8d046342c96",
+      "references": [
+        "src/deal-room.css"
+      ],
+      "sourceDocument": null,
+      "provenanceStatus": "individual generation receipt not found in this checkout",
+      "permissionStatus": "not independently verified per asset; not evidence of missing permission",
+      "dateIssue": null
+    },
+    {
+      "file": "assets/deal-life-empty.webp",
+      "bytes": 207576,
+      "sha256": "2494d0c8104d0441fd13427fd9f9e018b4447b6b92ea81eacef7e9c9bfea7910",
+      "references": [
+        "src/deal-room-life-art.js"
+      ],
+      "sourceDocument": null,
+      "provenanceStatus": "individual generation receipt not found in this checkout",
+      "permissionStatus": "not independently verified per asset; not evidence of missing permission",
+      "dateIssue": null
+    },
+    {
+      "file": "assets/deal-life-folding.webp",
+      "bytes": 264946,
+      "sha256": "90e9408294e863d6e72d5dad7fcc07a1496e9875d889df7fa7f17b27bc8a5093",
+      "references": [
+        "src/deal-room-life-art.js"
+      ],
+      "sourceDocument": null,
+      "provenanceStatus": "individual generation receipt not found in this checkout",
+      "permissionStatus": "not independently verified per asset; not evidence of missing permission",
+      "dateIssue": null
+    },
+    {
+      "file": "assets/deal-life-furniture.webp",
+      "bytes": 262920,
+      "sha256": "d321d80bd79fdd38029eb915ee2477ad04966708c5c290a53c7f6a9a381aa8e6",
+      "references": [
+        "src/deal-room-life-art.js"
+      ],
+      "sourceDocument": null,
+      "provenanceStatus": "individual generation receipt not found in this checkout",
+      "permissionStatus": "not independently verified per asset; not evidence of missing permission",
+      "dateIssue": null
+    },
+    {
+      "file": "assets/deal-office-window-v1.webp",
+      "bytes": 359770,
+      "sha256": "2bcfc4307d39b5cf0dc4d47f9533c8d361b217fbf373b9f748c7eb7b735bf13b",
+      "references": [
+        "src/deal-room-office.css"
+      ],
+      "sourceDocument": "assets/deal-office-window-v1.source.md",
+      "provenanceStatus": "repository document claims built-in generation; original generation receipt not recovered",
+      "permissionStatus": "not independently verified per asset; not evidence of missing permission",
+      "dateIssue": "source document says 2026-11-19, later than observed PC date 2026-11-18; do not replace with guessed date"
+    },
+    {
+      "file": "assets/deal-products-v1.webp",
+      "bytes": 436534,
+      "sha256": "b3c2c2d7bc22700f1a5620a05a16d1044d57be7cfdc09c1af7bbf19b7c6ff432",
+      "references": [
+        "src/deal-room-samples.js",
+        "src/deal-room.css"
+      ],
+      "sourceDocument": null,
+      "provenanceStatus": "individual generation receipt not found in this checkout",
+      "permissionStatus": "not independently verified per asset; not evidence of missing permission",
+      "dateIssue": null
+    },
+    {
+      "file": "assets/deal-showroom-v1.webp",
+      "bytes": 376656,
+      "sha256": "3e148f08196b3109156fe0c72edbb135f48ac79a3d2a61e05884c412dd8d629f",
+      "references": [
+        "src/deal-room-office.css",
+        "src/deal-room.css"
+      ],
+      "sourceDocument": null,
+      "provenanceStatus": "individual generation receipt not found in this checkout",
+      "permissionStatus": "not independently verified per asset; not evidence of missing permission",
+      "dateIssue": null
+    }
+  ]
+}
