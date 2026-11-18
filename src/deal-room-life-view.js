@@ -33,18 +33,24 @@ export function coffeeRitualView(ui={}){
  const text={beans:'把豆子放进磨豆机。浓一点，还是留一大杯慢慢喝？',ground:'刚磨好的香气散开了。把手柄装好，接下来让热水穿过咖啡粉。',ready:'杯口升起热气。不必赶下一单，端起来尝一口吧。',enjoyed:short?'小小一口，香气在舌尖多停了一会儿。':'捧着暖杯子，慢慢喝。窗外的光，也不必急着过去。'}[stage];
  const beans=stage==='beans'?'<g class="life-coffee-beans" fill="#62422d" stroke="#c7a581" stroke-width="2"><ellipse cx="74" cy="21" rx="8" ry="12"/><path d="M74 10q-5 11 0 22"/><ellipse cx="105" cy="16" rx="8" ry="12"/><path d="M105 5q-5 11 0 22"/><ellipse cx="135" cy="24" rx="8" ry="12"/><path d="M135 13q-5 11 0 22"/></g>':'';
  const ground=stage==='ground'?'<g class="life-coffee-ground"><path d="M65 34q40-24 80 0" fill="#684632"/><path d="M60 35h90l-9 12H69z" fill="#b8b8a7"/><path d="M145 37h45" stroke="#555d58" stroke-width="8" stroke-linecap="round"/></g>':'';
- return `<section tabindex="-1" class="life-ritual life-coffee coffee-${stage}" aria-label="给自己的咖啡"><svg viewBox="0 0 220 150" role="img" aria-label="${full?(short?'小杯浓咖啡':'长杯淡咖啡'):stage==='ground'?'装好咖啡粉的手柄与空杯':'咖啡豆与空杯'}"><ellipse cx="104" cy="128" rx="76" ry="12" fill="#ccb99c"/><g class="life-coffee-cup"><path fill="#f4e8d3" stroke="#c5ac87" stroke-width="3" d="M50 47h112v55q-8 28-56 28T50 102z"/><path fill="none" stroke="#dec9a9" stroke-width="12" d="M163 61q55-8 29 39l-28 6"/><ellipse cx="106" cy="${full?(short?79:55):57}" rx="${full&&short?46:52}" ry="12" fill="${full?'#644432':'#d8c9af'}"/>${full?'<path class="life-steam" fill="none" stroke="#fdf7e9" stroke-width="4" d="M88 43q-12-11 0-23m21 21q14-10 0-23m19 24q-9-9 0-20"/>':''}</g>${beans}${ground}${stage==='ready'?'<path class="life-coffee-pour" aria-hidden="true" fill="none" stroke="#8b6040" stroke-linecap="round" stroke-width="4" d="M106 2v52"/>':''}</svg><div><small>这杯，不用端给客户</small><h3>${heading}</h3><p role="status">${text}</p>${!full?`<div class="life-ritual-controls" role="group" aria-label="咖啡杯型"><button data-life-coffee="short" aria-pressed="${short}">小杯，浓一点</button><button data-life-coffee="long" aria-pressed="${!short}">长杯，慢慢喝</button></div>`:''}<div class="life-ritual-controls">${next?`<button data-life-coffee-step="${stage}">${{beans:'磨好这份咖啡豆',ground:'装上手柄，开始萃取',ready:'端起杯子，尝一口'}[stage]}</button>`:''}<button data-life-end>${stage==='enjoyed'?'放下杯子，收好咖啡角':'先收起来'}</button></div></div></section>`;
+ return `<section tabindex="-1" class="life-ritual life-coffee coffee-${stage}" aria-label="给自己的咖啡"><svg viewBox="0 0 220 150" role="img" aria-label="${full?(short?'小杯浓咖啡':'长杯淡咖啡'):stage==='ground'?'装好咖啡粉的手柄与空杯':'咖啡豆与空杯'}"><ellipse cx="104" cy="128" rx="76" ry="12" fill="#ccb99c"/><g class="life-coffee-cup"><path fill="#f4e8d3" stroke="#c5ac87" stroke-width="3" d="M50 47h112v55q-8 28-56 28T50 102z"/><path fill="none" stroke="#dec9a9" stroke-width="12" d="M163 61q55-8 29 39l-28 6"/><ellipse cx="106" cy="${full?(short?79:55):57}" rx="${full&&short?46:52}" ry="12" fill="${full?'#644432':'#d8c9af'}"/>${full?'<path class="life-steam" fill="none" stroke="#fdf7e9" stroke-width="4" d="M88 43q-12-11 0-23m21 21q14-10 0-23m19 24q-9-9 0-20"/>':''}</g>${beans}${ground}${stage==='ready'?'<path class="life-coffee-pour" aria-hidden="true" fill="none" stroke="#8b6040" stroke-linecap="round" stroke-width="4" d="M106 2v52"/>':''}</svg><div><small>这杯，不用端给客户</small><h3>${heading}</h3><p role="status">${text}</p>${!full?`<div class="life-ritual-controls" role="group" aria-label="咖啡杯型"><button data-life-coffee="short" aria-pressed="${short}">小杯，浓一点</button><button data-life-coffee="long" aria-pressed="${!short}">长杯，慢慢喝</button></div>`:''}<div class="life-ritual-controls">${next?`<button data-life-coffee-step="${stage}">${{beans:'磨好这份咖啡豆',ground:'装上手柄，开始萃取',ready:'端起杯子，尝一口'}[stage]}</button>`:''}${stage==='enjoyed'&&['chair','books'].includes(ui.coffeeReturn)?'<button data-life-reading-return>带着咖啡，回到刚才那页</button>':''}<button data-life-end>${stage==='enjoyed'?'放下杯子，收好咖啡角':'先收起来'}</button></div></div></section>`;
+}
+export function readingCompanionsView(state,ui){
+ const owns=id=>state.personalLife?.purchases?.some(p=>p.itemId===id);
+ const coffee=owns('coffee'),ready=coffee&&ui.coffeeStage==='enjoyed',music=owns('record')&&ui.soundOn;
+ if(!coffee&&!music)return '';
+ return `<aside class="life-reading-companions" aria-label="陪我读书的小物件">${ready?`<svg viewBox="0 0 96 72" role="img" aria-label="${ui.coffee==='short'?'浓咖啡':'长杯咖啡'}就在书旁"><ellipse cx="42" cy="60" rx="34" ry="6" fill="#c9b38f"/><path d="M17 20h49v26q-4 13-24 13T17 46z" fill="#f9edd8" stroke="#af9675"/><path d="M65 26q27-3 19 16l-18 5" stroke="#d0b999" stroke-width="6" fill="none"/><ellipse cx="41" cy="${ui.coffee==='short'?35:23}" rx="23" ry="5" fill="#76503a"/></svg>`:''}<div>${ready?'<p>书翻到这里，咖啡也在手边了。</p>':coffee?'<button data-life-reading-coffee>给这一页配杯咖啡</button>':''}${music?'<small>唱片还在轻轻转，不急着翻到下一页。</small>':''}</div></aside>`;
 }
 function lifeRitual(state,ui){
  if(ui.preview==='records'&&!state.personalLife?.purchases?.some(p=>p.itemId==='records'))return listeningView(state,ui,true);
  if(!state.personalLife?.purchases?.some(p=>p.itemId===ui.using))return '';
  if(ui.using==='books'){
   const n=Math.max(0,Math.min(3,state.personalLife.readingPage||0)),page=COLLECTION_PAGES[n];
-  return `<section tabindex="-1" class="life-ritual life-reading" aria-label="沿街走走阅读书册"><div class="life-book"><div class="life-book-left"><small>沿街走走 · 我的藏书</small><h3>${page.title}</h3><span>书签停在第 ${n+1} / 4 篇</span></div><div class="life-book-right"><p aria-live="polite">${page.text}</p></div></div><div class="life-ritual-controls"><button data-life-book-step="previous" data-life-book-page="${n-1}" ${n===0?'disabled':''}>前一篇</button><button data-life-book-step="next" data-life-book-page="${n+1}" ${n===3?'disabled':''}>读下一篇</button><button data-life-end>夹好书签，合上书</button></div></section>`;
+  return `<section tabindex="-1" class="life-ritual life-reading" aria-label="沿街走走阅读书册"><div class="life-book"><div class="life-book-left"><small>沿街走走 · 我的藏书</small><h3>${page.title}</h3><span>书签停在第 ${n+1} / 4 篇</span></div><div class="life-book-right"><p aria-live="polite">${page.text}</p></div></div>${readingCompanionsView(state,ui)}<div class="life-ritual-controls"><button data-life-book-step="previous" data-life-book-page="${n-1}" ${n===0?'disabled':''}>前一篇</button><button data-life-book-step="next" data-life-book-page="${n+1}" ${n===3?'disabled':''}>读下一篇</button><button data-life-end>夹好书签，合上书</button></div></section>`;
  }
  if(ui.using==='chair'){
   const n=Math.max(0,Math.min(2,Number.isInteger(ui.page)?ui.page:0)),page=LIFE_PAGES[n];
-  return `<section tabindex="-1" class="life-ritual life-reading" aria-label="我的阅读角"><div class="life-book"><div class="life-book-left"><small>给自己的三页故事</small><h3>${page.title}</h3><span>${n+1} / 3</span></div><div class="life-book-right"><p>${page.text}</p></div></div><div class="life-ritual-controls"><button data-life-page-step="previous" data-life-page="${n-1}" ${n===0?'disabled':''}>往前翻</button><button data-life-page-step="next" data-life-page="${n+1}" ${n===2?'disabled':''}>再读一页</button><button data-life-end>合上书，留待下次</button></div></section>`;
+  return `<section tabindex="-1" class="life-ritual life-reading" aria-label="我的阅读角"><div class="life-book"><div class="life-book-left"><small>给自己的三页故事</small><h3>${page.title}</h3><span>${n+1} / 3</span></div><div class="life-book-right"><p>${page.text}</p></div></div>${readingCompanionsView(state,ui)}<div class="life-ritual-controls"><button data-life-page-step="previous" data-life-page="${n-1}" ${n===0?'disabled':''}>往前翻</button><button data-life-page-step="next" data-life-page="${n+1}" ${n===2?'disabled':''}>再读一页</button><button data-life-end>合上书，留待下次</button></div></section>`;
  }
  if(ui.using==='coffee')return coffeeRitualView(ui);
  return listeningView(state,ui);
@@ -80,7 +86,7 @@ export function bindLifeRoom(root,{getState,getUI,setUI:renderUI,dispatch,close}
  // steal focus back after the player has moved to another control.
  const setUI=next=>{
   const active=root.ownerDocument.activeElement;
-  const attrs=['data-life-volume','data-life-track','data-life-book-step','data-life-page-step','data-life-coffee','data-life-coffee-step','data-life-sound','data-life-mute','data-life-end','data-life-use','data-life-room-use','data-life-place','data-life-preview','data-life-buy','data-life-cancel','data-life-close'];
+  const attrs=['data-life-volume','data-life-track','data-life-book-step','data-life-page-step','data-life-coffee','data-life-coffee-step','data-life-reading-coffee','data-life-reading-return','data-life-sound','data-life-mute','data-life-end','data-life-use','data-life-room-use','data-life-place','data-life-preview','data-life-buy','data-life-cancel','data-life-close'];
   const attr=attrs.find(a=>active?.hasAttribute?.(a));
   const value=attr?active.getAttribute(attr):null;
   const scope=['.life-actions','.life-welcome','.life-ritual','.life-panel header'].find(s=>active?.closest?.(s));
@@ -113,6 +119,16 @@ export function bindLifeRoom(root,{getState,getUI,setUI:renderUI,dispatch,close}
   const ui=getUI(),stage=ui.coffeeStage||'beans';
   if(ui.using!=='coffee'||!getState().personalLife?.purchases?.some(p=>p.itemId==='coffee')||event.currentTarget.dataset.lifeCoffeeStep!==stage)return;
   const next=nextCoffeeStage(stage);if(next)setUI({...ui,coffeeStage:next});
+ });
+ root.querySelector('[data-life-reading-coffee]')?.addEventListener('click',()=>{
+  const ui=getUI(),owns=id=>getState().personalLife?.purchases?.some(p=>p.itemId===id);
+  if(!['chair','books'].includes(ui.using)||!owns(ui.using)||!owns('coffee'))return;
+  setUI({...ui,coffeeReturn:ui.using,using:'coffee',coffeeStage:'beans',arrival:'',preview:''});reveal('.life-ritual');
+ });
+ root.querySelector('[data-life-reading-return]')?.addEventListener('click',()=>{
+  const ui=getUI(),owns=id=>getState().personalLife?.purchases?.some(p=>p.itemId===id);
+  if(ui.using!=='coffee'||ui.coffeeStage!=='enjoyed'||!['chair','books'].includes(ui.coffeeReturn)||!owns('coffee')||!owns(ui.coffeeReturn))return;
+  setUI({...ui,using:ui.coffeeReturn,coffeeReturn:'',arrival:''});reveal('.life-ritual');
  });
  root.querySelector('[data-life-end]')?.addEventListener('click',end);
  root.querySelector('[data-life-mute]')?.addEventListener('click',()=>{stopLifeSound();setUI({...getUI(),soundOn:false});});
