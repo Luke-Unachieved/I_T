@@ -39,7 +39,7 @@ export function cooperationChapter(state){
    if(use)result.facts.push({kind:'use-delivered',direction:use.studioDirection,briefId:use.studioBrief,quantity:use.quantity});
    const sleeveOnly=deliveries.every(o=>o.scope==='buyer-sleeve');
    close(sleeveOnly?'买手的专用纸套已交付，概念店也已完成工作室原稿采购。这段合作已兑现，新的用途可以另行选择。':'买手采购已交付，概念店也已完成工作室原稿采用。这段合作已兑现，新的用途可以另行选择。');
-   const directions=['independent','group'].filter(d=>studioProjectEligibility(state,d).valid);
+   const directions=['independent','group'].filter(d=>studioProjectEligibility(state,d).canOffer);
    if(home&&directions.length===1){
     const direction=directions[0],e=studioProjectEligibility(state,direction),onlyDelivered=e.briefs.length===1&&(state.caseGrowthHistory||[]).some(h=>h.status==='paid'&&h.purpose==='studio-project'&&h.studioDirection===direction&&h.referrerId===e.referrerId&&h.studioBrief===e.briefs[0]);
     result.nextAction=next('OPEN_STUDIO_PROJECT',onlyDelivered?'可选 · 回访已确认方案':'可选 · 继续提出新的用途',{direction});

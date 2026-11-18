@@ -22,7 +22,7 @@ import {dealSaveView,bindDealSaveTools} from './deal-room-save-view.js';
 import {launchBasis} from './deal-room-launch.js';
 import {launchView} from './deal-room-launch-view.js';
 import {studioProjectView} from './deal-room-studio-project-view.js';
-import {studioProjectReview} from './deal-room-studio-project.js';
+import {studioProjectEligibility,studioProjectReview} from './deal-room-studio-project.js';
 import {previewCatalogueOrder,previewFirstCatalogueOrder} from './deal-room-catalogue-order.js';
 import {catalogueVersions} from './deal-room-design-catalogue.js';
 import {previewCaseGrowth,previewCaseCalloff,previewApprovedCaseLamp,canCalloffCase,caseGrowthOffers} from './deal-room-case-growth.js';
@@ -51,7 +51,15 @@ let collectionDraft={model:'private',style:'cream'};
 let buyerDemo={open:false,room:'day',brightness:1};
 let curationDraft=null,showcaseId=null,accountOption='pilot';
 let supplyDraft=null,playback=null,playbackTimer=null;
-function studioOpenAction(direction){const products=state.collection?.products||[];return direction==='independent'&&products.includes('mira')&&products.includes('samir')&&!products.includes('ines')?{type:'OPEN_STUDIO_READING_PAIR'}:{type:'OPEN_STUDIO_PROJECT',direction};}
+function openStudioFromDesk(s,direction,table=false){
+ const scope=studioProjectEligibility(s,direction);if(!scope.canOffer)return s;
+ const fresh=!s.studioProjectPlans?.[direction]&&!s.studioProjectDrafts?.[direction]&&s.studioProject?.direction!==direction;
+ let next=reduceDealRoom(s,direction==='independent'&&scope.briefs.includes('reading-drink')?{type:'OPEN_STUDIO_READING_PAIR'}:{type:'OPEN_STUDIO_PROJECT',direction});
+ if(next===s||next.phase!=='studio-project'||!fresh)return next;
+ if(!scope.briefs.includes(next.studioProject.briefId))next=reduceDealRoom(next,{type:'SET_STUDIO_PROJECT',field:'briefId',value:scope.briefs[0]});
+ if(table)next=reduceDealRoom(next,{type:'SET_STUDIO_PROJECT',field:'layout',value:'table'});
+ return next;
+}
 function finishPlayback(){clearTimeout(playbackTimer);playback=null;render();root.querySelector(".business h2")?.focus({preventScroll:true});}
 function nextPlaybackFrame(){if(!playback)return;if(++playback.index>=playback.frames.length){finishPlayback();return;}render();playbackTimer=setTimeout(nextPlaybackFrame,1200);}
 let revisionOpen=false,revisionScope='revision-nonexclusive';
@@ -236,10 +244,10 @@ function render(){
  root.querySelector('#close-showcase')?.addEventListener('click',()=>{showcaseId=null;event='';render();});
  root.querySelectorAll('[data-launch-lead],[data-launch-arrangement]').forEach(b=>b.onclick=()=>{state=reduceDealRoom(state,{type:'SET_LAUNCH',field:b.dataset.launchLead?'lead':'arrangement',value:b.dataset.launchLead||b.dataset.launchArrangement});event='sample-change';save();render();root.querySelector('.launch-scene')?.scrollIntoView({block:'nearest'});});
  root.querySelectorAll('[data-career-focus]').forEach(b=>b.onclick=()=>{directionsOpen=true;careerFocus=b.dataset.careerFocus;try{localStorage.setItem(SAVE_KEY+':focus',careerFocus);}catch{}event='sample-change';render();root.querySelector('.career-focus h3')?.scrollIntoView({block:'nearest'});});
- root.querySelectorAll('[data-studio-direction]').forEach(b=>b.onclick=()=>{const fresh=!state.studioProjectPlans?.[b.dataset.studioDirection]&&!state.studioProjectDrafts?.[b.dataset.studioDirection]&&state.studioProject?.direction!==b.dataset.studioDirection;state=reduceDealRoom(state,studioOpenAction(b.dataset.studioDirection));if(fresh)state=reduceDealRoom(state,{type:'SET_STUDIO_PROJECT',field:'layout',value:'table'});save();event='arriving';render();root.querySelector('.business h2')?.scrollIntoView({block:'nearest'});});
+ root.querySelectorAll('[data-studio-direction]').forEach(b=>b.onclick=()=>{state=openStudioFromDesk(state,b.dataset.studioDirection,true);save();event='arriving';render();root.querySelector('.business h2')?.scrollIntoView({block:'nearest'});});
  root.querySelectorAll('[data-studio-allocation]').forEach(b=>b.onclick=()=>{studioAllocation=b.dataset.studioAllocation;event='sample-change';render();root.querySelector(`[data-studio-allocation="${studioAllocation}"]`)?.focus({preventScroll:true});});
  root.querySelectorAll('[data-studio-field]').forEach(b=>b.onclick=()=>{state=reduceDealRoom(state,{type:'SET_STUDIO_PROJECT',field:b.dataset.studioField,value:b.dataset.studioValue});save();event='sample-change';render();});
- root.querySelectorAll('[data-career-action]').forEach(b=>b.onclick=()=>{directionsOpen=false;let action={type:b.dataset.careerAction};if(b.dataset.careerDirection)action.direction=b.dataset.careerDirection;if(b.dataset.careerReferrer)action.referrerId=b.dataset.careerReferrer;if(b.dataset.careerClient)action.clientId=b.dataset.careerClient;if(action.type==='OPEN_STUDIO_PROJECT')action=studioOpenAction(action.direction);if(action.type==='OPEN_PRODUCT_REORDER'){const opened=openProductReorder(state,b.dataset.careerFactory);state=opened.state;selected=opened.selected;}else state=reduceDealRoom(state,action);growthDraft=null;seriesMode=false;seriesLamp=state.collection?.lampVersion||'standard';growthLampModel='standard';proposalOpen=false;proposalModel='standard';accountOption='pilot';showcaseId=null;event='arriving';save();render();root.querySelector('.business h2')?.scrollIntoView({block:'nearest'});});
+ root.querySelectorAll('[data-career-action]').forEach(b=>b.onclick=()=>{directionsOpen=false;let action={type:b.dataset.careerAction};if(b.dataset.careerDirection)action.direction=b.dataset.careerDirection;if(b.dataset.careerReferrer)action.referrerId=b.dataset.careerReferrer;if(b.dataset.careerClient)action.clientId=b.dataset.careerClient;if(action.type==='OPEN_STUDIO_PROJECT')state=openStudioFromDesk(state,action.direction);else if(action.type==='OPEN_PRODUCT_REORDER'){const opened=openProductReorder(state,b.dataset.careerFactory);state=opened.state;selected=opened.selected;}else state=reduceDealRoom(state,action);growthDraft=null;seriesMode=false;seriesLamp=state.collection?.lampVersion||'standard';growthLampModel='standard';proposalOpen=false;proposalModel='standard';accountOption='pilot';showcaseId=null;event='arriving';save();render();root.querySelector('.business h2')?.scrollIntoView({block:'nearest'});});
  root.querySelectorAll('[data-growth-case]').forEach(b=>b.onclick=()=>{state=reduceDealRoom(state,{type:'OPEN_CASE_GROWTH',referrerId:b.dataset.growthCase});growthDraft=null;seriesMode=false;seriesLamp=state.collection?.lampVersion||'standard';growthLampModel='standard';proposalOpen=false;proposalModel='standard';event='arriving';save();render();});
  root.querySelector('#close-catalogue-proposal')?.addEventListener('click',()=>{proposalOpen=false;render();restoreReturnFocus('#toggle-catalogue-proposal');});
  root.querySelector('#toggle-catalogue-proposal')?.addEventListener('click',()=>{proposalOpen=!proposalOpen;render();root.querySelector('#toggle-catalogue-proposal')?.focus({preventScroll:true});});

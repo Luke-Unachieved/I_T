@@ -11,7 +11,10 @@ export function studioProjectEligibility(state,direction){
  const refs=[...new Set((state?.caseGrowthHistory||[]).filter(h=>h.status==='paid'&&h.agreement===agreement).map(h=>h.referrerId))];
  const source=(state?.curationHistory||[]).find(c=>c.status==='paid'&&c.referrerId===refs[0]);
  const reason=!agreement?'请选择工作室陈列或集团用途专案。':!original?.reusable?original?.reason||'没有可合法延用的工作室原稿。':!adoption?'需要概念店已经交付的原稿采用记录。':refs.length!==1||!source?'先核实这条路线唯一的实际合作客户与已交付案例。':'';
- return {valid:!reason,reason,direction,agreement,referrerId:refs.length===1?refs[0]:null,source:source||null,original:original||null,briefs:Object.keys(BRIEFS).filter(k=>BRIEFS[k].direction===direction&&BRIEFS[k].products.every(id=>original?.products.includes(id))&&(k!=='reading-drink'||original.products.length===2))};
+ const briefs=Object.keys(BRIEFS).filter(k=>BRIEFS[k].direction===direction&&BRIEFS[k].products.every(id=>original?.products.includes(id))&&(k!=='reading-drink'||original.products.length===2));
+ // A genuine relationship does not by itself make a physical use possible.
+ // canOffer is a presentation decision; historic entries and reviews keep their rules.
+ return {valid:!reason,canOffer:!reason&&briefs.length>0,reason,direction,agreement,referrerId:refs.length===1?refs[0]:null,source:source||null,original:original||null,briefs};
 }
 export function studioProjectReview(state,project){
  const fail=(reason,products=[])=>({valid:false,reason,feedback:reason,products,project:project&&typeof project==='object'&&!Array.isArray(project)?{...project,status:'draft'}:null});
