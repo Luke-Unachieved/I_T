@@ -1,7 +1,27 @@
+import {CURATION_PRODUCTS} from './deal-room-engine.js';
 import {quoteCommitmentView} from './deal-room-quote-view.js';
 const money=n=>`¥${Number(n||0).toLocaleString('zh-CN')}`;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export function curationView(brief,draft,q,development=null,demo=null,availableCash=null){return `<section class="curation-controls"><button class="back-clients" data-action="BACK_FROM_CURATION">← 换一份引荐</button><h3>这次，由你搭配整组产品</h3><p class="brief">${esc(brief.purpose)}</p><div class="curation-budget"><span>整单报价 <b>${money(q.revenue)}</b></span><span>预算 ${money(brief.budget)}</span><progress aria-label="报价占预算" max="${brief.budget}" value="${Math.min(q.revenue||0,brief.budget)}"></progress></div>${sampleControls(brief,draft,development)}${demo?curationDemoView(demo):''}${materialWorkbench(draft)}<fieldset><legend>每种产品各多少件</legend>${[40,60].map(n=>`<button data-curation-quantity="${n}" aria-pressed="${draft.quantity===n}">${n} 套</button>`).join('')}</fieldset><fieldset><legend>怎么呈现</legend><button data-curation-pack="plain" aria-pressed="${draft.packaging==='plain'}">常规包装</button><button data-curation-pack="gift" aria-pressed="${draft.packaging==='gift'}" ${brief.giftAllowed?'':'disabled'}>${brief.giftAllowed?'整组礼盒':'日常补货，无需礼盒'}</button></fieldset>${quoteCommitmentView({cash:availableCash},q,{action:'SIGN_CURATION',quantityLabel:`${draft.quantity} 套`})}</section>`;}
+// A counteroffer changes exactly one existing choice. Keep the referrer's anchor,
+// a specifically selected dimmer and the current packaging. A budget fit is not a signature.
+function curationBudgetCounter(brief,q,availableCash){
+ if(!q||q.valid!==false||!String(q.reason).startsWith('超过预算 ')||!Number.isSafeInteger(brief?.budget)||q.revenue<=brief.budget||!Number.isSafeInteger(q.cost)||q.deposit*2!==q.revenue||![40,60].includes(q.quantity)||!q.products?.includes(brief.anchor))return '';
+ const offers=[];
+ function add(attr,label,revenue,cost){
+  if(![revenue,cost].every(Number.isSafeInteger)||revenue<=0||cost<0||revenue>brief.budget)return;
+  const needed=cost-Math.floor(revenue/2)+q.operatingCost,shortfall=Number.isSafeInteger(availableCash)?Math.max(0,needed-availableCash):0;
+  offers.push(`<button class="quote" ${attr}><strong>${esc(label)}</strong><span>货款 ${money(revenue)} · 预计净赚 ${money(revenue-cost-q.operatingCost)}</span>${shortfall?`<small>预算可接受，工作室周转还差 ${money(shortfall)}。</small>`:''}</button>`);
+ }
+ // Same packaging, model and due terms: both quantity and merchandise cost scale.
+ if(q.quantity===60)add('data-curation-quantity="40"','整组不换 · 改为 40 套',q.price*40,q.cost/q.quantity*40);
+ if(q.products.length===3)for(const item of CURATION_PRODUCTS){
+  if(item.id===brief.anchor||!q.products.includes(item.id)||item.id==='mira'&&q.lampVersion==='developed')continue;
+  add(`data-curation-product="${item.id}"`,`保留 ${q.quantity} 套 · 这次不放${item.name}`,q.revenue-q.quantity*item.price,q.cost-q.quantity*item.cost);
+ }
+ if(!offers.length)return '';
+ return `<section class="curation-counteroffer" aria-label="买手的预算回价"><blockquote class="buyer-counter">“最多 ${money(brief.budget)}。主推款和包装不换，${offers.length>1?'你是想保留整组，还是先铺足数量？':'能不能先少做一批？'}”</blockquote><div class="quotes">${offers.join('')}</div><small>点选只调整桌上的提案，双方还没签约。</small></section>`;
+}
+export function curationView(brief,draft,q,development=null,demo=null,availableCash=null){const counter=curationBudgetCounter(brief,q,availableCash),shown=counter?{...q,reason:`超过预算 ${money(q.revenue-brief.budget)}。可以先按买手回价调整提案。`}:q;return `<section class="curation-controls"><button class="back-clients" data-action="BACK_FROM_CURATION">← 换一份引荐</button><h3>这次，由你搭配整组产品</h3><p class="brief">${esc(brief.purpose)}</p><div class="curation-budget"><span>整单报价 <b>${money(q.revenue)}</b></span><span>预算 ${money(brief.budget)}</span><progress aria-label="报价占预算" max="${brief.budget}" value="${Math.min(q.revenue||0,brief.budget)}"></progress></div>${counter}${sampleControls(brief,draft,development)}${demo?curationDemoView(demo):''}${materialWorkbench(draft)}<fieldset><legend>每种产品各多少件</legend>${[40,60].map(n=>`<button data-curation-quantity="${n}" aria-pressed="${draft.quantity===n}">${n} 套</button>`).join('')}</fieldset><fieldset><legend>怎么呈现</legend><button data-curation-pack="plain" aria-pressed="${draft.packaging==='plain'}">常规包装</button><button data-curation-pack="gift" aria-pressed="${draft.packaging==='gift'}" ${brief.giftAllowed?'':'disabled'}>${brief.giftAllowed?'整组礼盒':'日常补货，无需礼盒'}</button></fieldset>${quoteCommitmentView({cash:availableCash},shown,{action:'SIGN_CURATION',quantityLabel:`${draft.quantity} 套`})}</section>`;}
 function materialWorkbench(draft){
  const ids=draft?.products||[];
  return [['samir','杯盖与杯口','保温杯试用'],['ines','布面与桌沿','棉麻桌布试铺']].filter(([id])=>ids.includes(id)).map(([id,legend,title])=>{

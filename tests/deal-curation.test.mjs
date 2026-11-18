@@ -49,3 +49,25 @@ test('removing developed lamp clears its specification, leaving unrelated cup an
 });
 
 test('paid case close does not claim the order was unsigned',()=>{assert.match(businessFeedback({history:[{type:'CLOSE_CASE_GROWTH'}],caseGrowth:{status:'paid'},feedback:{message:'未签方案没有改变任何案例权限'}}),/已结清/);});
+
+test('budget counteroffers keep the anchor and let the buyer trade breadth for quantity at actual contract prices',async()=>{
+ const {curationView,toggleCurationProduct}=await import('../src/deal-room-curation-view.js');
+ const s=a(base(),'START_CURATION',{clientId:'mira'}),d={products:['mira','samir','ines'],quantity:60,packaging:'gift'},initial=structuredClone(s),original=structuredClone(d);
+ const preview=x=>previewCuration(s,x),panel=x=>curationView(s.curation,x,preview(x),null,null,s.cash).match(/<section class="curation-counteroffer"[\s\S]*?<\/section>/)?.[0]||'';
+ assert.equal(preview(d).revenue,9420);const html=panel(d);assert.match(html,/¥7,200/);assert.doesNotMatch(html,/data-action=|data-curation-product="mira"/);
+ const buttons=[...html.matchAll(/<button class="quote" data-curation-(quantity|product)="([^"]+)">([\s\S]*?)<\/button>/g)];assert.equal(buttons.length,3);
+ const expected=[6280,6540,6900];for(const [,field,value,written] of buttons){
+  const amended=field==='quantity'?{...d,quantity:Number(value)}:toggleCurationProduct(d,value,s.curation.anchor);
+  const q=preview(amended);assert.ok(q.valid);assert.ok(amended.products.includes('mira'));assert.equal(amended.packaging,'gift');assert.ok(expected.includes(q.revenue));
+  assert.ok(written.includes('¥'+q.revenue.toLocaleString('zh-CN')));assert.ok(written.includes('预计净赚 ¥'+q.netProfit.toLocaleString('zh-CN')));assert.equal(panel(amended),'');
+  const signed=a(s,'SIGN_CURATION',amended);assert.equal(signed.cash,q.cashAfterSigning);const paid=a(signed,'FULFIL_CURATION');assert.equal(paid.cash,s.cash+q.netProfit);assert.equal(paid.curation.quantity,amended.quantity);
+ }assert.deepEqual(s,initial);assert.deepEqual(d,original);
+});
+test('a commissioned dimmer gift keeps its sample: still-over-budget deletions are not presented as counteroffers',async()=>{
+ const {curationView}=await import('../src/deal-room-curation-view.js');
+ const s=a(withSample(),'START_CURATION',{clientId:'mira'}),d={products:['mira','samir','ines'],quantity:60,packaging:'gift',lampVersion:'developed'},q=previewCuration(s,d);assert.equal(q.revenue,10620);
+ const h=curationView(s.curation,d,q,s.productDevelopment,null,s.cash).match(/<section class="curation-counteroffer"[\s\S]*?<\/section>/)[0];
+ assert.equal((h.match(/<button/g)||[]).length,1);assert.match(h,/data-curation-quantity="40"/);assert.doesNotMatch(h,/data-curation-product=/);assert.match(h,/¥7,080/);
+ for(const id of ['ines','samir'])assert.ok(previewCuration(s,{...d,products:d.products.filter(p=>p!==id)}).revenue>s.curation.budget);
+ const chosen={...d,quantity:40},quote=previewCuration(s,chosen);assert.ok(quote.valid);const paid=a(a(s,'SIGN_CURATION_SAMPLE',chosen),'FULFIL_CURATION');assert.equal(paid.cash,s.cash+quote.netProfit);assert.equal(paid.curation.lampVersion,'developed');
+});
