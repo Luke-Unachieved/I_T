@@ -2,6 +2,7 @@ import test from 'node:test';import assert from 'node:assert/strict';import vm f
 import {createDealRoom,reduceDealRoom} from '../src/deal-room-engine.js';
 import {cooperationChapter} from '../src/deal-room-cooperation.js';
 import {tradingChapter,tradingChapterView,tradingChapterVisual} from '../src/deal-room-trading-chapter.js';
+import {goodsPriceRecords} from '../src/deal-room-goods-prices.js';
 import {careerRecapView,settledUnitPricesView} from '../src/deal-room-home.js';
 import {buildDealHtml} from '../scripts/build-deal-standalone.mjs';
 const a=(s,type,fields={})=>{const n=reduceDealRoom(s,{type,...fields});assert.notEqual(n,s,type+' in '+s.phase);return n;};
@@ -33,7 +34,7 @@ test('a real previously paid two-lot plan stays inspectable next to either trade
  const receipt=careerRecapView(s).match(/<details class="settled-prices"><summary>最近结清的两批供货[\s\S]+?<\/details>/)[0];
  s=sell(newModel(expand(first(s,'pilot'))));assert.ok(tradingChapter(s));const series=privateSeries(s);
  for(const state of [s,series])for(const route of ['auto','trade'])for(const evidence of ['chain','model']){
-  const html=careerRecapView(state,{route,evidence});assert.ok(html.includes(receipt));assert.ok(html.includes(settledUnitPricesView(state.contracts)));assert.equal((html.match(/最近结清的两批供货/g)||[]).length,1);assert.deepEqual(state.supplyPlanHistory.at(-1),original);
+  const html=careerRecapView(state,{route,evidence});assert.ok(html.includes(receipt));const records=goodsPriceRecords(state),planRows=records.filter(row=>row.specification==='supply-plan');assert.deepEqual(planRows.map(r=>[r.quantity,r.revenue,r.paidDay]),original.lots.map(l=>[l.quantity,l.revenue,l.paymentDay]));assert.ok(html.includes(settledUnitPricesView(records)));assert.equal((html.match(/最近结清的两批供货/g)||[]).length,1);assert.deepEqual(state.supplyPlanHistory.at(-1),original);
  }
 });
 test('D45 supplier career closes without a collection or household spending, with only the two real trades',()=>{

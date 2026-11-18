@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {launchView,launchInvite} from '../src/deal-room-launch-view.js';
 import {revisionView} from '../src/deal-room-revision-view.js';
+import {createDealRoom,reduceDealRoom,careerOpportunity,previewSupplyPlan} from '../src/deal-room-engine.js';
 import {supplyDraftView} from '../src/deal-room-supply-view.js';
 import {dealSaveView} from '../src/deal-room-save-view.js';
 import {careerRecapView} from '../src/deal-room-home.js';
@@ -16,13 +17,20 @@ test('handover copy describes the player result without erasing exclusivity or c
 });
 test('new sample still discloses upfront investment, time and absence of an order',()=>{
  const s={cash:5000,collectionRevision:{status:'draft'}},before=structuredClone(s),html=revisionView(s);
- assert.match(html,/¥3,200/);assert.match(html,/4 天开支 ¥120/);assert.match(html,/出样后还需争取买手订单/);assert.deepEqual(s,before);
+ assert.match(html,/¥3,200/);assert.match(html,/4 天开支 ¥120/);assert.match(html,/出样不保证买手下单|出样后还需争取买手订单/);assert.deepEqual(s,before);
  const low=revisionView({...s,cash:3319});assert.match(low,/COMMISSION_COLLECTION_REVISION" disabled/);
 });
 test('two-lot proposal keeps its discount, deposit and payment timing prominent',()=>{
- const o={clients:[{id:'mira',name:'Mira'}]},d={clientId:'mira',payment:'deposit'},p={lots:[{quantity:60,deliveryDay:5},{quantity:120,deliveryDay:9}],deposit:1000,balanceDue:2000,finishDay:13,cashRequired:1500,netProfit:510,valid:true};
- const before=structuredClone(p),html=supplyDraftView(o,d,p);
- assert.match(html,/预计净赚/);assert.match(html,/让价 4%/);assert.match(html,/末批交货后 4 天结清/);assert.match(html,/签约先收 ¥1,000/);assert.match(html,/尾款 ¥2,000/);assert.deepEqual(p,before);
+ const act=(s,type,fields={})=>{const next=reduceDealRoom(s,{type,...fields});assert.notEqual(next,s,type);return next;};
+ const sell=(s,optionId)=>act(act(act(s,'PROPOSE',{optionId}),'ADVANCE'),'NEXT_CLIENT');
+ let state=['trial','ready','small'].reduce(sell,createDealRoom());state=act(state,'CONTINUE_BUSINESS');
+ for(let i=0;i<2;i++)state=sell(act(state,'SELECT_CLIENT',{clientId:'mira'}),'repeat-small');
+ const d={clientId:'mira',firstBatch:'small',payment:'deposit'},p=previewSupplyPlan(state,d),before=structuredClone(p);
+ assert.equal(p.valid,true);assert.equal(p.deposit,2250);assert.equal(p.balanceDue,5250);
+ const html=supplyDraftView(careerOpportunity(state),d,p);
+ assert.match(html,/预计净赚/);assert.match(html,/让价 4%/);assert.match(html,/末批交货后 4 天结清/);
+ assert.match(html,/少量先送 · 60 件/);assert.match(html,/首批多送 · 120 件/);
+ assert.match(html,/签约先收 ¥2,250/);assert.match(html,/尾款 ¥5,250，第 23 天收齐/);assert.deepEqual(p,before);
 });
 test('recap avoids technical explanations while help retains paused-time information',()=>{
  const s={day:1,cash:5000,contracts:[],curationHistory:[],accountHistory:[]};const before=structuredClone(s),html=careerRecapView(s);
