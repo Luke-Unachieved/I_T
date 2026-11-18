@@ -11,3 +11,7 @@
 ## Native checkout newline audit
 
 The local Git checkout contains CRLF. Direct source inspection found three import lines in deal-room-life-view.js but zero matches for the previous bundler import-removal regex. Text reads now normalize CRLF and lone CR to LF before composing the offline bundle. Added an offline script syntax regression case; not yet executed under the user-requested acceptance schedule. This change does not touch save schema, gameplay or the source revision boundary.
+
+## Player-facing cooperation language
+
+Expanded the existing view-only playerSteps mapping for five previously exposed implementation-like instructions (legal reuse, delivery evidence and mixed-version facts). Contract/version facts and reducer messages are unchanged; the visible panel now explains the next customer action and celebrates six-store delivery in ordinary language. Added no new systems or economy changes. Browser acceptance still pending.
