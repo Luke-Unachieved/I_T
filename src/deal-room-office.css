@@ -46,3 +46,5 @@
 .freight-bale:after{content:'';position:absolute;inset:-1px 7px;background:#f5e7c2;border-inline:1px solid #7f856c}.freight-bale.arrived:after{background:#91aa82;border-color:#577650}
 .freight-card{padding:10px 12px;margin:10px 0;background:#f9f6e9;border:1px solid #c5cbb6;border-radius:8px}.freight-card h3{margin:0}.freight-card p{margin:6px 0;font-size:.9rem}
 @media(max-width:850px){.workspace.freight-workspace{height:auto;min-height:0;padding:8px}.freight-board{padding:12px}}
+
+.exhibition-proof{margin:.65rem 0;color:#394f42}.exhibition-proof>summary{cursor:pointer;min-height:44px;align-content:center}.exhibition-proof>svg{display:block;width:min(100%,350px);height:auto;margin:.4rem 0;background:#f5ecdb;border-radius:8px}.exhibition-proof>p{margin:.3rem 0;font-size:.9em}
