@@ -15,7 +15,7 @@ import * as story from '../src/story.js';
 import * as relationships from '../src/relationships.js';
 import * as negotiation from '../src/negotiation.js';
 import * as epilogue from '../src/epilogue.js';
-const source=(await readFile(new URL('../src/app.js',import.meta.url),'utf8')).replace(/^import .*;\n/gm,'');
+const source=(await readFile(new URL('../src/app.js',import.meta.url),'utf8')).replace(/^import .*;\r?\n/gm,'');
 const KEY='trade-tycoon:v1';
 function ui(initial=null){
  const values=new Map(initial?[[KEY,JSON.stringify(initial)]]:[]),events={},nodes={};

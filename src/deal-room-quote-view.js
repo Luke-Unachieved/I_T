@@ -23,6 +23,11 @@ export function quoteCashPathView(state,offer,{roundActive=false}={}){
 export function quoteCommitmentView(state, offer, {roundActive=false,counterMessage='',action='PROPOSE',quantityLabel=null}={}) {
   if (!offer) return '';
   const signed = offer.accepted !== false;
+  const validLot = Number.isSafeInteger(offer.quantity) && offer.quantity > 0;
+  const per = n => (n / offer.quantity).toLocaleString('zh-CN',{maximumFractionDigits:2});
+  const set = action === 'SIGN_CURATION';
+  const pricing = signed && validLot && [offer.revenue,offer.cost].every(n=>Number.isSafeInteger(n)&&n>=0)
+    ? '<p class="quote-action-note">'+(set?'每套':'折合每件')+'：货款 ¥'+per(offer.revenue)+'，备货交付 ¥'+per(offer.cost)+'。按整单结算。</p>' : '';
   const deposit = offer.deposit || 0;
   const advance = Math.max(0, offer.cost - deposit);
   const counter = counterMessage ? `<p class="counter" role="alert">${escape(counterMessage)}</p>` : '';
@@ -36,7 +41,7 @@ export function quoteCommitmentView(state, offer, {roundActive=false,counterMess
   </section>`;
   return `<section class="quote-commitment" aria-label="签约与资金明细">
     <div class="quote-price"><span>这单货款</span><strong>${money(offer.revenue)}</strong><small>${escape(quantityLabel||`${offer.quantity} 件`)}</small></div>
-    <dl class="quote-now">${deposit>0?`<div><dt>客户先付定金</dt><dd>${money(deposit)}</dd></div>`:''}<div><dt>现在要付</dt><dd>${money(offer.cost)}</dd></div>${deposit>0?`<div><dt>你先垫付</dt><dd>${money(advance)}</dd></div>`:''}<div class="quote-cash"><dt>${offer.cashAfterSigning<0?'还差':'签完还剩'}</dt><dd>${money(offer.cashAfterSigning<0?-offer.cashAfterSigning:offer.cashAfterSigning)}</dd></div></dl>
+    ${pricing}<dl class="quote-now">${deposit>0?`<div><dt>客户先付定金</dt><dd>${money(deposit)}</dd></div>`:''}<div><dt>现在要付</dt><dd>${money(offer.cost)}</dd></div>${deposit>0?`<div><dt>你先垫付</dt><dd>${money(advance)}</dd></div>`:''}<div class="quote-cash"><dt>${offer.cashAfterSigning<0?'还差':'签完还剩'}</dt><dd>${money(offer.cashAfterSigning<0?-offer.cashAfterSigning:offer.cashAfterSigning)}</dd></div></dl>
     <div class="quote-schedule"><span>第 <b>${offer.deliveryDay}</b> 天交货</span><span>第 <b>${offer.paymentDay}</b> 天收齐货款</span></div>
     ${quoteCashPathView(state,offer,{roundActive})}
     <p class="quote-profit"><span>这单预计赚到</span><strong>${money(offer.netProfit)}</strong></p>

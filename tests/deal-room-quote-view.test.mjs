@@ -45,3 +45,11 @@ test('full prepayment proposal never invents delivery-day receipt or signing cas
  const accepted=quoteCommitmentView(rejected,previewOffer(rejected,'season'));
  assert.match(accepted,/客户先付定金/);assert.match(accepted,/收齐货款/);
 });
+
+test('lot prices are comparisons, not revised signing or payment terms',()=>{
+ const s=createDealRoom(),q=previewOffer(s,'trial');
+ assert.match(quoteCommitmentView(s,q),/折合每件：货款 ¥40，备货交付 ¥30。按整单结算/);
+ const set={...q,quantity:3,revenue:100,cost:50};
+ assert.match(quoteCommitmentView(s,set,{action:'SIGN_CURATION',quantityLabel:'3 套'}),/每套：货款 ¥33.33，备货交付 ¥16.67/);
+ for(const invalid of [{quantity:0},{accepted:false},{cost:null}])assert.doesNotMatch(quoteCommitmentView(s,{...q,...invalid}),/折合每件/);
+});
