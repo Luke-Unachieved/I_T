@@ -126,13 +126,17 @@ export function previewCuration(state,draft={}){
  const reason=sampleReason||(!ids.includes(brief.anchor)?'保留引荐案例里的那件产品，再搭一件。':ids.length<2?'买手要一组搭配，再添一件不同产品。':gift&&!brief.giftAllowed?'日常补货不需要礼盒，换成常规包装即可。':revenue>brief.budget?`超过预算 ${revenue-brief.budget}；${ids.length>2?'可以减为 40 套，或少选一件':developed?'可以改回旧款，或减为 40 套':'可以换更便宜的搭配，或减为 40 套'}。`:state.cash<cost-deposit+operatingCost?'可用资金不够覆盖备货与回款前支出。':!canStartDeal(state)?'经营记录容量已满，暂不能接新委托。':'');
  return {valid:!reason,reason,...(developed?{lampVersion:'developed',productNames:selected.map(p=>p.name)}:{}),products:selected.map(p=>p.id),quantity:draft.quantity,packaging:draft.packaging,revenue,cost,price,deposit,balanceDue:revenue-deposit,deliveryDay,paymentDay,operatingCost,netProfit:revenue-cost-operatingCost,cashAfterSigning:state.cash+deposit-cost,cashAfterPayment:state.cash+revenue-cost-operatingCost};
 }
-function clientProjectContext(state,id){
+function clientProjectContext(state,id,trackRetail=true){
  const d=PROJECTS[id],c=CLIENTS.find(c=>c.id===id);if(!d||!state.clientProjectSeason)return null;
  const deadline=state.clientProjectSeason.startDay+d.offset;
  const options=[d.small,d.large].map((values,i)=>{
   const [quantity,revenue,cost,deliveryDays,payLag]=values,onTime=state.day+deliveryDays<=deadline;
-  return {...offer(i?'project-series':'project-focus',onTime?d.labels[i]:(i?'整批系列补货':'小批现货补货'),`${quantity} 件 · ${i?'先付三成，尾款留账期':'交货付款'}${onTime?'':' · 用于门店日常销售'}`,quantity,onTime?revenue:d.regular[i],cost,deliveryDays,payLag),
-   projectId:id,projectTitle:d.title,projectOnTime:onTime,specification:id==='samir'&&i?'branded':'standard',...(i?{deposit:Math.floor((onTime?revenue:d.regular[i])*.3)}:{})};
+  // A seasonal inquiry that misses its event becomes a regular retail
+  // delivery only under the player's inventory-planning mode. New IDs keep old
+  // sealed agreements independent; neither a past invoice nor its price changes.
+  const retailFallback=trackRetail&&state.retailPlanning&&!onTime,optionId=(i?'project-series':'project-focus')+(retailFallback?'-retail':'');
+  return {...offer(optionId,onTime?d.labels[i]:(i?'整批系列补货':'小批现货补货'),`${quantity} 件 · ${i?'先付三成，尾款留账期':'交货付款'}${onTime?'':' · 用于门店日常销售'}`,quantity,onTime?revenue:d.regular[i],cost,deliveryDays,payLag),
+   ...(retailFallback?{projectRetailDelivery:true}:{}),projectId:id,projectTitle:d.title,projectOnTime:onTime,specification:id==='samir'&&i?'branded':'standard',...(i?{deposit:Math.floor((onTime?revenue:d.regular[i])*.3)}:{})};
  });
  return {client:c,title:d.title,brief:options.some(o=>o.projectOnTime)?d.brief:`${d.title}这次赶不上了。这批保留原规格，改做门店日常补货。`,deadline,options};
 }
@@ -197,7 +201,8 @@ function projectScheduleNote(state,o,paymentDay){
 export function previewOffer(state,optionId){
   const o=quoteOptions(state).find(x=>x.id===optionId)
     // Older proposals used this distinct rejected identity even on day one.
-    ||(optionId==='promise'&&samirOpeningCustom(state)?CLIENTS[1].options.find(x=>x.id===optionId):null);
+    ||(optionId==='promise'&&samirOpeningCustom(state)?CLIENTS[1].options.find(x=>x.id===optionId):null)
+    ||(state.clientProjectActive&&state.retailPlanning&&['project-focus','project-series'].includes(optionId)?clientProjectContext(state,CLIENTS[state.clientIndex].id,false).options.find(x=>x.id===optionId):null);
   if(!o)return {valid:false,reason:'没有这份报价。'};
   const demand=state.businessRound&&!state.clientProjectActive?retailDemand(state,CLIENTS[state.clientIndex].id):null;
   if(demand&&!demand.ready)return {...o,valid:false,reason:`门店约余 ${demand.remaining} 件，第 ${demand.readyDay} 天才需要补货。先看其他客户，或做工作室的其他业务。`};
@@ -210,7 +215,7 @@ export function previewOffer(state,optionId){
     profit:o.revenue-o.cost,operatingCost,netProfit:o.revenue-o.cost-operatingCost,
     cashRequired,deliveryDay,paymentDay,cashAfterSigning:state.cash+deposit-o.cost,
     cashAfterPayment:state.cash+o.revenue-o.cost-operatingCost,
-    opportunityNote:demand?`这批约供门店卖 ${Math.ceil(o.quantity/demand.rate)} 天；预计第 ${deliveryDay+Math.ceil(o.quantity/demand.rate)} 天再补货。期间可换客户或经营其他业务。`:state.clientProjectActive?projectScheduleNote(state,o,paymentDay):state.businessRound?'小批周转更快；规模备货占资更久。结清后由你决定继续同客或换客。':state.clientIndex===0?(paymentDay+2<=7?'收款后，下一位客户的开业批还来得及。':'这单收齐后，将错过下一位客户的开业批；仍可谈常规补货。'):state.clientIndex===1?(paymentDay+5<=11?'收齐后还赶得上下一位客户的季度陈列批，合同额多 400。':'收齐后错过下一位客户的陈列档期，仍可做常规备货。'):'小单更早结束、大单总利润更高；收齐前不能抽回垫款。'};
+    opportunityNote:demand?`这批约供门店卖 ${Math.ceil(o.quantity/demand.rate)} 天；预计第 ${deliveryDay+Math.ceil(o.quantity/demand.rate)} 天再补货。期间可换客户或经营其他业务。`:state.clientProjectActive?projectScheduleNote(state,o,paymentDay)+(o.projectRetailDelivery?' 本批交付后计入门店余货，日常返单要等现货卖完。':''):state.businessRound?'小批周转更快；规模备货占资更久。结清后由你决定继续同客或换客。':state.clientIndex===0?(paymentDay+2<=7?'收款后，下一位客户的开业批还来得及。':'这单收齐后，将错过下一位客户的开业批；仍可谈常规补货。'):state.clientIndex===1?(paymentDay+5<=11?'收齐后还赶得上下一位客户的季度陈列批，合同额多 400。':'收齐后错过下一位客户的陈列档期，仍可做常规备货。'):'小单更早结束、大单总利润更高；收齐前不能抽回垫款。'};
   if(roundReceivablesActive(state)){const adjusted=previewRoundSigning(state,quoted,CLIENTS[state.clientIndex].id);return canStartDeal(state)?adjusted:{...adjusted,valid:false,reason:quoted.reason};}
   return quoted;
 }
@@ -604,7 +609,7 @@ function apply(state,action){
     if(q.id==='branded-opening')s.contracts.at(-1).specification='branded';
     if(q.id==='second-developed-lamp')s.contracts.at(-1).product=SAMPLE_FACTORIES[s.secondSupplier.factory].title;
     if(q.id==='developed-lamp')s.contracts.at(-1).product=SAMPLE_FACTORIES[s.productDevelopment.factory].title;
-    if(s.retailPlanning&&s.businessRound&&!s.clientProjectActive)s.contracts.at(-1).retailPlanning=true;
+    if(s.retailPlanning&&((s.businessRound&&!s.clientProjectActive)||q.projectRetailDelivery))s.contracts.at(-1).retailPlanning=true;
     if(roundReceivablesActive(s))Object.assign(s.contracts.at(-1),{roundReceivable:true,operatingCost:0,netProfit:q.profit});
     if(s.clientProjectActive)Object.assign(s.contracts.at(-1),{projectId:q.projectId,projectTitle:q.projectTitle,projectOnTime:q.projectOnTime,specification:q.specification});
     s.feedback={kind:'accepted',message:q.deposit?`成交。定金 ${q.deposit} 已到账，尾款 ${q.balanceDue} 在第 ${q.paymentDay} 天收齐。`:`成交。第 ${q.deliveryDay} 天交货，第 ${q.paymentDay} 天收款。`};return s;
