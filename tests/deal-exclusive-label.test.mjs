@@ -8,7 +8,8 @@ test('completed exclusive heading names the actual buyer without relabeling priv
 });
 test('scene sign reflects completed exclusivity and preserves proposal previews',async()=>{
  const source=await readFile(new URL('../src/deal-room-app.js',import.meta.url),'utf8');
- const expression=source.match(/const collectionVisual=(.*);/)[1];const view=new Function('state','pitchVisual','collectionDraft','receipt','receiptMode',`return (${expression});`);
- const run=(c,p=null)=>view({phase:'collection',collection:c},p,{model:'own'},null,'delivered').buyer;
+ const expression=source.match(/const collectionVisual=(.*);/)[1];const view=new Function('state','pitchVisual','collectionDraft','receipt','receiptMode','seedPreview',`return (${expression});`);
+ const draft={...collection(),status:'draft'};const choice={products:['samir','ines'],lampVersion:'standard'};const staged=view({phase:'collection',collection:draft},null,{model:'own'},null,'delivered',choice);assert.deepEqual(staged.products,choice.products);assert.equal(staged.anchor,'samir');
+ const run=(c,p=null)=>view({phase:'collection',collection:c},p,{model:'own'},null,'delivered',null).buyer;
  assert.equal(run(collection('own','atelier')),'Atelier · 独家系列');assert.equal(run(collection('own','northline')),'Northline · 独家系列');assert.equal(run(collection()),'工作室 · 自有系列');assert.equal(run(collection('private')),'Northline · 专用系列');assert.equal(run(collection(),{scope:'whole-exclusive',buyer:'Atelier',sets:50}),'Atelier · 独家系列');
 });
