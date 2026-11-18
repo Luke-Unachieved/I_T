@@ -35,3 +35,13 @@ test('first buyer brief uses buyer voice, later briefs preserved', async () => {
 test('return-order comparison exposes replenishment timing before signing without spoiling first buyers',()=>{let s=finish(finish(finish(createDealRoom(),'trial'),'ready'),'season');s=reduceDealRoom(s,{type:'CONTINUE_BUSINESS'});s=reduceDealRoom(s,{type:'SELECT_CLIENT',clientId:'mira'});const q=previewOffer(s,'repeat-small'),before=structuredClone(s);assert.match(quoteCommitmentView(s,{...q,opportunityNote:'这批约供门店卖 19 天；预计第 53 天再补货。'}),/接下这单后的安排[\s\S]*19 天[\s\S]*53 天/);assert.deepEqual(s,before);const first=createDealRoom();assert.doesNotMatch(quoteCommitmentView(first,previewOffer(first,'rollout')),/下一位客户|开业批/);assert.match(quoteCommitmentView({...s,clientProjectActive:true},{...q,opportunityNote:'<危险>'}),/&lt;危险&gt;/);});
 
 test('real demand-led quotes show different shelf coverage for small and large replenishment',()=>{const a=(s,type,x={})=>reduceDealRoom(s,{type,...x});let s=finish(finish(finish(createDealRoom(),'trial'),'ready'),'season');s=a(s,'CONTINUE_BUSINESS');for(let i=0;i<2;i++){s=a(s,'SELECT_CLIENT',{clientId:'mira'});s=finish(s,'repeat-small');}s=a(a(s,'START_SUPPLY_PLAN',{clientId:'mira',firstBatch:'small',payment:'delivery'}),'FULFIL_SUPPLY_PLAN');s=a(a(s,'CONTINUE_RETAIL_BUSINESS'),'SELECT_CLIENT',{clientId:'mira'});const small=previewOffer(s,'repeat-small'),large=previewOffer(s,'repeat-scale');assert.match(quoteCommitmentView(s,small),/约供门店卖 8 天/);assert.match(quoteCommitmentView(s,large),/约供门店卖 19 天/);assert.ok(large.netProfit>small.netProfit);assert.match(quoteCommitmentView(s,large),/期间可换客户或经营其他业务/);});
+
+test('full prepayment proposal never invents delivery-day receipt or signing cash',()=>{
+ const s=finish(finish(createDealRoom(),'trial'),'ready'),before=structuredClone(s),q=previewOffer(s,'all-now');
+ const html=quoteCommitmentView(s,q);
+ assert.match(html,/全款预付/);assert.match(html,/条件还没谈妥/);assert.doesNotMatch(html,/签完还剩|收齐货款|现在要付|预计赚到|待收尾款/);
+ const rejected=reduceDealRoom(s,{type:'PROPOSE',optionId:'all-now'});
+ assert.equal(rejected.cash,s.cash);assert.equal(rejected.day,s.day);assert.deepEqual(rejected.contracts,s.contracts);assert.deepEqual(s,before);
+ const accepted=quoteCommitmentView(rejected,previewOffer(rejected,'season'));
+ assert.match(accepted,/客户先付定金/);assert.match(accepted,/收齐货款/);
+});

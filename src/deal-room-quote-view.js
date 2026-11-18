@@ -16,6 +16,13 @@ export function quoteCommitmentView(state, offer, {roundActive=false,counterMess
   const advance = Math.max(0, offer.cost - deposit);
   const counter = counterMessage ? `<p class="counter" role="alert">${escape(counterMessage)}</p>` : '';
   const reason = !offer.valid ? `<p class="quote-blocked" role="status">${escape(offer.reason)}</p>` : '';
+  if (!signed) return `<section class="quote-commitment" aria-label="待商议的报价">
+    <div class="quote-price"><span>想谈的货款</span><strong>${money(offer.revenue)}</strong><small>${escape(quantityLabel||`${offer.quantity} 件`)}</small></div>
+    <p class="quote-action-note">${escape(offer.title)}</p>
+    <p class="quote-action-note">付款和交货条件还没谈妥，先听听客户的回复，这一步不花钱。</p>
+    ${reason}${counter}
+    <button class="primary" data-action="${escape(action)}" ${offer.valid?'':'disabled'}>问问客户的意思 <span aria-hidden="true">→</span></button>
+  </section>`;
   return `<section class="quote-commitment" aria-label="签约与资金明细">
     <div class="quote-price"><span>这单货款</span><strong>${money(offer.revenue)}</strong><small>${escape(quantityLabel||`${offer.quantity} 件`)}</small></div>
     <dl class="quote-now">${deposit>0?`<div><dt>客户先付定金</dt><dd>${money(deposit)}</dd></div>`:''}<div><dt>现在要付</dt><dd>${money(offer.cost)}</dd></div>${deposit>0?`<div><dt>你先垫付</dt><dd>${money(advance)}</dd></div>`:''}<div class="quote-cash"><dt>${offer.cashAfterSigning<0?'还差':'签完还剩'}</dt><dd>${money(offer.cashAfterSigning<0?-offer.cashAfterSigning:offer.cashAfterSigning)}</dd></div></dl>
