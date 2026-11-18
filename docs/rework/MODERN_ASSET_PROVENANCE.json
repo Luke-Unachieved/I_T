@@ -52,14 +52,14 @@
     },
     {
       "file": "assets/deal-life-empty.webp",
-      "bytes": 207576,
-      "sha256": "2494d0c8104d0441fd13427fd9f9e018b4447b6b92ea81eacef7e9c9bfea7910",
+      "bytes": 152468,
+      "sha256": "0f1cd15a7254a71614174c912daf23cb7751b7dc36f5911870ed7e3d9a71c693",
       "references": [
         "src/deal-room-life-art.js"
       ],
-      "sourceDocument": null,
-      "provenanceStatus": "individual generation receipt not found in this checkout",
-      "permissionStatus": "not independently verified per asset; not evidence of missing permission",
+      "sourceDocument": "assets/deal-life-empty.source.md",
+      "provenanceStatus": "text-only first-party generation observed in the project cloud session; unchanged source PNG, exact prompt and production conversion retained",
+      "permissionStatus": "direct production evidence retained; human rights and store review not asserted",
       "dateIssue": null
     },
     {
