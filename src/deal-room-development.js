@@ -42,10 +42,24 @@ function firstDevelopmentView(state,selected='studio',brightness=1,optionId='dev
 }
 
 export function acceptedLampSample(state,factory){return [state.productDevelopment,state.secondSupplier].find(d=>d?.status==='active'&&d.factory===factory)||null;}
-export const SECOND_SUPPLIER_ACTIONS=Object.freeze({BOOK_AVAILABLE_LINE_FACTORY_SLOT:['type'],BOOK_LINE_FACTORY_SLOT:['type'],OPEN_SECOND_SUPPLIER:['type'],CLOSE_SECOND_SUPPLIER:['type'],COMMISSION_SECOND_SAMPLE:['type'],RECEIVE_SECOND_SAMPLE:['type'],ACCEPT_SECOND_SAMPLE:['type']});
+export const SECOND_SUPPLIER_ACTIONS=Object.freeze({PAUSE_FIRST_SAMPLE:['type'],COLLECT_FIRST_SAMPLE:['type'],BOOK_AVAILABLE_LINE_FACTORY_SLOT:['type'],BOOK_LINE_FACTORY_SLOT:['type'],OPEN_SECOND_SUPPLIER:['type'],CLOSE_SECOND_SUPPLIER:['type'],COMMISSION_SECOND_SAMPLE:['type'],RECEIVE_SECOND_SAMPLE:['type'],ACCEPT_SECOND_SAMPLE:['type']});
 export function canonicalSecondSupplierAction(a){if(!a||!Object.hasOwn(SECOND_SUPPLIER_ACTIONS,a.type)||Object.keys(a).length!==1)return null;return {type:a.type};}
 export function applySecondSupplierAction(state,a){
- if(!canonicalSecondSupplierAction(a)||state.productDevelopment?.status!=='active')return state;
+ if(!canonicalSecondSupplierAction(a))return state;
+ const first=state.productDevelopment;
+ // Commissioning already paid the factory. Charge only uncovered waiting days;
+ // the original uninterrupted receipt path and all its journal entries stay intact.
+ if(a.type==='PAUSE_FIRST_SAMPLE'){
+  if(state.phase!=='development'||!['sampling','received'].includes(first?.status))return state;
+  const s=structuredClone(state);s.phase='review';s.feedback={kind:'sample-pending',message:first.status==='received'?'实物样留在工作室，没确认的型号不会带入报价。':'出样费已付。工厂照常制作，工作室可以继续接单。'};return s;
+ }
+ if(a.type==='COLLECT_FIRST_SAMPLE'){
+  if(!['review','complete'].includes(state.phase)||!['sampling','received'].includes(first?.status)||!Object.hasOwn(SAMPLE_FACTORIES,first.factory)||!Number.isSafeInteger(first.sampleDay)||!Number.isSafeInteger(first.investment))return state;
+  const remaining=first.status==='sampling'?Math.max(0,first.sampleDay-state.day):0,cost=remaining*30;
+  if(state.cash<cost)return state;
+  const s=structuredClone(state);s.phase='development';s.day+=remaining;s.cash-=cost;s.productDevelopment.investment+=cost;s.productDevelopment.status='received';s.feedback={kind:'sample-received',message:'工厂实物样在桌上。验过后再决定是否用它报价。'};return s;
+ }
+ if(first?.status!=='active')return state;
  // Leave the pre-gating action replayable for prior purchases; current UI uses the demand-checked action only.
  if(a.type==='BOOK_AVAILABLE_LINE_FACTORY_SLOT'||a.type==='BOOK_LINE_FACTORY_SLOT'){
   const optionId=state.phase==='development'?'developed-lamp':state.phase==='supplier-development'?'second-developed-lamp':null;
@@ -64,7 +78,7 @@ export function applySecondSupplierAction(state,a){
 }
 export function secondDevelopmentOffer(state){const d=state.secondSupplier;if(d?.status!=='active')return null;return developmentOffer({...state,productDevelopment:d},'second-developed-lamp');}
 export function developmentView(state,selected='studio',brightness=1){
- if(state.phase!=='supplier-development')return firstDevelopmentView(state,selected,brightness)+(state.productDevelopment?.status==='active'?`<button data-action="OPEN_SECOND_SUPPLIER">${state.secondSupplier?.status==='active'?'看看另一家的留样':state.secondSupplier&&state.secondSupplier.status!=='draft'?'查看另一家的出样进度':'也看看另一家工厂'}</button>`:'');
+ if(state.phase!=='supplier-development')return firstDevelopmentView(state,selected,brightness)+(['sampling','received'].includes(state.productDevelopment?.status)?'<button class="quiet" data-action="PAUSE_FIRST_SAMPLE">'+(state.productDevelopment.status==='sampling'?'厂里先做样，我回工作室接单':'先留着实物，不启用这款报价')+' →</button>':'')+(state.productDevelopment?.status==='active'?`<button data-action="OPEN_SECOND_SUPPLIER">${state.secondSupplier?.status==='active'?'看看另一家的留样':state.secondSupplier&&state.secondSupplier.status!=='draft'?'查看另一家的出样进度':'也看看另一家工厂'}</button>`:'');
  const d=state.secondSupplier,f=SAMPLE_FACTORIES[d.factory],back='<button class="quiet" data-action="CLOSE_SECOND_SUPPLIER">回工作室</button>';
  if(d.status==='draft')return `${back}<h3>${f.name} · 再留一家的实物样</h3><p>${f.title}。${f.feature}</p><p>${f.limit}</p><p>出样 ¥${f.cost}，${f.days} 天到样。这段时间的工作室开支 ¥${f.days*30}。</p><p>现在支付 ¥${f.cost} · ${state.cash>=f.cost?'付后还剩 ¥'+(state.cash-f.cost):'出样费还差 ¥'+(f.cost-state.cash)}。</p>${state.cash<f.cost+f.days*30?`<p role="status">出样费和等样期间开支共 ¥${f.cost+f.days*30}，手头还差 ¥${f.cost+f.days*30-state.cash}。</p>`:''}<button class="primary" data-action="COMMISSION_SECOND_SAMPLE" ${state.cash>=f.cost+f.days*30?'':'disabled'}>委托这家出样</button>`;
  if(d.status==='sampling'){const days=Math.max(0,d.sampleDay-state.day);return `${back}<h3>${f.name} 正在做样</h3><p>已付 ¥${f.cost} · 第 ${d.sampleDay} 天到样。${days?`还需 ${days} 天，期间开支 ¥${days*30}。`:'实物样已寄到，可以拆开看看。'}</p><button class="primary" data-action="RECEIVE_SECOND_SAMPLE" ${state.cash>=days*30?'':'disabled'}>拆开另一家的样品</button>`;}

@@ -30,7 +30,12 @@ export function careerProjects(state){
  else if(volumeAdoption){product.title='让量产新样进入客户采购';product.step='验过的标准暖光样已按整批成本供货，并收齐货款。';product.achievement=`${volumeAdoption.product||'暖光标准台灯'} · ${volumeAdoption.quantity} 盏已交付给 Mira，量产路线已落地`; }
  else if(adopted){product.step='集团收到新型号台灯，货款也收齐了。';product.achievement=`${adopted.productNames?.join('、')||'调光台灯'} · ${adopted.quantity} 件已交付并收齐货款`;}
  else if(!state.productDevelopment){if(hasLampDevelopmentCase(state)){product.step='你已交付过灯具组合，可以带着案例比较工厂新样；看完再决定是否出样。';product.actions=[action('START_CASE_DEVELOPMENT','带灯具案例看工厂新样')];}else if(state.supplyPlanHistory?.length){product.step='供货计划已经完成；可比较两家工厂的能力，再决定是否付出样费。';product.actions=[action('START_DEVELOPMENT','看看工厂的新样能力')];}}
- else if(state.productDevelopment.status!=='active'){product.step='工厂正在准备新样，验过实物后再带去谈单。';}
+ else if(['sampling','received'].includes(state.productDevelopment.status)){
+  const d=state.productDevelopment,days=d.status==='sampling'?Math.max(0,d.sampleDay-state.day):0;
+  product.step=days?'工厂会在第 '+d.sampleDay+' 天寄到实物。可先接旧款订单；已经用于交货的天数不用再等、再付日费。':'实物样已经到了。报价仍用旧款，直到你亲自确认新样。';
+  if(!days||state.cash>=days*30)product.actions=[action('COLLECT_FIRST_SAMPLE',days?'等余下 '+days+' 天取样 · ¥'+days*30:'拆看已经到货的工厂样')];
+  else product.step+=' 现在空等还差 ¥'+(days*30-state.cash)+'，也可以先做生意。';
+ }else if(state.productDevelopment.status!=='active'){product.step='工厂正在准备新样，验过实物后再带去谈单。';}
  else if(state.productDevelopment.factory==='line'&&!acceptedLampSample(state,'studio')){product.title='让量产新样进入客户采购';product.step='带验过的暖光样找 Mira 谈 180 盏整批供货。不需要改成调光，也不能承诺客房调光。';product.actions=[{type:'OPEN_PRODUCT_REORDER',factory:'line',label:'找 Mira 谈量产样采购'}];}
  else if(!!acceptedLampSample(state,'studio')&&(state.contracts||[]).some(c=>c.clientId==='mira'&&c.status==='paid')){
   product.step='Mira 对小批调光灯感兴趣，带着实物样去谈 60 盏采购。';
