@@ -15,7 +15,7 @@ npm run build
 npm run check
 ```
 
-现代源码入口是 `deal-room.html`，界面为 `src/deal-room-app.js`，核心规则为 `src/deal-room-engine.js`，各专题由同前缀模块组织。**根路径 `/` 和 `index.html` 仍是 legacy 旧正式入口**，本次不改它们。不要用根路径的旧港口画面验收现代候选。
+现代源码入口是 `deal-room.html`，界面为 `src/deal-room-app.js`，核心规则为 `src/deal-room-engine.js`，各专题由同前缀模块组织。本地 `npm start` 的根路径 `/` 现在打开现代 `deal-room.html`；仓库 `index.html` 及既有托管站点仍保留 legacy 旧入口，未随本地调整发布。验收现代候选请核对实际打开的是工作室，而不是旧港口画面。
 
 ## 默认构建与交付身份
 
