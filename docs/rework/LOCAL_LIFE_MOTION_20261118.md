@@ -35,3 +35,9 @@ This is not a claim of rich finished art: layout/occlusion, mobile composition, 
 ## Purchased furniture reveal
 
 Added a finite paper-unwrapping reveal for newly purchased chair, coffee machine and record player, using authored SVG layers over the existing artwork. Unowned trial placement never receives the purchase reveal. Reduced-motion skips wrapping entirely. Added regression coverage for owned arrival versus preview, and business gesture classification (delivery is not receipt). Tests are authored and syntax parsed, not behavior-executed.
+
+## All purchased life items are represented in the room
+
+Static audit found that the room only drew chair/coffee machine/record player: buying the book or weekend records did not change the scene. Added authored SVG book/record-sleeve objects on the existing sideboard, with direct keyboard/click use bindings already supported by the life controller. Preview objects are visible but cannot be used before purchase. No extra state, cost or journaling was added.
+
+Inspected the existing empty-room artwork to align the objects with the sideboard (not a running game screenshot). Source and regression-file syntax pass; actual composite visual and keyboard/pointer behavior still await final acceptance. The life room now has scene representation for all five existing purchases rather than three.

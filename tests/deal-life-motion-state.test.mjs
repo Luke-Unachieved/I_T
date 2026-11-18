@@ -20,3 +20,18 @@ test('purchase arrival unwraps owned furniture but never an unpaid preview',()=>
  assert.doesNotMatch(paintedLifeRoomArt({}, {preview:'record',arrival:'record'}),/class="life-unwrapping"/);
  assert.doesNotMatch(paintedLifeRoomArt(owned,{}),/class="life-unwrapping"/);
 });
+
+test('owned books and weekend records visibly occupy the home with direct use controls',()=>{
+ const state={personalLife:{purchases:[{itemId:'books'},{itemId:'records'}]}};
+ const html=paintedLifeRoomArt(state);
+ for(const id of ['books','records']){
+  assert.match(html,new RegExp(`data-life-accessory="${id}"`));
+  assert.match(html,new RegExp(`data-life-room-use="${id}"`));
+ }
+});
+test('accessory previews cannot be used before purchase and empty homes omit them',()=>{
+ const html=paintedLifeRoomArt({}, {preview:'books'});
+ assert.match(html,/data-life-accessory="books"/);
+ assert.doesNotMatch(html,/data-life-room-use="books"/);
+ assert.doesNotMatch(paintedLifeRoomArt({}),/data-life-accessory=/);
+});
