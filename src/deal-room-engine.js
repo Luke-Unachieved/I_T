@@ -643,6 +643,9 @@ function replayRecordedDeal(state,action){
  if(next===input)return state;
  next.history=state.history.concat(a);return next;
 }
+// Versioned ledger adapters replay the same domain actions without live-only
+// decoration compaction. This does not validate or trust a caller-owned state.
+export function replayDealRoomEvent(state,action){return replayRecordedDeal(state,action);}
 function compactDecorTail(state){
  let start=state.history.length;
  while(start>0&&decorJournalTypes.has(state.history[start-1]?.type))start--;
