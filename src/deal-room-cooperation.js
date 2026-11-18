@@ -75,11 +75,11 @@ export function cooperationChapter(state){
  // A missing seriesSource alone is not evidence of a generic first order.
  // Generic pilots originate in a paid buyer case, not another approved series.
  const history=state.accountHistory||[],pilot=history[0];
- const genericPilot=pilot?.status==='paid'&&pilot.optionId==='pilot'&&pilot.stores===3&&!pilot.expansion&&!pilot.seriesSource&&
-  pilot.buyer==='Northline · 区域连锁采购'&&(state.curationHistory||[]).some(source=>
-   source.status==='paid'&&source.referrerId===pilot.referrerId&&source.referrerName===pilot.referrerName&&
-   Array.isArray(source.products)&&JSON.stringify(source.products)===JSON.stringify(pilot.products)&&
-   (source.lampVersion||'standard')===(pilot.lampVersion||'standard')&&source.paymentDay<=pilot.signedDay);
+ const genericFromPaidCase=a=>a?.status==='paid'&&!a.seriesSource&&a.buyer==='Northline · 区域连锁采购'&&
+  (state.curationHistory||[]).some(source=>source.status==='paid'&&source.referrerId===a.referrerId&&source.referrerName===a.referrerName&&
+   Array.isArray(source.products)&&JSON.stringify(source.products)===JSON.stringify(a.products)&&
+   (source.lampVersion||'standard')===(a.lampVersion||'standard')&&source.paymentDay<=a.signedDay);
+ const genericPilot=genericFromPaidCase(pilot)&&pilot.optionId==='pilot'&&pilot.stores===3&&!pilot.expansion;
  const stores=accounts.reduce((n,a)=>n+a.stores,0),mixed=new Set(accounts.map(a=>JSON.stringify(a.seriesSource))).size>1;
  if(stores)result.facts.push(mixed?{kind:'mixed-approved-version-stores',buyerId,stores,batches:accounts.map(a=>({stores:a.stores,seriesSource:JSON.parse(JSON.stringify(a.seriesSource))}))}:{kind:'same-version-stores',buyerId,stores});
  if(stores>=6)return close(mixed?'Northline 已采用的不同版本分别交付给两批门店，六家店的合作已兑现；首批没有被改款。':'Northline 已确认的系列按同一版本铺到六家门店。这段合作已兑现，上市陈列仍可按需要查看。');
@@ -88,6 +88,16 @@ export function cooperationChapter(state){
   close('六家门店都已收货：首批三家选了通用组合，后三家收到已确认的系列。两批各按自己的合同交付。');
   if(!handed&&home&&launch?.buyerId===buyerId)result.nextAction=next('OPEN_LAUNCH_PROJECT','可选 · 为系列布置上市陈列');
   return result;
+ }
+ // Consuming all six store slots with generic goods cannot turn them into
+ // series sales. The separately fulfilled series can finish at its own buyer handover.
+ const last=history[1];
+ const allGeneric=history.length===1&&genericFromPaidCase(pilot)&&!pilot.expansion&&pilot.stores===6&&['funded','rollout'].includes(pilot.optionId)||
+  history.length===2&&genericPilot&&genericFromPaidCase(last)&&last.expansion===true&&last.optionId==='remaining'&&last.stores===3&&last.referrerId===pilot.referrerId&&last.signedDay>=pilot.paymentDay;
+ if(handed&&!stores&&allGeneric){
+  result.facts.push({kind:'generic-stores-separate-handover',genericStores:6,seriesStores:0});
+  close('这套系列的成品与上市陈列都已交给 Northline。六家门店另买的是通用商品，没有把那批货算进系列。');
+  if(home)result.nextAction=next('OPEN_LAUNCH_PROJECT','可选 · 回看已交接的陈列');return result;
  }
  if(genericPilot&&home&&canExpandAccount(state)&&accountCollectionBasis(state)){
   result.step='首批三家已收到通用组合。余下三家可以沿用它，也可以改用 Northline 已确认的系列。';
