@@ -27,6 +27,12 @@ npm run check
 
 历史构建命令为 `build:legacy`、`build:legacy:data`、`build:legacy:classic`；`build:data`、`build:classic` 只作兼容别名。旧 `artifacts/data-v2/` 与剧情产物不是本次默认现代包，不删除或混发。
 
+## 现代美术交付检查
+
+`npm run check:release-art` 检查现代工作室的 WebP 清单，不是旧剧情的 46 张角色/场景图。它只读核对清单中的实际模块引用、图片容器、字节数、SHA-256，以及是否有与该版本图片绑定的人工来源复核记录。退出码 1 表示文件或清单不一致，2 表示文件匹配但还有待人工核对的图片；两者都不应当作美术已验收。缺少记录不等于未经许可。完整游戏、画面实看与商店要求另行验收。
+
+开发中只想核对文件完整性，用 `npm run check:modern-art-integrity`；该命令通过不表示可以销售。旧版原有检查保留为 `npm run check:legacy-art`。清单位于 `docs/rework/MODERN_ASSET_PROVENANCE.json`。若将来人工已核实某文件，可在该项的 `releaseReview` 记录 `status: "recorded"`、`assetSha256`、项目内非敏感依据摘要路径 `record`（`docs/rework/art-evidence/` 下的 .md 或 .json）及该摘要的 `recordSha256`；仅凭自动哈希或口头断言不会生成复核记录。不要提交账号资料或私人原始凭据。
+
 ## 发布边界
 
 现代候选暂不替换原 `index.html`、正式站或旧存档。需要部署时另核目标地址、构建身份和发布授权，不把源码、测试档或旧包一并上传。本指南不声称 Windows 离线、全部设备或整段体验已验收，不声称应用商店已提交/审核通过。
