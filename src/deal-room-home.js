@@ -1,3 +1,4 @@
+import {goodsPriceRecords} from './deal-room-goods-prices.js';
 import {linenFreightInvite} from './deal-room-linen-freight.js';
 import {atelierRestockInvite,atelierRestockProfit} from './deal-room-atelier-restock.js';
 import {tradingChapter,tradingChapterView} from './deal-room-trading-chapter.js';
@@ -86,7 +87,7 @@ export function settledUnitPriceGroups(contracts=[]){
   const key=JSON.stringify([c.clientId,c.product,spec]);
   if(!groups.has(key))groups.set(key,{name:c.product,spec,rows:[]});
   const rows=groups.get(key).rows;
-  rows.push({signedDay:c.signedDay,paidDay:c.paidDay??c.paymentDay,quantity:c.quantity,revenue:c.revenue,unit:c.revenue/c.quantity});
+  rows.push({signedDay:c.signedDay,paidDay:c.paidDay??c.paymentDay,quantity:c.quantity,revenue:c.revenue,unit:c.revenue/c.quantity,...(c.priceSource?{priceSource:c.priceSource}:{}),...(c.separateServiceFee?{separateServiceFee:c.separateServiceFee}:{})});
   if(rows.length>4)rows.shift();
  }
  return [...groups.values()];
@@ -94,11 +95,11 @@ export function settledUnitPriceGroups(contracts=[]){
 export function settledUnitPricesView(contracts){
  const groups=settledUnitPriceGroups(contracts);if(!groups.length)return '';
  const unit=n=>'¥'+n.toLocaleString('zh-CN',{maximumFractionDigits:2});
- return `<details class="settled-prices"><summary>自己的成交单价</summary><p>只看已收齐货款的单品单，每种规格最近四笔。每点一单，从左到右按签约先后；数量和账期会影响成交价。</p>${groups.map(({name,spec,rows})=>{
+ return `<details class="settled-prices"><summary>自己的成交单价</summary><p>只看已收齐货款的单品单，每种规格最近四笔。每点一笔，分批供货按批记；从左到右按签约先后。数量和账期会影响成交价。</p>${groups.map(({name,spec,rows})=>{
   const vals=rows.map(r=>Math.round(r.unit*100)/100),lo=Math.min(...vals),hi=Math.max(...vals);
   const xy=rows.map((r,i)=>[rows.length===1?72:8+i*(128/(rows.length-1)),hi===lo?20:31-22*(vals[i]-lo)/(hi-lo)]);
   const last=rows.at(-1);
-  return `<article><header><strong>${escape(name)}${spec==='branded'?' · 定制包装':''}</strong><span>最近每件 ${unit(last.unit)}</span></header><svg viewBox="0 0 144 40" width="144" height="40" aria-hidden="true" focusable="false">${xy.length>1?`<polyline points="${xy.map(([x,y])=>x.toFixed(2)+','+y.toFixed(2)).join(' ')}" fill="none" stroke="currentColor" stroke-width="2"/>`:''}${xy.map(([x,y])=>`<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="3" fill="currentColor"/>`).join('')}</svg>${hi!==lo?`<small class="price-range">图内每件 ${unit(lo)} 至 ${unit(hi)}</small>`:''}<ul>${rows.map(r=>`<li><span>第 ${r.signedDay} 天签约 · ${r.quantity} 件</span><span>货款 ${money(r.revenue)} · 每件 ${unit(r.unit)} · 第 ${r.paidDay} 天收齐</span></li>`).join('')}</ul></article>`;
+  return `<article><header><strong>${escape(name)}${spec==='branded'?' · 定制包装':''}</strong><span>最近每件 ${unit(last.unit)}</span></header><svg viewBox="0 0 144 40" width="144" height="40" aria-hidden="true" focusable="false">${xy.length>1?`<polyline points="${xy.map(([x,y])=>x.toFixed(2)+','+y.toFixed(2)).join(' ')}" fill="none" stroke="currentColor" stroke-width="2"/>`:''}${xy.map(([x,y])=>`<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="3" fill="currentColor"/>`).join('')}</svg>${hi!==lo?`<small class="price-range">图内每件 ${unit(lo)} 至 ${unit(hi)}</small>`:''}<ul>${rows.map(r=>`<li><span>${r.priceSource?escape(r.priceSource)+' · ':''}第 ${r.signedDay} 天签约 · ${r.quantity} 件</span><span>货款 ${money(r.revenue)} · 每件 ${unit(r.unit)} · 第 ${r.paidDay} 天收齐${r.separateServiceFee?'；另收赶展服务费 '+money(r.separateServiceFee)+'（不摊入货价）':''}</span></li>`).join('')}</ul></article>`;
  }).join('')}</details>`;
 }
 
@@ -115,7 +116,7 @@ export function careerRecap(state){
 }
 export function careerRecapView(state,{route='auto',evidence='chain'}={}){
  const latestSupply=(state.supplyPlanHistory||[]).findLast(p=>p.status==='paid'&&Array.isArray(p.lots));
- const ledger=`<p class="brief">可用资金 ${money(state.cash)}。</p>${settledUnitPricesView(state.contracts)}${latestSupply?`<details class="settled-prices"><summary>最近结清的两批供货 · ${escape(String(latestSupply.clientName||'客户').split(' · ')[0])}</summary>${supplyLotsView(latestSupply)}</details>`:''}`;
+ const ledger=`<p class="brief">可用资金 ${money(state.cash)}。</p>${settledUnitPricesView(goodsPriceRecords(state))}${latestSupply?`<details class="settled-prices"><summary>最近结清的两批供货 · ${escape(String(latestSupply.clientName||'客户').split(' · ')[0])}</summary>${supplyLotsView(latestSupply)}</details>`:''}`;
  const trade=(route==='trade'||!state.collection)&&tradingChapter(state);
  if(trade)return tradingChapterView(trade,evidence,ledger);
  const r=careerRecap(state),chapter=cooperationChapter(state),closed=chapter.closed;

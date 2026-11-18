@@ -1,3 +1,4 @@
+import {comparePriorUnitPrice} from './deal-room-goods-prices.js';
 // Presentation only. PROPOSE remains the canonical historical signing action.
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money = value => typeof value === 'number' && Number.isFinite(value) ? `¥${value.toLocaleString('zh-CN')}` : '待确认';
@@ -30,7 +31,7 @@ export function quoteCashPathView(state,offer,{roundActive=false}={}){
  const zero=y(0).toFixed(2),summary=labels.map((label,i)=>label+(i?'预计 ':' ')+money(values[i])).join('，');
  return `<figure class="quote-cash-path" aria-label="${escape(summary)}"><figcaption>这单的钱怎样走 <small>${values.length===4?'签约后各项为预计':'后两项为预计'}</small></figcaption><svg viewBox="0 0 300 68" aria-hidden="true" focusable="false"><path d="M24 ${zero}H276" class="cash-path-zero"/><polyline points="${points}" class="cash-path-line"/>${values.map((value,i)=>`<circle cx="${x[i]}" cy="${y(value).toFixed(2)}" r="4" class="cash-path-dot ${value<0?'cash-path-negative':''}"/>`).join('')}</svg><div class="cash-path-values${values.length===4?' cash-path-four':''}">${labels.map((label,i)=>`<div class="${values[i]<0?'cash-path-negative':''}"><small>${label}</small><strong>${money(values[i])}</strong></div>`).join('')}</div>${roundActive?`<small class="cash-path-context">${split?'另一单在本单之后到账，不能提前算进本单收款日的现金。':'收齐后金额包含其他已签订单在这期间的到期回款。'}</small>`:''}</figure>`;
 }
-export function quoteCommitmentView(state, offer, {roundActive=false,counterMessage='',action='PROPOSE',quantityLabel=null}={}) {
+export function quoteCommitmentView(state, offer, {roundActive=false,counterMessage='',action='PROPOSE',quantityLabel=null,client=null}={}) {
   if (!offer) return '';
   const signed = offer.accepted !== false;
   const validLot = Number.isSafeInteger(offer.quantity) && offer.quantity > 0;
@@ -51,7 +52,7 @@ export function quoteCommitmentView(state, offer, {roundActive=false,counterMess
   </section>`;
   return `<section class="quote-commitment" aria-label="签约与资金明细">
     <div class="quote-price"><span>这单货款</span><strong>${money(offer.revenue)}</strong><small>${escape(quantityLabel||`${offer.quantity} 件`)}</small></div>
-    ${pricing}${action==='PROPOSE'?shelfProofView(offer):''}<dl class="quote-now">${deposit>0?`<div><dt>客户先付定金</dt><dd>${money(deposit)}</dd></div>`:''}<div><dt>现在要付</dt><dd>${money(offer.cost)}</dd></div>${deposit>0?`<div><dt>你先垫付</dt><dd>${money(advance)}</dd></div>`:''}<div class="quote-cash"><dt>${offer.cashAfterSigning<0?'还差':'签完还剩'}</dt><dd>${money(offer.cashAfterSigning<0?-offer.cashAfterSigning:offer.cashAfterSigning)}</dd></div></dl>
+    ${pricing}${action==='PROPOSE'?comparePriorUnitPrice(state,offer,client)+shelfProofView(offer):''}<dl class="quote-now">${deposit>0?`<div><dt>客户先付定金</dt><dd>${money(deposit)}</dd></div>`:''}<div><dt>现在要付</dt><dd>${money(offer.cost)}</dd></div>${deposit>0?`<div><dt>你先垫付</dt><dd>${money(advance)}</dd></div>`:''}<div class="quote-cash"><dt>${offer.cashAfterSigning<0?'还差':'签完还剩'}</dt><dd>${money(offer.cashAfterSigning<0?-offer.cashAfterSigning:offer.cashAfterSigning)}</dd></div></dl>
     <div class="quote-schedule"><span>第 <b>${offer.deliveryDay}</b> 天交货</span><span>第 <b>${offer.paymentDay}</b> 天收齐货款</span></div>
     ${quoteCashPathView(state,offer,{roundActive})}
     <p class="quote-profit"><span>这单预计赚到</span><strong>${money(offer.netProfit)}</strong></p>
