@@ -1,6 +1,12 @@
 // Presentation only. PROPOSE remains the canonical historical signing action.
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money = value => typeof value === 'number' && Number.isFinite(value) ? `¥${value.toLocaleString('zh-CN')}` : '待确认';
+function shelfProofView(o){
+ if(!['cup-front-proof','cup-back-proof'].includes(o?.id))return '';
+ const back=o.id==='cup-back-proof',barcode='<g fill="#31463d"><path d="M0 0h1v10H0zm3 0h2v10H3zm4 0h1v10H7zm3 0h3v10h-3zm5 0h1v10h-1zm3 0h2v10h-2zm4 0h1v10h-1zm3 0h2v10h-2z"/></g>';
+ return `<details class="shelf-proof" open><summary>核对这次的包装校样</summary><svg viewBox="0 0 320 90" role="img" aria-label="${back?'保留正面纹样、背面中间另贴标签':'正面留白，标签平印在面内'}；折线不穿过标签"><rect width="320" height="90" rx="8" fill="#efe8d8"/><path d="M28 19h68l11-9h64l5 9h60l8-5h32l5 8v49H28z" fill="#d1b393" stroke="#8c775e"/><path d="M32 24h58v42H32zm68 0h66v42h-66zm79 0h50v42h-50z" fill="#d9c4a5"/><path d="M100 24h66v42h-66z" fill="#849a7e"/><path d="m102 58 27-20-2 12 20-16-1 12 17-12m-50 22 19-13m3-1 13-10" fill="none" stroke="#e0d9b8" stroke-width="2.5"/><path d="M95 18v53m77-53v53m62-52v52" fill="none" stroke="#786e60" stroke-width="1.25" stroke-dasharray="4 3"/><g transform="translate(${back?'186 38':'114 38'})"><rect width="36" height="18" rx="1.5" fill="#fcf7e9" stroke="${back?'#94876e':'#efecda'}"/><g transform="translate(4 3)">${barcode}</g></g><g fill="#5c6758" font-size="8" font-family="system-ui,sans-serif"><text x="121" y="82">正面</text><text x="195" y="82">背面</text></g></svg><p>${back?'正面保留原图案。另印一张背贴，多一道贴标工序。':'正面让出一块空白，标签与纸套一次印成，不加背贴。'}</p></details>`;
+}
+
 export function quoteOptionExplanation(state, offer) {
   // Do not reveal an as-yet unmet next buyer's opening window to the player.
   if (!state.businessRound && !state.clientProjectActive && state.clientIndex === 0) {
@@ -45,7 +51,7 @@ export function quoteCommitmentView(state, offer, {roundActive=false,counterMess
   </section>`;
   return `<section class="quote-commitment" aria-label="签约与资金明细">
     <div class="quote-price"><span>这单货款</span><strong>${money(offer.revenue)}</strong><small>${escape(quantityLabel||`${offer.quantity} 件`)}</small></div>
-    ${pricing}<dl class="quote-now">${deposit>0?`<div><dt>客户先付定金</dt><dd>${money(deposit)}</dd></div>`:''}<div><dt>现在要付</dt><dd>${money(offer.cost)}</dd></div>${deposit>0?`<div><dt>你先垫付</dt><dd>${money(advance)}</dd></div>`:''}<div class="quote-cash"><dt>${offer.cashAfterSigning<0?'还差':'签完还剩'}</dt><dd>${money(offer.cashAfterSigning<0?-offer.cashAfterSigning:offer.cashAfterSigning)}</dd></div></dl>
+    ${pricing}${action==='PROPOSE'?shelfProofView(offer):''}<dl class="quote-now">${deposit>0?`<div><dt>客户先付定金</dt><dd>${money(deposit)}</dd></div>`:''}<div><dt>现在要付</dt><dd>${money(offer.cost)}</dd></div>${deposit>0?`<div><dt>你先垫付</dt><dd>${money(advance)}</dd></div>`:''}<div class="quote-cash"><dt>${offer.cashAfterSigning<0?'还差':'签完还剩'}</dt><dd>${money(offer.cashAfterSigning<0?-offer.cashAfterSigning:offer.cashAfterSigning)}</dd></div></dl>
     <div class="quote-schedule"><span>第 <b>${offer.deliveryDay}</b> 天交货</span><span>第 <b>${offer.paymentDay}</b> 天收齐货款</span></div>
     ${quoteCashPathView(state,offer,{roundActive})}
     <p class="quote-profit"><span>这单预计赚到</span><strong>${money(offer.netProfit)}</strong></p>
@@ -57,6 +63,7 @@ export function quoteCommitmentView(state, offer, {roundActive=false,counterMess
 }
 
 export function quoteBuyerBrief(state, client, selected='') {
+  if(state.businessRound&&!state.clientProjectActive&&client?.id==='samir'&&['cup-front-proof','cup-back-proof'].includes(selected))return '这批杯要上收银货架。标签不能跨包装折线；可以让出正面图案的位置，也可以另付一道背贴工序。普通补货还是原来的条件。';
   if(['developed-lamp','second-developed-lamp'].includes(selected)) return (selected==='second-developed-lamp'?state.secondSupplier:state.productDevelopment)?.factory==='studio'?'展台白天要亮、晚上要柔和。我想先订一批调光灯试试。':'这批门店统一用暖光灯，我想按整批采购来谈。';
   if (!state.businessRound && !state.clientProjectActive && state.clientIndex === 0 && client?.id === 'mira') return '我想先让一家店试卖。三家店一起铺货也可以，不过要等交货后四天再付清。';
   return client?.brief || '';

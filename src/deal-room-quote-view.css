@@ -59,3 +59,6 @@
 @keyframes window-light-on{from{opacity:0}to{opacity:.52}}
 @keyframes window-hang{0%{opacity:.2;transform:rotate(-5deg)}65%{transform:rotate(1.5deg)}100%{opacity:1;transform:rotate(0)}}
 @media(prefers-reduced-motion:reduce){.opening-shop-sketch *{animation:none!important;transition:none!important}}
+
+/* A print proof is generated from the actual selected stock-keeping option. */
+.shelf-proof{margin:.5rem 0;color:#35493e}.shelf-proof summary{cursor:pointer;font-weight:650;font-size:.83rem}.shelf-proof svg{display:block;width:100%;max-width:380px;height:auto;margin:.4rem 0 .1rem}.shelf-proof p{font-size:.79rem;margin:.2rem 0;line-height:1.5}

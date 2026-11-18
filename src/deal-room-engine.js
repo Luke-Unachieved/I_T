@@ -52,6 +52,19 @@ const CLIENTS = [
       offer('all-now','150 条备货 · 全款预付','规模不减，也不让账期。',150,6200,4300,5,0,false,'季度备货不能全款预付。可以先付 30%，或者缩成小单交货付款。')
     ]}
 ];
+// A retail-ready packaging request comes from an actual paid custom cup, not trust points.
+// Both new jobs retain the ordinary signing, delivery, receivables and demand rules.
+function cupShelfProofOffers(state){
+ const orders=state.contracts.filter(c=>c.clientId==='samir');
+ if(!orders.some(c=>c.status==='paid'&&(c.optionId==='branded'||c.optionId==='branded-opening'||c.specification==='branded')))return [];
+ const first=orders.find(c=>['cup-front-proof','cup-back-proof'].includes(c.optionId));
+ if(first&&first.status!=='paid')return [];
+ const follow=first?'沿用已交付的上架版：':'本次上架要求标签不能压折线。';
+ const a={...offer('cup-front-proof','上架纸套 · 正面留标','正面让出印刷位。四天交货，货到付清。',120,5040,3360,4,0),specification:'branded',proofProduct:'保温杯 · 正面印标纸套'};
+ const b={...offer('cup-back-proof','上架纸套 · 保留封面另做背贴','保留正面纹样，背面另贴。六天交货，定金三成、交货后三天收清。',120,5640,3720,6,3),deposit:1692,specification:'branded',proofProduct:'保温杯 · 独立背贴纸套'};
+ return [a,b].filter(o=>!first||first.optionId===o.id).map(o=>({...o,exchange:follow+o.exchange}));
+}
+
 /** Reorders use the latest settled specification, never a hidden trust score. */
 function reorderContext(state,clientId){
   const client=CLIENTS.find(c=>c.id===clientId);
@@ -76,6 +89,7 @@ function reorderContext(state,clientId){
     ...offer('repeat-prepaid','小批补货 · 让价换八成预付','沿用已经交付的规格，这批总价少收 ¥200；客户先付八成，交货时结清余款。',quantity,prepaidRevenue,cost,days,lag),deposit:prepaidDeposit
   });
   for(const o of options)o.specification=branded?'branded':'standard';
+  if(clientId==='samir')options.push(...cupShelfProofOffers(state));
   if(clientId==='mira'&&state.productDevelopment?.status==='active'){for(const o of options)o.title='旧款 · '+o.title;options.push(developmentOffer(state));const second=secondDevelopmentOffer(state);if(second)options.push(second);}
   return {client,last,basis,consequence:consequence+(clientId==='samir'?(branded?' 沿用上批定制版样，不再重新打样。':' 沿用无印字现货，补货 2 天交付。'):''),options};
 }
@@ -617,6 +631,7 @@ function apply(state,action){
     s.cash=q.cashAfterSigning;s.phase='fulfilling';if(s.businessRound&&!s.clientProjectActive)s.businessSigned++;
     s.contracts.push({clientId:c.id,clientName:c.name,product:c.product,optionId:q.id,quantity:q.quantity,revenue:q.revenue,cost:q.cost,deposit:q.deposit,balanceDue:q.balanceDue,profit:q.profit,operatingCost:q.operatingCost,netProfit:q.netProfit,signedDay:s.day,deliveryDay:q.deliveryDay,paymentDay:q.paymentDay,status:'fulfilling'});
     if(s.businessRound){s.contracts.at(-1).businessRound=s.businessRound;s.contracts.at(-1).specification=q.specification;}
+    if(q.proofProduct)s.contracts.at(-1).product=q.proofProduct;
     if(q.id==='branded-opening')s.contracts.at(-1).specification='branded';
     if(q.id==='second-developed-lamp')s.contracts.at(-1).product=SAMPLE_FACTORIES[s.secondSupplier.factory].title;
     if(q.id==='developed-lamp')s.contracts.at(-1).product=SAMPLE_FACTORIES[s.productDevelopment.factory].title;
