@@ -3,7 +3,7 @@ import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import path from 'node:path';import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('../',import.meta.url));
 export async function buildDealHtml(){
- const read=p=>readFile(path.join(root,p),'utf8');
+ const read=async p=>(await readFile(path.join(root,p),'utf8')).replace(/\r\n?/g,'\n');
  const [studioProject,studioView,catalogueOrder,catalogue,focus,caseGrowth,caseGrowthUi,development,demand,home,relationships,collection,account,engine,samples,supply,curation,app]=await Promise.all(['src/deal-room-studio-project.js','src/deal-room-studio-project-view.js','src/deal-room-catalogue-order.js','src/deal-room-design-catalogue.js','src/deal-room-career-focus.js','src/deal-room-case-growth.js','src/deal-room-case-growth-view.js','src/deal-room-development.js','src/deal-room-demand.js','src/deal-room-home.js','src/deal-room-relationships.js','src/deal-room-collection.js','src/deal-room-account.js','src/deal-room-engine.js','src/deal-room-samples.js','src/deal-room-supply-view.js','src/deal-room-curation-view.js','src/deal-room-app.js'].map(read));
  let css=await read('src/deal-room.css')+'\n'+await read('src/deal-room-life.css')+'\n'+await read('src/deal-room-quote-view.css')+'\n'+await read('src/deal-room-office.css');
  for(const [raw,file] of [...css.matchAll(/url\(['"]?(\.\.\/assets\/[^)'" ]+)['"]?\)/g)].map(m=>[m[0],m[1]])){
