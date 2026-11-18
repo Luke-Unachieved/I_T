@@ -9,6 +9,17 @@ export function quoteOptionExplanation(state, offer) {
   }
   return (offer.exchange || '').replace('本次总净赚较少','这单预计赚得较少');
 }
+/** Three actual quoted milestones, not a simulated daily cash curve. */
+export function quoteCashPathView(state,offer,{roundActive=false}={}){
+ if(!offer||offer.accepted===false)return '';
+ const values=[state?.cash,offer.cashAfterSigning,offer.cashAfterPayment];
+ if(!values.every(Number.isSafeInteger))return '';
+ const low=Math.min(0,...values),high=Math.max(0,...values),range=Math.max(1,high-low);
+ const y=value=>12+(high-value)/range*42,x=[24,150,276];
+ const points=values.map((value,i)=>`${x[i]},${y(value).toFixed(2)}`).join(' ');
+ const zero=y(0).toFixed(2),summary=`现在 ${money(values[0])}，签约后预计 ${money(values[1])}，收齐后预计 ${money(values[2])}`;
+ return `<figure class="quote-cash-path" aria-label="${escape(summary)}"><figcaption>这单的钱怎样走 <small>后两项为预计</small></figcaption><svg viewBox="0 0 300 68" aria-hidden="true" focusable="false"><path d="M24 ${zero}H276" class="cash-path-zero"/><polyline points="${points}" class="cash-path-line"/>${values.map((value,i)=>`<circle cx="${x[i]}" cy="${y(value).toFixed(2)}" r="4" class="cash-path-dot ${value<0?'cash-path-negative':''}"/>`).join('')}</svg><div class="cash-path-values">${['现在','签约后','收齐后'].map((label,i)=>`<div class="${values[i]<0?'cash-path-negative':''}"><small>${label}</small><strong>${money(values[i])}</strong></div>`).join('')}</div>${roundActive?'<small class="cash-path-context">收齐后金额包含其他已签订单在这期间的到期回款。</small>':''}</figure>`;
+}
 export function quoteCommitmentView(state, offer, {roundActive=false,counterMessage='',action='PROPOSE',quantityLabel=null}={}) {
   if (!offer) return '';
   const signed = offer.accepted !== false;
@@ -27,6 +38,7 @@ export function quoteCommitmentView(state, offer, {roundActive=false,counterMess
     <div class="quote-price"><span>这单货款</span><strong>${money(offer.revenue)}</strong><small>${escape(quantityLabel||`${offer.quantity} 件`)}</small></div>
     <dl class="quote-now">${deposit>0?`<div><dt>客户先付定金</dt><dd>${money(deposit)}</dd></div>`:''}<div><dt>现在要付</dt><dd>${money(offer.cost)}</dd></div>${deposit>0?`<div><dt>你先垫付</dt><dd>${money(advance)}</dd></div>`:''}<div class="quote-cash"><dt>${offer.cashAfterSigning<0?'还差':'签完还剩'}</dt><dd>${money(offer.cashAfterSigning<0?-offer.cashAfterSigning:offer.cashAfterSigning)}</dd></div></dl>
     <div class="quote-schedule"><span>第 <b>${offer.deliveryDay}</b> 天交货</span><span>第 <b>${offer.paymentDay}</b> 天收齐货款</span></div>
+    ${quoteCashPathView(state,offer,{roundActive})}
     <p class="quote-profit"><span>这单预计赚到</span><strong>${money(offer.netProfit)}</strong></p>
     ${(state.businessRound||state.clientProjectActive)&&offer.opportunityNote?`<p class="opportunity quote-choice" aria-label="接下这单后的安排">${escape(offer.opportunityNote)}</p>`:''}
     <details class="quote-breakdown"><summary>这单怎么结算</summary><p>货款 ${money(offer.revenue)} − 备货交付 ${money(offer.cost)} − ${roundActive?'仅做这单预计花费的':'回款前的'}日常开销 ${money(offer.operatingCost)} = 预计赚到 ${money(offer.netProfit)}</p><p>待收尾款 ${money(offer.balanceDue)}。${roundActive?'按当前已签回款排程预计':'本单收齐后预计'}可用现金 ${money(offer.cashAfterPayment)}。</p></details>

@@ -34,3 +34,22 @@
 
 ## 立即纠正的文档差异
 本地 serve 根路径已改现代入口，而 README 还称根路径一定是旧版。只更正本地说明，明确静态托管 index.html 与已发布站点未变，不宣称更新了线上版本。
+
+## 恢复的原始学习材料（后续补记）
+协调研究已恢复用户11月12日贴出的“大锐”原话，并确认用户注明是其原话：布局紧凑、少废话、前端去掉开发说明、贸易数据/曲线/各货品价格、清楚循环与正反馈；用户11月14日补充高可视化。不能将其误称游戏专家背书或现代版本通过报告。
+
+参考材料：
+- https://github.com/qiuaoru-coder/game-design-agent-skills
+- https://github.com/abagames/agentic-gamedev-skills
+- https://github.com/gamedev-skills/awesome-gamedev-agent-skills （art-direction 参考）
+- https://github.com/openai/plugins （game-ui-frontend 参考）
+- https://github.com/Roblox/creator-docs/blob/main/content/en-us/production/game-design/ui-ux-design.md
+- 同目录 onboarding.md，以及 https://github.com/markfloryan/gamedesign
+
+研究线程已重读上述指定设计/美术方法，并静态查看用户原附件《基建狂魔》的代码与三张截图，未运行其脚本。可借的是选择→实际成本/收益→持续可见成长，非照搬建筑系统、金融复杂度或报表外皮；其手机截图也存在横向裁切和长滚动，不能视作全优模板。
+
+对应本地改进：
+- 现有报价只有文字金额，本轮补紧凑的“现在/签约后/收齐后”三节点资金图，完全取已有预测值，后两项明确为预计。没有伪造商品价格历史、最低现金保障或连续日曲线。
+- 未谈妥方案不展示确定资金结果；多单期间的到期回款明确说明范围。
+- 已有主合作优先、次要信息折叠、经营/消费有限动作与减少动态模式符合方法方向；是否达到简洁、好玩、美术一致仍待完整实测。
+- 原文要求“各货品价格/曲线”不等于必须新造随机行情系统。当前只实现真实报价资金可视化，不能宣称已实现完整商品市场模拟。
