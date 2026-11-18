@@ -34,6 +34,10 @@ export function goodsPriceRecords(state){
   if(!day(signedDay)||!day(paidDay)||paidDay<signedDay||paidDay>asOf||!pos(quantity)||!pos(revenue))return;
   records.push({status:'paid',clientId:who,product,specification:spec,signedDay,paidDay,quantity,revenue,priceSource,...(fee?{separateServiceFee:fee}:{})});
  };
+ for(const o of state.marketHistory||[]){
+  if(o.status==='paid'&&o.received===o.revenue&&o.delivered===o.quantity&&o.unitPrice*o.quantity===o.revenue)
+   append('market-'+o.productId,o.productName,'market',o.signedDay,o.paidDay,o.quantity,o.revenue,o.mode==='bulk'?'新品铺货':'新品试单');
+ }
  const p=state.stockProcurement;
  if(p?.status==='paid'&&p.specification==='developed-studio'&&p.packaging==='generic'&&p.delivered===p.quantity&&p.received===p.revenue)
   append('studio-generic','通用三档调光灯','generic-lot',p.signedDay,p.deliveryDay,p.delivered,p.received,'集团阅读位');

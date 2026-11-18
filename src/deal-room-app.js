@@ -1,3 +1,5 @@
+import {marketView,bindMarket} from './deal-room-market-view.js';
+let marketUI={};
 import {openProductReorder} from './deal-room-career-focus.js';
 import {shopTrialView,shopShelfScene} from './deal-room-shop-trial.js';
 import {exhibitionAvailable} from './deal-room-exhibition.js';
@@ -134,6 +136,15 @@ const root=document.querySelector('#deal-room');
 const money=n=>`¥${Number(n).toLocaleString('zh-CN')}`;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function render(){
+ if(state.phase==='market'){
+  root.innerHTML=marketView(state,marketUI)+`<p class="save-state" role="status">${esc(saveNotice)}</p>`+dealSaveView(savePanel);
+  const dispatchMarket=action=>{
+   const next=reduceDealRoom(state,action);if(next===state)return;
+   state=next;if(action.type==='CLOSE_MARKET')marketUI={};save();render();
+   if(action.type==='CLOSE_MARKET')root.querySelector('[data-action="OPEN_MARKET"]')?.focus({preventScroll:true});
+  };
+  bindMarket(root,state,marketUI,render,dispatchMarket);bindSaveTools();return;
+ }
  if(state.phase==='linen-freight'){
   root.innerHTML=linenFreightView(state)+`<p class="save-state" role="status">${esc(saveNotice)}</p>`+dealSaveView(savePanel);
   root.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>{const next=reduceDealRoom(state,{type:b.dataset.action});if(next===state)return;state=next;save();render();const target=root.querySelector(state.phase==='linen-freight'?'.business h2':'[data-action="OPEN_LINEN_FREIGHT"]');target?.focus({preventScroll:true});});
