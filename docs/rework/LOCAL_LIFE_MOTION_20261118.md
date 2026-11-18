@@ -15,3 +15,9 @@ The local Git checkout contains CRLF. Direct source inspection found three impor
 ## Player-facing cooperation language
 
 Expanded the existing view-only playerSteps mapping for five previously exposed implementation-like instructions (legal reuse, delivery evidence and mixed-version facts). Contract/version facts and reducer messages are unchanged; the visible panel now explains the next customer action and celebrates six-store delivery in ordinary language. Added no new systems or economy changes. Browser acceptance still pending.
+
+## Homepage hierarchy
+
+Moved the current cooperation guidance ahead of optional opening curation, procurement, shop trials and revision opportunities. These existing opportunities now live under a native, keyboard-accessible details section; it opens by default when no current cooperation/completion/three-store expansion is competing for attention. No entry, action binding, unlock condition or business rule was removed. The existing three-to-six-store continuation stays prominent.
+
+Static `node --check` passed for home, cooperation view, life art/view and modern bundler; this parses files only and does not run the game. Visual/layout acceptance and regression execution remain pending until full development is ready. Potential acceptance risk: verify focus restoration when entering and leaving a collapsed opportunity section.

@@ -120,3 +120,8 @@
 .account-completion-glance p{display:flex;flex-wrap:wrap;gap:4px 12px;margin:6px 0 0;font-size:11px;line-height:1.5}.account-completion-glance p span{overflow-wrap:anywhere}
 .office-entry,.personal-life-entry{margin:12px 0;min-width:0}.office-entry button,.personal-life-entry button{box-sizing:border-box;display:block;width:100%;min-height:44px;padding:12px 16px;border:1px solid #a7b49a;border-radius:10px;background:#eef1e4;color:#34533f;font:inherit;font-size:14px;line-height:1.5;text-align:left;cursor:pointer;white-space:normal;overflow-wrap:anywhere}.office-entry button:hover,.personal-life-entry button:hover{background:#e0e8d7;border-color:#687f5c}.office-entry button:focus-visible,.personal-life-entry button:focus-visible{outline:3px solid #315c44;outline-offset:3px}
 @media(max-width:480px){.account-completion-glance{padding:11px 12px}.account-completion-shops{gap:3px}.office-entry button,.personal-life-entry button{font-size:13px}}
+/* Secondary opportunities stay discoverable without competing with the live client. */
+.home-opportunities{margin:18px 0;border:1px solid #cabda6;border-radius:14px;background:#f9f3e8;padding:14px 16px}
+.home-opportunities>summary{cursor:pointer;min-height:28px;font-weight:650;color:#425548;line-height:1.6}
+.home-opportunities>summary:focus-visible{outline:3px solid #315c44;outline-offset:4px;border-radius:3px}
+.home-opportunities-note{font-size:13px;line-height:1.7;color:#6b675d}
