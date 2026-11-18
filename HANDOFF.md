@@ -1,3 +1,7 @@
+> 2026-11-18 GitHub 源码同步检查点：本提交收录下述经营日志分卷与低资金暂停营业修复，同步分支为 `local/life-motion-20261118`。同步前运行 `npm run check`：语法检查及现代、旧剧情、旧数据三种构建通过；1130 项测试中 1128 项通过、2 项失败。失败项分别位于 `tests/deal-player-facing-copy.test.mjs`（两批供货文案的 `firstMinimum`）和 `tests/deal-trading-chapter.test.mjs`（历史成交单价展示断言）；在独立的 `851707e` 基线中复现同样两项失败，属于本次未提交改动之前已有的问题。本次仅同步源码，未更新线上试玩、未做 Windows 整机或手机浏览器验收。
+
+> 2026-11-18 本地经营修复：经营日志每 512 项封一卷，完整保留动作、合同和回放校验，原始 4096 项旧档经校验后可继续签约收款。低现金且客户仍有库存、没有待履约或应收合同时，可明确暂停营业到指定客户补货日；停业期不收日费，不产生收入。两处均已从本地源码验证，64 项定向测试通过，独立离线构建在内存生成后脚本语法通过。未上传、未部署、未整机试玩；现有 5 MiB 存档文件限制不变。测试见 tests/deal-paged-business-journal.test.mjs 和 tests/deal-paused-wait.test.mjs。
+
 > 2026-11-18 现代工作室：Northline 首三店通用组合、后三店采用已确认系列的路线，现在按两批实际收款闭章；六店并非全为系列，陈列交接可选。旧合同、收入和存档未改。定向回归见 `tests/deal-generic-pilot-series-expansion.test.mjs`。本阶段三种构建和全库 1061 项自动回归通过；不是 Windows 整机试玩或线上部署。
 
 > 2026-11-18 本地整合线：`local/life-motion-20261118`，源码 `E:\DevWork\TradeGame\source`。已实现当前合作优先、选择焦点返回、签约/交付/到账短动作、生活物件购买与使用反馈、三节点报价资金图、真实已收款成果留在办公室。最新玩法代码为 `28a1ee9`。完整交付清单见 `docs/rework/LOCAL_COMPLETE_DELIVERY.md`，资料对照见 `docs/rework/SOURCE_MATERIAL_GAP_AUDIT.md`。

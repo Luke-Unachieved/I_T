@@ -128,14 +128,12 @@ test('每位熟客的小批与规模均有实际周期/净赚差异，采购保�
  const poor={...s,cash:0};assert.ok(businessOpportunities(poor).every(c=>c.available&&c.options.filter(q=>q.id!=='repeat-prepaid').every(q=>!q.valid))); 
  assert.equal(previewOffer(select(poor,'mira'),'repeat-prepaid').valid,true);assert.equal(select(s,'unknown'),s);
 });
-test('记录容量公开阻止新单但已签合同仍可结清，不静默卡住资金',()=>{
- let s=select(act(initialComplete(),'CONTINUE_BUSINESS'),'mira');
- const limited={...s,history:Array(MAX_DEAL_ACTIONS-4).fill({type:'BACK_TO_CLIENTS'})};
- assert.match(previewOffer(limited,'repeat-small').reason,/容量上限/);
- assert.equal(act(limited,'PROPOSE','repeat-small'),limited);
- s=act({...s,history:Array(MAX_DEAL_ACTIONS-5).fill({type:'BACK_TO_CLIENTS'})},'PROPOSE','repeat-small');
- assert.equal(s.phase,'fulfilling');s=next(act(s,'ADVANCE'));assert.equal(s.phase,'portfolio');
- assert.ok(businessOpportunities(s).every(c=>!c.available&&c.reason.includes('容量上限')));
+test('近旧容量边界的伪造日志不能通过迁移获得一笔新合同',()=>{
+ const s=select(act(initialComplete(),'CONTINUE_BUSINESS'),'mira');
+ for(const length of [MAX_DEAL_ACTIONS-5,MAX_DEAL_ACTIONS-4,MAX_DEAL_ACTIONS]){
+  const invalid={...s,history:Array(length).fill({type:'BACK_TO_CLIENTS'})};
+  assert.equal(act(invalid,'PROPOSE','repeat-small'),invalid);assert.throws(()=>normalizeDealRoom(invalid));
+ }
 });
 
 const withRelations=(ids=['mira','mira'])=>{

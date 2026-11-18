@@ -14,7 +14,7 @@ import {studioProjectEligibility,studioProjectReview,previewStudioProjectOrder,g
 import {previewCatalogueOrder,previewFirstCatalogueOrder} from './deal-room-catalogue-order.js';
 import {caseGrowthOffers,previewCaseGrowth,caseGrowthDemand,previewCaseCalloff,canCalloffCase,canProposeCaseLamp,previewApprovedCaseLamp} from './deal-room-case-growth.js';
 import {SAMPLE_FACTORIES,developmentOffer,hasLampDevelopmentCase,acceptedLampSample,secondDevelopmentOffer,SECOND_SUPPLIER_ACTIONS,canonicalSecondSupplierAction,applySecondSupplierAction} from './deal-room-development.js';
-import {retailDemand,retailWait} from './deal-room-demand.js';
+import {retailDemand,retailWait,retailPause} from './deal-room-demand.js';
 import {collectionSeedChoices,collectionQuote,COLLECTION_STYLES,collectionPitchOffers,previewCollectionPitch} from './deal-room-collection.js';
 import {previewAccount,canExpandAccount,accountCollectionBasis,accountRevisionBasis,accountExpansionBases} from './deal-room-account.js';
 /** Isolated modern trade experiment. All amounts are fictional settled RMB integers.
@@ -606,6 +606,10 @@ function apply(state,action){
   }
   if(action.type==='START_RETAIL_PLANNING'&&['review','complete'].includes(state.phase)&&state.supplyPlanHistory?.length&&!state.retailPlanning){const s=copy(state);s.retailPlanning=true;s.feedback={kind:'retail-planning',message:'熟客会按门店余货安排新采购。刚补过的门店不重复进货；别的业务照常可谈。'};return s;}
   if(action.type==='BACK_FROM_CLIENTS'&&state.phase==='portfolio'&&!state.clientProjectActive){const s=copy(state);s.phase='review';s.feedback={kind:'review',message:'尚未签约，回工作室看看其他业务。'};return s;}
+  if(action.type==='PAUSE_FOR_BUYER'){
+    const pause=retailPause(state,action.clientId);if(!pause)return state;
+    const s=copy(state);s.day=pause.day;s.feedback={kind:'portfolio',message:'工作室暂停营业至第 '+s.day+' 天。期间没有收入，也没有工作室日费；客户只消化原有库存。'};return s;
+  }
   if(action.type==='WAIT_FOR_BUYER'){const w=retailWait(state,action.clientId);if(!w?.valid)return state;const s=copy(state);s.day=w.day;s.cash-=w.cost;s.retailOperatingCost=(s.retailOperatingCost||0)+w.cost;s.feedback={kind:'portfolio',message:`已到第 ${w.day} 天，等候期间工作室支出 ${w.cost}。选定客户现在可以谈补货。`};return s;}
   if(action.type==='WAIT_FOR_RETAIL'){const w=retailWait(state);if(!w?.valid)return state;const s=copy(state);s.day=w.day;s.cash-=w.cost;s.retailOperatingCost=(s.retailOperatingCost||0)+w.cost;s.feedback={kind:'portfolio',message:`已到第 ${w.day} 天，工作室支出 ${w.cost}。门店有新的补货需求。`};return s;}
   if(action.type==='CONTINUE_RETAIL_BUSINESS'&&['complete','review'].includes(state.phase)&&state.supplyPlanHistory?.length){
@@ -658,7 +662,7 @@ function apply(state,action){
   }
   return state;
 }
-const actionKeys={SIGN_OWN_COLLECTION_FROM_CASE:['type','referrerId','style'],PROPOSE_OPENING_QUOTE:['type','clientId','optionId'],CONTINUE_RETAIL_BUSINESS:['type'],OPEN_STOCK_PROCUREMENT:['type'],CLOSE_STOCK_PROCUREMENT:['type'],SIGN_STOCK_PROCUREMENT:['type','factoryMode'],FULFIL_STOCK_PROCUREMENT:['type'],SIGN_STUDIO_PROJECT_FROM_STOCK:['type'],SET_ACCOUNT_EXPANSION_BASIS:['type','basisId'],START_ACCOUNT_FROM_REVISION:['type'],SET_ACCOUNT_VERSION:['type','versionId'],OPEN_COLLECTION_REVISION:['type'],CLOSE_COLLECTION_REVISION:['type'],COMMISSION_COLLECTION_REVISION:['type'],RECEIVE_COLLECTION_REVISION:['type'],SIGN_COLLECTION_REVISION:['type','buyerId','scope'],FULFIL_COLLECTION_REVISION:['type'],START_CASE_DEVELOPMENT:['type'],OPEN_STUDIO_READING_PAIR:['type'],CLOSE_SETTLED_ROUND:['type'],CANCEL_ROUND_RECEIVABLES:['type'],ENABLE_ROUND_RECEIVABLES:['type'],DELIVER_ROUND_ORDER:['type'],WAIT_ROUND_RECEIPT:['type'],FINISH_ROUND_RECEIVABLES:['type'],SIGN_FIRST_CATALOGUE_ORDER:['type','referrerId','lampVersion'],START_OPENING_CURATION:['type','clientId'],SIGN_STUDIO_ALLOCATION:['type','allocation'],WAIT_STUDIO_ALLOCATION:['type','allocation'],START_ACCOUNT_FROM_COLLECTION:['type'],PAUSE_CLIENT_PROJECTS:['type'],RESUME_CLIENT_PROJECTS:['type'],OPEN_LAUNCH_PROJECT:['type'],CLOSE_LAUNCH_PROJECT:['type'],SET_LAUNCH:['type','field','value'],REVIEW_LAUNCH:['type'],REVISE_LAUNCH:['type'],HAND_OVER_LAUNCH:['type'],PROPOSE_GROUP_CHANGE:['type'],RESTORE_GROUP_SPEC:['type','briefId'],KEEP_STUDIO_PROJECT:['type'],REVISE_STUDIO_PROJECT:['type'],OPEN_STUDIO_PROJECT:['type','direction'],CLOSE_STUDIO_PROJECT:['type'],SET_STUDIO_PROJECT:['type','field','value'],REVIEW_STUDIO_PROJECT:['type'],SIGN_STUDIO_PROJECT_ORDER:['type'],WAIT_STUDIO_PROJECT:['type'],SIGN_CATALOGUE_ORDER:['type','lampVersion'],APPROVE_CASE_LAMP:['type','model'],SIGN_APPROVED_CASE_LAMP:['type','terms'],OPEN_ACCOUNT_EXPANSION:['type'],SIGN_ACCOUNT_EXPANSION:['type'],FULFIL_ACCOUNT_EXPANSION:['type'],WAIT_CASE_CALLOFF:['type','products'],SIGN_CASE_CALLOFF:['type','agreement','products','packaging','terms'],WAIT_CASE_GROWTH:['type','products'],OPEN_CASE_GROWTH:['type','referrerId'],CLOSE_CASE_GROWTH:['type'],SIGN_CASE_GROWTH:['type','agreement','products','packaging','terms'],FULFIL_CASE_GROWTH:['type'],SIGN_CURATION_SAMPLE:['type','products','quantity','packaging','lampVersion'],VIEW_DEVELOPMENT:['type'],CLOSE_SAMPLE:['type'],START_DEVELOPMENT:['type'],CLOSE_DEVELOPMENT:['type'],COMMISSION_SAMPLE:['type','factory'],RECEIVE_SAMPLE:['type'],ACCEPT_SAMPLE:['type'],WAIT_FOR_BUYER:['type','clientId'],START_RETAIL_PLANNING:['type'],BACK_FROM_CLIENTS:['type'],WAIT_FOR_RETAIL:['type'],OPEN_COLLECTION_PITCH:['type','buyerId'],BACK_COLLECTION_PITCH:['type'],SIGN_COLLECTION_PITCH:['type','optionId'],START_COLLECTION:['type'],BACK_FROM_COLLECTION:['type'],SIGN_COLLECTION:['type','model','style'],SIGN_COLLECTION_ORDER:['type','buyerId'],FULFIL_COLLECTION:['type'],CLOSE_COLLECTION:['type'],OPEN_COLLECTION:['type'],START_ACCOUNT:['type','referrerId'],BACK_FROM_ACCOUNT:['type'],SIGN_ACCOUNT:['type','optionId'],FULFIL_ACCOUNT:['type'],CLOSE_ACCOUNT:['type'],BACK_FROM_CURATION:['type'],START_CURATION:['type','clientId'],SIGN_CURATION:['type','products','quantity','packaging'],FULFIL_CURATION:['type'],START_CLIENT_PROJECTS:['type'],PROPOSE:['type','optionId'],ADVANCE:['type'],NEXT_CLIENT:['type'],CONTINUE_BUSINESS:['type'],SELECT_CLIENT:['type','clientId'],BACK_TO_CLIENTS:['type'],START_SUPPLY_PLAN:['type','clientId','firstBatch','payment'],ADVANCE_SUPPLY_PLAN:['type'],FULFIL_SUPPLY_PLAN:['type']};
+const actionKeys={SIGN_OWN_COLLECTION_FROM_CASE:['type','referrerId','style'],PROPOSE_OPENING_QUOTE:['type','clientId','optionId'],CONTINUE_RETAIL_BUSINESS:['type'],OPEN_STOCK_PROCUREMENT:['type'],CLOSE_STOCK_PROCUREMENT:['type'],SIGN_STOCK_PROCUREMENT:['type','factoryMode'],FULFIL_STOCK_PROCUREMENT:['type'],SIGN_STUDIO_PROJECT_FROM_STOCK:['type'],SET_ACCOUNT_EXPANSION_BASIS:['type','basisId'],START_ACCOUNT_FROM_REVISION:['type'],SET_ACCOUNT_VERSION:['type','versionId'],OPEN_COLLECTION_REVISION:['type'],CLOSE_COLLECTION_REVISION:['type'],COMMISSION_COLLECTION_REVISION:['type'],RECEIVE_COLLECTION_REVISION:['type'],SIGN_COLLECTION_REVISION:['type','buyerId','scope'],FULFIL_COLLECTION_REVISION:['type'],START_CASE_DEVELOPMENT:['type'],OPEN_STUDIO_READING_PAIR:['type'],CLOSE_SETTLED_ROUND:['type'],CANCEL_ROUND_RECEIVABLES:['type'],ENABLE_ROUND_RECEIVABLES:['type'],DELIVER_ROUND_ORDER:['type'],WAIT_ROUND_RECEIPT:['type'],FINISH_ROUND_RECEIVABLES:['type'],SIGN_FIRST_CATALOGUE_ORDER:['type','referrerId','lampVersion'],START_OPENING_CURATION:['type','clientId'],SIGN_STUDIO_ALLOCATION:['type','allocation'],WAIT_STUDIO_ALLOCATION:['type','allocation'],START_ACCOUNT_FROM_COLLECTION:['type'],PAUSE_CLIENT_PROJECTS:['type'],RESUME_CLIENT_PROJECTS:['type'],OPEN_LAUNCH_PROJECT:['type'],CLOSE_LAUNCH_PROJECT:['type'],SET_LAUNCH:['type','field','value'],REVIEW_LAUNCH:['type'],REVISE_LAUNCH:['type'],HAND_OVER_LAUNCH:['type'],PROPOSE_GROUP_CHANGE:['type'],RESTORE_GROUP_SPEC:['type','briefId'],KEEP_STUDIO_PROJECT:['type'],REVISE_STUDIO_PROJECT:['type'],OPEN_STUDIO_PROJECT:['type','direction'],CLOSE_STUDIO_PROJECT:['type'],SET_STUDIO_PROJECT:['type','field','value'],REVIEW_STUDIO_PROJECT:['type'],SIGN_STUDIO_PROJECT_ORDER:['type'],WAIT_STUDIO_PROJECT:['type'],SIGN_CATALOGUE_ORDER:['type','lampVersion'],APPROVE_CASE_LAMP:['type','model'],SIGN_APPROVED_CASE_LAMP:['type','terms'],OPEN_ACCOUNT_EXPANSION:['type'],SIGN_ACCOUNT_EXPANSION:['type'],FULFIL_ACCOUNT_EXPANSION:['type'],WAIT_CASE_CALLOFF:['type','products'],SIGN_CASE_CALLOFF:['type','agreement','products','packaging','terms'],WAIT_CASE_GROWTH:['type','products'],OPEN_CASE_GROWTH:['type','referrerId'],CLOSE_CASE_GROWTH:['type'],SIGN_CASE_GROWTH:['type','agreement','products','packaging','terms'],FULFIL_CASE_GROWTH:['type'],SIGN_CURATION_SAMPLE:['type','products','quantity','packaging','lampVersion'],VIEW_DEVELOPMENT:['type'],CLOSE_SAMPLE:['type'],START_DEVELOPMENT:['type'],CLOSE_DEVELOPMENT:['type'],COMMISSION_SAMPLE:['type','factory'],RECEIVE_SAMPLE:['type'],ACCEPT_SAMPLE:['type'],PAUSE_FOR_BUYER:['type','clientId'],WAIT_FOR_BUYER:['type','clientId'],START_RETAIL_PLANNING:['type'],BACK_FROM_CLIENTS:['type'],WAIT_FOR_RETAIL:['type'],OPEN_COLLECTION_PITCH:['type','buyerId'],BACK_COLLECTION_PITCH:['type'],SIGN_COLLECTION_PITCH:['type','optionId'],START_COLLECTION:['type'],BACK_FROM_COLLECTION:['type'],SIGN_COLLECTION:['type','model','style'],SIGN_COLLECTION_ORDER:['type','buyerId'],FULFIL_COLLECTION:['type'],CLOSE_COLLECTION:['type'],OPEN_COLLECTION:['type'],START_ACCOUNT:['type','referrerId'],BACK_FROM_ACCOUNT:['type'],SIGN_ACCOUNT:['type','optionId'],FULFIL_ACCOUNT:['type'],CLOSE_ACCOUNT:['type'],BACK_FROM_CURATION:['type'],START_CURATION:['type','clientId'],SIGN_CURATION:['type','products','quantity','packaging'],FULFIL_CURATION:['type'],START_CLIENT_PROJECTS:['type'],PROPOSE:['type','optionId'],ADVANCE:['type'],NEXT_CLIENT:['type'],CONTINUE_BUSINESS:['type'],SELECT_CLIENT:['type','clientId'],BACK_TO_CLIENTS:['type'],START_SUPPLY_PLAN:['type','clientId','firstBatch','payment'],ADVANCE_SUPPLY_PLAN:['type'],FULFIL_SUPPLY_PLAN:['type']};
 function canonicalAction(a){
   if(a&&Object.hasOwn(LINEN_FREIGHT_ACTIONS,a.type))return canonicalLinenFreight(a);
   if(a&&Object.hasOwn(ATELIER_RESTOCK_ACTIONS,a.type))return canonicalAtelierRestock(a);
@@ -693,7 +697,7 @@ function canonicalAction(a){
   if(a.type==='OPEN_CASE_GROWTH'&&typeof a.referrerId!=='string')return null;
   if(['SIGN_CASE_GROWTH','SIGN_CASE_CALLOFF'].includes(a.type)&&(typeof a.agreement!=='string'||typeof a.packaging!=='string'||typeof a.terms!=='string'||!Array.isArray(a.products)||a.products.some(id=>typeof id!=='string')))return null;
   if(a.type==='START_ACCOUNT'&&typeof a.referrerId!=='string')return null;
-  if(['WAIT_FOR_BUYER','SELECT_CLIENT','START_SUPPLY_PLAN','START_CURATION','START_OPENING_CURATION'].includes(a.type)&&typeof a.clientId!=='string')return null;
+  if(['PAUSE_FOR_BUYER','WAIT_FOR_BUYER','SELECT_CLIENT','START_SUPPLY_PLAN','START_CURATION','START_OPENING_CURATION'].includes(a.type)&&typeof a.clientId!=='string')return null;
   if(a.type==='START_SUPPLY_PLAN'&&(typeof a.firstBatch!=='string'||typeof a.payment!=='string'))return null;
   if(a.type==='SIGN_CURATION_SAMPLE'&&a.lampVersion!=='developed')return null;
   if(['SIGN_CURATION','SIGN_CURATION_SAMPLE'].includes(a.type)&&(!Array.isArray(a.products)||a.products.some(p=>typeof p!=='string')||!Number.isSafeInteger(a.quantity)||typeof a.packaging!=='string'))return null;
@@ -734,10 +738,33 @@ function compactDecorTail(state){
  // Do not compact unless replay proves every non-journal field is unchanged.
  return withoutJournal(base)===withoutJournal(state)?base:state;
 }
+// Seal action pages, never balance snapshots. Keep the latest action on the live page.
+const JOURNAL_PAGE_SIZE=512;
+const MAX_ARCHIVE_PAGES=640; // beyond the normal 5 MiB backup budget
+function sealJournalPage(actions){
+ for(const a of actions){if(Array.isArray(a.products))Object.freeze(a.products);Object.freeze(a);}
+ return Object.freeze(actions);
+}
+function journalLength(s){return (s.historyPages?.length||0)*JOURNAL_PAGE_SIZE+s.history.length;}
+function allJournalActions(s){return s.historyPages?[...s.historyPages.flat(),...s.history]:s.history;}
+function pageJournal(s){
+ if(s.history.length<=JOURNAL_PAGE_SIZE)return s;
+ const pages=[...(s.historyPages||[])];let offset=0;
+ while(s.history.length-offset>JOURNAL_PAGE_SIZE){pages.push(sealJournalPage(s.history.slice(offset,offset+JOURNAL_PAGE_SIZE)));offset+=JOURNAL_PAGE_SIZE;}
+ return {...s,historyPages:Object.freeze(pages),history:s.history.slice(offset)};
+}
+function applyOnJournalPage(state,action,reducer){
+ if(!state.historyPages)return reducer(state,action);
+ const {historyPages,...input}=state;const next=reducer(input,action);
+ return next===input?state:{...next,historyPages};
+}
 export function reduceDealRoom(state,action){
  if(!canonicalAction(action))return state;
- const compacted=compactDecorTail(state),next=reduceRecordedDeal(compacted,action);
- return next===compacted?state:next;
+ let compacted=state.historyPages?state:compactDecorTail(state);
+ // An untouched old save may already lack room even for a navigation action.
+ if(!compacted.historyPages&&compacted.history.length>=4000){try{compacted=normalizeDealRoom(compacted);}catch{return state;}}
+ const next=applyOnJournalPage(compacted,action,reduceRecordedDeal);
+ return next===compacted?state:pageJournal(next);
 }
 // Only successful, fully compared replays enter this process-local cache.
 // Serialized snapshots never alias caller-owned objects. At most four entries,
@@ -747,34 +774,46 @@ export function reduceDealRoom(state,action){
 const VERIFIED_REPLAY_LIMIT = 4;
 const VERIFIED_REPLAY_CHARS = 1024 * 1024;
 const verifiedReplays = [];
-function replayPrefix(history) {
+function replayPrefix(history,paged) {
   const actions = history.map(a => JSON.stringify(a));
   let best;
   for (const entry of verifiedReplays) {
-    if (entry.actions.length > actions.length || (best && entry.actions.length <= best.actions.length)) continue;
+    if ((!paged && entry.paged) || (paged && !entry.paged && entry.actions.length>JOURNAL_PAGE_SIZE) || entry.actions.length > actions.length || (best && entry.actions.length <= best.actions.length)) continue;
     if (entry.actions.every((a, i) => a === actions[i])) best = entry;
   }
-  return best ? JSON.parse(best.snapshot) : createDealRoom();
+  if(!best)return createDealRoom();
+  const restored=JSON.parse(best.snapshot);
+  if(restored.historyPages)restored.historyPages=Object.freeze(restored.historyPages.map(sealJournalPage));
+  return restored;
 }
 function rememberVerifiedReplay(state) {
   const snapshot = JSON.stringify(state);
   if (snapshot.length > VERIFIED_REPLAY_CHARS) return;
   const existing = verifiedReplays.findIndex(entry => entry.snapshot === snapshot);
   if (existing !== -1) verifiedReplays.splice(existing, 1);
-  verifiedReplays.push({snapshot, actions: state.history.map(a => JSON.stringify(a))});
+  verifiedReplays.push({snapshot, paged:!!state.historyPages, actions: allJournalActions(state).map(a => JSON.stringify(a))});
   if (verifiedReplays.length > VERIFIED_REPLAY_LIMIT) verifiedReplays.shift();
 }
 /** Strict canonical replay rejects edited money, unknown keys and old-game saves.
  * A tiny action journal avoids accepting guessed financial fields as trusted state.
  */
 export function normalizeDealRoom(raw){
-  if(!raw||typeof raw!=='object'||Array.isArray(raw)||!Array.isArray(raw.history)||raw.history.length>MAX_DEAL_ACTIONS)throw new Error('谈单进度无效');
+  if(!raw||typeof raw!=='object'||Array.isArray(raw)||!Array.isArray(raw.history))throw new Error('谈单进度无效');
+  const paged=Object.hasOwn(raw,'historyPages');
+  if(paged){
+    const p=raw.historyPages;
+    if(!Array.isArray(p)||!p.length||p.length>MAX_ARCHIVE_PAGES||raw.history.length<1||raw.history.length>JOURNAL_PAGE_SIZE)throw new Error('谈单记录分卷无效');
+    for(const page of p)if(!Array.isArray(page)||page.length!==JOURNAL_PAGE_SIZE)throw new Error('谈单记录分卷无效');
+  }else if(raw.history.length>MAX_DEAL_ACTIONS)throw new Error('谈单进度无效');
   // Preserve, rather than silently migrate, unpublished experiments that cloned
   // one contact through several referrals. The app retains rejected raw saves.
   const caseOwners=new Map(),caseRecords=[...(Array.isArray(raw.caseGrowthHistory)?raw.caseGrowthHistory:[]),...(raw.caseGrowth?.status==='production'?[raw.caseGrowth.active]:[])];
   for(const c of caseRecords){if(!c||!['portfolio','private'].includes(c.agreement))continue;if(caseOwners.has(c.agreement)&&caseOwners.get(c.agreement)!==c.referrerId)throw new Error('旧实验曾将同一客户复制到多个案例；原存档未修改，请保留并使用对应实验版本读取。');caseOwners.set(c.agreement,c.referrerId);}
-  let state=replayPrefix(raw.history);
-  for(const a of raw.history.slice(state.history.length)){const next=replayRecordedDeal(state,a);if(next===state)throw new Error('谈单记录无效');state=next;}
+  const actions=allJournalActions(raw);let state=replayPrefix(actions,paged);
+  for(let i=journalLength(state);i<actions.length;i++){
+    const next=applyOnJournalPage(state,actions[i],replayRecordedDeal);
+    if(next===state)throw new Error('谈单记录无效');state=paged?pageJournal(next):next;
+  }
   function stable(v){if(Array.isArray(v))return v.map(stable);if(v&&typeof v==='object')return Object.fromEntries(Object.keys(v).sort().map(k=>[k,stable(v[k])]));return v;}
   // v18 briefly changed only the saved purchase feedback sentence. Accept that
   // exact released wording, but still compare every financial/journal field.
@@ -783,6 +822,8 @@ export function normalizeDealRoom(raw){
     raw.feedback.message===state.feedback.message.replace('这是个人消费，不会提高订单收益。','给自己的下班时间添了一件喜欢的东西。'))
     comparable={...raw,feedback:{...raw.feedback,message:state.feedback.message}};
   if(JSON.stringify(stable(comparable))!==JSON.stringify(stable(state)))throw new Error('谈单账目不一致');
+  // Only migrate the old flat journal after comparison with its original replay.
+  if(paged||state.history.length>=4000)state=pageJournal(state);
   rememberVerifiedReplay(state);
   return state;
 }

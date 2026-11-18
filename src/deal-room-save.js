@@ -11,7 +11,7 @@ function checkText(text){
  if(text.length>DEAL_BACKUP_MAX_BYTES||new TextEncoder().encode(text).byteLength>DEAL_BACKUP_MAX_BYTES)throw new Error('备份超过 5 MiB。');
  return text;
 }
-function summaryFor(s){return {day:s.day,cash:s.cash,phase:s.phase,actions:s.history.length};}
+function summaryFor(s){return {day:s.day,cash:s.cash,phase:s.phase,actions:(s.historyPages||[]).reduce((n,page)=>n+page.length,s.history.length)};}
 /** Throws on invalid state. No storage, downloads or browser permission effects. */
 export function encodeDealBackup(state){
  const canonical=normalizeDealRoom(state);

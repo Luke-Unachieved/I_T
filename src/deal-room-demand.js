@@ -20,6 +20,15 @@ export function retailWait(state,clientId=null){
  const day=Math.min(...demands.map(d=>d.readyDay)),days=day-state.day,cost=days*30;
  return {day,days,cost,valid:days>0&&state.cash>=cost};
 }
+// An explicit temporary closure is not ordinary paid waiting. Existing journals
+// keep their original daily charges; no unpaid invoice or cash is manufactured.
+export function retailPause(state,clientId){
+ if(!Object.hasOwn(RATE,clientId)||!Number.isSafeInteger(state.cash)||state.cash<0)return null;
+ if(state.roundReceivables?.active&&state.roundReceivables.round===state.businessRound)return null;
+ if(state.contracts.some(c=>['fulfilling','receivable'].includes(c.status)))return null;
+ const w=retailWait(state,clientId);
+ return w&&w.days>0&&!w.valid?{day:w.day,days:w.days,cost:0}:null;
+}
 export function demandView(d){
  if(!d)return '';
  return `<div class="retail-demand ${d.ready?'demand-ready':''}"><span>${d.ready?'门店正在等下一批':`门店约余 ${d.remaining} 件 · 第 ${d.readyDay} 天再补货`}</span><div class="retail-shelf" aria-hidden="true">${Array.from({length:8},(_,i)=>`<i class="${!d.ready&&i<Math.ceil(d.remaining/(d.lastQuantity||1)*8)?'stocked':''}"></i>`).join('')}</div></div>`;
@@ -30,5 +39,5 @@ export function buyerWaitView(state){
  if(!state.retailPlanning||state.phase!=='portfolio')return '';
  const options=Object.entries({mira:'Mira',samir:'Samir',ines:'Inês'}).map(([id,name])=>({id,name,wait:retailWait(state,id)})).filter(o=>o.wait).sort((a,b)=>a.wait.day-b.wait.day);
  if(!options.length)return '';
- return `<details class="buyer-wait"><summary>想继续和某位客户合作？</summary><p>可以等对方的下一批采购，不必为了推进日历接其他单。也可以回工作室做别的业务。</p>${options.map(({id,name,wait:w})=>`<button data-wait-buyer="${id}" ${w.valid?'':'disabled'}><strong>等 ${name} 到第 ${w.day} 天</strong><span>${w.days} 天 · 工作室支出 ¥${w.cost}</span></button>`).join('')}</details>`;
+ return `<details class="buyer-wait"><summary>想继续和某位客户合作？</summary><p>可以等对方的下一批采购，不必为了推进日历接其他单。也可以回工作室做别的业务。</p>${options.map(({id,name,wait:w})=>`<button data-wait-buyer="${id}" ${w.valid?'':'disabled'}><strong>等 ${name} 到第 ${w.day} 天</strong><span>${w.days} 天 · 工作室支出 ¥${w.cost}</span></button>${retailPause(state,id)?`<button data-pause-buyer="${id}"><strong>暂停营业，等 ${name} 到第 ${w.day} 天</strong><span>资金不足时暂关工作室 ${w.days} 天 · 不营业、不计日费、不产生收入；客户照常销售现货。</span></button>`:''}`).join('')}</details>`;
 }
