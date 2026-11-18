@@ -9,7 +9,7 @@ import {officeAvailable} from './deal-room-office.js';
 import {officeImprovementView,bindOfficeImprovement} from './deal-room-office-view.js';
 let officeOpen=false,officeUI={};
 import {quoteOptionExplanation,quoteCommitmentView,quoteBuyerBrief} from './deal-room-quote-view.js';
-import {lifeAvailable} from './deal-room-life.js';
+import {LIFE_ITEMS,lifeAvailable} from './deal-room-life.js';
 import {lifeRoomView,bindLifeRoom} from './deal-room-life-view.js';
 import {stockProcurementView} from './deal-room-stock-view.js';
 import {revisionView,revisionArt} from './deal-room-revision-view.js';
@@ -53,6 +53,11 @@ function studioOpenAction(direction){const products=state.collection?.products||
 function finishPlayback(){clearTimeout(playbackTimer);playback=null;render();root.querySelector(".business h2")?.focus({preventScroll:true});}
 function nextPlaybackFrame(){if(!playback)return;if(++playback.index>=playback.frames.length){finishPlayback();return;}render();playbackTimer=setTimeout(nextPlaybackFrame,1200);}
 let revisionOpen=false,revisionScope='revision-nonexclusive';
+function openingLifeGoal(state,contract,paid){
+ if(state.phase!=='paid'||paid.length!==1||contract?.clientId!=='mira'||state.businessRound||state.clientProjectActive)return '';
+ const chair=LIFE_ITEMS.find(item=>item.id==='chair');
+ return chair?`<p class="brief opening-life-goal">三位客户的首单都收齐后，就能回家选购。<strong>${esc(chair.name)} · ${money(chair.price)}</strong></p>`:'';
+}
 let state=createDealRoom(),selected='',event='',saveNotice='进度自动保存',saveAllowed=true;
 const SAVE_KEY='trade-tycoon:deal-room:v1';
 try{if(localStorage.getItem(SAVE_KEY+':reduced-motion')==='1')document.documentElement.classList.add('reduce-motion');}catch{}
@@ -163,7 +168,7 @@ function render(){
 
  ${p?`${quoteCommitmentView(state,p,{roundActive,counterMessage:counterRelevant?state.feedback.message:''})}`:''}`:
  state.phase==='fulfilling'&&roundActive?roundProductionView(state):state.phase==='fulfilling'?`<h3>谈成了，现在交给跟单</h3><p>${esc(contract.clientName)} · ${contract.quantity} 件</p><div class="fulfil-track"><span class="done">合同确认</span><span class="moving">安排交付</span><span>第 ${contract.paymentDay} 天回款</span></div><p class="brief">预计净赚 ${money(contract.netProfit)}。常规跟单自动处理，不用逐日催货。</p><button class="primary" data-action="ADVANCE">跟进这笔生意 <span>→</span></button>`:
- state.phase==='paid'?`<div class="receipt"><small>合作落地，货款收齐</small><strong>+ ${money(contract.netProfit)}</strong><span>这单净赚 · ${esc(contract.clientName)}</span></div><button class="primary" data-action="NEXT_CLIENT">${state.businessRound?'安排下一笔合作':contract.clientId==='ines'?'回工作室，看看新机会':'看看下一位客户'} <span>→</span></button>`:
+ state.phase==='paid'?`<div class="receipt"><small>合作落地，货款收齐</small><strong>+ ${money(contract.netProfit)}</strong><span>这单净赚 · ${esc(contract.clientName)}</span></div>${openingLifeGoal(state,contract,paid)}<button class="primary" data-action="NEXT_CLIENT">${state.businessRound?'安排下一笔合作':contract.clientId==='ines'?'回工作室，看看新机会':'看看下一位客户'} <span>→</span></button>`:
  `${state.feedback?.kind==='supply-complete'?`<h3>整份供货安排，已按约完成</h3>${supplyLotsView(state.supplyPlan)}<p class="brief">${esc(state.supplyPlan.clientName)}的两批货已交齐。这次净赚 ${money(state.supplyPlan.netProfit)}，日常支出 ${money(state.supplyPlan.operatingCostPaid)}。你确定的付款条件和数量，已经变成实际交付。</p>`:''}<p class="brief">${state.feedback?.kind==='curation-paid'?`买手收到的是你选的 ${state.curation.products.length} 种产品、${state.curation.quantity} 套组合。新的采购合作从这份案例开始。`:state.feedback?.kind==='projects-complete'?`三份计划已交付，${projects.filter(p=>p.onTime).length} 份赶上专题。时间花在哪里，留下的客户案例就不同。`:state.phase==='review'?'这一轮由你选的合作已经收齐。下一轮可以深做原来的客户，也可以换个方向。':'三位客户都实际合作过了。现在不用按名单轮流接单，试着把合作做深。'}</p><div class="receipt"><small>累计净赚</small><strong>${money(paid.reduce((n,c)=>n+c.netProfit,0)+(state.supplyPlanHistory||[]).reduce((n,p)=>n+p.netProfit,0)+(state.curationHistory||[]).reduce((n,p)=>n+p.netProfit,0)+(state.accountHistory||[]).reduce((n,p)=>n+p.netProfit,0)+(state.collection?.orders||[]).reduce((n,p)=>n+p.netProfit,0)-(state.collection?.sampleCost||0))}</strong><span>${paid.length} 笔订单 · ${(state.supplyPlanHistory||[]).length} 份供货安排 · ${(state.curationHistory||[]).length} 份选品委托${state.accountHistory?.length?' · 1 份连锁采购':''}已收齐 · 第 ${state.day} 天</span></div><button class="primary" data-action="CONTINUE_BUSINESS">${state.phase==='review'?'继续经营':'选择下一笔合作'} <span>→</span></button>`}
  ${!home&&!viewingCase&&!supplyDraft&&['review','complete'].includes(state.phase)&&state.curationHistory?.length?`<aside class="supply-invite"><h3>${state.collection?(state.collection.model==='own'?'工作室自己的系列':'Northline 专用系列'):'客户想把你的组合，做成自己的系列'}</h3><button class="primary" data-action="${state.collection?'OPEN_COLLECTION':'START_COLLECTION'}">${state.collection?'查看系列与买手合作':'看看贴牌合作，或自己出样'} →</button></aside>`:''}
  ${!home&&!viewingCase&&!supplyDraft&&['review','complete'].includes(state.phase)&&state.accountHistory?.length?`<details class="case-gallery"><summary>连锁供货案例 · ${accountCoverage(state)} 家店</summary>${state.accountHistory.map(accountReceipt).join('')}<p>这次净赚 ${money(state.account.netProfit)}</p></details>`:''}
