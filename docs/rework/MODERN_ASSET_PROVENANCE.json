@@ -16,14 +16,14 @@
     },
     {
       "file": "assets/deal-buyer-boutique-v1.webp",
-      "bytes": 351718,
-      "sha256": "924f8f72826bd3b67418a7b3d09164272a0bbf4e08950246ca5169e7ea05c377",
+      "bytes": 170578,
+      "sha256": "8d2fe31d0ff90321f3641a3a0e3a1f9ab8a87ddb0e5330d7d196dbf580d6127c",
       "references": [
         "src/deal-room.css"
       ],
-      "sourceDocument": null,
-      "provenanceStatus": "individual generation receipt not found in this checkout",
-      "permissionStatus": "not independently verified per asset; not evidence of missing permission",
+      "sourceDocument": "assets/deal-buyer-boutique-v1.source.md",
+      "provenanceStatus": "first-party generation observed in this development session; exact source PNG and both prompts retained",
+      "permissionStatus": "direct production evidence retained; human rights and store review not asserted",
       "dateIssue": null
     },
     {
