@@ -22,13 +22,42 @@ function modelReceipt(state){
  }
  return first;
 }
-export function tradingChapter(state){
+// This optional ending reads cash-settled business evidence, not an XP counter:
+// two distinct clients really came back, and one entrusted a profitable two-lot job.
+function boutiqueReceipts(s,operatingNet){
+ if(!['review','complete'].includes(s.phase)||s.collection||s.accountHistory?.length||!Number.isSafeInteger(operatingNet)||operatingNet<=0||!s.supplyPlanHistory?.length)return null;
+ const clients=new Map(),opens=new Map();
+ for(const c of s.contracts||[]){
+  if(!Object.hasOwn(productLabel,c.clientId)||!settled(c,s.day))continue;
+  const at=c.paidDay??c.paymentDay;
+  if(!Number.isSafeInteger(at)||at<c.paymentDay||at>s.day)continue;
+  if(!c.businessRound&&!c.projectId){if(!opens.has(c.clientId))opens.set(c.clientId,at);continue;}
+  if(c.projectId||!Number.isSafeInteger(c.businessRound)||c.businessRound<1||!opens.has(c.clientId)||opens.get(c.clientId)>c.signedDay||!Number.isSafeInteger(c.quantity)||c.quantity<=0||!Number.isSafeInteger(c.cost)||!Number.isSafeInteger(c.operatingCost)||c.netProfit!==c.revenue-c.cost-c.operatingCost||c.netProfit<=0)continue;
+  const prev=clients.get(c.clientId);if(!prev||at<prev.at)clients.set(c.clientId,{id:c.clientId,at,order:c});
+ }
+ if(clients.size<2)return null;
+ for(const p of s.supplyPlanHistory){
+  const client=clients.get(p.clientId),other=[...clients.values()].find(r=>r.id!==p.clientId);
+  if(!client||!other||p.status!=='paid'||p.completed!==true||!['delivery','deposit'].includes(p.payment)||!Number.isSafeInteger(p.signedDay)||client.at>p.signedDay||!Number.isSafeInteger(p.finishDay)||p.finishDay>s.day||!Array.isArray(p.lots)||p.lots.length!==2||!Array.isArray(p.events)||p.eventIndex!==p.events.length)continue;
+  const [first,last]=p.lots;
+  if(first.id!=='first'||last.id!=='second'||first.deliveryDay>last.deliveryDay||!p.lots.every(l=>[l.quantity,l.cost,l.revenue,l.deliveryDay,l.paymentDay].every(Number.isSafeInteger)&&l.quantity>0&&l.cost>=0&&l.revenue>0&&p.signedDay<=l.deliveryDay&&l.deliveryDay<=l.paymentDay&&l.paymentDay<=p.finishDay&&p.events.some(e=>e.kind==='delivery'&&e.lotId===l.id&&e.day===l.deliveryDay)))continue;
+  if(p.totalQuantity!==first.quantity+last.quantity||p.cost!==first.cost+last.cost||p.revenue!==first.revenue+last.revenue||p.deposit+p.balanceDue!==p.revenue||p.deposit+p.events.reduce((sum,e)=>sum+e.income,0)!==p.revenue||p.operatingCostPaid!==p.operatingCost||!Number.isSafeInteger(p.operatingCostPaid)||p.netProfit!==p.revenue-p.cost-p.operatingCostPaid||p.netProfit<=0)continue;
+  return {kind:'boutique',clients:[client,other],plan:p,operatingNet,day:s.day};
+ }
+ return null;
+}
+export function tradingChapter(state,path='stores',operatingNet=null){
+ if(path==='boutique')return boutiqueReceipts(state,operatingNet);
  const chain=chainReceipts(state);if(!chain)return null;
  const model=modelReceipt(state);
  return chain&&model?{chain,model,completedDay:Math.max(chain.paymentDay,model.paidDay)}:null;
 }
 const cash=n=>'¥'+n.toLocaleString('zh-CN');
 export function tradingChapterView(t,focus='chain',settledLedger=''){
+ if(t.kind==='boutique'){
+  const names={mira:'Mira · Forma 家居',samir:'Samir · Nawa 精品店',ines:'Inês · Linha 生活馆'},p=t.plan,[first,last]=p.lots;
+  return `<section class="career-recap" aria-label="精品工作室收尾"><small>第 ${t.day} 天 · 精品工作室</small><h3 tabindex="-1">把熟客生意做稳了</h3><p>两位做过生意的买手又来找你。其中一位把接下来两批货，也交给了这间工作室。</p><div class="recap-facts">${t.clients.map(r=>`<div><strong>${names[r.id].split(' · ')[0]}</strong><span>${r.order.quantity} 件回单 · 第 ${r.at} 天结清</span><small>这单净赚 ${cash(r.order.netProfit)}</small></div>`).join('')}</div><h4>${names[p.clientId]} 的两批委托</h4><p>第 ${first.deliveryDay} 天交了 ${first.quantity} 件，第 ${last.deliveryDay} 天再交 ${last.quantity} 件。第 ${p.finishDay} 天收齐 ${cash(p.revenue)}，扣除备货与日常支出，这份委托净赚 ${cash(p.netProfit)}。</p><p>工作室至今经营累计赚到 <strong>${cash(t.operatingNet)}</strong>。不做品牌、不铺连锁，这份账也足以为这一程收个尾。</p>${settledLedger}<button class="primary" id="resume-work">继续经营这间工作室 →</button></section>`;
+ }
  const model=focus==='model',c=t.model.contract;
  return `<section class="career-recap" aria-label="贸易供货路线收尾"><small>第 ${t.completedDay} 天 · 贸易工作室</small><h3 tabindex="-1">做成了六家店的供货生意</h3><p>一份买手选品变成了六家门店的采购；另一款工厂新样，也成了 Mira 愿意付钱订的产品。</p><div class="career-directions" role="group" aria-label="选择要摆上桌的成果"><button data-trade-evidence="chain" aria-pressed="${!model}">看六店供货</button><button data-trade-evidence="model" aria-pressed="${model}">看新品采用</button></div><div class="recap-facts" aria-live="polite">${model?`<div><strong>${c.quantity} 盏</strong><span>Mira · ${t.model.product}</span></div><div><strong>${cash(c.revenue)}</strong><span>这批灯的货款，已收齐</span></div>`:`<div><strong>${t.chain.sets} 套</strong><span>Northline · 六家店的通用组合</span></div><div><strong>${cash(t.chain.revenue)}</strong><span>门店采购货款，已收齐</span></div>`}</div>${model?`<p>${t.model.factory} 的实物样转成了正式订单。第 ${c.deliveryDay} 天送到 Mira，第 ${t.model.paidDay} 天收清货款。</p><button class="quiet" data-action="${c.optionId==='second-developed-lamp'?'OPEN_SECOND_SUPPLIER':'VIEW_DEVELOPMENT'}">取出这笔订单的工厂留样 →</button>`:`<p>${t.chain.source.products.map(id=>id==='mira'&&t.chain.source.lampVersion==='developed'?'三档调光台灯':productLabel[id]).join('、')}。</p>${t.chain.batches.map((b,i)=>`<p>${b.stores===6?'六家门店':i?'后来三家':'首批三家'}：${b.sets} 套，第 ${b.deliveryDay} 天交货，第 ${b.paymentDay} 天收齐 ${cash(b.revenue)}。</p>`).join('')}<details><summary>翻开最初那份买手选品</summary><p>第 ${t.chain.source.paymentDay} 天，买手收到的 ${t.chain.source.quantity} 套选品已经结清。之后递给 Northline 的，是这份做过的组合。</p></details>`}${settledLedger}<button class="primary" id="resume-work">继续自由经营 →</button></section>`;
 }
