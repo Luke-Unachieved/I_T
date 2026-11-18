@@ -39,9 +39,14 @@ export function previewRoundSigning(state,q,clientId){
  const s=clone(state),index=s.contracts.length;
  s.cash+=q.deposit-q.cost;s.contracts.push({...q,clientId,businessRound:s.businessRound,roundReceivable:true,status:'receivable',operatingCost:0,netProfit:q.profit});
  const horizon=Math.max(q.paymentDay,...orders(s).filter(c=>c.status==='receivable').map(c=>c.paymentDay));
+ // The final round balance may include a different customer's payment several
+ // days later. Project this contract's own day separately, with the same ledger.
+ // Only the at-most-two live round entries are needed; never rewrite the save.
+ const onOwnDay=!reason&&horizon>q.paymentDay?{day:s.day,cash:s.cash,businessRound:s.businessRound,roundReceivables:s.roundReceivables,contracts:orders(s).map(o=>({...o}))}:null;
  if(!reason&&!advanceRoundTime(s,horizon,index))reason='按已确定的回款日期，现金不足以覆盖期间开支。';
  const valid=state.phase==='negotiating'&&!reason;
- return {...q,valid,reason:reason||(q.accepted===false?q.reason:''),estimatedOperatingCost:q.operatingCost,
+ const hasEarlierBalance=valid&&onOwnDay&&advanceRoundTime(onOwnDay,q.paymentDay,onOwnDay.contracts.length-1);
+ return {...q,...(hasEarlierBalance?{cashAtOwnPayment:onOwnDay.cash}:{}),valid,reason:reason||(q.accepted===false?q.reason:''),estimatedOperatingCost:q.operatingCost,
   cashRequired:Math.max(0,q.cost-q.deposit),cashAfterSigning:state.cash+q.deposit-q.cost,
   cashAfterPayment:reason?null:s.cash,projectedSettlementDay:horizon,opportunityNote:'交货后可谈本轮第二单；尾款按原账期到账。两单收齐后再回工作室。'};
 }

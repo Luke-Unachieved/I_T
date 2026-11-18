@@ -12,3 +12,5 @@
 .cash-path-values small{font-size:11px;color:#726b5d}.cash-path-values strong{font-size:clamp(11px,2.7vw,14px);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
 .cash-path-values .cash-path-negative{color:#9b4434}.cash-path-dot.cash-path-negative{fill:#9b4434}
 .cash-path-context{display:block;margin-top:7px;font-size:11px;line-height:1.5;color:#746c5d}
+
+.cash-path-values.cash-path-four{grid-template-columns:repeat(4,minmax(0,1fr))}.cash-path-four small{line-height:1.2;overflow-wrap:anywhere}@media(max-width:360px){.cash-path-values.cash-path-four{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:8px}}
