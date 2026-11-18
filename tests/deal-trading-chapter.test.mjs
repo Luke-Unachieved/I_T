@@ -2,7 +2,7 @@ import test from 'node:test';import assert from 'node:assert/strict';import vm f
 import {createDealRoom,reduceDealRoom} from '../src/deal-room-engine.js';
 import {cooperationChapter} from '../src/deal-room-cooperation.js';
 import {tradingChapter,tradingChapterView,tradingChapterVisual} from '../src/deal-room-trading-chapter.js';
-import {careerRecapView} from '../src/deal-room-home.js';
+import {careerRecapView,settledUnitPricesView} from '../src/deal-room-home.js';
 import {buildDealHtml} from '../scripts/build-deal-standalone.mjs';
 const a=(s,type,fields={})=>{const n=reduceDealRoom(s,{type,...fields});assert.notEqual(n,s,type+' in '+s.phase);return n;};
 const finish=(s,id)=>a(a(a(s,'PROPOSE',{optionId:id}),'ADVANCE'),'NEXT_CLIENT');
@@ -21,6 +21,21 @@ function newModel(s,factory='studio',second=false){
 }
 function sell(s,second=false){s=a(a(s,'CONTINUE_BUSINESS'),'SELECT_CLIENT',{clientId:'mira'});return a(finish(s,second?'second-developed-lamp':'developed-lamp'),'BACK_FROM_CLIENTS');}
 const natural=()=>sell(newModel(expand(first(base(),'pilot'))));
+test('the D45 trade ending keeps the regular settlement book and does not invent a supply plan',()=>{
+ const s=natural(),original=structuredClone(s),prices=settledUnitPricesView(s.contracts);assert.equal(s.day,45);assert.equal(s.contracts.filter(c=>c.status==='paid').length,6);assert.ok(prices.includes('自己的成交单价'));
+ for(const route of ['auto','trade'])for(const evidence of ['chain','model']){
+  const html=careerRecapView(s,{route,evidence});assert.match(html,/做成了六家店的供货生意/);assert.match(html,/可用资金 ¥22,660/);assert.ok(html.includes(prices));assert.equal((html.match(/自己的成交单价/g)||[]).length,1);assert.ok(prices.includes('每件 ¥70'));assert.doesNotMatch(html,/最近结清的两批供货/);
+ }
+ assert.deepEqual(s,original);
+});
+test('a real previously paid two-lot plan stays inspectable next to either trade receipt and an existing series recap',()=>{
+ let s=a(a(base(),'START_SUPPLY_PLAN',{clientId:'mira',firstBatch:'small',payment:'delivery'}),'FULFIL_SUPPLY_PLAN');assert.equal(s.supplyPlanHistory.at(-1).lots.length,2);const original=s.supplyPlanHistory.at(-1);
+ const receipt=careerRecapView(s).match(/<details class="settled-prices"><summary>最近结清的两批供货[\s\S]+?<\/details>/)[0];
+ s=sell(newModel(expand(first(s,'pilot'))));assert.ok(tradingChapter(s));const series=privateSeries(s);
+ for(const state of [s,series])for(const route of ['auto','trade'])for(const evidence of ['chain','model']){
+  const html=careerRecapView(state,{route,evidence});assert.ok(html.includes(receipt));assert.ok(html.includes(settledUnitPricesView(state.contracts)));assert.equal((html.match(/最近结清的两批供货/g)||[]).length,1);assert.deepEqual(state.supplyPlanHistory.at(-1),original);
+ }
+});
 test('D45 supplier career closes without a collection or household spending, with only the two real trades',()=>{
  const s=natural(),snap=structuredClone(s),t=tradingChapter(s);assert.equal(s.day,45);assert.equal(s.cash,22660);assert.equal(s.collection,undefined);assert.equal(s.personalLife?.spent||0,0);
  assert.equal(cooperationChapter(s).closed,false,'separate design chapter remains unopened');assert.equal(t.completedDay,45);assert.equal(t.chain.sets,600);assert.equal(t.chain.revenue,46200);assert.deepEqual(t.chain.batches.map(b=>b.paymentDay),[31,37]);assert.equal(t.model.contract.quantity,60);assert.equal(t.model.contract.revenue,4200);
@@ -52,8 +67,8 @@ test('offline interface opens trade independently, changes actual goods on the d
   const s=withSeries?privateSeries(natural()):natural(),cash=s.cash,day=s.day;let saved=0;const buttons={};
   const root={innerHTML:'',querySelector(sel){if(sel==='#motion')return {};if(sel.startsWith('#')&&this.innerHTML.includes('id="'+sel.slice(1)+'"'))return {addEventListener(_,fn){buttons[sel]=fn;},focus(){}};return null;},querySelectorAll(sel){if(sel==='[data-trade-evidence]'&&this.innerHTML.includes('data-trade-evidence='))return ['chain','model'].map(key=>({dataset:{tradeEvidence:key},set onclick(fn){buttons[key]=fn;}}));return [];}};
   const context=vm.createContext({document:{querySelector:()=>root,documentElement:{classList:{contains:()=>false,add(){}}}},localStorage:{getItem:k=>k==='trade-tycoon:deal-room-offline:v1'?JSON.stringify(s):null,setItem(){saved++;}},structuredClone,TextEncoder,console});
-  new vm.Script(code).runInContext(context,{timeout:3000});const before=saved;assert.equal((root.innerHTML.match(/id="finish-trading"/g)||[]).length,1);assert.match(root.innerHTML,/Mira 也收到了 60 盏三档调光台灯/);const opener=withSeries?'#finish-trading':'#finish-session';assert.equal(typeof buttons[opener],'function');buttons[opener]();assert.match(root.innerHTML,/Northline · 六店通用组合 · 已交货并收款/);assert.match(root.innerHTML,/300 套，第 29 天交货，第 31 天收齐/);
-  buttons.model();assert.match(root.innerHTML,/Mira · 三档调光台灯 · 已交货并收款/);assert.doesNotMatch(root.innerHTML,/Northline · 六店通用组合 · 已交货并收款/);assert.match(root.innerHTML,/第 45 天送到 Mira，第 45 天收清货款/);
+  new vm.Script(code).runInContext(context,{timeout:3000});const before=saved;assert.equal((root.innerHTML.match(/id="finish-trading"/g)||[]).length,1);assert.match(root.innerHTML,/Mira 也收到了 60 盏三档调光台灯/);const opener=withSeries?'#finish-trading':'#finish-session';assert.equal(typeof buttons[opener],'function');buttons[opener]();assert.match(root.innerHTML,/自己的成交单价/);assert.match(root.innerHTML,/Northline · 六店通用组合 · 已交货并收款/);assert.match(root.innerHTML,/300 套，第 29 天交货，第 31 天收齐/);
+  buttons.model();assert.match(root.innerHTML,/自己的成交单价/);assert.match(root.innerHTML,/Mira · 三档调光台灯 · 已交货并收款/);assert.doesNotMatch(root.innerHTML,/Northline · 六店通用组合 · 已交货并收款/);assert.match(root.innerHTML,/第 45 天送到 Mira，第 45 天收清货款/);
   buttons.chain();assert.match(root.innerHTML,/600 套已交付/);buttons['#resume-work']();assert.match(root.innerHTML,new RegExp('id="'+opener.slice(1)+'"'));assert.doesNotMatch(root.innerHTML,/class="career-recap"/);
   assert.equal(saved,before);assert.equal(s.cash,cash);assert.equal(s.day,day);
  }
