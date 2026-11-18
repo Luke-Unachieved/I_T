@@ -16,16 +16,32 @@ test('actual focus helper keeps selected rebuilt choice rather than body',()=>{c
 test('duplicate choices preserve originating terms control',()=>{assert.equal(run(['small','season','season','all-now'],2).focused.index,2);});
 test('removed duplicate falls back to same semantic choice, missing choice is safe',()=>{assert.equal(run(['season','season'],1,['season']).focused.index,0);assert.equal(run(['season'],0,[]).focused,null);});
 test('sample, offer and revision handlers use focus-preserving render without saving',()=>{for(const attr of ['data-sample','data-select','data-revision-scope','data-growth-product','data-growth-pack','data-curation-product','data-curation-quantity','data-curation-pack']){const line=source.split('\n').find(l=>l.includes(`querySelectorAll('[${attr}]').forEach`));assert.ok(line.includes(`renderKeepingChoiceFocus(b,'${attr}')`));assert.ok(!line.includes('save('));}});
-test('only the eight intended handlers call the helper',()=>{
+test('all intended passive choice handlers preserve focus',()=>{
+ const expected=['data-sample','data-select','data-revision-scope','data-growth-product','data-growth-pack','data-curation-product','data-curation-quantity','data-curation-pack','data-factory','data-collection-model','data-collection-style','data-pitch-option','data-account-option','data-proposal-model','data-proposal-light','data-growth-model','data-series-lamp','data-growth-route','data-growth-calloff','data-growth-terms','data-lamp-version','data-plan-first','data-plan-payment','data-revision-open','data-stock-mode'];
  const calls=source.split('\n').filter(line=>line.includes('renderKeepingChoiceFocus(')&&!line.startsWith('function '));
- assert.equal(calls.length,8);
- for(const line of calls){
-  const match=line.match(/querySelectorAll\('\[(data-sample|data-select|data-revision-scope|data-growth-product|data-growth-pack|data-curation-product|data-curation-quantity|data-curation-pack)\]'\)/);
-  assert.ok(match,'unexpected selector or unbound b');
-  assert.ok(line.includes(`renderKeepingChoiceFocus(b,'${match[1]}')`));
+ assert.equal(calls.length,expected.length);
+ for(const attr of expected){
+  const line=calls.find(line=>line.includes(`querySelectorAll('[${attr}]')`));
+  assert.ok(line,attr);assert.ok(line.includes(`renderKeepingChoiceFocus(b,'${attr}')`));
+  assert.ok(!line.includes('save('),'passive choice must not add a journal event');
  }
 });
 
+test('panel return reveals its collapsed parent and preserves scroll',()=>{
+ const details={tagName:'DETAILS',open:false,parentElement:null};let focused=null;
+ const target={parentElement:details,focus:options=>focused=options};
+ const context={root:{querySelector:()=>target},render(){}};
+ vm.createContext(context);vm.runInContext(body,context);context.restoreReturnFocus('#open-supply');
+ assert.equal(details.open,true);assert.equal(focused.preventScroll,true);
+});
+
+test('missing return control is safe and disabled controls are not focused',()=>{
+ let target=null,focused=false;
+ const context={root:{querySelector:()=>target},render(){}};
+ vm.createContext(context);vm.runInContext(body,context);
+ assert.doesNotThrow(()=>context.restoreReturnFocus('#missing'));
+ target={disabled:true,focus:()=>focused=true};context.restoreReturnFocus('#disabled');assert.equal(focused,false);
+});
 test('repair choices focus the resulting sample without saving or changing engine',()=>{
  const line=source.split('\n').find(l=>l.includes("querySelectorAll('[data-repair]').forEach"));
  assert.ok(!line.includes('save('));assert.ok(!line.includes('reduceDealRoom('));

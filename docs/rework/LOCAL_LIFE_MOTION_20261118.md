@@ -21,3 +21,7 @@ Expanded the existing view-only playerSteps mapping for five previously exposed 
 Moved the current cooperation guidance ahead of optional opening curation, procurement, shop trials and revision opportunities. These existing opportunities now live under a native, keyboard-accessible details section; it opens by default when no current cooperation/completion/three-store expansion is competing for attention. No entry, action binding, unlock condition or business rule was removed. The existing three-to-six-store continuation stays prominent.
 
 Static `node --check` passed for home, cooperation view, life art/view and modern bundler; this parses files only and does not run the game. Visual/layout acceptance and regression execution remain pending until full development is ready. Potential acceptance risk: verify focus restoration when entering and leaving a collapsed opportunity section.
+
+## Choice focus completion
+
+Reused the existing renderKeepingChoiceFocus helper for 17 additional passive option controls (samples, collection appearance, buyer terms, lamp configuration, procurement and supply planning). No extra save/journal actions were added. Return from supply planning and two product proposal panels now focuses the corresponding opener and reveals its collapsed ancestor. Focus helper will not target disabled controls. Expanded the existing regression cases to 25 intended choice handlers and added return/missing/disabled cases. Source and test syntax parse; test behavior is not yet executed, and visual acceptance is pending.
