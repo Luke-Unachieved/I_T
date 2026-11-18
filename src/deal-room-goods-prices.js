@@ -2,6 +2,32 @@
 const integer=Number.isSafeInteger;
 const day=n=>integer(n)&&n>=0;
 const pos=n=>integer(n)&&n>0;
+// The signed two-lot cup contract predates an explicit packaging field.
+// Check BOTH immutable production and sale terms of the two authored Samir
+// price lists. For history also require the contemporaneous paid specification;
+// never identify an old plan from whichever sample the customer owns today.
+export function supplyCupEdition(p,contracts=null){
+ if(p?.clientId!=='samir'||p.product!=='不锈钢保温杯'||p.totalQuantity!==240||!['delivery','deposit'].includes(p.payment)||!Array.isArray(p.lots)||p.lots.length!==2||p.lots.reduce((n,l)=>n+l.quantity,0)!==240||p.lots.reduce((n,l)=>n+l.revenue,0)!==p.revenue)return null;
+ const terms=[['plain','无印字现货',6300,9300],['branded','定制包装',7200,10500]].find(([, ,cost,full])=>p.cost===cost&&p.revenue===(p.payment==='delivery'?Math.floor(full*.96):full)&&p.lots.every(l=>pos(l.quantity)&&l.cost*240===cost*l.quantity&&l.revenue*240===p.revenue*l.quantity));
+ if(!terms)return null;
+ if(contracts!==null){
+  if(!day(p.signedDay)||!Array.isArray(contracts))return null;
+  const prior=contracts.findLast(c=>c.clientId==='samir'&&c.status==='paid'&&day(c.paidDay??c.paymentDay)&&(c.paidDay??c.paymentDay)<=p.signedDay);
+  if(!prior||(!['standard','branded'].includes(prior.specification)&&!['ready','branded'].includes(prior.optionId))||((prior.optionId==='branded'||prior.specification==='branded')?'branded':'plain')!==terms[0])return null;
+ }
+ return {id:terms[0],label:terms[1]};
+}
+export function priorSupplyAgreements(state,clients=[]){
+ const names={samir:'Samir',mira:'Mira',ines:'Inês'},eligible=new Set(clients.map(c=>c.id)),rows=new Map();
+ for(const p of state.supplyPlanHistory||[]){
+  if(!eligible.has(p.clientId)||!Object.hasOwn(names,p.clientId)||p.status!=='paid'||!day(p.finishDay)||p.finishDay>state.day||!pos(p.totalQuantity)||!pos(p.revenue)||!['deposit','delivery'].includes(p.payment))continue;
+  const ed=p.clientId==='samir'?supplyCupEdition(p,state.contracts||[]):null;
+  if(p.clientId==='samir'&&!ed)continue;
+  const label=ed?.label||({mira:'标准台灯',ines:'棉麻桌布'})[p.clientId];
+  rows.set(p.clientId+':'+label,{name:names[p.clientId],label,quantity:p.totalQuantity,unit:p.revenue/p.totalQuantity,finish:p.finishDay,terms:p.payment==='deposit'?'三成定金、末批交付后结清':'交货逐批结清'});
+ }
+ return rows.size?`<details class="settled-prices"><summary>再谈之前，翻开同款的上份供货约定</summary>${[...rows.values()].sort((a,b)=>b.finish-a.finish).map(r=>`<p><strong>${r.name} · ${r.label}</strong><br>${r.quantity} 件，每件 ${perUnit(r.unit)}；${r.terms}，第 ${r.finish} 天收齐。</p>`).join('')}</details>`:'';
+}
 export function goodsPriceRecords(state){
  const records=[...(state.contracts||[])],asOf=state.day;
  const append=(who,product,spec,signedDay,paidDay,quantity,revenue,priceSource,fee=0)=>{
@@ -19,7 +45,10 @@ export function goodsPriceRecords(state){
   append('lisbon-display','棉麻桌布 · 展陈采购','exhibit-linen',f.signedDay,f.paidDay,f.delivered,f.goodsRevenue,'里斯本展陈',f.serviceFee);
  for(const plan of state.supplyPlanHistory||[]){
   if(plan.status!=='paid'||!Array.isArray(plan.lots)||plan.lots.length!==2||!plan.product||!day(plan.finishDay)||plan.finishDay>asOf||plan.lots.reduce((sum,l)=>sum+l.quantity,0)!==plan.totalQuantity||plan.lots.reduce((sum,l)=>sum+l.revenue,0)!==plan.revenue)continue;
-  plan.lots.forEach((lot,i)=>append('supply-'+plan.clientId,plan.product+' · 分批供货','supply-plan',plan.signedDay,lot.paymentDay,lot.quantity,lot.revenue,i?'第二批':'首批'));
+  const cup=plan.clientId==='samir',ed=cup?supplyCupEdition(plan,state.contracts||[]):null;
+  const label=plan.product+' · 分批供货'+(cup?' · '+(ed?.label||'包装未核实'):'');
+  const spec=cup?'supply-cup-'+(ed?.id||'unverified-'+plan.signedDay):'supply-plan';
+  plan.lots.forEach((lot,i)=>append('supply-'+plan.clientId,label,spec,plan.signedDay,lot.paymentDay,lot.quantity,lot.revenue,i?'第二批':'首批'));
  }
  return records.sort((a,b)=>(a.signedDay??0)-(b.signedDay??0));
 }
