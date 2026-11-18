@@ -11,11 +11,18 @@ export function exhibitionWorks(state){
   rows.push({sourceId:'order-'+i,title:`${c.clientName||c.clientId} · ${p.name}`,buyer:c.clientName||c.clientId,products:[p],quantity:c.quantity,deliveryDay:c.deliveryDay,kind:'order'});
  }
  for(const [i,c] of (state.curationHistory||[]).entries())if(valid(c)&&typeof c.buyer==='string'&&c.buyer.trim()&&Array.isArray(c.products)&&c.products.length>0&&c.products.length<=3&&new Set(c.products).size===c.products.length&&c.products.every(product))rows.push({sourceId:'case-'+i,title:`${c.buyer} · ${c.products.length} 款选品`,buyer:c.buyer,products:c.products.map(id=>({...product(id),...(id==='mira'&&c.lampVersion==='developed'?{name:'三档调光台灯'}:{})})),quantity:c.quantity,deliveryDay:c.deliveryDay,kind:'case'});
+ // Only settled historical batches belong on the wall, never the current draft.
+ for(const [i,c] of (state.accountHistory||[]).entries()){
+  if(c?.status!=='paid'||![3,6].includes(c.stores)||!Number.isSafeInteger(c.sets)||c.sets<=0||!Number.isInteger(c.deliveryDay)||c.deliveryDay<0||!Number.isInteger(c.paymentDay)||c.paymentDay<c.deliveryDay||c.paymentDay>state.day||typeof c.buyer!=='string'||!c.buyer.trim()||!Array.isArray(c.products)||!c.products.length||c.products.length>3||new Set(c.products).size!==c.products.length||!c.products.every(product))continue;
+  const source=c.seriesSource;
+  if(source&&(!['cream','charcoal','botanical','tidal-grid'].includes(source.style)||typeof source.label!=='string'||typeof source.signature!=='string'))continue;
+  rows.push({sourceId:'account-'+i,title:`${c.buyer} · ${c.expansion?'余下':c.stores===3?'首批':'全部'} ${c.stores} 家店`,buyer:c.buyer,products:c.products.map(id=>({...product(id),...(id==='mira'&&c.lampVersion==='developed'?{name:'三档调光台灯'}:{})})),quantity:c.sets,stores:c.stores,expansion:!!c.expansion,deliveryDay:c.deliveryDay,paymentDay:c.paymentDay,kind:'account',...(source?{seriesSource:structuredClone(source)}:{})});
+ }
  return rows;
 }
 export function canonicalExhibitionAction(a){
  if(!a||typeof a!=='object'||Array.isArray(a)||a.type!=='SAVE_PRIVATE_EXHIBITION'||Object.keys(a).length!==3||!Object.hasOwn(EXHIBITION_THEMES,a.theme)||!Array.isArray(a.entries)||a.entries.length<1||a.entries.length>3||!a.entries.some(Boolean))return null;
- if(a.entries.some(e=>e!==null&&(typeof e!=='object'||Array.isArray(e)||Object.keys(e).length!==2||typeof e.sourceId!=='string'||(!/^(order|case)-(0|[1-9][0-9]*)$/.test(e.sourceId)||!Number.isSafeInteger(Number(e.sourceId.split('-')[1])))||!Object.hasOwn(EXHIBITION_NOTES,e.note)))||new Set(a.entries.filter(Boolean).map(e=>e.sourceId)).size!==a.entries.filter(Boolean).length)return null;
+ if(a.entries.some(e=>e!==null&&(typeof e!=='object'||Array.isArray(e)||Object.keys(e).length!==2||typeof e.sourceId!=='string'||(!/^(order|case|account)-(0|[1-9][0-9]*)$/.test(e.sourceId)||!Number.isSafeInteger(Number(e.sourceId.split('-')[1])))||!Object.hasOwn(EXHIBITION_NOTES,e.note)))||new Set(a.entries.filter(Boolean).map(e=>e.sourceId)).size!==a.entries.filter(Boolean).length)return null;
  return {type:a.type,theme:a.theme,entries:a.entries.map(e=>e?({sourceId:e.sourceId,note:e.note}):null)};
 }
 export function applyExhibitionAction(state,action){
