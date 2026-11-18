@@ -1,0 +1,761 @@
+{
+  "version": 1,
+  "day": 196,
+  "cash": 190,
+  "clientIndex": 2,
+  "phase": "review",
+  "contracts": [
+    {
+      "clientId": "mira",
+      "clientName": "Mira · Forma 家居",
+      "product": "便携台灯",
+      "optionId": "trial",
+      "quantity": 60,
+      "revenue": 2400,
+      "cost": 1800,
+      "deposit": 0,
+      "balanceDue": 2400,
+      "profit": 600,
+      "operatingCost": 90,
+      "netProfit": 510,
+      "signedDay": 1,
+      "deliveryDay": 4,
+      "paymentDay": 4,
+      "status": "paid"
+    },
+    {
+      "clientId": "samir",
+      "clientName": "Samir · Nawa 精品店",
+      "product": "不锈钢保温杯",
+      "optionId": "ready",
+      "quantity": 80,
+      "revenue": 4100,
+      "cost": 2600,
+      "deposit": 0,
+      "balanceDue": 4100,
+      "profit": 1500,
+      "operatingCost": 60,
+      "netProfit": 1440,
+      "signedDay": 4,
+      "deliveryDay": 6,
+      "paymentDay": 6,
+      "status": "paid"
+    },
+    {
+      "clientId": "ines",
+      "clientName": "Inês · Linha 生活馆",
+      "product": "棉麻桌布",
+      "optionId": "season",
+      "quantity": 150,
+      "revenue": 6200,
+      "cost": 4300,
+      "deposit": 1860,
+      "balanceDue": 4340,
+      "profit": 1900,
+      "operatingCost": 330,
+      "netProfit": 1570,
+      "signedDay": 6,
+      "deliveryDay": 11,
+      "paymentDay": 17,
+      "status": "paid"
+    },
+    {
+      "clientId": "mira",
+      "clientName": "Mira · Forma 家居",
+      "product": "便携台灯",
+      "optionId": "repeat-scale",
+      "quantity": 150,
+      "revenue": 5700,
+      "cost": 4100,
+      "deposit": 1710,
+      "balanceDue": 3990,
+      "profit": 1600,
+      "operatingCost": 240,
+      "netProfit": 1360,
+      "signedDay": 23,
+      "deliveryDay": 27,
+      "paymentDay": 31,
+      "status": "paid",
+      "businessRound": 1,
+      "specification": "standard"
+    },
+    {
+      "clientId": "mira",
+      "clientName": "Mira · Forma 家居",
+      "product": "便携台灯",
+      "optionId": "repeat-scale",
+      "quantity": 180,
+      "revenue": 6600,
+      "cost": 4800,
+      "deposit": 1980,
+      "balanceDue": 4620,
+      "profit": 1800,
+      "operatingCost": 330,
+      "netProfit": 1470,
+      "signedDay": 31,
+      "deliveryDay": 35,
+      "paymentDay": 42,
+      "status": "paid",
+      "businessRound": 1,
+      "specification": "standard"
+    },
+    {
+      "clientId": "mira",
+      "clientName": "Mira · Forma 家居",
+      "product": "便携台灯",
+      "optionId": "repeat-scale",
+      "quantity": 180,
+      "revenue": 6600,
+      "cost": 4800,
+      "deposit": 1980,
+      "balanceDue": 4620,
+      "profit": 1800,
+      "operatingCost": 330,
+      "netProfit": 1470,
+      "signedDay": 42,
+      "deliveryDay": 46,
+      "paymentDay": 53,
+      "status": "paid",
+      "businessRound": 2,
+      "specification": "standard"
+    },
+    {
+      "clientId": "ines",
+      "clientName": "Inês · Linha 生活馆",
+      "product": "棉麻桌布",
+      "optionId": "repeat-scale",
+      "quantity": 200,
+      "revenue": 7400,
+      "cost": 5300,
+      "deposit": 2220,
+      "balanceDue": 5180,
+      "profit": 2100,
+      "operatingCost": 390,
+      "netProfit": 1710,
+      "signedDay": 53,
+      "deliveryDay": 58,
+      "paymentDay": 66,
+      "status": "paid",
+      "businessRound": 2,
+      "specification": "standard"
+    },
+    {
+      "clientId": "ines",
+      "clientName": "Inês · Linha 生活馆",
+      "product": "棉麻桌布",
+      "optionId": "repeat-scale",
+      "quantity": 200,
+      "revenue": 7400,
+      "cost": 5300,
+      "deposit": 2220,
+      "balanceDue": 5180,
+      "profit": 2100,
+      "operatingCost": 390,
+      "netProfit": 1710,
+      "signedDay": 66,
+      "deliveryDay": 71,
+      "paymentDay": 79,
+      "status": "paid",
+      "businessRound": 3,
+      "specification": "standard"
+    },
+    {
+      "clientId": "ines",
+      "clientName": "Inês · Linha 生活馆",
+      "product": "棉麻桌布",
+      "optionId": "repeat-scale",
+      "quantity": 200,
+      "revenue": 7400,
+      "cost": 5300,
+      "deposit": 2220,
+      "balanceDue": 5180,
+      "profit": 2100,
+      "operatingCost": 390,
+      "netProfit": 1710,
+      "signedDay": 79,
+      "deliveryDay": 84,
+      "paymentDay": 92,
+      "status": "paid",
+      "businessRound": 3,
+      "specification": "standard"
+    },
+    {
+      "clientId": "ines",
+      "clientName": "Inês · Linha 生活馆",
+      "product": "棉麻桌布",
+      "optionId": "repeat-scale",
+      "quantity": 200,
+      "revenue": 7400,
+      "cost": 5300,
+      "deposit": 2220,
+      "balanceDue": 5180,
+      "profit": 2100,
+      "operatingCost": 390,
+      "netProfit": 1710,
+      "signedDay": 92,
+      "deliveryDay": 97,
+      "paymentDay": 105,
+      "status": "paid",
+      "businessRound": 4,
+      "specification": "standard"
+    },
+    {
+      "clientId": "ines",
+      "clientName": "Inês · Linha 生活馆",
+      "product": "棉麻桌布",
+      "optionId": "repeat-scale",
+      "quantity": 200,
+      "revenue": 7400,
+      "cost": 5300,
+      "deposit": 2220,
+      "balanceDue": 5180,
+      "profit": 2100,
+      "operatingCost": 390,
+      "netProfit": 1710,
+      "signedDay": 105,
+      "deliveryDay": 110,
+      "paymentDay": 118,
+      "status": "paid",
+      "businessRound": 4,
+      "specification": "standard"
+    },
+    {
+      "clientId": "ines",
+      "clientName": "Inês · Linha 生活馆",
+      "product": "棉麻桌布",
+      "optionId": "repeat-scale",
+      "quantity": 200,
+      "revenue": 7400,
+      "cost": 5300,
+      "deposit": 2220,
+      "balanceDue": 5180,
+      "profit": 2100,
+      "operatingCost": 390,
+      "netProfit": 1710,
+      "signedDay": 118,
+      "deliveryDay": 123,
+      "paymentDay": 131,
+      "status": "paid",
+      "businessRound": 5,
+      "specification": "standard"
+    },
+    {
+      "clientId": "ines",
+      "clientName": "Inês · Linha 生活馆",
+      "product": "棉麻桌布",
+      "optionId": "repeat-scale",
+      "quantity": 200,
+      "revenue": 7400,
+      "cost": 5300,
+      "deposit": 2220,
+      "balanceDue": 5180,
+      "profit": 2100,
+      "operatingCost": 390,
+      "netProfit": 1710,
+      "signedDay": 131,
+      "deliveryDay": 136,
+      "paymentDay": 144,
+      "status": "paid",
+      "businessRound": 5,
+      "specification": "standard"
+    },
+    {
+      "clientId": "ines",
+      "clientName": "Inês · Linha 生活馆",
+      "product": "棉麻桌布",
+      "optionId": "repeat-scale",
+      "quantity": 200,
+      "revenue": 7400,
+      "cost": 5300,
+      "deposit": 2220,
+      "balanceDue": 5180,
+      "profit": 2100,
+      "operatingCost": 390,
+      "netProfit": 1710,
+      "signedDay": 144,
+      "deliveryDay": 149,
+      "paymentDay": 157,
+      "status": "paid",
+      "businessRound": 6,
+      "specification": "standard"
+    },
+    {
+      "clientId": "ines",
+      "clientName": "Inês · Linha 生活馆",
+      "product": "棉麻桌布",
+      "optionId": "repeat-scale",
+      "quantity": 200,
+      "revenue": 7400,
+      "cost": 5300,
+      "deposit": 2220,
+      "balanceDue": 5180,
+      "profit": 2100,
+      "operatingCost": 390,
+      "netProfit": 1710,
+      "signedDay": 157,
+      "deliveryDay": 162,
+      "paymentDay": 170,
+      "status": "paid",
+      "businessRound": 6,
+      "specification": "standard"
+    },
+    {
+      "clientId": "ines",
+      "clientName": "Inês · Linha 生活馆",
+      "product": "棉麻桌布",
+      "optionId": "repeat-scale",
+      "quantity": 200,
+      "revenue": 7400,
+      "cost": 5300,
+      "deposit": 2220,
+      "balanceDue": 5180,
+      "profit": 2100,
+      "operatingCost": 390,
+      "netProfit": 1710,
+      "signedDay": 170,
+      "deliveryDay": 175,
+      "paymentDay": 183,
+      "status": "paid",
+      "businessRound": 7,
+      "specification": "standard"
+    },
+    {
+      "clientId": "ines",
+      "clientName": "Inês · Linha 生活馆",
+      "product": "棉麻桌布",
+      "optionId": "repeat-scale",
+      "quantity": 200,
+      "revenue": 7400,
+      "cost": 5300,
+      "deposit": 2220,
+      "balanceDue": 5180,
+      "profit": 2100,
+      "operatingCost": 390,
+      "netProfit": 1710,
+      "signedDay": 183,
+      "deliveryDay": 188,
+      "paymentDay": 196,
+      "status": "paid",
+      "businessRound": 7,
+      "specification": "standard"
+    }
+  ],
+  "feedback": {
+    "kind": "office-annex",
+    "message": "样品会客室安顿好了。挑两件做成的产品摆上桌，再去露台走走。"
+  },
+  "history": [
+    {
+      "type": "PROPOSE",
+      "optionId": "trial"
+    },
+    {
+      "type": "ADVANCE"
+    },
+    {
+      "type": "NEXT_CLIENT"
+    },
+    {
+      "type": "PROPOSE",
+      "optionId": "ready"
+    },
+    {
+      "type": "ADVANCE"
+    },
+    {
+      "type": "NEXT_CLIENT"
+    },
+    {
+      "type": "PROPOSE",
+      "optionId": "season"
+    },
+    {
+      "type": "ADVANCE"
+    },
+    {
+      "type": "NEXT_CLIENT"
+    },
+    {
+      "type": "START_OPENING_CURATION",
+      "clientId": "mira"
+    },
+    {
+      "type": "SIGN_CURATION",
+      "products": [
+        "ines",
+        "mira",
+        "samir"
+      ],
+      "quantity": 40,
+      "packaging": "plain"
+    },
+    {
+      "type": "FULFIL_CURATION"
+    },
+    {
+      "type": "CONTINUE_BUSINESS"
+    },
+    {
+      "type": "SELECT_CLIENT",
+      "clientId": "mira"
+    },
+    {
+      "type": "PROPOSE",
+      "optionId": "repeat-scale"
+    },
+    {
+      "type": "ADVANCE"
+    },
+    {
+      "type": "NEXT_CLIENT"
+    },
+    {
+      "type": "SELECT_CLIENT",
+      "clientId": "mira"
+    },
+    {
+      "type": "PROPOSE",
+      "optionId": "repeat-scale"
+    },
+    {
+      "type": "ADVANCE"
+    },
+    {
+      "type": "NEXT_CLIENT"
+    },
+    {
+      "type": "CONTINUE_BUSINESS"
+    },
+    {
+      "type": "SELECT_CLIENT",
+      "clientId": "mira"
+    },
+    {
+      "type": "PROPOSE",
+      "optionId": "repeat-scale"
+    },
+    {
+      "type": "ADVANCE"
+    },
+    {
+      "type": "NEXT_CLIENT"
+    },
+    {
+      "type": "SELECT_CLIENT",
+      "clientId": "ines"
+    },
+    {
+      "type": "PROPOSE",
+      "optionId": "repeat-scale"
+    },
+    {
+      "type": "ADVANCE"
+    },
+    {
+      "type": "NEXT_CLIENT"
+    },
+    {
+      "type": "CONTINUE_BUSINESS"
+    },
+    {
+      "type": "SELECT_CLIENT",
+      "clientId": "ines"
+    },
+    {
+      "type": "PROPOSE",
+      "optionId": "repeat-scale"
+    },
+    {
+      "type": "ADVANCE"
+    },
+    {
+      "type": "NEXT_CLIENT"
+    },
+    {
+      "type": "SELECT_CLIENT",
+      "clientId": "ines"
+    },
+    {
+      "type": "PROPOSE",
+      "optionId": "repeat-scale"
+    },
+    {
+      "type": "ADVANCE"
+    },
+    {
+      "type": "NEXT_CLIENT"
+    },
+    {
+      "type": "CONTINUE_BUSINESS"
+    },
+    {
+      "type": "SELECT_CLIENT",
+      "clientId": "ines"
+    },
+    {
+      "type": "PROPOSE",
+      "optionId": "repeat-scale"
+    },
+    {
+      "type": "ADVANCE"
+    },
+    {
+      "type": "NEXT_CLIENT"
+    },
+    {
+      "type": "SELECT_CLIENT",
+      "clientId": "ines"
+    },
+    {
+      "type": "PROPOSE",
+      "optionId": "repeat-scale"
+    },
+    {
+      "type": "ADVANCE"
+    },
+    {
+      "type": "NEXT_CLIENT"
+    },
+    {
+      "type": "CONTINUE_BUSINESS"
+    },
+    {
+      "type": "SELECT_CLIENT",
+      "clientId": "ines"
+    },
+    {
+      "type": "PROPOSE",
+      "optionId": "repeat-scale"
+    },
+    {
+      "type": "ADVANCE"
+    },
+    {
+      "type": "NEXT_CLIENT"
+    },
+    {
+      "type": "SELECT_CLIENT",
+      "clientId": "ines"
+    },
+    {
+      "type": "PROPOSE",
+      "optionId": "repeat-scale"
+    },
+    {
+      "type": "ADVANCE"
+    },
+    {
+      "type": "NEXT_CLIENT"
+    },
+    {
+      "type": "CONTINUE_BUSINESS"
+    },
+    {
+      "type": "SELECT_CLIENT",
+      "clientId": "ines"
+    },
+    {
+      "type": "PROPOSE",
+      "optionId": "repeat-scale"
+    },
+    {
+      "type": "ADVANCE"
+    },
+    {
+      "type": "NEXT_CLIENT"
+    },
+    {
+      "type": "SELECT_CLIENT",
+      "clientId": "ines"
+    },
+    {
+      "type": "PROPOSE",
+      "optionId": "repeat-scale"
+    },
+    {
+      "type": "ADVANCE"
+    },
+    {
+      "type": "NEXT_CLIENT"
+    },
+    {
+      "type": "CONTINUE_BUSINESS"
+    },
+    {
+      "type": "SELECT_CLIENT",
+      "clientId": "ines"
+    },
+    {
+      "type": "PROPOSE",
+      "optionId": "repeat-scale"
+    },
+    {
+      "type": "ADVANCE"
+    },
+    {
+      "type": "NEXT_CLIENT"
+    },
+    {
+      "type": "SELECT_CLIENT",
+      "clientId": "ines"
+    },
+    {
+      "type": "PROPOSE",
+      "optionId": "repeat-scale"
+    },
+    {
+      "type": "ADVANCE"
+    },
+    {
+      "type": "NEXT_CLIENT"
+    },
+    {
+      "type": "BUY_LIFE_ITEM",
+      "itemId": "chair"
+    },
+    {
+      "type": "BUY_LIFE_ITEM",
+      "itemId": "coffee"
+    },
+    {
+      "type": "BUY_LIFE_ITEM",
+      "itemId": "books"
+    },
+    {
+      "type": "BUY_LIFE_ITEM",
+      "itemId": "record"
+    },
+    {
+      "type": "BUY_LIFE_ITEM",
+      "itemId": "records"
+    },
+    {
+      "type": "BUY_OFFICE_IMPROVEMENT"
+    },
+    {
+      "type": "BUY_OFFICE_ANNEX"
+    }
+  ],
+  "curation": {
+    "referrerId": "mira",
+    "referrerName": "Mira · Forma 家居",
+    "anchor": "mira",
+    "buyer": "Atelier · 生活方式买手店",
+    "purpose": "用已交付的台灯，搭一个阅读角。",
+    "giftAllowed": true,
+    "budget": 7200,
+    "source": "opening-delivery",
+    "status": "paid",
+    "valid": true,
+    "reason": "",
+    "products": [
+      "mira",
+      "samir",
+      "ines"
+    ],
+    "quantity": 40,
+    "packaging": "plain",
+    "revenue": 5800,
+    "cost": 3200,
+    "price": 145,
+    "deposit": 2900,
+    "balanceDue": 2900,
+    "deliveryDay": 21,
+    "paymentDay": 23,
+    "operatingCost": 180,
+    "netProfit": 2420,
+    "cashAfterSigning": 8220,
+    "cashAfterPayment": 10940,
+    "signedDay": 17
+  },
+  "curationHistory": [
+    {
+      "referrerId": "mira",
+      "referrerName": "Mira · Forma 家居",
+      "anchor": "mira",
+      "buyer": "Atelier · 生活方式买手店",
+      "purpose": "用已交付的台灯，搭一个阅读角。",
+      "giftAllowed": true,
+      "budget": 7200,
+      "source": "opening-delivery",
+      "status": "paid",
+      "valid": true,
+      "reason": "",
+      "products": [
+        "mira",
+        "samir",
+        "ines"
+      ],
+      "quantity": 40,
+      "packaging": "plain",
+      "revenue": 5800,
+      "cost": 3200,
+      "price": 145,
+      "deposit": 2900,
+      "balanceDue": 2900,
+      "deliveryDay": 21,
+      "paymentDay": 23,
+      "operatingCost": 180,
+      "netProfit": 2420,
+      "cashAfterSigning": 8220,
+      "cashAfterPayment": 10940,
+      "signedDay": 17
+    }
+  ],
+  "businessRound": 7,
+  "businessSigned": 2,
+  "businessTarget": 2,
+  "personalLife": {
+    "purchases": [
+      {
+        "itemId": "chair",
+        "price": 800,
+        "day": 196
+      },
+      {
+        "itemId": "coffee",
+        "price": 1200,
+        "day": 196
+      },
+      {
+        "itemId": "books",
+        "price": 260,
+        "day": 196
+      },
+      {
+        "itemId": "record",
+        "price": 1800,
+        "day": 196
+      },
+      {
+        "itemId": "records",
+        "price": 2200,
+        "day": 196
+      }
+    ],
+    "positions": {
+      "chair": "window",
+      "coffee": "window",
+      "books": "window",
+      "record": "window",
+      "records": "window"
+    },
+    "spent": 6260
+  },
+  "officeImprovement": {
+    "id": "window-studio",
+    "price": 3600,
+    "day": 196
+  },
+  "officeAnnex": {
+    "id": "sample-terrace",
+    "price": 24000,
+    "day": 196,
+    "display": [
+      "",
+      ""
+    ],
+    "doorOpen": false,
+    "light": "day"
+  }
+}

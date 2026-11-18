@@ -25,7 +25,7 @@ test('same-day due payments all settle once, dates cannot rewind',()=>{
 });
 test('future receipt never pays current procurement and low cash cannot start an unfinishable round',()=>{
  let s=start();s=deliver(sign(s,'mira'));s={...s,cash:1};const selected={...s,phase:'negotiating',clientIndex:1};const q=previewOffer(selected,'repeat-scale');assert.equal(q.valid,false);assert.match(q.reason,/未来尾款/);
- const old=start(false);old.cash=0;assert.equal(reduce(old,{type:'ENABLE_ROUND_RECEIVABLES'}),old);
+ const old=start(false);old.cash=0;const prepaidRound=reduce(old,{type:'ENABLE_ROUND_RECEIVABLES'});assert.notEqual(prepaidRound,old);const prepaidSelected=act(prepaidRound,'SELECT_CLIENT',{clientId:'mira'});assert.equal(previewOffer(prepaidSelected,'repeat-small').valid,false);assert.equal(previewOffer(prepaidSelected,'repeat-prepaid').valid,true);
  const due={...s,cash:100,day:13},base={cost:50,deposit:0,profit:50,revenue:100,balanceDue:100,operatingCost:300,deliveryDay:15,paymentDay:23,reason:''};assert.equal(previewRoundSigning({...due,phase:'negotiating'},base,'samir').valid,false);
 });
 test('old rounds remain old; mode gates pause/back/other businesses and strict save tampering',()=>{

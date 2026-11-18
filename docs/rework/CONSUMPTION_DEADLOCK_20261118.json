@@ -1,0 +1,1300 @@
+{
+  "trace": [
+    {
+      "action": {
+        "type": "PROPOSE",
+        "optionId": "trial"
+      },
+      "day": 1,
+      "cash": 3200
+    },
+    {
+      "action": {
+        "type": "ADVANCE"
+      },
+      "day": 4,
+      "cash": 5510
+    },
+    {
+      "action": {
+        "type": "NEXT_CLIENT"
+      },
+      "day": 4,
+      "cash": 5510
+    },
+    {
+      "action": {
+        "type": "PROPOSE",
+        "optionId": "ready"
+      },
+      "day": 4,
+      "cash": 2910
+    },
+    {
+      "action": {
+        "type": "ADVANCE"
+      },
+      "day": 6,
+      "cash": 6950
+    },
+    {
+      "action": {
+        "type": "NEXT_CLIENT"
+      },
+      "day": 6,
+      "cash": 6950
+    },
+    {
+      "action": {
+        "type": "PROPOSE",
+        "optionId": "season"
+      },
+      "day": 6,
+      "cash": 4510
+    },
+    {
+      "action": {
+        "type": "ADVANCE"
+      },
+      "day": 17,
+      "cash": 8520
+    },
+    {
+      "action": {
+        "type": "NEXT_CLIENT"
+      },
+      "day": 17,
+      "cash": 8520
+    },
+    {
+      "action": {
+        "type": "START_OPENING_CURATION",
+        "clientId": "mira"
+      },
+      "day": 17,
+      "cash": 8520
+    },
+    {
+      "action": {
+        "type": "SIGN_CURATION",
+        "products": [
+          "ines",
+          "mira",
+          "samir"
+        ],
+        "quantity": 40,
+        "packaging": "plain"
+      },
+      "day": 17,
+      "cash": 8220
+    },
+    {
+      "action": {
+        "type": "FULFIL_CURATION"
+      },
+      "day": 23,
+      "cash": 10940
+    },
+    {
+      "action": {
+        "type": "CONTINUE_BUSINESS"
+      },
+      "day": 23,
+      "cash": 10940
+    },
+    {
+      "action": {
+        "type": "SELECT_CLIENT",
+        "clientId": "mira"
+      },
+      "day": 23,
+      "cash": 10940
+    },
+    {
+      "action": {
+        "type": "PROPOSE",
+        "optionId": "repeat-scale"
+      },
+      "day": 23,
+      "cash": 8550
+    },
+    {
+      "action": {
+        "type": "ADVANCE"
+      },
+      "day": 31,
+      "cash": 12300
+    },
+    {
+      "action": {
+        "type": "NEXT_CLIENT"
+      },
+      "day": 31,
+      "cash": 12300
+    },
+    {
+      "action": {
+        "type": "SELECT_CLIENT",
+        "clientId": "mira"
+      },
+      "day": 31,
+      "cash": 12300
+    },
+    {
+      "action": {
+        "type": "PROPOSE",
+        "optionId": "repeat-scale"
+      },
+      "day": 31,
+      "cash": 9480
+    },
+    {
+      "action": {
+        "type": "ADVANCE"
+      },
+      "day": 42,
+      "cash": 13770
+    },
+    {
+      "action": {
+        "type": "NEXT_CLIENT"
+      },
+      "day": 42,
+      "cash": 13770
+    },
+    {
+      "action": {
+        "type": "CONTINUE_BUSINESS"
+      },
+      "day": 42,
+      "cash": 13770
+    },
+    {
+      "action": {
+        "type": "SELECT_CLIENT",
+        "clientId": "mira"
+      },
+      "day": 42,
+      "cash": 13770
+    },
+    {
+      "action": {
+        "type": "PROPOSE",
+        "optionId": "repeat-scale"
+      },
+      "day": 42,
+      "cash": 10950
+    },
+    {
+      "action": {
+        "type": "ADVANCE"
+      },
+      "day": 53,
+      "cash": 15240
+    },
+    {
+      "action": {
+        "type": "NEXT_CLIENT"
+      },
+      "day": 53,
+      "cash": 15240
+    },
+    {
+      "action": {
+        "type": "SELECT_CLIENT",
+        "clientId": "ines"
+      },
+      "day": 53,
+      "cash": 15240
+    },
+    {
+      "action": {
+        "type": "PROPOSE",
+        "optionId": "repeat-scale"
+      },
+      "day": 53,
+      "cash": 12160
+    },
+    {
+      "action": {
+        "type": "ADVANCE"
+      },
+      "day": 66,
+      "cash": 16950
+    },
+    {
+      "action": {
+        "type": "NEXT_CLIENT"
+      },
+      "day": 66,
+      "cash": 16950
+    },
+    {
+      "action": {
+        "type": "CONTINUE_BUSINESS"
+      },
+      "day": 66,
+      "cash": 16950
+    },
+    {
+      "action": {
+        "type": "SELECT_CLIENT",
+        "clientId": "ines"
+      },
+      "day": 66,
+      "cash": 16950
+    },
+    {
+      "action": {
+        "type": "PROPOSE",
+        "optionId": "repeat-scale"
+      },
+      "day": 66,
+      "cash": 13870
+    },
+    {
+      "action": {
+        "type": "ADVANCE"
+      },
+      "day": 79,
+      "cash": 18660
+    },
+    {
+      "action": {
+        "type": "NEXT_CLIENT"
+      },
+      "day": 79,
+      "cash": 18660
+    },
+    {
+      "action": {
+        "type": "SELECT_CLIENT",
+        "clientId": "ines"
+      },
+      "day": 79,
+      "cash": 18660
+    },
+    {
+      "action": {
+        "type": "PROPOSE",
+        "optionId": "repeat-scale"
+      },
+      "day": 79,
+      "cash": 15580
+    },
+    {
+      "action": {
+        "type": "ADVANCE"
+      },
+      "day": 92,
+      "cash": 20370
+    },
+    {
+      "action": {
+        "type": "NEXT_CLIENT"
+      },
+      "day": 92,
+      "cash": 20370
+    },
+    {
+      "action": {
+        "type": "CONTINUE_BUSINESS"
+      },
+      "day": 92,
+      "cash": 20370
+    },
+    {
+      "action": {
+        "type": "SELECT_CLIENT",
+        "clientId": "ines"
+      },
+      "day": 92,
+      "cash": 20370
+    },
+    {
+      "action": {
+        "type": "PROPOSE",
+        "optionId": "repeat-scale"
+      },
+      "day": 92,
+      "cash": 17290
+    },
+    {
+      "action": {
+        "type": "ADVANCE"
+      },
+      "day": 105,
+      "cash": 22080
+    },
+    {
+      "action": {
+        "type": "NEXT_CLIENT"
+      },
+      "day": 105,
+      "cash": 22080
+    },
+    {
+      "action": {
+        "type": "SELECT_CLIENT",
+        "clientId": "ines"
+      },
+      "day": 105,
+      "cash": 22080
+    },
+    {
+      "action": {
+        "type": "PROPOSE",
+        "optionId": "repeat-scale"
+      },
+      "day": 105,
+      "cash": 19000
+    },
+    {
+      "action": {
+        "type": "ADVANCE"
+      },
+      "day": 118,
+      "cash": 23790
+    },
+    {
+      "action": {
+        "type": "NEXT_CLIENT"
+      },
+      "day": 118,
+      "cash": 23790
+    },
+    {
+      "action": {
+        "type": "CONTINUE_BUSINESS"
+      },
+      "day": 118,
+      "cash": 23790
+    },
+    {
+      "action": {
+        "type": "SELECT_CLIENT",
+        "clientId": "ines"
+      },
+      "day": 118,
+      "cash": 23790
+    },
+    {
+      "action": {
+        "type": "PROPOSE",
+        "optionId": "repeat-scale"
+      },
+      "day": 118,
+      "cash": 20710
+    },
+    {
+      "action": {
+        "type": "ADVANCE"
+      },
+      "day": 131,
+      "cash": 25500
+    },
+    {
+      "action": {
+        "type": "NEXT_CLIENT"
+      },
+      "day": 131,
+      "cash": 25500
+    },
+    {
+      "action": {
+        "type": "SELECT_CLIENT",
+        "clientId": "ines"
+      },
+      "day": 131,
+      "cash": 25500
+    },
+    {
+      "action": {
+        "type": "PROPOSE",
+        "optionId": "repeat-scale"
+      },
+      "day": 131,
+      "cash": 22420
+    },
+    {
+      "action": {
+        "type": "ADVANCE"
+      },
+      "day": 144,
+      "cash": 27210
+    },
+    {
+      "action": {
+        "type": "NEXT_CLIENT"
+      },
+      "day": 144,
+      "cash": 27210
+    },
+    {
+      "action": {
+        "type": "CONTINUE_BUSINESS"
+      },
+      "day": 144,
+      "cash": 27210
+    },
+    {
+      "action": {
+        "type": "SELECT_CLIENT",
+        "clientId": "ines"
+      },
+      "day": 144,
+      "cash": 27210
+    },
+    {
+      "action": {
+        "type": "PROPOSE",
+        "optionId": "repeat-scale"
+      },
+      "day": 144,
+      "cash": 24130
+    },
+    {
+      "action": {
+        "type": "ADVANCE"
+      },
+      "day": 157,
+      "cash": 28920
+    },
+    {
+      "action": {
+        "type": "NEXT_CLIENT"
+      },
+      "day": 157,
+      "cash": 28920
+    },
+    {
+      "action": {
+        "type": "SELECT_CLIENT",
+        "clientId": "ines"
+      },
+      "day": 157,
+      "cash": 28920
+    },
+    {
+      "action": {
+        "type": "PROPOSE",
+        "optionId": "repeat-scale"
+      },
+      "day": 157,
+      "cash": 25840
+    },
+    {
+      "action": {
+        "type": "ADVANCE"
+      },
+      "day": 170,
+      "cash": 30630
+    },
+    {
+      "action": {
+        "type": "NEXT_CLIENT"
+      },
+      "day": 170,
+      "cash": 30630
+    },
+    {
+      "action": {
+        "type": "CONTINUE_BUSINESS"
+      },
+      "day": 170,
+      "cash": 30630
+    },
+    {
+      "action": {
+        "type": "SELECT_CLIENT",
+        "clientId": "ines"
+      },
+      "day": 170,
+      "cash": 30630
+    },
+    {
+      "action": {
+        "type": "PROPOSE",
+        "optionId": "repeat-scale"
+      },
+      "day": 170,
+      "cash": 27550
+    },
+    {
+      "action": {
+        "type": "ADVANCE"
+      },
+      "day": 183,
+      "cash": 32340
+    },
+    {
+      "action": {
+        "type": "NEXT_CLIENT"
+      },
+      "day": 183,
+      "cash": 32340
+    },
+    {
+      "action": {
+        "type": "SELECT_CLIENT",
+        "clientId": "ines"
+      },
+      "day": 183,
+      "cash": 32340
+    },
+    {
+      "action": {
+        "type": "PROPOSE",
+        "optionId": "repeat-scale"
+      },
+      "day": 183,
+      "cash": 29260
+    },
+    {
+      "action": {
+        "type": "ADVANCE"
+      },
+      "day": 196,
+      "cash": 34050
+    },
+    {
+      "action": {
+        "type": "NEXT_CLIENT"
+      },
+      "day": 196,
+      "cash": 34050
+    },
+    {
+      "action": {
+        "type": "BUY_LIFE_ITEM",
+        "itemId": "chair"
+      },
+      "day": 196,
+      "cash": 33250
+    },
+    {
+      "action": {
+        "type": "BUY_LIFE_ITEM",
+        "itemId": "coffee"
+      },
+      "day": 196,
+      "cash": 32050
+    },
+    {
+      "action": {
+        "type": "BUY_LIFE_ITEM",
+        "itemId": "books"
+      },
+      "day": 196,
+      "cash": 31790
+    },
+    {
+      "action": {
+        "type": "BUY_LIFE_ITEM",
+        "itemId": "record"
+      },
+      "day": 196,
+      "cash": 29990
+    },
+    {
+      "action": {
+        "type": "BUY_LIFE_ITEM",
+        "itemId": "records"
+      },
+      "day": 196,
+      "cash": 27790
+    },
+    {
+      "action": {
+        "type": "BUY_OFFICE_IMPROVEMENT"
+      },
+      "day": 196,
+      "cash": 24190
+    },
+    {
+      "action": {
+        "type": "BUY_OFFICE_ANNEX"
+      },
+      "day": 196,
+      "cash": 190
+    }
+  ],
+  "opening": [],
+  "curation": [],
+  "repeat": [
+    {
+      "client": "mira",
+      "id": "repeat-small",
+      "valid": false,
+      "required": 1830
+    },
+    {
+      "client": "mira",
+      "id": "repeat-scale",
+      "valid": false,
+      "required": 3150
+    },
+    {
+      "client": "samir",
+      "id": "repeat-small",
+      "valid": false,
+      "required": 2160
+    },
+    {
+      "client": "samir",
+      "id": "repeat-scale",
+      "valid": false,
+      "required": 2700
+    },
+    {
+      "client": "ines",
+      "id": "repeat-small",
+      "valid": false,
+      "required": 2190
+    },
+    {
+      "client": "ines",
+      "id": "repeat-scale",
+      "valid": false,
+      "required": 3470
+    }
+  ],
+  "supply": [
+    {
+      "clientId": "mira",
+      "firstBatch": "small",
+      "payment": "delivery",
+      "valid": false,
+      "required": 3240,
+      "reason": "现金不足以覆盖两批开工和回款前的日常费用。"
+    },
+    {
+      "clientId": "mira",
+      "firstBatch": "small",
+      "payment": "deposit",
+      "valid": false,
+      "required": 3510,
+      "reason": "现金不足以覆盖两批开工和回款前的日常费用。"
+    },
+    {
+      "clientId": "mira",
+      "firstBatch": "large",
+      "payment": "delivery",
+      "valid": false,
+      "required": 3750,
+      "reason": "现金不足以覆盖两批开工和回款前的日常费用。"
+    },
+    {
+      "clientId": "mira",
+      "firstBatch": "large",
+      "payment": "deposit",
+      "valid": false,
+      "required": 3510,
+      "reason": "现金不足以覆盖两批开工和回款前的日常费用。"
+    },
+    {
+      "clientId": "samir",
+      "firstBatch": "small",
+      "payment": "delivery",
+      "valid": false,
+      "required": 3564,
+      "reason": "该供货安排需要已完成返单的合作依据。"
+    },
+    {
+      "clientId": "samir",
+      "firstBatch": "small",
+      "payment": "deposit",
+      "valid": false,
+      "required": 3870,
+      "reason": "该供货安排需要已完成返单的合作依据。"
+    },
+    {
+      "clientId": "samir",
+      "firstBatch": "large",
+      "payment": "delivery",
+      "valid": false,
+      "required": 4350,
+      "reason": "该供货安排需要已完成返单的合作依据。"
+    },
+    {
+      "clientId": "samir",
+      "firstBatch": "large",
+      "payment": "deposit",
+      "valid": false,
+      "required": 3870,
+      "reason": "该供货安排需要已完成返单的合作依据。"
+    },
+    {
+      "clientId": "ines",
+      "firstBatch": "small",
+      "payment": "delivery",
+      "valid": false,
+      "required": 3372,
+      "reason": "现金不足以覆盖两批开工和回款前的日常费用。"
+    },
+    {
+      "clientId": "ines",
+      "firstBatch": "small",
+      "payment": "deposit",
+      "valid": false,
+      "required": 3690,
+      "reason": "现金不足以覆盖两批开工和回款前的日常费用。"
+    },
+    {
+      "clientId": "ines",
+      "firstBatch": "large",
+      "payment": "delivery",
+      "valid": false,
+      "required": 4350,
+      "reason": "现金不足以覆盖两批开工和回款前的日常费用。"
+    },
+    {
+      "clientId": "ines",
+      "firstBatch": "large",
+      "payment": "deposit",
+      "valid": false,
+      "required": 3690,
+      "reason": "现金不足以覆盖两批开工和回款前的日常费用。"
+    }
+  ],
+  "growth": [
+    {
+      "agreement": "portfolio",
+      "products": [
+        "mira",
+        "samir"
+      ],
+      "packaging": "plain",
+      "terms": "delivery",
+      "valid": false,
+      "required": 360,
+      "reason": "资金不足以覆盖生产与回款前支出，先保留未签方案。"
+    },
+    {
+      "agreement": "portfolio",
+      "products": [
+        "mira",
+        "samir"
+      ],
+      "packaging": "plain",
+      "terms": "sample",
+      "valid": false,
+      "required": 360,
+      "reason": "概念店选品按五成定金、交货后收齐的方案合作。"
+    },
+    {
+      "agreement": "portfolio",
+      "products": [
+        "mira",
+        "samir"
+      ],
+      "packaging": "gift",
+      "terms": "delivery",
+      "valid": false,
+      "required": 530,
+      "reason": "资金不足以覆盖生产与回款前支出，先保留未签方案。"
+    },
+    {
+      "agreement": "portfolio",
+      "products": [
+        "mira",
+        "samir"
+      ],
+      "packaging": "gift",
+      "terms": "sample",
+      "valid": false,
+      "required": 530,
+      "reason": "概念店选品按五成定金、交货后收齐的方案合作。"
+    },
+    {
+      "agreement": "portfolio",
+      "products": [
+        "mira",
+        "ines"
+      ],
+      "packaging": "plain",
+      "terms": "delivery",
+      "valid": false,
+      "required": 400,
+      "reason": "资金不足以覆盖生产与回款前支出，先保留未签方案。"
+    },
+    {
+      "agreement": "portfolio",
+      "products": [
+        "mira",
+        "ines"
+      ],
+      "packaging": "plain",
+      "terms": "sample",
+      "valid": false,
+      "required": 400,
+      "reason": "概念店选品按五成定金、交货后收齐的方案合作。"
+    },
+    {
+      "agreement": "portfolio",
+      "products": [
+        "mira",
+        "ines"
+      ],
+      "packaging": "gift",
+      "terms": "delivery",
+      "valid": false,
+      "required": 570,
+      "reason": "资金不足以覆盖生产与回款前支出，先保留未签方案。"
+    },
+    {
+      "agreement": "portfolio",
+      "products": [
+        "mira",
+        "ines"
+      ],
+      "packaging": "gift",
+      "terms": "sample",
+      "valid": false,
+      "required": 570,
+      "reason": "概念店选品按五成定金、交货后收齐的方案合作。"
+    },
+    {
+      "agreement": "portfolio",
+      "products": [
+        "samir",
+        "ines"
+      ],
+      "packaging": "plain",
+      "terms": "delivery",
+      "valid": false,
+      "required": 380,
+      "reason": "资金不足以覆盖生产与回款前支出，先保留未签方案。"
+    },
+    {
+      "agreement": "portfolio",
+      "products": [
+        "samir",
+        "ines"
+      ],
+      "packaging": "plain",
+      "terms": "sample",
+      "valid": false,
+      "required": 380,
+      "reason": "概念店选品按五成定金、交货后收齐的方案合作。"
+    },
+    {
+      "agreement": "portfolio",
+      "products": [
+        "samir",
+        "ines"
+      ],
+      "packaging": "gift",
+      "terms": "delivery",
+      "valid": false,
+      "required": 550,
+      "reason": "资金不足以覆盖生产与回款前支出，先保留未签方案。"
+    },
+    {
+      "agreement": "portfolio",
+      "products": [
+        "samir",
+        "ines"
+      ],
+      "packaging": "gift",
+      "terms": "sample",
+      "valid": false,
+      "required": 550,
+      "reason": "概念店选品按五成定金、交货后收齐的方案合作。"
+    },
+    {
+      "agreement": "portfolio",
+      "products": [
+        "mira",
+        "samir",
+        "ines"
+      ],
+      "packaging": "plain",
+      "terms": "delivery",
+      "valid": false,
+      "required": 480,
+      "reason": "资金不足以覆盖生产与回款前支出，先保留未签方案。"
+    },
+    {
+      "agreement": "portfolio",
+      "products": [
+        "mira",
+        "samir",
+        "ines"
+      ],
+      "packaging": "plain",
+      "terms": "sample",
+      "valid": false,
+      "required": 480,
+      "reason": "概念店选品按五成定金、交货后收齐的方案合作。"
+    },
+    {
+      "agreement": "portfolio",
+      "products": [
+        "mira",
+        "samir",
+        "ines"
+      ],
+      "packaging": "gift",
+      "terms": "delivery",
+      "valid": false,
+      "required": 650,
+      "reason": "资金不足以覆盖生产与回款前支出，先保留未签方案。"
+    },
+    {
+      "agreement": "portfolio",
+      "products": [
+        "mira",
+        "samir",
+        "ines"
+      ],
+      "packaging": "gift",
+      "terms": "sample",
+      "valid": false,
+      "required": 650,
+      "reason": "概念店选品按五成定金、交货后收齐的方案合作。"
+    },
+    {
+      "agreement": "private",
+      "products": [
+        "mira",
+        "samir"
+      ],
+      "packaging": "plain",
+      "terms": "delivery",
+      "valid": false,
+      "required": 3510,
+      "reason": "集团按原案例整套规格采购，产品和包装不能删改。"
+    },
+    {
+      "agreement": "private",
+      "products": [
+        "mira",
+        "samir"
+      ],
+      "packaging": "plain",
+      "terms": "sample",
+      "valid": false,
+      "required": 510,
+      "reason": "集团按原案例整套规格采购，产品和包装不能删改。"
+    },
+    {
+      "agreement": "private",
+      "products": [
+        "mira",
+        "samir"
+      ],
+      "packaging": "gift",
+      "terms": "delivery",
+      "valid": false,
+      "required": 3990,
+      "reason": "集团按原案例整套规格采购，产品和包装不能删改。"
+    },
+    {
+      "agreement": "private",
+      "products": [
+        "mira",
+        "samir"
+      ],
+      "packaging": "gift",
+      "terms": "sample",
+      "valid": false,
+      "required": 630,
+      "reason": "集团按原案例整套规格采购，产品和包装不能删改。"
+    },
+    {
+      "agreement": "private",
+      "products": [
+        "mira",
+        "ines"
+      ],
+      "packaging": "plain",
+      "terms": "delivery",
+      "valid": false,
+      "required": 3390,
+      "reason": "集团按原案例整套规格采购，产品和包装不能删改。"
+    },
+    {
+      "agreement": "private",
+      "products": [
+        "mira",
+        "ines"
+      ],
+      "packaging": "plain",
+      "terms": "sample",
+      "valid": false,
+      "required": 570,
+      "reason": "集团按原案例整套规格采购，产品和包装不能删改。"
+    },
+    {
+      "agreement": "private",
+      "products": [
+        "mira",
+        "ines"
+      ],
+      "packaging": "gift",
+      "terms": "delivery",
+      "valid": false,
+      "required": 3870,
+      "reason": "集团按原案例整套规格采购，产品和包装不能删改。"
+    },
+    {
+      "agreement": "private",
+      "products": [
+        "mira",
+        "ines"
+      ],
+      "packaging": "gift",
+      "terms": "sample",
+      "valid": false,
+      "required": 690,
+      "reason": "集团按原案例整套规格采购，产品和包装不能删改。"
+    },
+    {
+      "agreement": "private",
+      "products": [
+        "samir",
+        "ines"
+      ],
+      "packaging": "plain",
+      "terms": "delivery",
+      "valid": false,
+      "required": 3150,
+      "reason": "集团按原案例整套规格采购，产品和包装不能删改。"
+    },
+    {
+      "agreement": "private",
+      "products": [
+        "samir",
+        "ines"
+      ],
+      "packaging": "plain",
+      "terms": "sample",
+      "valid": false,
+      "required": 540,
+      "reason": "集团按原案例整套规格采购，产品和包装不能删改。"
+    },
+    {
+      "agreement": "private",
+      "products": [
+        "samir",
+        "ines"
+      ],
+      "packaging": "gift",
+      "terms": "delivery",
+      "valid": false,
+      "required": 3630,
+      "reason": "集团按原案例整套规格采购，产品和包装不能删改。"
+    },
+    {
+      "agreement": "private",
+      "products": [
+        "samir",
+        "ines"
+      ],
+      "packaging": "gift",
+      "terms": "sample",
+      "valid": false,
+      "required": 660,
+      "reason": "集团按原案例整套规格采购，产品和包装不能删改。"
+    },
+    {
+      "agreement": "private",
+      "products": [
+        "mira",
+        "samir",
+        "ines"
+      ],
+      "packaging": "plain",
+      "terms": "delivery",
+      "valid": false,
+      "required": 4950,
+      "reason": "资金不足以覆盖生产与回款前支出，先保留未签方案。"
+    },
+    {
+      "agreement": "private",
+      "products": [
+        "mira",
+        "samir",
+        "ines"
+      ],
+      "packaging": "plain",
+      "terms": "sample",
+      "valid": false,
+      "required": 690,
+      "reason": "资金不足以覆盖生产与回款前支出，先保留未签方案。"
+    },
+    {
+      "agreement": "private",
+      "products": [
+        "mira",
+        "samir",
+        "ines"
+      ],
+      "packaging": "gift",
+      "terms": "delivery",
+      "valid": false,
+      "required": 5430,
+      "reason": "集团按原案例整套规格采购，产品和包装不能删改。"
+    },
+    {
+      "agreement": "private",
+      "products": [
+        "mira",
+        "samir",
+        "ines"
+      ],
+      "packaging": "gift",
+      "terms": "sample",
+      "valid": false,
+      "required": 810,
+      "reason": "集团按原案例整套规格采购，产品和包装不能删改。"
+    }
+  ],
+  "collection": {
+    "ownRequired": 2490,
+    "private": {
+      "buyerId": "northline-private",
+      "buyer": "Northline · 自有品牌",
+      "sets": 80,
+      "revenue": 16560,
+      "cost": 9280,
+      "deposit": 8280,
+      "balanceDue": 8280,
+      "operatingCost": 270,
+      "days": 9,
+      "paymentDay": 205,
+      "netProfit": 7010,
+      "valid": false
+    }
+  },
+  "account": [
+    {
+      "sets": 300,
+      "depositRate": 30,
+      "discount": 0,
+      "days": 6,
+      "delivery": 4,
+      "stores": 3,
+      "title": "先铺 3 家店 · 30% 定金",
+      "optionId": "pilot",
+      "products": [
+        "mira",
+        "samir",
+        "ines"
+      ],
+      "revenue": 32400,
+      "cost": 24000,
+      "deposit": 9720,
+      "balanceDue": 22680,
+      "operatingCost": 180,
+      "requiredCash": 14460,
+      "netProfit": 8220,
+      "deliveryDay": 200,
+      "paymentDay": 202,
+      "cashAfterSigning": -14090,
+      "valid": false,
+      "reason": "还差 ¥14,270 周转。可提高定金，或先做三店试销。"
+    },
+    {
+      "sets": 600,
+      "depositRate": 30,
+      "discount": 0,
+      "days": 15,
+      "delivery": 9,
+      "stores": 6,
+      "title": "铺满 6 家店 · 30% 定金",
+      "optionId": "rollout",
+      "products": [
+        "mira",
+        "samir",
+        "ines"
+      ],
+      "revenue": 64800,
+      "cost": 48000,
+      "deposit": 19440,
+      "balanceDue": 45360,
+      "operatingCost": 450,
+      "requiredCash": 29010,
+      "netProfit": 16350,
+      "deliveryDay": 205,
+      "paymentDay": 211,
+      "cashAfterSigning": -28370,
+      "valid": false,
+      "reason": "还差 ¥28,820 周转。可提高定金，或先做三店试销。"
+    },
+    {
+      "sets": 600,
+      "depositRate": 50,
+      "discount": 5,
+      "days": 15,
+      "delivery": 9,
+      "stores": 6,
+      "title": "铺满 6 家店 · 定金换折扣",
+      "optionId": "funded",
+      "products": [
+        "mira",
+        "samir",
+        "ines"
+      ],
+      "revenue": 61560,
+      "cost": 48000,
+      "deposit": 30780,
+      "balanceDue": 30780,
+      "operatingCost": 450,
+      "requiredCash": 17670,
+      "netProfit": 13110,
+      "deliveryDay": 205,
+      "paymentDay": 211,
+      "cashAfterSigning": -17030,
+      "valid": false,
+      "reason": "还差 ¥17,480 周转。可提高定金，或先做三店试销。"
+    }
+  ],
+  "projectsUnlocked": false,
+  "development": {
+    "studioRequired": 2520,
+    "lineRequired": 1890
+  },
+  "closed": {
+    "shopTrial": false,
+    "stockProcurement": {
+      "available": false,
+      "reason": "需要实际验收的三档调光样。",
+      "referrerId": null,
+      "sourceHistoryIndex": -1,
+      "quantity": 12,
+      "unitPrice": 75,
+      "purpose": "public-reading",
+      "specification": "developed-studio",
+      "packaging": "generic",
+      "newInquiry": true
+    },
+    "independent": {
+      "valid": false,
+      "reason": "没有可合法延用的工作室原稿。",
+      "direction": "independent",
+      "agreement": "portfolio",
+      "referrerId": null,
+      "source": null,
+      "original": null,
+      "briefs": []
+    },
+    "group": {
+      "valid": false,
+      "reason": "没有可合法延用的工作室原稿。",
+      "direction": "group",
+      "agreement": "private",
+      "referrerId": null,
+      "source": null,
+      "original": null,
+      "briefs": []
+    },
+    "pendingContracts": [],
+    "pendingCuration": "paid",
+    "collection": null,
+    "caseGrowth": null,
+    "supplyPlan": null,
+    "stock": null
+  }
+}

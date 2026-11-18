@@ -125,8 +125,8 @@ test('每位熟客的小批与规模均有实际周期/净赚差异，采购保�
   assert.equal(act(poor,'PROPOSE','repeat-small'),poor);
   const exact={...selected,cash:small.cashRequired};const paid=finish(exact,'repeat-small');assert.ok(paid.cash>=0);
  }
- const poor={...s,cash:0};assert.ok(businessOpportunities(poor).every(c=>!c.available&&c.reason.includes('现金不足')));
- assert.equal(select(poor,'mira'),poor);assert.equal(select(s,'unknown'),s);
+ const poor={...s,cash:0};assert.ok(businessOpportunities(poor).every(c=>c.available&&c.options.filter(q=>q.id!=='repeat-prepaid').every(q=>!q.valid))); 
+ assert.equal(previewOffer(select(poor,'mira'),'repeat-prepaid').valid,true);assert.equal(select(s,'unknown'),s);
 });
 test('记录容量公开阻止新单但已签合同仍可结清，不静默卡住资金',()=>{
  let s=select(act(initialComplete(),'CONTINUE_BUSINESS'),'mira');

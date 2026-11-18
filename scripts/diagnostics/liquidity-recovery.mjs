@@ -4,8 +4,9 @@ const act=(s,type,x={})=>{const n=reduceDealRoom(s,{type,...x});assert.notEqual(
 const finish=(s,id)=>act(act(act(s,'PROPOSE',{optionId:id}),'ADVANCE'),'NEXT_CLIENT');
 let s=createDealRoom();for(const id of ['trial','ready','season'])s=finish(s,id);s=act(s,'CONTINUE_BUSINESS');for(let i=0;i<2;i++){s=act(s,'SELECT_CLIENT',{clientId:'mira'});s=finish(s,'repeat-small');}s=act(act(s,'START_SUPPLY_PLAN',{clientId:'mira',firstBatch:'small',payment:'delivery'}),'FULFIL_SUPPLY_PLAN');for(const itemId of ['chair','coffee','books','record','records'])s=act(s,'BUY_LIFE_ITEM',{itemId});s=act(s,'BUY_OFFICE_IMPROVEMENT');assert.equal(s.cash,1560);assert.deepEqual(normalizeDealRoom(s),s);
 const start=structuredClone(s),result={start:{day:s.day,cash:s.cash},offers:openingCurationOffers(s).map(o=>o.id)};
-// If the player already entered the blocked repeat-order screen, a real back action exists.
-let back=act(s,'CONTINUE_RETAIL_BUSINESS');assert.equal(businessOpportunities(back).some(o=>o.available),false);back=act(back,'BACK_FROM_CLIENTS');assert.equal(back.phase,'review');assert.deepEqual(normalizeDealRoom(back),back);
+// Historical ordinary-quote shortfall; later prepaid quotes are deliberately excluded.
+// The real back action still permits the original curation route.
+let back=act(s,'CONTINUE_RETAIL_BUSINESS');assert.equal(businessOpportunities(back).some(o=>o.options.some(q=>q.id!=='repeat-prepaid'&&q.valid)),false);back=act(back,'BACK_FROM_CLIENTS');assert.equal(back.phase,'review');assert.deepEqual(normalizeDealRoom(back),back);
 s=act(back,'START_OPENING_CURATION',{clientId:'mira'});
 const draft={products:['mira','samir','ines'],quantity:40,packaging:'plain'};
 const quote=previewCuration(s,draft);assert.equal(quote.valid,true);assert.equal(quote.netProfit,2420);

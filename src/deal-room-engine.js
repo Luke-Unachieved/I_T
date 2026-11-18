@@ -66,6 +66,13 @@ function reorderContext(state,clientId){
   }[clientId];
   const options=[offer('repeat-small','小批补货 · 交货付款','少垫款、较快收齐；本次总净赚较少。',...data.small),
     {...offer('repeat-scale','扩大备货 · 定金留账期','先收 30% 定金，扩大数量；尾款更晚，日常费用更多。',...data.large),deposit:Math.floor(data.large[1]*.3)}];
+  // Settled repeat customers can exchange a real price concession for earlier
+  // payment. Original small/scale terms and old journals remain unchanged.
+  const [quantity,revenue,cost,days,lag]=data.small,prepaidRevenue=revenue-200;
+  const prepaidDeposit=Math.floor(prepaidRevenue*.8);
+  if(prepaidDeposit>=cost+(days+lag)*DAY_COST)options.push({
+    ...offer('repeat-prepaid','小批补货 · 让价换八成预付','沿用已经交付的规格，这批总价少收 ¥200；客户先付八成，交货时结清余款。',quantity,prepaidRevenue,cost,days,lag),deposit:prepaidDeposit
+  });
   for(const o of options)o.specification=branded?'branded':'standard';
   if(clientId==='mira'&&state.productDevelopment?.status==='active'){for(const o of options)o.title='旧款 · '+o.title;options.push(developmentOffer(state));const second=secondDevelopmentOffer(state);if(second)options.push(second);}
   return {client,last,basis,consequence:consequence+(clientId==='samir'?(branded?' 沿用上批定制版样，不再重新打样。':' 沿用无印字现货，补货 2 天交付。'):''),options};
@@ -171,7 +178,7 @@ export function previewOffer(state,optionId){
   const demand=state.businessRound&&!state.clientProjectActive?retailDemand(state,CLIENTS[state.clientIndex].id):null;
   if(demand&&!demand.ready)return {...o,valid:false,reason:`门店约余 ${demand.remaining} 件，第 ${demand.readyDay} 天才需要补货。先看其他客户，或做工作室的其他业务。`};
   const deposit=o.deposit||0,operatingCost=(o.deliveryDays+o.payLag)*DAY_COST;
-  const cashRequired=o.cost-deposit+operatingCost;
+  const cashRequired=o.id==='repeat-prepaid'?Math.max(0,o.cost-deposit+operatingCost):o.cost-deposit+operatingCost;
   const deliveryDay=state.day+o.deliveryDays,paymentDay=deliveryDay+o.payLag;
   const valid=state.phase==='negotiating'&&state.cash>=cashRequired&&canStartDeal(state);
   const quoted={...o,deposit,balanceDue:o.revenue-deposit,valid,
