@@ -41,3 +41,8 @@ Added a finite paper-unwrapping reveal for newly purchased chair, coffee machine
 Static audit found that the room only drew chair/coffee machine/record player: buying the book or weekend records did not change the scene. Added authored SVG book/record-sleeve objects on the existing sideboard, with direct keyboard/click use bindings already supported by the life controller. Preview objects are visible but cannot be used before purchase. No extra state, cost or journaling was added.
 
 Inspected the existing empty-room artwork to align the objects with the sideboard (not a running game screenshot). Source and regression-file syntax pass; actual composite visual and keyboard/pointer behavior still await final acceptance. The life room now has scene representation for all five existing purchases rather than three.
+
+## 咖啡机从成品切换变成实际使用过程
+原有购买说明写“磨豆，做一杯”，但打开即出现成品，只能切浓淡。本轮将已有咖啡机的使用改成：选小/长杯、磨豆、装柄萃取、端杯品饮。空杯/豆子、粉柄、咖啡与蒸汽随步骤变化，品饮有短动作并支持减少动态。仅已购买咖啡机的当前使用界面能推进；过期按钮不能跳步，结束后重新使用从豆子开始。
+
+这一过程不收费、不推进游戏日期、不奖励资金，不加存档字段或商业历史动作；杯型沿用已有界面选择。可随时收起，无强制计时。新增三组回归覆盖空杯起步、顺序及终点、场景蒸汽随实际准备状态；这些用例尚未运行。源文件与新测试语法检查通过，游戏画面/交互体验未验收。此项是生活互动代码，不是完整版完成声明。

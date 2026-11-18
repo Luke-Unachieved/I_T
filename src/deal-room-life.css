@@ -29,3 +29,10 @@
 @keyframes life-unwrap-ribbon{0%,15%{opacity:1}65%,100%{opacity:0}}
 @media(prefers-reduced-motion:reduce){.life-unwrapping{display:none}.life-unwrapping *{animation:none!important}}
 .reduce-motion .life-unwrapping{display:none}.reduce-motion .life-unwrapping *{animation:none!important}
+/* A purchased machine is used in explicit steps; no timer or economic reward. */
+.coffee-ground .life-coffee-ground{animation:coffee-ground-settle .35s ease both}
+.coffee-enjoyed .life-coffee-cup{transform-origin:106px 110px;animation:coffee-sip .9s ease both}
+@keyframes coffee-ground-settle{from{opacity:.3;transform:translateY(-5px)}to{opacity:1;transform:none}}
+@keyframes coffee-sip{50%{transform:translateY(-12px) rotate(-5deg)}to{transform:none}}
+@media(prefers-reduced-motion:reduce){.coffee-ground .life-coffee-ground,.coffee-enjoyed .life-coffee-cup{animation:none}}
+.reduce-motion .life-coffee-ground,.reduce-motion .life-coffee-cup{animation:none}

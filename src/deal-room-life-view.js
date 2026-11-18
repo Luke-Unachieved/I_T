@@ -25,6 +25,16 @@ function listeningView(state,ui,preview=false){
  const owned=state.personalLife?.purchases?.some(p=>p.itemId==='records'),key=preview?(ui.recordPreview||'rain'):(owned?state.personalLife.recordTrack||'evening':'evening'),track=RECORD_TRACKS[key]||RECORD_TRACKS.evening;
  return `<section tabindex="-1" class="life-ritual life-listening" aria-label="${preview?'周末唱片试听':'我的唱片时间'}"><div><small>${preview?'先听一小段，再决定带不带回家':'今晚的唱片'}</small><h3>${track.title}</h3><p>${track.description}</p></div>${owned||preview?`<div class="life-record-choices" role="group" aria-label="选择唱片">${Object.entries(RECORD_TRACKS).filter(([id])=>!preview||id!=='evening').map(([id,t])=>`<button data-life-track="${id}" aria-pressed="${id===key}">${t.title}</button>`).join('')}</div>`:''}<div class="life-ritual-controls"><button data-life-sound aria-pressed="${!!ui.soundOn}">${ui.soundOn?'关掉声音':preview?'试听这一面':'听听这张唱片'}</button>${preview?'':'<button data-life-end>收起唱片</button>'}</div><label class="life-volume">唱片音量 <input data-life-volume type="range" min="0" max="100" step="5" value="${soundVolume(ui.volume)}" aria-label="唱片音量"><output data-life-volume-value>${soundVolume(ui.volume)}%</output></label><p data-life-volume-status role="status">${ui.soundError?'这次没能播放，先安静地坐一会儿。':ui.soundOn?(soundVolume(ui.volume)===0?'唱片在转，当前静音。':preview?'正在试听一小段。':'正在听：'+track.title):'唱针抬起，屋里安静下来。'}</p></section>`;
 }
+export function nextCoffeeStage(stage){return ({beans:'ground',ground:'ready',ready:'enjoyed'})[stage]||null;}
+export function coffeeRitualView(ui={}){
+ const stage=['ground','ready','enjoyed'].includes(ui.coffeeStage)?ui.coffeeStage:'beans',short=ui.coffee==='short';
+ const full=['ready','enjoyed'].includes(stage),next=nextCoffeeStage(stage);
+ const heading={beans:'先选今天的这一杯',ground:'咖啡粉准备好了',ready:short?'小杯浓咖啡，做好了':'长杯咖啡，做好了',enjoyed:'这一刻，留给自己'}[stage];
+ const text={beans:'把豆子放进磨豆机。浓一点，还是留一大杯慢慢喝？',ground:'刚磨好的香气散开了。把手柄装好，接下来让热水穿过咖啡粉。',ready:'杯口升起热气。不必赶下一单，端起来尝一口吧。',enjoyed:short?'小小一口，香气在舌尖多停了一会儿。':'捧着暖杯子，慢慢喝。窗外的光，也不必急着过去。'}[stage];
+ const beans=stage==='beans'?'<g class="life-coffee-beans" fill="#62422d" stroke="#c7a581" stroke-width="2"><ellipse cx="74" cy="21" rx="8" ry="12"/><path d="M74 10q-5 11 0 22"/><ellipse cx="105" cy="16" rx="8" ry="12"/><path d="M105 5q-5 11 0 22"/><ellipse cx="135" cy="24" rx="8" ry="12"/><path d="M135 13q-5 11 0 22"/></g>':'';
+ const ground=stage==='ground'?'<g class="life-coffee-ground"><path d="M65 34q40-24 80 0" fill="#684632"/><path d="M60 35h90l-9 12H69z" fill="#b8b8a7"/><path d="M145 37h45" stroke="#555d58" stroke-width="8" stroke-linecap="round"/></g>':'';
+ return `<section tabindex="-1" class="life-ritual life-coffee coffee-${stage}" aria-label="给自己的咖啡"><svg viewBox="0 0 220 150" role="img" aria-label="${full?(short?'小杯浓咖啡':'长杯淡咖啡'):stage==='ground'?'装好咖啡粉的手柄与空杯':'咖啡豆与空杯'}"><ellipse cx="104" cy="128" rx="76" ry="12" fill="#ccb99c"/><g class="life-coffee-cup"><path fill="#f4e8d3" stroke="#c5ac87" stroke-width="3" d="M50 47h112v55q-8 28-56 28T50 102z"/><path fill="none" stroke="#dec9a9" stroke-width="12" d="M163 61q55-8 29 39l-28 6"/><ellipse cx="106" cy="${full?(short?79:55):57}" rx="${full&&short?46:52}" ry="12" fill="${full?'#644432':'#d8c9af'}"/>${full?'<path class="life-steam" fill="none" stroke="#fdf7e9" stroke-width="4" d="M88 43q-12-11 0-23m21 21q14-10 0-23m19 24q-9-9 0-20"/>':''}</g>${beans}${ground}${stage==='ready'?'<path class="life-coffee-pour" aria-hidden="true" fill="none" stroke="#8b6040" stroke-linecap="round" stroke-width="4" d="M106 2v52"/>':''}</svg><div><small>这杯，不用端给客户</small><h3>${heading}</h3><p role="status">${text}</p>${!full?`<div class="life-ritual-controls" role="group" aria-label="咖啡杯型"><button data-life-coffee="short" aria-pressed="${short}">小杯，浓一点</button><button data-life-coffee="long" aria-pressed="${!short}">长杯，慢慢喝</button></div>`:''}<div class="life-ritual-controls">${next?`<button data-life-coffee-step="${stage}">${{beans:'磨好这份咖啡豆',ground:'装上手柄，开始萃取',ready:'端起杯子，尝一口'}[stage]}</button>`:''}<button data-life-end>${stage==='enjoyed'?'放下杯子，收好咖啡角':'先收起来'}</button></div></div></section>`;
+}
 function lifeRitual(state,ui){
  if(ui.preview==='records'&&!state.personalLife?.purchases?.some(p=>p.itemId==='records'))return listeningView(state,ui,true);
  if(!state.personalLife?.purchases?.some(p=>p.itemId===ui.using))return '';
@@ -36,10 +46,7 @@ function lifeRitual(state,ui){
   const n=Math.max(0,Math.min(2,Number.isInteger(ui.page)?ui.page:0)),page=LIFE_PAGES[n];
   return `<section tabindex="-1" class="life-ritual life-reading" aria-label="我的阅读角"><div class="life-book"><div class="life-book-left"><small>给自己的三页故事</small><h3>${page.title}</h3><span>${n+1} / 3</span></div><div class="life-book-right"><p>${page.text}</p></div></div><div class="life-ritual-controls"><button data-life-page-step="previous" data-life-page="${n-1}" ${n===0?'disabled':''}>往前翻</button><button data-life-page-step="next" data-life-page="${n+1}" ${n===2?'disabled':''}>再读一页</button><button data-life-end>合上书，留待下次</button></div></section>`;
  }
- if(ui.using==='coffee'){
-  const short=ui.coffee==='short';
-  return `<section tabindex="-1" class="life-ritual life-coffee" aria-label="给自己的咖啡"><svg viewBox="0 0 220 150" aria-label="${short?'小杯浓咖啡':'长杯淡咖啡'}"><ellipse cx="104" cy="128" rx="76" ry="12" fill="#ccb99c"/><path fill="#f4e8d3" stroke="#c5ac87" stroke-width="3" d="M50 47h112v55q-8 28-56 28T50 102z"/><path fill="none" stroke="#dec9a9" stroke-width="12" d="M163 61q55-8 29 39l-28 6"/><ellipse cx="106" cy="${short?79:55}" rx="${short?46:52}" ry="12" fill="#644432"/><path class="life-coffee-pour" aria-hidden="true" fill="none" stroke="#8b6040" stroke-linecap="round" stroke-width="4" d="M106 2v52"/><path class="life-steam" fill="none" stroke="#fdf7e9" stroke-width="4" d="M88 43q-12-11 0-23m21 21q14-10 0-23m19 24q-9-9 0-20"/></svg><div><small>这杯，不用端给客户</small><h3>${short?'小杯，浓一点':'长杯，慢慢喝'}</h3><p>${short?'留一点香气，陪这一小段空闲。':'多留一会儿。杯子暖着，事情可以晚一点再说。'}</p><div class="life-ritual-controls"><button data-life-coffee="short" aria-pressed="${short}">想喝浓一点</button><button data-life-coffee="long" aria-pressed="${!short}">今天慢慢喝</button><button data-life-end>放下杯子</button></div></div></section>`;
- }
+ if(ui.using==='coffee')return coffeeRitualView(ui);
  return listeningView(state,ui);
 }
 export function lifeRoomView(state,ui={}){
@@ -73,7 +80,7 @@ export function bindLifeRoom(root,{getState,getUI,setUI:renderUI,dispatch,close}
  // steal focus back after the player has moved to another control.
  const setUI=next=>{
   const active=root.ownerDocument.activeElement;
-  const attrs=['data-life-volume','data-life-track','data-life-book-step','data-life-page-step','data-life-coffee','data-life-sound','data-life-mute','data-life-end','data-life-use','data-life-room-use','data-life-place','data-life-preview','data-life-buy','data-life-cancel','data-life-close'];
+  const attrs=['data-life-volume','data-life-track','data-life-book-step','data-life-page-step','data-life-coffee','data-life-coffee-step','data-life-sound','data-life-mute','data-life-end','data-life-use','data-life-room-use','data-life-place','data-life-preview','data-life-buy','data-life-cancel','data-life-close'];
   const attr=attrs.find(a=>active?.hasAttribute?.(a));
   const value=attr?active.getAttribute(attr):null;
   const scope=['.life-actions','.life-welcome','.life-ritual','.life-panel header'].find(s=>active?.closest?.(s));
@@ -83,12 +90,12 @@ export function bindLifeRoom(root,{getState,getUI,setUI:renderUI,dispatch,close}
   renderUI(next);
   const target=index>=0?matching()[index]:null;
   if(target&&!target.disabled)target.focus?.({preventScroll:true});
-  else if(ritualFocused||index>=0&&['data-life-page-step','data-life-book-step'].includes(attr))root.querySelector('.life-ritual')?.focus?.({preventScroll:true});
+  else if(ritualFocused||index>=0&&['data-life-page-step','data-life-book-step','data-life-coffee-step'].includes(attr))root.querySelector('.life-ritual')?.focus?.({preventScroll:true});
  };
  const reveal=selector=>{const el=root.querySelector(selector);el?.focus?.({preventScroll:true});el?.scrollIntoView?.({block:'nearest'});};
  const focusControl=selector=>root.querySelector(selector)?.focus?.({preventScroll:true});
  const end=()=>{const id=getUI().using;stopLifeSound();setUI({...getUI(),using:'',arrival:'',soundOn:false,soundError:false});focusControl(`[data-life-use="${id}"]`);};
- const use=id=>{const ending=getUI().using===id,wasPreview=getUI().preview==='records';if(wasPreview||ending&&['record','records'].includes(id))stopLifeSound();setUI({...getUI(),preview:'',using:ending?'':id,arrival:'',soundOn:wasPreview||ending&&['record','records'].includes(id)?false:!!getUI().soundOn,soundError:false});if(!ending)reveal('.life-ritual');};
+ const use=id=>{const ending=getUI().using===id,wasPreview=getUI().preview==='records';if(wasPreview||ending&&['record','records'].includes(id))stopLifeSound();setUI({...getUI(),preview:'',using:ending?'':id,coffeeStage:id==='coffee'?'beans':getUI().coffeeStage,arrival:'',soundOn:wasPreview||ending&&['record','records'].includes(id)?false:!!getUI().soundOn,soundError:false});if(!ending)reveal('.life-ritual');};
  if(removeLifeVisibility)removeLifeVisibility();
  const doc=root.ownerDocument,hidden=()=>{if(doc.hidden&&lifeSound){stopLifeSound();setUI({...getUI(),soundOn:false});}};
  doc.addEventListener('visibilitychange',hidden);removeLifeVisibility=()=>doc.removeEventListener('visibilitychange',hidden);
@@ -101,7 +108,12 @@ export function bindLifeRoom(root,{getState,getUI,setUI:renderUI,dispatch,close}
  for(const e of root.querySelectorAll('[data-life-place]'))e.onclick=()=>{dispatch({type:'ARRANGE_LIFE_ITEM',itemId:e.dataset.lifePlace,position:getState().personalLife.positions[e.dataset.lifePlace]==='inside'?'window':'inside'});setUI({...getUI(),arrival:''});focusControl(`[data-life-place="${e.dataset.lifePlace}"]`);};
  for(const e of root.querySelectorAll('[data-life-page]'))e.onclick=()=>setUI({...getUI(),page:Number(e.dataset.lifePage)});
  for(const e of root.querySelectorAll('[data-life-book-page]'))e.onclick=()=>{const page=Number(e.dataset.lifeBookPage);const step=e.dataset.lifeBookStep;dispatch({type:'READ_LIFE_BOOK',itemId:'books',page});const target=root.querySelector(`[data-life-book-step="${step}"]`);if(target&&!target.disabled)target.focus?.({preventScroll:true});else root.querySelector('.life-ritual')?.focus?.({preventScroll:true});};
- for(const e of root.querySelectorAll('[data-life-coffee]'))e.onclick=()=>setUI({...getUI(),coffee:e.dataset.lifeCoffee});
+ for(const e of root.querySelectorAll('[data-life-coffee]'))e.onclick=()=>{if(['short','long'].includes(e.dataset.lifeCoffee))setUI({...getUI(),coffee:e.dataset.lifeCoffee});};
+ root.querySelector('[data-life-coffee-step]')?.addEventListener('click',event=>{
+  const ui=getUI(),stage=ui.coffeeStage||'beans';
+  if(ui.using!=='coffee'||!getState().personalLife?.purchases?.some(p=>p.itemId==='coffee')||event.currentTarget.dataset.lifeCoffeeStep!==stage)return;
+  const next=nextCoffeeStage(stage);if(next)setUI({...ui,coffeeStage:next});
+ });
  root.querySelector('[data-life-end]')?.addEventListener('click',end);
  root.querySelector('[data-life-mute]')?.addEventListener('click',()=>{stopLifeSound();setUI({...getUI(),soundOn:false});});
  for(const e of root.querySelectorAll('[data-life-track]'))e.onclick=()=>{const track=e.dataset.lifeTrack;if(!Object.hasOwn(RECORD_TRACKS,track))return;stopLifeSound();if(getUI().preview==='records'){setUI({...getUI(),recordPreview:track,soundOn:false,soundError:false});}else{dispatch({type:'SELECT_LIFE_RECORD',itemId:'records',track});setUI({...getUI(),soundOn:false,soundError:false});}focusControl(`[data-life-track="${track}"]`);};
