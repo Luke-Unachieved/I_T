@@ -45,3 +45,14 @@ test('six generic stores never turn into series stores; unconfirmed and mismatch
   const s=structuredClone(actual);change(s);assert.equal(cooperationChapter(s).closed,false);assert.equal(cooperationChapter(s).facts.some(f=>f.kind==='generic-then-series-stores'),false);
  }
 });
+
+test('the complete offline recap keeps its top customer caption consistent with the two original paid store batches',async()=>{
+ const {buildDealHtml}=await import('../scripts/build-deal-standalone.mjs'),vm=await import('node:vm');
+ const html=await buildDealHtml(),script=html.match(/<script>([\s\S]*?)<\/script>/)[1],s=closeSecond(second(pilot()));
+ let show;const root={innerHTML:'',querySelector(sel){if(sel==='#motion')return {};if(sel==='#finish-session'&&root.innerHTML.includes('id="finish-session"'))return {addEventListener(kind,f){if(kind==='click')show=f;}};return null;},querySelectorAll(){return [];}};
+ const document={querySelector:()=>root,documentElement:{classList:{contains:()=>false,add(){}}}};
+ const ctx=vm.createContext({document,localStorage:{getItem:k=>k==='trade-tycoon:deal-room-offline:v1'?JSON.stringify(s):null,setItem(){}},TextEncoder,structuredClone,console});
+ new vm.Script(script).runInContext(ctx,{timeout:3000});assert.equal(typeof show,'function');show();
+ assert.match(root.innerHTML,/Northline · 三店通用组合，三店系列商品/);assert.match(root.innerHTML,/首批三家是通用组合，后三家是买方确认过的系列/);
+ assert.doesNotMatch(root.innerHTML,/同版系列六店交付/);
+});
