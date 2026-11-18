@@ -125,3 +125,20 @@
 .home-opportunities>summary{cursor:pointer;min-height:28px;font-weight:650;color:#425548;line-height:1.6}
 .home-opportunities>summary:focus-visible{outline:3px solid #315c44;outline-offset:4px;border-radius:3px}
 .home-opportunities-note{font-size:13px;line-height:1.7;color:#6b675d}
+/* Readable short business gestures; they never cover or consume controls. */
+.business-gesture{position:absolute;left:18px;top:26%;width:150px;pointer-events:none;z-index:3;animation:business-gesture-life 1.8s ease both}
+.business-gesture svg{display:block;width:100%;overflow:visible;filter:drop-shadow(0 5px 8px #3c2c2828)}
+.gesture-paper{transform-origin:90px 100px;animation:business-paper-arrive .45s ease-out both}
+.gesture-ink{stroke-dasharray:90;stroke-dashoffset:90;animation:business-ink .6s .35s ease both}
+.gesture-stamp{transform-origin:91px 83px;animation:business-stamp .45s .3s ease-out both}
+.gesture-coin{animation:business-coin .9s .25s ease-out both}
+.gesture-parcel{animation:business-parcel 1.25s ease-in-out both}
+@keyframes business-gesture-life{0%{opacity:0}15%,75%{opacity:1}100%{opacity:0}}
+@keyframes business-paper-arrive{from{transform:translateY(16px) rotate(-7deg)}to{transform:translateY(0) rotate(0)}}
+@keyframes business-ink{to{stroke-dashoffset:0}}
+@keyframes business-stamp{0%{opacity:0;transform:scale(1.5)}70%{opacity:1;transform:scale(.92)}100%{opacity:1;transform:scale(1)}}
+@keyframes business-coin{0%{opacity:0;transform:translateY(-14px)}30%{opacity:1}100%{opacity:0;transform:translate(12px,42px)}}
+@keyframes business-parcel{0%{opacity:0;transform:translateX(-26px)}25%,65%{opacity:1;transform:translateX(0)}100%{opacity:0;transform:translateX(45px)}}
+@media(max-width:850px){.business-gesture{width:105px;left:10px;top:25%}}
+@media(prefers-reduced-motion:reduce){.business-gesture{display:none}.business-gesture *{animation:none!important}}
+.reduce-motion .business-gesture{display:none}.reduce-motion .business-gesture *{animation:none!important}

@@ -25,3 +25,9 @@ Static `node --check` passed for home, cooperation view, life art/view and moder
 ## Choice focus completion
 
 Reused the existing renderKeepingChoiceFocus helper for 17 additional passive option controls (samples, collection appearance, buyer terms, lamp configuration, procurement and supply planning). No extra save/journal actions were added. Return from supply planning and two product proposal panels now focuses the corresponding opener and reveals its collapsed ancestor. Focus helper will not target disabled controls. Expanded the existing regression cases to 25 intended choice handlers and added return/missing/disabled cases. Source and test syntax parse; test behavior is not yet executed, and visual acceptance is pending.
+
+## Business animation pass
+
+Added three independently authored SVG/CSS gestures: writing a contract signature, handing over a parcel, and stamping a receipt with a coin dropping toward the ledger. Chosen from actual feedback categories; unsuccessful unchanged actions clear the gesture. Delivery without confirmed receipt is not presented as payment. Animations are finite (under two seconds), pointer-transparent, and disabled for reduced motion. No external images, timers, amounts or game rules are introduced.
+
+This is not a claim of rich finished art: layout/occlusion, mobile composition, rhythm and perceived reward need the later complete Windows visual acceptance. Existing exhibition artwork/feedback was reviewed only; no blocked descendant animation was copied or reimplemented.
