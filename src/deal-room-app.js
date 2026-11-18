@@ -177,13 +177,13 @@ function render(){
 
  if(home&&officeAvailable(state)&&!showCareerRecap){
   const place=root.querySelector('.business');
-  place?.insertAdjacentHTML('beforeend',`<p class="office-entry"><button id="open-office-improvement">${state.officeImprovement?'看看自己的窗边工作室':'给工作室换个布置 · 可选'}</button></p>`);
-  if(state.officeImprovement){place?.insertAdjacentHTML('beforeend',`<p class="office-entry"><button id="open-office-annex">${state.officeAnnex?'去样品会客室':'想要一间样品会客室 · 先参观'}</button></p>`);root.querySelector('#open-office-annex')?.addEventListener('click',()=>{annexOpen=true;annexUI={};render();root.querySelector('[data-annex-close]')?.focus();});}
+  if(!root.querySelector('#open-office-improvement'))place?.insertAdjacentHTML('beforeend',`<p class="office-entry"><button id="open-office-improvement">${state.officeImprovement?'看看自己的窗边工作室':'给工作室换个布置 · 可选'}</button></p>`);
+  if(state.officeImprovement){if(!root.querySelector('#open-office-annex'))place?.insertAdjacentHTML('beforeend',`<p class="office-entry"><button id="open-office-annex">${state.officeAnnex?'去样品会客室':'想要一间样品会客室 · 先参观'}</button></p>`);root.querySelector('#open-office-annex')?.addEventListener('click',()=>{annexOpen=true;annexUI={};render();root.querySelector('[data-annex-close]')?.focus();});}
   root.querySelector('#open-office-improvement')?.addEventListener('click',()=>{officeOpen=true;officeUI={};render();root.querySelector('[data-office-close]')?.focus();});
  }
  if(home&&lifeAvailable(state)&&!showCareerRecap){
   const place=root.querySelector('.business');
-  place?.insertAdjacentHTML('beforeend','<p class="personal-life-entry"><button id="open-personal-life">下班回家 · 可选</button><small>赚到的钱，也可以花在自己的生活里。</small></p>');
+  if(!root.querySelector('#open-personal-life'))place?.insertAdjacentHTML('beforeend','<p class="personal-life-entry"><button id="open-personal-life">下班回家 · 可选</button><small>赚到的钱，也可以花在自己的生活里。</small></p>');
   root.querySelector('#open-personal-life')?.addEventListener('click',()=>{personalRoomOpen=true;personalRoomUI={};render();root.querySelector('[data-life-close]')?.focus();});
  }
  if(playback){
