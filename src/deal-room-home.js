@@ -67,6 +67,36 @@ export function businessHomeView(state,{career,referrals,focus='',directionsOpen
  return `${canExpandAccount(state)?'<section class="business-route account-next"><small>Northline · 3 家店已交付</small><h3>余下三家店，接着做吗？</h3><p>先看采购方案，再决定是否接单。也可以先经营别的业务。</p><button data-action="OPEN_ACCOUNT_EXPANSION">看看余下三家的采购 →</button></section>':''}${accountCompletionGlance(state)}${guidance}${homeLifeView(state)}${opportunities?`<details class="home-opportunities" ${chapter||recentProjects||canExpandAccount(state)?'':'open'}><summary>更多机会 · 新单与产品升级</summary><p class="home-opportunities-note">先把眼前的合作做好，也可以随时来看看下一步想做什么。</p>${opportunities}</details>`:''}${state.launchProject?.status==='handed'?launchInvite(state):''}<details class="other-business" ${focusCard||opening?'':'open'}><summary>其他业务 · 熟客补货与合作机会</summary><div class="business-net"><span>${net>=0?'经营累计赚到':'经营投入尚未收回'} <strong>${money(Math.abs(net))}</strong></span><small>已计日常与出样投入</small></div><div class="business-routes"><section class="business-route"><small>熟客往来</small><h3>下一单，挑客户来谈</h3><p>${state.supplyPlanHistory?.length?'从这次起，按门店余货接返单；刚补过货的客户先卖库存，也可以换客户或等待。':career.eligible?'继续返单，或谈整份供货安排。':'沿用做过的规格，自己选择继续合作的客户。'}</p><button data-action="${state.supplyPlanHistory?.length?'CONTINUE_RETAIL_BUSINESS':'CONTINUE_BUSINESS'}">${state.supplyPlanHistory?.length?'按门店补货，挑一位熟客':'挑一位熟客'} →</button>${career.eligible?'<button class="quiet" id="open-supply">谈两批供货安排</button>':`<small class="route-next">${escape(career.reason)}</small>`}</section>${state.supplyPlanHistory?.length&&!state.retailPlanning?`<section class="business-route"><small>熟客供货计划</small><h3>按门店余货安排返单</h3><p>每次铺货后，门店卖完再采购；可以换客户或做别的业务，不必守着等。</p><button data-action="START_RETAIL_PLANNING">开始看门店补货计划 →</button></section>`:''}${state.supplyPlanHistory?.length&&!state.productDevelopment?`<section class="business-route"><small>去工厂开发新款</small><h3>去工厂拿一版新样</h3><p>调光小批，或标准整批？先看工艺和以后能接的单，再决定花不花出样钱。</p><button data-action="START_DEVELOPMENT">看看两家工厂 →</button></section>`:''}${state.productDevelopment?.status==='active'?'<section class="business-route"><small>已验工厂样品</small><p>Mira 的报价可用新版本；旧台灯也保留。</p><button data-action="VIEW_DEVELOPMENT">拿出工作室留样 →</button></section>':''}${cases.length?`<section class="business-route series-route"><small>产品与署名</small><h3>${state.collection?'经营这份系列':'开自己的系列？'}</h3><p>${series}</p><button data-action="${state.collection?'OPEN_COLLECTION':'START_COLLECTION'}">${state.collection?'看设计与买手关系':'看看两种合作方式'} →</button></section>`:''}${caseGrowthInvite(state)}${curationBuyerChoices(state,referrals)}${cases.length&&!state.accountHistory?.length?`<details class="business-route"><summary>通用商品的连锁采购 <small>选择一份已交付案例</small></summary>${cases.map(c=>`<button data-account-case="${c.referrerId}">${escape(c.referrerName||c.referrerId)} · ${c.products.length} 款${c.lampVersion==='developed'?' · 调光版':''}</button>`).join('')}</details>`:''}${state.clientProjectSeason&&!state.clientProjectActive&&clientProjects(state).some(p=>!p.completed)?`<section class="business-route"><small>客户专题 · 还有 ${clientProjects(state).filter(p=>!p.completed).length} 项未完成</small><p>看看还剩哪些客户计划，以及各自的交货日期。</p><button data-action="RESUME_CLIENT_PROJECTS">继续看剩余计划 →</button></section>`:''}${!state.clientProjectSeason&&state.supplyPlanHistory?.length?`<section class="business-route"><small>客户新用途</small><h3>橱窗、快闪与餐桌</h3><p>看清日期与用途，再决定先经营谁。</p><button data-action="START_CLIENT_PROJECTS">打开客户计划 →</button></section>`:''}</div></details><button class="quiet finish-session" id="finish-session">${recentProjects&&chapter?'回顾之前的系列合作':cooperationChapter(state).closed?'为这段合作收个尾':'今天先到这里，看看做成了什么'}</button>${cases.length||state.accountHistory?.length?`<details class="case-gallery home-archive"><summary>合作档案 · ${cases.length} 份买手案例${state.accountHistory?.length?' · 连锁已供 '+accountCoverage(state)+' 店':''}</summary>${cases.map(c=>`<button data-showcase="${c.referrerId}"><strong>${escape(c.referrerName||c.referrerId)} → ${escape(c.buyer)}</strong><small>${c.products.length} 款 · ${c.quantity} 套</small></button>`).join('')}${state.accountHistory?.length?state.accountHistory.map(accountReceipt).join(''):''}</details>`:''}`;
 }
 
+/** Read confirmed single-product receipts only. Keep quotes, bundles, unpaid
+ * receivables and independent factory variants out of the same price series. */
+export function settledUnitPriceGroups(contracts=[]){
+ const groups=new Map();
+ for(const c of contracts){
+  if(c?.status!=='paid'||typeof c.product!=='string'||!c.product||
+     !Number.isSafeInteger(c.quantity)||c.quantity<=0||!Number.isSafeInteger(c.revenue)||c.revenue<0||
+     !Number.isSafeInteger(c.signedDay)||!Number.isSafeInteger(c.paidDay??c.paymentDay))continue;
+  // First Samir contract predates the specification field. Its named variant is still known.
+  const spec=c.specification||(c.clientId==='samir'&&c.optionId==='branded'?'branded':'standard');
+  const key=JSON.stringify([c.clientId,c.product,spec]);
+  if(!groups.has(key))groups.set(key,{name:c.product,spec,rows:[]});
+  const rows=groups.get(key).rows;
+  rows.push({signedDay:c.signedDay,paidDay:c.paidDay??c.paymentDay,quantity:c.quantity,revenue:c.revenue,unit:c.revenue/c.quantity});
+  if(rows.length>4)rows.shift();
+ }
+ return [...groups.values()];
+}
+export function settledUnitPricesView(contracts){
+ const groups=settledUnitPriceGroups(contracts);if(!groups.length)return '';
+ const unit=n=>'¥'+n.toLocaleString('zh-CN',{maximumFractionDigits:2});
+ return `<details class="settled-prices"><summary>自己的成交单价</summary><p>只看已收齐货款的单品单，每种规格最近四笔。每点一单，从左到右按签约先后；数量和账期会影响成交价。</p>${groups.map(({name,spec,rows})=>{
+  const vals=rows.map(r=>Math.round(r.unit*100)/100),lo=Math.min(...vals),hi=Math.max(...vals);
+  const xy=rows.map((r,i)=>[rows.length===1?72:8+i*(128/(rows.length-1)),hi===lo?20:31-22*(vals[i]-lo)/(hi-lo)]);
+  const last=rows.at(-1);
+  return `<article><header><strong>${escape(name)}${spec==='branded'?' · 定制包装':''}</strong><span>最近每件 ${unit(last.unit)}</span></header><svg viewBox="0 0 144 40" width="144" height="40" aria-hidden="true" focusable="false">${xy.length>1?`<polyline points="${xy.map(([x,y])=>x.toFixed(2)+','+y.toFixed(2)).join(' ')}" fill="none" stroke="currentColor" stroke-width="2"/>`:''}${xy.map(([x,y])=>`<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="3" fill="currentColor"/>`).join('')}</svg>${hi!==lo?`<small class="price-range">图内每件 ${unit(lo)} 至 ${unit(hi)}</small>`:''}<ul>${rows.map(r=>`<li><span>第 ${r.signedDay} 天签约 · ${r.quantity} 件</span><span>货款 ${money(r.revenue)} · 每件 ${unit(r.unit)} · 第 ${r.paidDay} 天收齐</span></li>`).join('')}</ul></article>`;
+ }).join('')}</details>`;
+}
+
+
 /** A factual session recap, not a score, ending unlock, or invented promotion. */
 export function careerRecap(state){
  const paid=state.contracts.filter(o=>o.status==='paid'),clients=new Set(paid.map(o=>o.clientId));
@@ -80,7 +110,7 @@ export function careerRecap(state){
 export function careerRecapView(state){
  const r=careerRecap(state),chapter=cooperationChapter(state),closed=chapter.closed;
  const closing=closed?(chapter.relation.buyerId==='northline'?'Northline 从确认系列走到六店交付，型号、包装与署名都按你谈下的版本兑现。':chapter.relation.buyerId==='atelier'?'Atelier 已收到独家系列与上市陈列。你选择把这份设计留给这位买方，也保留了其他通用业务。':chapter.facts.some(f=>f.kind==='use-delivered')?'你保留的原稿被客户采用，又走进实际使用场所；作品不再只停在样品桌上。':'买手的系列订单已经交付，工作室原稿也已被概念店采用。设计仍留在工作室，新的用途合作由你决定。'):'';
- return `<section class="career-recap" aria-label="今天的事业回顾"><small>第 ${r.day} 天 · ${closed?'一段合作的收尾':'工作室收工前'}</small><h3 tabindex="-1">${closed?'这一程，交付完成':'做成的合作，明天还在'}</h3>${closing?`<p class="recap-outcome">${closing}</p>`:''}<div class="recap-facts"><div><strong>${r.clients}</strong><span>位已成交老客户</span></div><div><strong>${r.paid}</strong><span>笔单品订单已收齐</span></div>${r.cases?`<div><strong>${r.cases}</strong><span>份组合选品案例</span></div>`:''}${r.stores?`<div><strong>${r.stores}</strong><span>家连锁门店已交付</span></div>`:''}</div>${r.designs?`<p class="recap-design">${r.designs}。${r.openDesign?'还可以带着自己的设计，去见下一位买手。':'这套系列按约供货，通用产品仍可接单。'}</p>`:''}<p class="brief">可用资金 ${money(r.cash)}。</p><button class="primary" id="resume-work">${closed?'继续自由经营':'再看看工作室'} →</button><small class="recap-save"></small></section>`;
+ return `<section class="career-recap" aria-label="今天的事业回顾"><small>第 ${r.day} 天 · ${closed?'一段合作的收尾':'工作室收工前'}</small><h3 tabindex="-1">${closed?'这一程，交付完成':'做成的合作，明天还在'}</h3>${closing?`<p class="recap-outcome">${closing}</p>`:''}<div class="recap-facts"><div><strong>${r.clients}</strong><span>位已成交老客户</span></div><div><strong>${r.paid}</strong><span>笔单品订单已收齐</span></div>${r.cases?`<div><strong>${r.cases}</strong><span>份组合选品案例</span></div>`:''}${r.stores?`<div><strong>${r.stores}</strong><span>家连锁门店已交付</span></div>`:''}</div>${r.designs?`<p class="recap-design">${r.designs}。${r.openDesign?'还可以带着自己的设计，去见下一位买手。':'这套系列按约供货，通用产品仍可接单。'}</p>`:''}<p class="brief">可用资金 ${money(r.cash)}。</p>${settledUnitPricesView(state.contracts)}<button class="primary" id="resume-work">${closed?'继续自由经营':'再看看工作室'} →</button><small class="recap-save"></small></section>`;
 }
 
 export function careerFocusView(state,focus='',excludedAction=''){
