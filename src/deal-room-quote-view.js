@@ -11,9 +11,9 @@ export function quoteOptionExplanation(state, offer) {
 }
 /** Three actual quoted milestones, not a simulated daily cash curve. */
 export function quoteCashPathView(state,offer,{roundActive=false}={}){
- if(!offer||offer.accepted===false)return '';
+ if(!offer||offer.accepted===false||offer.valid===false)return '';
  const values=[state?.cash,offer.cashAfterSigning,offer.cashAfterPayment];
- if(!values.every(Number.isSafeInteger))return '';
+ if(!values.every(value=>Number.isSafeInteger(value)&&value>=0))return '';
  const low=Math.min(0,...values),high=Math.max(0,...values),range=Math.max(1,high-low);
  const y=value=>12+(high-value)/range*42,x=[24,150,276];
  const points=values.map((value,i)=>`${x[i]},${y(value).toFixed(2)}`).join(' ');

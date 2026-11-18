@@ -11,10 +11,13 @@ test('unagreed terms and invalid numbers never produce a confident cash path',()
  assert.equal(quoteCashPathView({cash:3200},{...offer,accepted:false}),'');
  for(const cash of [NaN,Infinity,'3200',null])assert.equal(quoteCashPathView({cash},offer),'');
 });
-test('zero and negative milestones remain finite and negative cash is marked',()=>{
+test('zero milestones remain finite and unfunded offers never imply available overdraft',()=>{
  assert.doesNotMatch(quoteCashPathView({cash:0},{cashAfterSigning:0,cashAfterPayment:0}),/NaN|Infinity/);
- assert.match(quoteCashPathView({cash:100},{cashAfterSigning:-200,cashAfterPayment:400}),/class="cash-path-negative"/);
+ assert.equal(quoteCashPathView({cash:100},{cashAfterSigning:-200,cashAfterPayment:400}), '');
 });
 test('overlapping round receipts are disclosed instead of presented as this order alone',()=>{
  assert.match(quoteCashPathView({cash:3200},offer,{roundActive:true}),/其他已签订单/);
+});
+test('a refused commitment does not show a payable future even with positive supplied numbers',()=>{
+ assert.equal(quoteCashPathView({cash:3200},{...offer,valid:false}), '');
 });

@@ -17,9 +17,9 @@ test('preview is local dashed treatment and purchase removes it without changing
  assert.equal(JSON.stringify(empty),before);assert.doesNotMatch(lifeRoomArt(empty),/试摆 · 未购买/);
 });
 test('painted turntable has a fixed-perspective moving disc only while playing',()=>{
- const active=lifeRoomArt(state(),{using:'record'}),idle=lifeRoomArt(state());
+ const active=lifeRoomArt(state(),{using:'record',soundOn:true}),idle=lifeRoomArt(state());
  assert.match(active,/translate\(555 205\) scale\(1 .42\)/);assert.match(active,/class="life-disc"/);assert.match(idle,/deal-life-furniture.webp/);assert.doesNotMatch(idle,/class="life-disc"/);
- assert.match(lifeRoomArt(state(),{using:'coffee'}),/class="life-steam"/);assert.doesNotMatch(idle,/class="life-steam"/);
+ assert.match(lifeRoomArt(state(),{using:'coffee',coffeeStage:'ready'}),/class="life-steam"/);assert.doesNotMatch(idle,/class="life-steam"/);
  assert.match(lifeRoomView(state('inside','inside','inside')),/放回桌面/);
 });
 
