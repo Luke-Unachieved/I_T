@@ -17,7 +17,7 @@ export function roundProductionView(state){
 }
 
 export function roundQuoteNote(state,quote,clientId){
- const d=retailDemand(state,clientId);
- const stock=d&&Number.isFinite(quote.quantity)&&Number.isFinite(quote.deliveryDay)?`这批约供门店卖 ${Math.ceil(quote.quantity/d.rate)} 天，预计第 ${quote.deliveryDay+Math.ceil(quote.quantity/d.rate)} 天再补货。`:'';
- return stock+(state.businessSigned<1?'交货后可谈下一单；':'')+'已签货款收齐后即可回工作室。';
+ const d=clientId?retailDemand(state,clientId):null;
+ const stock=d&&Number.isFinite(d.rate)&&d.rate>0&&Number.isFinite(quote.quantity)&&Number.isFinite(quote.deliveryDay)?`这批约供门店卖 ${Math.ceil(quote.quantity/d.rate)} 天，预计第 ${quote.deliveryDay+Math.ceil(quote.quantity/d.rate)} 天再补货。`:'';
+ return stock+(state.businessSigned<1?'交货后可以接着谈，也可以不接第二单，等这笔货款收齐就回工作室。':'这单是本轮第二份采购。两份合同的货款都收齐后，就能回工作室。');
 }
