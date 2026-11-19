@@ -1,0 +1,31 @@
+/* Prospect correspondence is embedded in the purchase desk, not a new home screen. */
+.prospect-panel{min-width:0;margin-block:1.4rem;color:#293e37;overflow-wrap:anywhere}
+.prospect-panel h3{margin:.2rem 0 .5rem}
+.prospect-inbox{padding:clamp(.8rem,2.5vw,1.25rem);border:1px solid #d3d2be;border-radius:.75rem;background:#f5f4e9}
+.prospect-inbox>p{margin:.25rem 0 .85rem}
+.prospect-panel .prospect-eyebrow,.prospect-panel .prospect-date{color:#5a695b;font-size:.8rem}
+.prospect-panel .prospect-filters,.prospect-panel .prospect-pages{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin:.6rem 0}
+.prospect-panel .prospect-filters button,.prospect-panel .prospect-pages button{min-height:44px}
+.prospect-panel .prospect-letters{display:grid;gap:.55rem;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
+.prospect-panel .prospect-letter{display:flex;align-items:center;text-align:start;gap:.7rem;min-width:0;background:#fffdf6;border:1px solid #c8c8b7}
+.prospect-panel .prospect-letter>span:last-child,.prospect-panel .prospect-byline>div{min-width:0}
+.prospect-panel .prospect-letter strong,.prospect-panel .prospect-letter small,.prospect-panel .prospect-letter>span:last-child>span,.prospect-panel .prospect-byline>div>span,.prospect-panel .prospect-byline strong{display:block;line-height:1.4}
+.prospect-panel .prospect-letter strong{margin:.14rem 0}
+.prospect-panel .prospect-letter small,.prospect-panel .prospect-byline small{color:#4c6352}
+.prospect-panel .prospect-letter small:last-child{margin-top:.3rem}
+.prospect-panel .prospect-byline{display:flex;align-items:center;gap:.75rem;margin:1rem 0 .35rem}
+.prospect-panel .prospect-byline h3{margin:.12rem 0}
+.prospect-panel .prospect-message{margin:.65rem 0 1rem;padding:.65rem .9rem;border-inline-start:3px solid #9c8557;background:#f3eddd;color:#354234}
+.prospect-panel .prospect-letter-tile{display:grid;place-items:center;width:3.5rem;height:3.5rem;flex:none;background:#e1e8d5;border-radius:.45rem;font-size:1.25rem;color:#395343}
+.prospect-inbox .prospect-calendar{font-size:.82rem;line-height:1.55;color:#51634f}
+.prospect-panel .prospect-terms{margin-block:.75rem}
+.prospect-receipt{padding:.5rem .85rem;border:1px solid #d5d1bf;border-radius:.65rem}
+.prospect-receipt .prospect-byline{margin:.35rem 0}
+.prospect-receipt .prospect-message{margin:.5rem 0}
+@media(max-width:540px){
+ .prospect-panel fieldset{display:grid;grid-template-columns:minmax(0,1fr);min-width:0}
+ .prospect-panel .market-sheet{grid-template-columns:minmax(70px,25%) minmax(0,1fr)}
+ .prospect-panel .market-price-row input,.prospect-panel .market-price-row button{width:100%;min-width:0}
+ .prospect-panel .prospect-letters{grid-template-columns:minmax(0,1fr)}
+ .prospect-panel .market-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+}

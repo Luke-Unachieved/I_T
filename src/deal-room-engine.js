@@ -1,3 +1,6 @@
+import {canonicalWorkspaceSleep,applyWorkspaceSleep} from './deal-room-workspace-sleep.js';
+import {PROPERTY_ACTION_KEYS,canonicalPropertyAction,applyPropertyAction} from './deal-room-property.js';
+import {OUTING_ACTION_KEYS,canonicalOutingAction,applyOutingAction} from './deal-room-outings.js';
 import {MARKET_ACTION_KEYS,canonicalMarketAction,applyMarketAction} from './deal-room-market.js';
 import {LINEN_FREIGHT_ACTIONS,canonicalLinenFreight,applyLinenFreight} from './deal-room-linen-freight.js';
 import {ATELIER_RESTOCK_ACTIONS,canonicalAtelierRestock,applyAtelierRestock} from './deal-room-atelier-restock.js';
@@ -288,6 +291,14 @@ function collectionSeedDraft(basis){
  return {status:'draft',products:items.map(p=>p.id),price:items.reduce((n,p)=>n+p.price,0),cost:items.reduce((n,p)=>n+p.cost,0),orders:[],...(basis.lampVersion?{lampVersion:basis.lampVersion}:{})};
 }
 function apply(state,action){
+  if(action.type==='SLEEP_TO_NEXT_DAY')return applyWorkspaceSleep(state,action);
+  if(Object.hasOwn(OUTING_ACTION_KEYS,action.type))return applyOutingAction(state,action,canStartDeal(state));
+  if(state.phase==='outing-trip')return state;
+  if(Object.hasOwn(PROPERTY_ACTION_KEYS,action.type)){
+    if(!['review','complete'].includes(state.phase)||!canStartDeal(state))return state;
+    const next=applyPropertyAction(state,action);
+    return next===state?state:{...next,history:[...state.history]};
+  }
   if(typeof MARKET_ACTION_KEYS!=='undefined'&&Object.hasOwn(MARKET_ACTION_KEYS,action.type))return applyMarketAction(state,action,canStartDeal(state));
   // Do not let an unrelated career/office action interrupt an outstanding new-goods lot.
   if(state.phase==='market')return state;
@@ -668,6 +679,9 @@ function apply(state,action){
 }
 const actionKeys={SIGN_OWN_COLLECTION_FROM_CASE:['type','referrerId','style'],PROPOSE_OPENING_QUOTE:['type','clientId','optionId'],CONTINUE_RETAIL_BUSINESS:['type'],OPEN_STOCK_PROCUREMENT:['type'],CLOSE_STOCK_PROCUREMENT:['type'],SIGN_STOCK_PROCUREMENT:['type','factoryMode'],FULFIL_STOCK_PROCUREMENT:['type'],SIGN_STUDIO_PROJECT_FROM_STOCK:['type'],SET_ACCOUNT_EXPANSION_BASIS:['type','basisId'],START_ACCOUNT_FROM_REVISION:['type'],SET_ACCOUNT_VERSION:['type','versionId'],OPEN_COLLECTION_REVISION:['type'],CLOSE_COLLECTION_REVISION:['type'],COMMISSION_COLLECTION_REVISION:['type'],RECEIVE_COLLECTION_REVISION:['type'],SIGN_COLLECTION_REVISION:['type','buyerId','scope'],FULFIL_COLLECTION_REVISION:['type'],START_CASE_DEVELOPMENT:['type'],OPEN_STUDIO_READING_PAIR:['type'],CLOSE_SETTLED_ROUND:['type'],CANCEL_ROUND_RECEIVABLES:['type'],ENABLE_ROUND_RECEIVABLES:['type'],DELIVER_ROUND_ORDER:['type'],WAIT_ROUND_RECEIPT:['type'],FINISH_ROUND_RECEIVABLES:['type'],SIGN_FIRST_CATALOGUE_ORDER:['type','referrerId','lampVersion'],START_OPENING_CURATION:['type','clientId'],SIGN_STUDIO_ALLOCATION:['type','allocation'],WAIT_STUDIO_ALLOCATION:['type','allocation'],START_ACCOUNT_FROM_COLLECTION:['type'],PAUSE_CLIENT_PROJECTS:['type'],RESUME_CLIENT_PROJECTS:['type'],OPEN_LAUNCH_PROJECT:['type'],CLOSE_LAUNCH_PROJECT:['type'],SET_LAUNCH:['type','field','value'],REVIEW_LAUNCH:['type'],REVISE_LAUNCH:['type'],HAND_OVER_LAUNCH:['type'],PROPOSE_GROUP_CHANGE:['type'],RESTORE_GROUP_SPEC:['type','briefId'],KEEP_STUDIO_PROJECT:['type'],REVISE_STUDIO_PROJECT:['type'],OPEN_STUDIO_PROJECT:['type','direction'],CLOSE_STUDIO_PROJECT:['type'],SET_STUDIO_PROJECT:['type','field','value'],REVIEW_STUDIO_PROJECT:['type'],SIGN_STUDIO_PROJECT_ORDER:['type'],WAIT_STUDIO_PROJECT:['type'],SIGN_CATALOGUE_ORDER:['type','lampVersion'],APPROVE_CASE_LAMP:['type','model'],SIGN_APPROVED_CASE_LAMP:['type','terms'],OPEN_ACCOUNT_EXPANSION:['type'],SIGN_ACCOUNT_EXPANSION:['type'],FULFIL_ACCOUNT_EXPANSION:['type'],WAIT_CASE_CALLOFF:['type','products'],SIGN_CASE_CALLOFF:['type','agreement','products','packaging','terms'],WAIT_CASE_GROWTH:['type','products'],OPEN_CASE_GROWTH:['type','referrerId'],CLOSE_CASE_GROWTH:['type'],SIGN_CASE_GROWTH:['type','agreement','products','packaging','terms'],FULFIL_CASE_GROWTH:['type'],SIGN_CURATION_SAMPLE:['type','products','quantity','packaging','lampVersion'],VIEW_DEVELOPMENT:['type'],CLOSE_SAMPLE:['type'],START_DEVELOPMENT:['type'],CLOSE_DEVELOPMENT:['type'],COMMISSION_SAMPLE:['type','factory'],RECEIVE_SAMPLE:['type'],ACCEPT_SAMPLE:['type'],PAUSE_FOR_BUYER:['type','clientId'],WAIT_FOR_BUYER:['type','clientId'],START_RETAIL_PLANNING:['type'],BACK_FROM_CLIENTS:['type'],WAIT_FOR_RETAIL:['type'],OPEN_COLLECTION_PITCH:['type','buyerId'],BACK_COLLECTION_PITCH:['type'],SIGN_COLLECTION_PITCH:['type','optionId'],START_COLLECTION:['type'],BACK_FROM_COLLECTION:['type'],SIGN_COLLECTION:['type','model','style'],SIGN_COLLECTION_ORDER:['type','buyerId'],FULFIL_COLLECTION:['type'],CLOSE_COLLECTION:['type'],OPEN_COLLECTION:['type'],START_ACCOUNT:['type','referrerId'],BACK_FROM_ACCOUNT:['type'],SIGN_ACCOUNT:['type','optionId'],FULFIL_ACCOUNT:['type'],CLOSE_ACCOUNT:['type'],BACK_FROM_CURATION:['type'],START_CURATION:['type','clientId'],SIGN_CURATION:['type','products','quantity','packaging'],FULFIL_CURATION:['type'],START_CLIENT_PROJECTS:['type'],PROPOSE:['type','optionId'],ADVANCE:['type'],NEXT_CLIENT:['type'],CONTINUE_BUSINESS:['type'],SELECT_CLIENT:['type','clientId'],BACK_TO_CLIENTS:['type'],START_SUPPLY_PLAN:['type','clientId','firstBatch','payment'],ADVANCE_SUPPLY_PLAN:['type'],FULFIL_SUPPLY_PLAN:['type']};
 function canonicalAction(a){
+  if(a?.type==='SLEEP_TO_NEXT_DAY')return canonicalWorkspaceSleep(a);
+  if(a&&Object.hasOwn(PROPERTY_ACTION_KEYS,a.type))return canonicalPropertyAction(a);
+  if(a&&Object.hasOwn(OUTING_ACTION_KEYS,a.type))return canonicalOutingAction(a);
   if(a&&typeof MARKET_ACTION_KEYS!=='undefined'&&Object.hasOwn(MARKET_ACTION_KEYS,a.type))return canonicalMarketAction(a);
   if(a&&Object.hasOwn(LINEN_FREIGHT_ACTIONS,a.type))return canonicalLinenFreight(a);
   if(a&&Object.hasOwn(ATELIER_RESTOCK_ACTIONS,a.type))return canonicalAtelierRestock(a);

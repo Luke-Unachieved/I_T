@@ -3,6 +3,18 @@
   "reviewDate": "2026-11-18",
   "assets": [
     {
+      "file": "assets/deal-advisers-recovered.webp",
+      "bytes": 131024,
+      "sha256": "ab41d49135438452d71fed7e13079592bf4ac3f95f2142946189d2e7ad44585f",
+      "references": [
+        "src/deal-room.css"
+      ],
+      "sourceDocument": "assets/deal-advisers-recovered.source.md",
+      "provenanceStatus": "Approved character design contact sheet recovered from the project Library. Original JPEG, coordinates and lossless crop retained.",
+      "permissionStatus": "Human release review pending.",
+      "dateIssue": null
+    },
+    {
       "file": "assets/deal-annex-room-v1.webp",
       "bytes": 336362,
       "sha256": "0ac71029d316ec6926a2b635212cefba3d3b51ad6ac0f61e5cc67fb978b9bbd8",
@@ -24,6 +36,42 @@
       "sourceDocument": "assets/deal-buyer-boutique-v1.source.md",
       "provenanceStatus": "first-party generation observed in this development session; exact source PNG and both prompts retained",
       "permissionStatus": "direct production evidence retained; human rights and store review not asserted",
+      "dateIssue": null
+    },
+    {
+      "file": "assets/deal-buyer-cheng-zhe.webp",
+      "bytes": 11534,
+      "sha256": "3f50e95db886b1ac0677b63584cd1f5422ce65eae60abbef03bdc306f73a1782",
+      "references": [
+        "src/deal-room-equipment-view.js"
+      ],
+      "sourceDocument": "assets/deal-buyer-cheng-zhe.source.md",
+      "provenanceStatus": "Original individual SVG drawing retained with the runtime WebP and an asset-specific production note.",
+      "permissionStatus": "Human release review pending.",
+      "dateIssue": null
+    },
+    {
+      "file": "assets/deal-buyer-lin-yan.webp",
+      "bytes": 10772,
+      "sha256": "fc25d28b6fca8ed0048f6ffc652c11059372269cd70546f618b72d1ab31bda88",
+      "references": [
+        "src/deal-room-neighborhood-view.js"
+      ],
+      "sourceDocument": "assets/deal-buyer-lin-yan.source.md",
+      "provenanceStatus": "Original individual SVG drawing retained with the runtime WebP and an asset-specific production note.",
+      "permissionStatus": "Human release review pending.",
+      "dateIssue": null
+    },
+    {
+      "file": "assets/deal-buyer-zhou-lan.webp",
+      "bytes": 9448,
+      "sha256": "c9535a2c206b7dd6f81529c1523b4e101d0b50396202803917d88aa7c1e012e6",
+      "references": [
+        "src/deal-room-equipment-view.js"
+      ],
+      "sourceDocument": "assets/deal-buyer-zhou-lan.source.md",
+      "provenanceStatus": "Original individual SVG drawing retained with the runtime WebP and an asset-specific production note.",
+      "permissionStatus": "Human release review pending.",
       "dateIssue": null
     },
     {
@@ -112,6 +160,42 @@
       "dateIssue": null
     },
     {
+      "file": "assets/deal-project-automated-warehouse.webp",
+      "bytes": 28242,
+      "sha256": "d2cb318d3c4a295adb8a51f8e7d8931f5c9a43e078e39f43bf56656b84545cc4",
+      "references": [
+        "src/deal-room-equipment-view.js"
+      ],
+      "sourceDocument": "assets/deal-project-automated-warehouse.source.md",
+      "provenanceStatus": "Original individual SVG drawing retained with the runtime WebP and an asset-specific production note.",
+      "permissionStatus": "Human release review pending.",
+      "dateIssue": null
+    },
+    {
+      "file": "assets/deal-project-cold-chain.webp",
+      "bytes": 16356,
+      "sha256": "0a0e94cd9883d3d8d2cd2b0c815f63f19ad12eb1fe0586ebc076af82dfc5e118",
+      "references": [
+        "src/deal-room-equipment-view.js"
+      ],
+      "sourceDocument": "assets/deal-project-cold-chain.source.md",
+      "provenanceStatus": "Original individual SVG drawing retained with the runtime WebP and an asset-specific production note.",
+      "permissionStatus": "Human release review pending.",
+      "dateIssue": null
+    },
+    {
+      "file": "assets/deal-project-filling-line.webp",
+      "bytes": 19952,
+      "sha256": "5555e6051a25d10695b733a2e9457e85d06a406defe22827ab684385dca0e8d3",
+      "references": [
+        "src/deal-room-equipment-view.js"
+      ],
+      "sourceDocument": "assets/deal-project-filling-line.source.md",
+      "provenanceStatus": "Original individual SVG drawing retained with the runtime WebP and an asset-specific production note.",
+      "permissionStatus": "Human release review pending.",
+      "dateIssue": null
+    },
+    {
       "file": "assets/deal-showroom-v1.webp",
       "bytes": 376656,
       "sha256": "3e148f08196b3109156fe0c72edbb135f48ac79a3d2a61e05884c412dd8d629f",
@@ -122,6 +206,54 @@
       "sourceDocument": null,
       "provenanceStatus": "individual generation receipt not found in this checkout",
       "permissionStatus": "not independently verified per asset; not evidence of missing permission",
+      "dateIssue": null
+    },
+    {
+      "file": "assets/deal-prospects-v1.webp",
+      "bytes": 577854,
+      "sha256": "9b815d64db577d88728e7ad2d968d5ea202330057c19713e95faccd9626b5fef",
+      "references": [
+        "src/deal-room-prospect-avatar.js"
+      ],
+      "sourceDocument": "assets/deal-prospects-v1.source.md",
+      "provenanceStatus": "Original generated illustrated portraits. Candidate art provenance and instructions are retained with the source atlas.",
+      "permissionStatus": "Human release review pending.",
+      "dateIssue": null
+    },
+    {
+      "file": "assets/deal-warehouse-starter.webp",
+      "bytes": 113174,
+      "sha256": "ce92f8f07c44f4714e5275d3d3668f426879c54228c92d2e000e734319b50ace",
+      "references": [
+        "src/deal-room-warehouse-art.js"
+      ],
+      "sourceDocument": "assets/deal-warehouse-starter.source.md",
+      "provenanceStatus": "Original illustration regenerated from observed layout; empty of reference inventory photos.",
+      "permissionStatus": "Human release review pending.",
+      "dateIssue": null
+    },
+    {
+      "file": "assets/deal-warehouse-transit.webp",
+      "bytes": 116954,
+      "sha256": "c857268cdcada779c4e0ad9cd1cf586ad5c2627f6c0475cefcfe1d620f5a637a",
+      "references": [
+        "src/deal-room-warehouse-art.js"
+      ],
+      "sourceDocument": "assets/deal-warehouse-transit.source.md",
+      "provenanceStatus": "Original illustration regenerated from observed layout; empty of reference inventory photos.",
+      "permissionStatus": "Human release review pending.",
+      "dateIssue": null
+    },
+    {
+      "file": "assets/deal-warehouse-highbay.webp",
+      "bytes": 107228,
+      "sha256": "d3a2dc9c20d219382bafc1b538e999e615798b08bba4deda724aeccac09e0eea",
+      "references": [
+        "src/deal-room-warehouse-art.js"
+      ],
+      "sourceDocument": "assets/deal-warehouse-highbay.source.md",
+      "provenanceStatus": "Original illustration regenerated from observed layout; empty of reference inventory photos.",
+      "permissionStatus": "Human release review pending.",
       "dateIssue": null
     }
   ]

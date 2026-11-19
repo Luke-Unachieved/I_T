@@ -1,0 +1,25 @@
+/* Five persistent destinations; no fixed positioning that could cover narrow screens. */
+.ws-nav{grid-column:1/-1;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.3rem;padding:.3rem;background:#eee8d9;border:1px solid #c8c2ae;border-radius:.75rem;min-width:0}
+.ws-nav button,.ws-office .ws-items button{font:inherit;min-width:0;min-height:44px;color:#334434;border:1px solid transparent;border-radius:.42rem;cursor:pointer}
+.ws-nav button{font-weight:600;background:transparent;padding:.35rem .12rem;white-space:nowrap}
+.ws-nav button[aria-current=page]{background:#37513e;color:#fff9e9;box-shadow:0 1px 3px #32463233}
+.ws-nav button:focus-visible,.ws-office :is(button,summary):focus-visible{outline:3px solid #9c5932;outline-offset:2px}
+.ws-office{grid-column:1/-1;width:100%;min-width:0;max-width:1000px;justify-self:center;color:#304136;line-height:1.55;overflow-wrap:anywhere}
+.ws-office *{box-sizing:border-box}
+.ws-office .ws-desk{min-height:clamp(210px,35vw,380px);display:flex;align-items:flex-end;justify-content:flex-start;overflow:hidden;padding:clamp(.9rem,3vw,2rem);border-radius:1rem;border:1px solid #b8ac91;background:linear-gradient(to top,#24251e96 0%,transparent 54%),url('../assets/deal-showroom-v1.webp') 50% 53%/cover no-repeat,#ded1b8}
+.ws-office .ws-desk-window{background-image:linear-gradient(to top,#24251e96 0%,transparent 54%),url('../assets/deal-office-window-v1.webp')}
+.ws-office .ws-desk-label{min-width:0;max-width:100%;padding:.6rem 1rem;border-radius:.4rem;background:#faf6eaf2;color:#2e4033;box-shadow:0 3px 12px #2c261423}
+.ws-office .ws-desk h2{margin:.05rem 0;font-size:clamp(1.35rem,3vw,1.9rem)}
+.ws-office .ws-desk small,.ws-office .ws-muted,.ws-office .ws-items small{font-size:.85rem;color:#526454}
+.ws-office .ws-desk p{margin:.1rem 0}.ws-office .ws-desk strong,.ws-office .ws-totals dd{font-variant-numeric:tabular-nums}
+.ws-office .ws-section,.ws-office .ws-ledger{margin:.75rem 0 0;padding:.75rem 1rem;background:#fcf8ed;border:1px solid #cfc9b5;border-radius:.65rem}
+.ws-office .ws-section h3{margin:0 0 .45rem}.ws-office p{margin:.4rem 0}
+.ws-office .ws-items,.ws-office .ws-breakdown{list-style:none;margin:0;padding:0}
+.ws-office .ws-items li+li,.ws-office .ws-breakdown li+li{border-top:1px solid #dad7c7}
+.ws-office .ws-items li>button,.ws-office .ws-items li>div{display:flex;width:100%;align-items:center;justify-content:space-between;gap:.5rem;padding:.45rem 0;text-align:start;background:transparent}
+.ws-office .ws-items strong,.ws-office .ws-items small{display:block}.ws-office .ws-arrow{color:#4e694d;flex:none;padding:.15rem .45rem}
+.ws-office details>summary{cursor:pointer;min-height:44px;padding:.55rem 0;font-weight:650}
+.ws-office .ws-totals{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.4rem .85rem;margin:.5rem 0}
+.ws-office .ws-totals>div{min-width:0;border-bottom:1px solid #cccbb8;padding:.3rem 0}.ws-office .ws-totals dt{color:#586757;font-size:.83rem}.ws-office .ws-totals dd{margin:0;font-weight:650}
+.ws-office .ws-breakdown li{display:flex;flex-wrap:wrap;gap:.12rem .75rem;justify-content:space-between;padding:.35rem 0}.ws-office .ws-breakdown span{color:#4d604f}
+@media(max-width:540px){.ws-nav{gap:.1rem}.ws-nav button{font-size:.92rem}.ws-office .ws-totals{grid-template-columns:repeat(2,minmax(0,1fr))}.ws-office .ws-desk{min-height:210px}.ws-office .ws-breakdown li{flex-direction:column}.ws-office .ws-section,.ws-office .ws-ledger{padding-inline:.75rem}}

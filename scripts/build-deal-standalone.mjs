@@ -20,7 +20,7 @@ async function sourceReader(commit){
 async function purchaseDeskModules(read, entrySources) {
  const modules = new Map(), visiting = new Set(), entryNames = new Set();
  async function visitImports(source, entry = false) {
-  const imports = source.matchAll(/^import\s*\{([^}]+)\}\s*from\s*['"]\.\/(deal-room-(?:market|equipment|neighborhood|adviser|prospect)[\w-]*\.js)['"];/gm);
+  const imports = source.matchAll(/^import\s*\{([^}]+)\}\s*from\s*['"]\.\/(deal-room-(?:market|equipment|neighborhood|adviser|prospect|warehouse|workspace|property|outings)[\w-]*\.js)['"];/gm);
   for (const [, namesImported, file] of imports) {
    if (entry) for (const name of namesImported.split(',')) entryNames.add(name.trim());
    if (modules.has(file)) continue;

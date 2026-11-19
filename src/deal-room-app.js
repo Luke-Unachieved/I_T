@@ -2,6 +2,14 @@ import {adviserView,bindAdviser,readAdviserChoice} from './deal-room-adviser.js'
 import {marketBook} from './deal-room-market.js';
 import {marketView,bindMarket,marketReceiptText,marketAdviserQuote} from './deal-room-market-view.js';
 let marketUI={};
+import {warehouseView,bindWarehouse} from './deal-room-warehouse-view.js';
+let warehouseOpen=false,warehouseUI={};
+import {workspaceNavView,workspaceOfficeView,bindWorkspaceNav} from './deal-room-workspace-nav.js';
+import {propertyView,bindPropertyView} from './deal-room-property-view.js';
+import {workspaceWeather,workspaceHubView,bindWorkspaceHub} from './deal-room-workspace-hub.js';
+import {PROPERTY_CATALOG,propertyHoldings} from './deal-room-property.js';
+import {outingsView,bindOutings,openOutings} from './deal-room-outings-view.js';
+let workspaceOverride=null,propertyUI=null,outingsOpen=false,outingsUI={},sleepOpen=false;
 import {openProductReorder} from './deal-room-career-focus.js';
 import {shopTrialView,shopShelfScene} from './deal-room-shop-trial.js';
 import {exhibitionAvailable} from './deal-room-exhibition.js';
@@ -138,17 +146,58 @@ function downloadDealText(text,name,type){const url=URL.createObjectURL(new Blob
 const root=document.querySelector('#deal-room');
 const money=n=>`¥${Number(n).toLocaleString('zh-CN')}`;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const orderPhase=s=>s.phase==='market'?['preparing','transit','receivable','paid'].includes(s.market?.status):['fulfilling','paid','supply','collection','collection-revision','stock-procurement','atelier-restock'].includes(s.phase);
+const tabsNow=()=>state.phase==='outing-trip'?'afterwork':propertyUI?(propertyUI.kind==='office'?'development':'afterwork'):outingsOpen||personalRoomOpen?'afterwork':workspaceOverride|| (orderPhase(state)?'orders':state.phase==='market'?'inbox':'office');
+function directAction(a){const n=reduceDealRoom(state,a);if(n===state)return false;state=n;save();render();return true;}
+function workspaceNavigate(tab){
+ if(state.phase==='outing-trip')return;
+ warehouseOpen=false;propertyUI=null;outingsOpen=false;personalRoomOpen=false;sleepOpen=false;
+ workspaceOverride=tab;render();
+}
 function render(){
  renderCurrentPage();
+ if(typeof root.insertAdjacentHTML==='function'){
+  root.insertAdjacentHTML('afterbegin',workspaceNavView(tabsNow()));
+  bindWorkspaceNav(root,workspaceNavigate);
+ }
+ if(!warehouseOpen&&['review','complete','market'].includes(state.phase)){
+  root.insertAdjacentHTML?.('afterbegin','<div class="wh-shortcut"><button type="button" data-open-warehouse>自有仓库</button></div>');
+  root.querySelector('[data-open-warehouse]')?.addEventListener?.('click',()=>{warehouseOpen=true;render();root.querySelector('#wh-title')?.focus?.();});
+ }
  bindAdviser(root,adviserUI,dealStorage,render,SAVE_KEY);
 }
 function renderCurrentPage(){
+ if(warehouseOpen){
+
+  root.innerHTML=adviserView(state,{place:'自有仓库'},adviserUI)+warehouseView(state,warehouseUI)+`<p class="save-state" role="status">${esc(saveNotice)}</p>`+dealSaveView(savePanel);
+  const dispatch=a=>{const n=reduceDealRoom(state,a);if(n===state)return;state=n;save();render();};
+  bindWarehouse(root,state,warehouseUI,render,dispatch,()=>{warehouseOpen=false;render();root.querySelector('[data-open-warehouse]')?.focus?.();});bindSaveTools();return;
+ }
+ if(state.phase==='outing-trip'||outingsOpen){
+  root.innerHTML=adviserView(state,{place:'生活'},adviserUI)+outingsView(state,outingsUI)+dealSaveView(savePanel);
+  bindOutings(root,state,outingsUI,render,directAction,()=>{outingsOpen=false;workspaceOverride='afterwork';render();});bindSaveTools();return;
+ }
+ if(propertyUI){
+  root.innerHTML=adviserView(state,{place:propertyUI.kind==='office'?'工作室布置':'生活'},adviserUI)+propertyView(state,propertyUI)+dealSaveView(savePanel);
+  bindPropertyView(root,state,propertyUI,{render,dispatch:directAction,onBack:()=>{propertyUI=null;render();},getState:()=>state});bindSaveTools();return;
+ }
+ if(workspaceOverride==='development'||workspaceOverride==='afterwork'&&!personalRoomOpen){
+  const dev=workspaceOverride==='development';
+  root.innerHTML=adviserView(state,{place:dev?'工作室布置':'生活'},adviserUI)+workspaceHubView(state,workspaceOverride,lifeAvailable(state),sleepOpen)+dealSaveView(savePanel);
+  bindWorkspaceHub(root,{onProperty:kind=>{propertyUI={kind};render();},onHome:()=>{personalRoomOpen=true;personalRoomUI={};render();},onOuting:section=>{openOutings(outingsUI,section);outingsOpen=true;render();},onSleep:()=>{sleepOpen=true;render();},onSleepCancel:()=>{sleepOpen=false;render();},onSleepConfirm:()=>{sleepOpen=false;if(!directAction({type:'SLEEP_TO_NEXT_DAY',checkedDay:state.day,acknowledgePending:true}))render();}});
+  bindSaveTools();return;
+ }
+ if(workspaceOverride==='office'){
+  const h=propertyHoldings(state), office=PROPERTY_CATALOG.find(x=>x.id===h?.active?.office);
+  root.innerHTML=adviserView(state,{place:'工作室'},adviserUI)+workspaceOfficeView(state,{officeName:office?.name,weather:workspaceWeather(state.day)})+dealSaveView(savePanel);
+  bindSaveTools();return;
+ }
  if(state.phase==='market'){
   const quote=marketAdviserQuote(state,marketUI);
   root.innerHTML=adviserView(state,{place:'采购台',quote},adviserUI)+marketView(state,marketUI)+`<p class="save-state" role="status">${esc(saveNotice)}</p>`+dealSaveView(savePanel);
   const dispatchMarket=action=>{
    const next=reduceDealRoom(state,action);if(next===state)return;
-   state=next;if(action.type==='CLOSE_MARKET')marketUI={};save();render();
+   state=next;if(action.type==='CLOSE_MARKET'){marketUI={};workspaceOverride='inbox';}else if(orderPhase(state))workspaceOverride='orders';save();render();
    if(action.type==='CLOSE_MARKET')root.querySelector('[data-action="OPEN_MARKET"]')?.focus({preventScroll:true});
   };
   bindMarket(root,state,marketUI,render,dispatchMarket);bindSaveTools();return;

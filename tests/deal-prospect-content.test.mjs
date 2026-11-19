@@ -47,6 +47,17 @@ test('lifecycle copy stays in its commercial moment and buyers have specific in-
  for(const p of PROSPECT_CONTENT){
   assert.doesNotMatch([...p.lines.inquiry,...p.lines.bargain,...p.lines.delivery].join(' '),/款已经结清|款已付清|货款已经付了|已经把款付了/);
   assert.match(p.lines.reorder.join(' '),/上[次回]|再[走补订配]|来询/);
-  for(const line of p.lines.settlement)assert.match(line,/付|结清/,p.id);
+  for(const line of p.lines.settlement)assert.match(line,/付|结清|结了|已结/,p.id);
  }
+});
+
+test('opening and fulfilment dialogue no longer lean on the same stock phrases',()=>{
+ const all=PROSPECT_CONTENT.flatMap(p=>Object.values(p.lines).flat());
+ for(const canned of ['能落地的交期','复单别照抄','对上人','忙起来没人能核货','这边的那份采购单可以销掉了']){
+  assert.ok(!all.some(line=>line.includes(canned)),canned);
+ }
+ assert.match(prospectContent('001').lines.inquiry[0],/早饭一过/);
+ assert.match(prospectContent('051').lines.bargain[0],/规格别跟着改/);
+ assert.match(prospectContent('068').lines.delivery[0],/不要|别往/);
+ assert.match(prospectContent('085').lines.settlement[0],/橱窗/);
 });
