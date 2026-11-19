@@ -2,10 +2,11 @@
 // neither a save file nor user input supplies drawing markup, paint or URLs.
 import {MARKET_PIECES_A} from './deal-room-market-pieces-a.js';
 import {MARKET_PIECES_B} from './deal-room-market-pieces-b.js';
-const plates=Object.freeze({...MARKET_PIECES_A,...MARKET_PIECES_B});
+import {MARKET_PIECES_C} from './deal-room-market-pieces-c.js';
+const plates=Object.freeze({...MARKET_PIECES_A,...MARKET_PIECES_B,...MARKET_PIECES_C});
 const families=Object.freeze({
  '餐桌器具':'table','咖啡与餐厨':'kitchen','家居布艺':'linen',
- '桌面办公':'desk','差旅用品':'travel','家居陈列':'home'
+ '桌面办公':'desk','差旅用品':'travel','家居陈列':'home','门店五金':'desk','宠物日用':'linen'
 });
 export function marketPlate(product){
  if(!product||!Object.hasOwn(plates,product.id))return '';

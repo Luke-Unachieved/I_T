@@ -28,8 +28,11 @@ export async function buildLightweightQA({key,seed,releasePath,qaPath}){
   if(text.includes(production)||text.includes(offline))throw Error('Production save key leaked');
   files[name]=text;
  }
- // Base affects document-relative imagery only. QA entry and all CSS are explicit.
- files['index.html']=`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="${releasePath}/"><title>贸易工作室 · 隔离验收</title>${['deal-room.css','deal-room-life.css','deal-room-quote-view.css','deal-room-office.css'].map(n=>`<link rel="stylesheet" href="${releasePath}/src/${n}">`).join('')}</head><body><main id="deal-room"></main><script type="module" src="${qaPath}/deal-room-app.js"></script></body></html>`;
+ // Use the module entry's styles. All asset URLs resolve against the same release.
+ const entry = await readFile(path.join(root, 'deal-room.html'), 'utf8');
+ const styles = [...entry.matchAll(/<link rel="stylesheet" href="(src\/deal-room[\w.-]*\.css)">/g)]
+  .map(([, file]) => `<link rel="stylesheet" href="${releasePath}/${file}">`).join('');
+ files['index.html']=`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base href="${releasePath}/"><title>贸易工作室 · 隔离验收</title>${styles}</head><body><main id="deal-room"></main><script type="module" src="${qaPath}/deal-room-app.js"></script></body></html>`;
  return {files,key,releasePath,qaPath,bytes:Object.values(files).reduce((n,s)=>n+Buffer.byteLength(s),0)};
 }
 // Local artifact creation only. No deploy, source mutation or existing-file replacement.

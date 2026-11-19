@@ -21,3 +21,11 @@
 .market-repeat button>.market-plate{width:58px;height:48px;flex:none}.market-repeat button>.market-plate:before,.market-repeat button>.market-plate:after{display:none}
 .market-pager{display:flex;gap:12px;align-items:center;justify-content:center;padding-block:12px}
 @media(max-width:450px){.market-sheet{grid-template-columns:90px 1fr;gap:10px}.market-product>.market-plate{height:100px}}
+
+.market-panel .neighborhood-contact{display:flex;align-items:center;gap:14px;padding:12px 0;max-width:730px}
+.neighborhood-contact img{flex:none;display:block;width:72px;height:72px;border-radius:8px;object-fit:cover}
+.neighborhood-contact strong,.neighborhood-contact small{display:block}
+.neighborhood-contact small{color:#596650}.neighborhood-contact p{margin:4px 0 0;font-size:14px}
+
+.equipment-product{display:block;width:100%;height:auto;border-radius:8px}
+.equipment-buyer{display:flex;align-items:center;gap:12px}.equipment-buyer img{display:block;flex:none;border-radius:8px;object-fit:cover}.equipment-buyer p{margin:0}

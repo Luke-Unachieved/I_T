@@ -11,15 +11,43 @@ async function sourceReader(commit){
  if(actual!==commit)throw new Error('The requested revision is not a local commit.');
  // Read only the modern files that the existing bundler actually requests.
  // Internal asset paths are normalized, never accepted from a save or the player.
- return async p=>{if(!/^(?:src\/deal-room[\w.-]*\.(?:js|css)|assets\/deal[\w.-]*\.webp)$/.test(p))throw new Error('Unexpected pinned build input: '+p);
+ return async p=>{if(!/^(?:deal-room\.html|src\/deal-room[\w.-]*\.(?:js|css)|assets\/deal[\w.-]*\.webp)$/.test(p))throw new Error('Unexpected pinned build input: '+p);
   return (await git('git',['cat-file','blob',commit+':'+p],mode)).stdout;
  };
+}
+// The purchase desk shares its reducer and receipt data with the workshop. Load its
+// imported modules in dependency order, using the same sources as the module entry.
+async function purchaseDeskModules(read, entrySources) {
+ const modules = new Map(), visiting = new Set(), entryNames = new Set();
+ async function visitImports(source, entry = false) {
+  const imports = source.matchAll(/^import\s*\{([^}]+)\}\s*from\s*['"]\.\/(deal-room-(?:market|equipment|neighborhood|adviser|prospect)[\w-]*\.js)['"];/gm);
+  for (const [, namesImported, file] of imports) {
+   if (entry) for (const name of namesImported.split(',')) entryNames.add(name.trim());
+   if (modules.has(file)) continue;
+   if (visiting.has(file)) throw new Error('Circular purchase desk dependency: ' + file);
+   visiting.add(file);
+   const contents = await read('src/' + file);
+   await visitImports(contents);
+   visiting.delete(file);
+   const names = [...contents.matchAll(/^export (?:const|function) (\w+)/gm)].map(match => match[1]).join(',');
+   const body = contents.replace(/^import\s*\{[^}]+\}\s*from\s*['"]\.\/[^'"]+['"];\n?/gm, '').replace(/^export /gm, '');
+   modules.set(file, `const {${names}}=(()=>{${body}\nreturn {${names}};})();`);
+  }
+ }
+ for (const source of entrySources) await visitImports(source, true);
+ const names = [...entryNames].join(',');
+ // Keep feature-only exports private, including names also used by the main engine.
+ return `const {${names}}=(()=>{
+${[...modules.values()].join('\n')}
+return {${names}};})();`;
 }
 export async function buildDealHtml(sourceCommit=null){
  const bytesAt=await sourceReader(sourceCommit);
  const read=async p=>(await bytesAt(p)).toString('utf8').replace(/\r\n?/g,'\n');
  const [studioProject,studioView,catalogueOrder,catalogue,focus,caseGrowth,caseGrowthUi,development,demand,home,relationships,collection,account,engine,samples,supply,curation,app]=await Promise.all(['src/deal-room-studio-project.js','src/deal-room-studio-project-view.js','src/deal-room-catalogue-order.js','src/deal-room-design-catalogue.js','src/deal-room-career-focus.js','src/deal-room-case-growth.js','src/deal-room-case-growth-view.js','src/deal-room-development.js','src/deal-room-demand.js','src/deal-room-home.js','src/deal-room-relationships.js','src/deal-room-collection.js','src/deal-room-account.js','src/deal-room-engine.js','src/deal-room-samples.js','src/deal-room-supply-view.js','src/deal-room-curation-view.js','src/deal-room-app.js'].map(read));
- let css=await read('src/deal-room.css')+'\n'+await read('src/deal-room-life.css')+'\n'+await read('src/deal-room-quote-view.css')+'\n'+await read('src/deal-room-office.css');
+ const entry = await read('deal-room.html');
+ const styles = [...entry.matchAll(/<link rel="stylesheet" href="(src\/deal-room[\w.-]*\.css)">/g)].map(match => match[1]);
+ let css = (await Promise.all(styles.map(read))).join('\n');
  for(const [raw,file] of [...css.matchAll(/url\(['"]?(\.\.\/assets\/[^)'" ]+)['"]?\)/g)].map(m=>[m[0],m[1]])){
   const bytes=await bytesAt(path.posix.normalize('src/'+file));css=css.replaceAll(raw,`url(data:image/webp;base64,${bytes.toString('base64')})`);
  }
@@ -50,7 +78,7 @@ export async function buildDealHtml(sourceCommit=null){
  const scopedFocus=`const {careerProjects,openProductReorder}=(()=>{${focus.replace(/^import .*;\n/gm,'').replace(/^export /gm,'')} return {careerProjects,openProductReorder};})();`;
  const cooperation=await read('src/deal-room-cooperation.js'),cooperationViewSource=await read('src/deal-room-cooperation-view.js');
  const goodsPriceSource=await read('src/deal-room-goods-prices.js');
- const scopedGoodsPrices=`const {goodsPriceRecords,comparePriorUnitPrice}=(()=>{${goodsPriceSource.replace(/^export /gm,'')}return {goodsPriceRecords,comparePriorUnitPrice};})();`;
+ const scopedGoodsPrices=`const {goodsPriceRecords,comparePriorUnitPrice,supplyCupEdition,priorSupplyAgreements}=(()=>{${goodsPriceSource.replace(/^export /gm,'')}return {goodsPriceRecords,comparePriorUnitPrice,supplyCupEdition,priorSupplyAgreements};})();`;
  const freightSource=await read('src/deal-room-linen-freight.js');
  const scopedFreight=`const {LINEN_FREIGHT_ACTIONS,canonicalLinenFreight,applyLinenFreight,linenFreightInvite,linenFreightView}=(()=>{${freightSource.replace(/^export /gm,'')}return {LINEN_FREIGHT_ACTIONS,canonicalLinenFreight,applyLinenFreight,linenFreightInvite,linenFreightView};})();`;
  const atelierRestockSource=await read('src/deal-room-atelier-restock.js');
@@ -63,12 +91,11 @@ export async function buildDealHtml(sourceCommit=null){
  const scopedStock=`const {stockProcurementOpportunity,previewStockProcurement,previewStudioProjectFromStock,stockProcurementAccounting}=(()=>{${stockSource.replace(/^import .*;\n/gm,'').replace(/^export /gm,'')}return {stockProcurementOpportunity,previewStockProcurement,previewStudioProjectFromStock,stockProcurementAccounting};})();`;
  const scopedStockView=`const {stockProcurementInvite,stockProcurementView,stockStudioOption}=(()=>{${stockViewSource.replace(/^import .*;\n/gm,'').replace(/^export /gm,'')}return {stockProcurementInvite,stockProcurementView,stockStudioOption};})();`;
  const scopedHome=`const {businessHomeView,careerRecap,careerRecapView,projectDeskView,projectDeskPreview}=(()=>{${home.replace(/^import .*;\n/gm,'').replace(/^export /gm,'')} return {businessHomeView,careerRecap,careerRecapView,projectDeskView,projectDeskPreview};})();`;
- const scopedSupply=`const {supplyDraftView,supplyLotsView,supplyPlaybackFrames}=(()=>{${supply.replace(/^export /gm,'')} return {supplyDraftView,supplyLotsView,supplyPlaybackFrames};})();`;
+ const scopedSupply=`const {supplyDraftView,supplyLotsView,supplyPlaybackFrames}=(()=>{${supply.replace(/^import .*;\n/gm,'').replace(/^export /gm,'')} return {supplyDraftView,supplyLotsView,supplyPlaybackFrames};})();`;
  const scopedCuration=`const {curationView,curationReceiptView,businessFeedback,playerStatusText,curationDemoModel,curationDemoView,toggleCurationProduct}=(()=>{${curation.replace(/^import .*;\n/gm,'').replace(/^export /gm,'')} return {curationView,curationReceiptView,businessFeedback,playerStatusText,curationDemoModel,curationDemoView,toggleCurationProduct};})();`;
  const saveSource=await read('src/deal-room-save.js'),saveViewSource=await read('src/deal-room-save-view.js');
  const scopedSave=`const {DEAL_SAVE_KEY,DEAL_BACKUP_MAX_BYTES,encodeDealBackup,parseDealBackup,loadDealSave,saveDealProgress,restoreDealBackup}=(()=>{${saveSource.replace(/^import .*;\n/gm,'').replace(/^export /gm,'')}return {DEAL_SAVE_KEY,DEAL_BACKUP_MAX_BYTES,encodeDealBackup,parseDealBackup,loadDealSave,saveDealProgress,restoreDealBackup};})();`;
  const scopedSaveView=`const {dealSaveView,bindDealSaveTools}=(()=>{${saveViewSource.replace(/^import .*;\n/gm,'').replace(/^export /gm,'')}return {dealSaveView,bindDealSaveTools};})();`;
- const atlas=await bytesAt('assets/deal-products-v1.webp');
  const roundSource=await read('src/deal-room-round-receivables.js'),roundViewSource=await read('src/deal-room-round-view.js');
  const scopedRound=`const {roundReceivablesActive,roundReceivableSummary,previewRoundSigning,advanceRoundTime}=(()=>{${roundSource.replace(/^export /gm,'')} return {roundReceivablesActive,roundReceivableSummary,previewRoundSigning,advanceRoundTime};})();`;
  const scopedRoundView=`const {roundCashView,roundProductionView,roundQuoteNote}=(()=>{${roundViewSource.replace(/^import .*;\n/gm,'').replace(/^export /gm,'')} return {roundCashView,roundProductionView,roundQuoteNote};})();`;
@@ -92,8 +119,15 @@ export async function buildDealHtml(sourceCommit=null){
  const exhibitionSource=await read('src/deal-room-exhibition.js'),exhibitionViewSource=await read('src/deal-room-exhibition-view.js');
  const scopedExhibition=`const {EXHIBITION_THEMES,EXHIBITION_NOTES,EXHIBITION_ACTION_KEYS,exhibitionAvailable,exhibitionWorks,canonicalExhibitionAction,applyExhibitionAction}=(()=>{${exhibitionSource.replace(/^import .*;\n/gm,'').replace(/^export /gm,'')}return {EXHIBITION_THEMES,EXHIBITION_NOTES,EXHIBITION_ACTION_KEYS,exhibitionAvailable,exhibitionWorks,canonicalExhibitionAction,applyExhibitionAction};})();`;
  const scopedExhibitionView=`const {exhibitionView,bindExhibition}=(()=>{${exhibitionViewSource.replace(/^import .*;\n/gm,'').replace(/^export /gm,'')}return {exhibitionView,bindExhibition};})();`;
- let script=[scopedGoodsPrices,scopedFreight,scopedAtelierRestock,scopedShop,scopedExhibition,scopedExhibitionView,scopedSpending,scopedAnnex,scopedAnnexView,scopedOffice,scopedOfficeView,scopedQuoteView,scopedLife,scopedLifeArt,scopedLifeView,scopedRevision,scopedRevisionRelationships,scopedRevisionView,scopedRound,scopedRoundView,scopedCatalogue,scopedCaseGrowth,scopedLaunch,scopedLaunchView,scopedStudioProject,scopedAllocation,scopedAllocationView,scopedStock,scopedStockView,scopedGroupUse,scopedStudioView,scopedCatalogueOrder,scopedCaseGrowthUi,scopedDevelopment,scopedDemand,scopedCollection,scopedRelationships,scopedAccount,scopedFocus,scopedCooperation,scopedCooperationView,scopedTradingChapter,scopedHome,engine,scopedSave,scopedSaveView,samples,scopedSupply,scopedCuration,app].map(s=>s.replace(/^import .*;\n/gm,'').replace(/^export /gm,'')).join('\n').replaceAll('assets/deal-products-v1.webp',`data:image/webp;base64,${atlas.toString('base64')}`).replaceAll('trade-tycoon:deal-room:v1','trade-tycoon:deal-room-offline:v1').replace(/<\/script/gi,'<\\/script');
- for(const name of ['deal-life-folding.webp','deal-life-furniture.webp','deal-life-empty.webp'])script=script.replaceAll('assets/'+name,'data:image/webp;base64,'+(await bytesAt('assets/'+name)).toString('base64'));
+ const marketModules=await purchaseDeskModules(read,[app,engine,home]);
+ let script=[marketModules,scopedGoodsPrices,scopedFreight,scopedAtelierRestock,scopedShop,scopedExhibition,scopedExhibitionView,scopedSpending,scopedAnnex,scopedAnnexView,scopedOffice,scopedOfficeView,scopedQuoteView,scopedLife,scopedLifeArt,scopedLifeView,scopedRevision,scopedRevisionRelationships,scopedRevisionView,scopedRound,scopedRoundView,scopedCatalogue,scopedCaseGrowth,scopedLaunch,scopedLaunchView,scopedStudioProject,scopedAllocation,scopedAllocationView,scopedStock,scopedStockView,scopedGroupUse,scopedStudioView,scopedCatalogueOrder,scopedCaseGrowthUi,scopedDevelopment,scopedDemand,scopedCollection,scopedRelationships,scopedAccount,scopedFocus,scopedCooperation,scopedCooperationView,scopedTradingChapter,scopedHome,engine,scopedSave,scopedSaveView,samples,scopedSupply,scopedCuration,app].map(s=>s.replace(/^import .*;\n/gm,'').replace(/^export /gm,'')).join('\n').replaceAll('trade-tycoon:deal-room:v1','trade-tycoon:deal-room-offline:v1').replace(/<\/script/gi,'<\\/script');
+ // These are literal, repository-owned WebP paths. Embed buyer and project art
+ // from the chosen revision just as we do the original life and product images.
+ const images = new Set(script.match(/assets\/deal[\w.-]*\.webp/g));
+ for (const file of images) {
+  const bytes = await bytesAt(file);
+  script = script.replaceAll(file, 'data:image/webp;base64,' + bytes.toString('base64'));
+ }
  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>再开一单就下班 · 贸易工作室</title><style>${css}</style></head><body><main id="deal-room"></main><script>${script}</script></body></html>`;
 }
 export function modernManifest(html,sourceCommit=null){

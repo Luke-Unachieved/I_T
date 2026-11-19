@@ -6,7 +6,7 @@ import {marketView,bindMarket} from '../src/deal-room-market-view.js';
 import {createDealRoom,reduceDealRoom} from '../src/deal-room-engine.js';
 test('every traded SKU has its own local geometric study; the same object follows the order',()=>{
  const shapes=MARKET_PRODUCTS.map(p=>marketPlate(p).match(/<g fill="none"[\s\S]*<\/g>/)?.[0]);
- assert.equal(shapes.length,30);assert.ok(shapes.every(Boolean));assert.equal(new Set(shapes).size,30);
+ assert.equal(shapes.length,34);assert.ok(shapes.every(Boolean));assert.equal(new Set(shapes).size,34);
  for(const shape of shapes)assert.doesNotMatch(shape,/<(?:image|use|script|text|foreignObject)\b|(?:https?:|data:|onload=)/i);
  assert.equal(marketPlate({id:'__proto__'}),'');
  const act=(s,type,fields={})=>{const n=reduceDealRoom(s,{type,...fields});assert.notEqual(s,n,type);return n;};

@@ -153,3 +153,24 @@
 .settled-prices header{align-items:baseline;font-size:14px;margin:0}.settled-prices .price-range{display:block;font-size:11px}.settled-prices header span{font-size:12px}
 .settled-prices svg{max-width:100%;display:block;color:#46705a}.settled-prices ul{margin:0;padding:0;list-style:none}.settled-prices li+li{margin-top:3px}
 .supply-progress{display:flex;flex-wrap:wrap;gap:4px 14px;margin:0;font-size:12px;color:#405d4b}.supply-progress span{display:inline-flex;flex-wrap:wrap;gap:3px}
+
+/* The adviser's note stays in the page flow, including on narrow quote sheets. */
+.adviser-panel {grid-column:1/-1;min-width:0;box-sizing:border-box;max-width:100%;padding:.55rem .9rem;margin:.35rem 0 .65rem;border-left:3px solid #a0814c;background:#f6f2e8;color:#302e27;border-radius:.35rem;overflow-wrap:anywhere}
+.adviser-panel p {margin:.25rem 0;font-size:.96rem;line-height:1.5}
+.adviser-byline,.adviser-options {display:flex;align-items:center;gap:.55rem;flex-wrap:wrap}
+.adviser-byline .quiet {margin-inline-start:auto}
+.adviser-panel button {font:inherit;min-height:2.25rem}
+.adviser-options {margin:.4rem 0}
+.adviser-options button {display:inline-flex;align-items:center;gap:.4rem;background:#fffaf1;color:#334436;border:1px solid #afa895;border-radius:.35rem;padding:.25rem .6rem}
+.adviser-costs dl {margin:.35rem 0;max-width:25rem}
+.adviser-costs dl div {display:flex;justify-content:space-between;gap:.5rem}
+.adviser-costs dd {margin:0;font-variant-numeric:tabular-nums}
+.adviser-face {display:inline-block;flex:0 0 auto;width:3.1rem;height:3.5rem;border-radius:.4rem;background-image:url(../assets/deal-advisers-recovered.webp);background-size:400% 100%;background-repeat:no-repeat}
+.adviser-fang {background-position:0 0}
+.adviser-liang {background-position:33.33333% 0}
+.adviser-tao {background-position:66.66667% 0}
+.adviser-xu {background-position:100% 0}
+@media (prefers-reduced-motion:no-preference) {
+  html:not(.reduce-motion) .adviser-byline .adviser-face {animation:adviser-arrive .25s ease-out}
+}
+@keyframes adviser-arrive {from {opacity:.75;transform:translateY(2px)} to {opacity:1;transform:translateY(0)}}

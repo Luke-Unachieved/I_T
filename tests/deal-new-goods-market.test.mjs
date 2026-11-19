@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {createHash} from 'node:crypto';
 import assert from 'node:assert/strict';
 import {createDealRoom,reduceDealRoom,normalizeDealRoom,careerOpportunity,curationOffers} from '../src/deal-room-engine.js';
 import {businessHomeView} from '../src/deal-room-home.js';
@@ -9,10 +10,13 @@ import {previewMarket} from '../src/deal-room-market.js';
 const take=(s,type,fields={})=>{const n=reduceDealRoom(s,{type,...fields});assert.notEqual(n,s,type);return n;};
 function workshop(){let s=createDealRoom();for(const optionId of ['trial','ready','small']){s=take(s,'PROPOSE',{optionId});s=take(s,'ADVANCE');s=take(s,'NEXT_CLIENT');}return s;}
 const home=s=>businessHomeView(s,{career:careerOpportunity(s),referrals:curationOffers(s)});
-test('30 distinct articles: both buyer plans pass through the real shared cashbook',()=>{
+test('the original 30 and four new articles: both buyer plans pass through the real shared cashbook',()=>{
  const base=workshop(),start=take(base,'OPEN_MARKET');
- assert.equal(new Set(MARKET_PRODUCTS.map(p=>p.id)).size,30);assert.equal(new Set(MARKET_PRODUCTS.map(p=>p.name)).size,30);
- assert.equal(new Set(MARKET_PRODUCTS.map(p=>p.category)).size,6);
+ assert.equal(new Set(MARKET_PRODUCTS.map(p=>p.id)).size,34);assert.equal(new Set(MARKET_PRODUCTS.map(p=>p.name)).size,34);
+ assert.equal(new Set(MARKET_PRODUCTS.map(p=>p.category)).size,8);
+ // Pin all legacy IDs, display strings, supplier prices and terms to the recovered a596023 catalogue.
+ assert.equal(createHash('sha256').update(JSON.stringify(MARKET_PRODUCTS.slice(0,30))).digest('hex'),'0619c33ba3cc96bed252f51992a2dfad5b71ff8aa61e64474afac30d76ffd70c');
+ assert.deepEqual(MARKET_PRODUCTS.slice(30).map(p=>p.id),['ratchet-set','lever-lock','pet-harness','lint-refill']);
  assert.match(home(base),/data-action="OPEN_MARKET"/);
  for(const p of MARKET_PRODUCTS)for(const [mode,source] of [['trial','stock'],['bulk','factory']]){
   const fields={productId:p.id,mode,source,unitPrice:p.offers[mode].maxUnitPrice},q=previewMarket(start,fields);
@@ -50,7 +54,7 @@ test('declined terms are cash-neutral; a negotiated quote and in-flight receivab
 test('the web quote desk keeps actionable prices, stock and accounts aligned with the main reducer',async()=>{
  const {marketView,bindMarket}=await import('../src/deal-room-market-view.js');
  let s=take(workshop(),'OPEN_MARKET'),ui={},html=marketView(s,ui);
- assert.equal((html.match(/data-market-product=/g)||[]).length,30);
+ assert.equal((html.match(/data-market-product=/g)||[]).length,34);
  assert.ok(!marketView(s,{category:'差旅用品'}).includes('data-market-product="tray"'));
  const p=MARKET_PRODUCTS[0];ui={productId:p.id,mode:'bulk',source:'factory',unitPrice:p.offers.bulk.maxUnitPrice+1};
  ui.quoted=JSON.stringify(ui);html=marketView(s,ui);assert.match(html,/data-market-counter/);

@@ -1349,6 +1349,58 @@ const products = [
         "depositPercent": 30
       }
     }
+  },
+  {
+    id: 'ratchet-set', name: '棘轮套筒工具组', category: '门店五金', buyer: '木桥五金商行',
+    brief: '维修柜按套出借，扳手、套筒和延长杆要能在盒内一眼点齐。',
+    inspection: '对照盒盖清单点数，拨动换向钮试转，合盖轻摇后套筒仍在各自卡位。', unit: '套',
+    sources: {
+      stock: {name:'桥东五金联仓', minQuantity:24, unitCost:82, days:3, packSize:12, freightBase:96, freightPerBox:6},
+      factory: {name:'砺川工具厂', minQuantity:96, unitCost:68, days:8, packSize:24, freightBase:110, freightPerBox:6}
+    },
+    offers: {
+      trial: {quantity:24, maxUnitPrice:125, deadlineDays:5, payLag:0, depositPercent:0},
+      bulk: {quantity:96, maxUnitPrice:109, deadlineDays:10, payLag:5, depositPercent:30}
+    }
+  },
+  {
+    id: 'lever-lock', name: '室内执手门锁', category: '门店五金', buyer: '木桥五金商行',
+    brief: '样板门左右开向都有，执手换向后要能顺畅回位。',
+    inspection: '按样板门厚度试装，核对锁体、面板和螺钉，逐盒配齐。', unit: '套',
+    sources: {
+      stock: {name:'桥东五金联仓', minQuantity:24, unitCost:46, days:3, packSize:12, freightBase:68, freightPerBox:5},
+      factory: {name:'桐里门锁厂', minQuantity:96, unitCost:37, days:7, packSize:24, freightBase:92, freightPerBox:4}
+    },
+    offers: {
+      trial: {quantity:24, maxUnitPrice:76, deadlineDays:5, payLag:0, depositPercent:0},
+      bulk: {quantity:96, maxUnitPrice:64, deadlineDays:9, payLag:5, depositPercent:30}
+    }
+  },
+  {
+    id: 'pet-harness', name: '宠物胸背牵引套装', category: '宠物日用', buyer: '榆巷宠物用品店',
+    brief: '宠物店按尺码陈列，胸背和同色牵引绳要配在一个挂签下。',
+    inspection: '核对尺码和配色，逐套检查扣具闭合、调节带走向和缝线。', unit: '套',
+    sources: {
+      stock: {name:'栖禾用品联仓', minQuantity:36, unitCost:29, days:3, packSize:12, freightBase:52, freightPerBox:4},
+      factory: {name:'竹影织带厂', minQuantity:120, unitCost:23, days:7, packSize:24, freightBase:76, freightPerBox:3}
+    },
+    offers: {
+      trial: {quantity:36, maxUnitPrice:49, deadlineDays:4, payLag:0, depositPercent:0},
+      bulk: {quantity:120, maxUnitPrice:41, deadlineDays:9, payLag:5, depositPercent:30}
+    }
+  },
+  {
+    id: 'lint-refill', name: '粘毛器替换卷', category: '宠物日用', buyer: '榆巷宠物用品店',
+    brief: '收银台旁卖替换芯，客人带旧手柄来也能配到合适的轴孔。',
+    inspection: '用样柄试装卷芯，沿斜口撕下一层，下一张仍贴紧卷面。', unit: '卷',
+    sources: {
+      stock: {name:'栖禾用品联仓', minQuantity:72, unitCost:5, days:2, packSize:24, freightBase:36, freightPerBox:3},
+      factory: {name:'百川胶纸厂', minQuantity:240, unitCost:4, days:6, packSize:48, freightBase:58, freightPerBox:2}
+    },
+    offers: {
+      trial: {quantity:72, maxUnitPrice:11, deadlineDays:4, payLag:0, depositPercent:0},
+      bulk: {quantity:240, maxUnitPrice:9, deadlineDays:8, payLag:5, depositPercent:30}
+    }
   }
 ];
 function freezeMarketData(value){if(value && typeof value === 'object'){Object.values(value).forEach(freezeMarketData);Object.freeze(value);}return value;}

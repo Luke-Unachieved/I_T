@@ -5,7 +5,7 @@ export function isolateDealPreview(html,key){
  const from='trade-tycoon:deal-room-offline:v1';
  if(html.split(from).length-1!==3)throw new Error('Unexpected standalone save-key declarations; inspect before creating QA copy');
  const result=html.replaceAll(from,key);
- if(!result.includes(`const DEAL_SAVE_KEY='${key}'`)||!result.includes(`const SAVE_KEY='${key}'`)||result.includes(from))throw new Error('QA key isolation failed');
+ if(!result.includes(`const DEAL_SAVE_KEY='${key}'`)||!result.includes(`const SAVE_KEY='${key}'`)||!result.includes(`const allowedKeys=new Set([DEAL_SAVE_KEY,'${key}'])`)||result.includes(from))throw new Error('QA key isolation failed');
  return result;
 }
 if(process.argv[1]&&import.meta.url===new URL(process.argv[1],'file:').href){
