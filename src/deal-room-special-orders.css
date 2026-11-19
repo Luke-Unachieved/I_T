@@ -1,0 +1,21 @@
+/* Only panels that actually contain a special order. Leave the workspace,
+   illustrations, focus rings, controls and receipt archive in their own styles. */
+#deal-room .business:has(:is(.curation-controls,[data-action="FULFIL_CURATION"],.account-spec,.account-handover,[data-action="BACK_FROM_ACCOUNT"],[data-action="CLOSE_ACCOUNT"],.collection-styles,[data-action="FULFIL_COLLECTION"],.supply-draft,[data-action="FULFIL_SUPPLY_PLAN"],.supply-progress,.fulfil-track,.freight-card,[data-action="CLOSE_LINEN_FREIGHT"],[data-action="RECEIVE_LINEN_FREIGHT"],[data-action="BACK_COLLECTION_PITCH"],[data-action="CLOSE_COLLECTION"],[data-action="CLOSE_DEVELOPMENT"],[data-action="CLOSE_SAMPLE"],[data-action="RECEIVE_SAMPLE"],[data-action="RECEIVE_SECOND_SAMPLE"],[data-action="CLOSE_SECOND_SUPPLIER"])) {
+  --order-rule:var(--ws-rule,#454139); --order-muted:var(--ws-secondary,#c3bcae);
+  min-width:0; color:var(--ws-type,#e9e5dc); overflow-wrap:break-word;
+  & :is(.brief,.opportunity,.pitch-consequence,.freight-card,.curation-budget,.quotes,.offer,.supply-lots,.account-basis-options,.quote-commitment) {
+    border:0; border-radius:0; box-shadow:none; background:transparent;
+    padding-inline:0; margin-inline:0;
+  }
+  & .freight-card {padding-block:16px;border-top:1px solid var(--order-rule)}
+  & :is(.freight-card h3,.offer h3) {margin:0 0 6px;line-height:1.4}
+  & :is(.freight-card p,.brief,.opportunity) {color:var(--order-muted);line-height:1.55}
+  & .freight-dates {margin:10px 0;padding-inline:0;list-style:none;color:var(--order-muted)}
+  & .freight-facts {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 12px;margin:10px 0;font-variant-numeric:tabular-nums}
+  & .freight-facts>div {display:contents}
+  & .freight-facts dt {color:var(--order-muted)}
+  & .freight-facts dd {margin:0;text-align:end}
+  & .freight-card summary {cursor:pointer;padding-block:8px;min-height:44px}
+  & :is(.primary,.freight-card>button):not(:disabled) {background:#d6bc8a;color:#241d13;border:1px solid #d6bc8a;border-radius:5px;min-height:44px;height:auto;padding:8px 14px;white-space:normal}
+  & :is(.primary,.freight-card>button):disabled {opacity:.65;cursor:not-allowed}
+}

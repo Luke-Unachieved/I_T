@@ -36,7 +36,7 @@ export function goodsPriceRecords(state){
  };
  for(const o of state.marketHistory||[]){
   if(o.status==='paid'&&o.received===o.revenue&&o.delivered===o.quantity&&o.unitPrice*o.quantity===o.revenue)
-   append(o.kind==='prospect'?'prospect-'+o.customerId:'market-'+o.productId,o.productName,'market',o.signedDay,o.paidDay,o.quantity,o.revenue,o.kind==='equipment'?'设备项目':o.kind==='neighborhood'?'门店联采':o.kind==='prospect'?(o.prospectRepeat?'客户补货':'新客户首单'):o.mode==='bulk'?'新品铺货':'新品试单');
+   append(o.kind==='prospect'?'prospect-'+o.customerId:'market-'+o.productId,o.productName,'market',o.signedDay,o.paidDay,o.quantity,o.revenue,(o.kind==='equipment'||o.kind==='legacy-equipment-v1')?'设备项目':o.kind==='neighborhood'?'门店联采':o.kind==='prospect'?(o.prospectRepeat?'客户补货':'新客户首单'):o.mode==='bulk'?'新品铺货':'新品试单');
  }
  const p=state.stockProcurement;
  if(p?.status==='paid'&&p.specification==='developed-studio'&&p.packaging==='generic'&&p.delivered===p.quantity&&p.received===p.revenue)

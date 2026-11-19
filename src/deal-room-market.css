@@ -1,3 +1,21 @@
+/* Signed equipment contracts, not the equipment quote builder or order index. */
+#deal-room .market-panel:has(.eq-order){background:var(--ws-canvas);color:var(--ws-type);border:0;padding-inline:0}
+#deal-room .market-panel:has(.eq-order)>.market-wallet{background:none;color:var(--ws-type);border-block:1px solid var(--ws-rule);border-radius:0;padding-inline:0}
+#deal-room .market-panel:has(.eq-order)>header{background:none;color:var(--ws-type)}
+#deal-room .market-panel .eq-order{color:var(--ws-type);background:none;border:0;padding:0;max-width:47rem;margin:14px auto}
+#deal-room .market-panel .eq-order>h3{font-size:23px;margin:4px 0 12px}
+#deal-room .market-panel .eq-order :is(small,dt,.market-note){color:var(--ws-secondary)}
+#deal-room .eq-order .market-inspection,#deal-room .eq-order .market-success{background:transparent;color:var(--ws-type);padding-inline:0;border:0}
+#deal-room .eq-order .market-facts>div{padding:6px 0;border-color:var(--ws-rule)}
+#deal-room .eq-order .eq-decision{background:none;border:0;border-block-start:1px solid var(--ws-rule);padding:8px 0;margin-top:12px}
+#deal-room .eq-order .eq-routes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+#deal-room .eq-order .eq-routes article{display:grid;grid-row:span 3;grid-template-rows:subgrid;row-gap:6px;background:none;border:0;border-top:2px solid var(--ws-mark);padding:10px 0;min-width:0}
+#deal-room .eq-routes :is(h4,dl,dd){margin:0}
+#deal-room .eq-routes dl>div{display:grid;padding:4px 0;border-bottom:1px solid var(--ws-rule)}
+#deal-room .eq-routes dt{font-size:12px}#deal-room .eq-routes dd{font-variant-numeric:tabular-nums}
+#deal-room .market-panel .eq-order :is(.primary,.eq-routes button){background:#d6bc8a;color:#241d13;border:0;line-height:1.4}
+#deal-room .eq-order>details{margin-top:20px;border-top:1px solid var(--ws-rule)}
+#deal-room .eq-order>details>summary{cursor:pointer;color:var(--ws-secondary);padding:12px 0}
 .market-panel{grid-column:1/-1;width:100%;min-width:0;padding:clamp(16px,3vw,30px);border:1px solid #d2c9b7;border-radius:20px;background:#fcf8ef;color:#303f37;line-height:1.65}.market-panel *{box-sizing:border-box}.market-panel header{gap:16px;flex-wrap:wrap;margin-bottom:16px}.market-panel button{border:1px solid #bdb8a7;background:#f8f3e6;color:#354e40;border-radius:8px;padding:10px 13px;min-height:44px}.market-panel button:focus-visible,.market-panel input:focus-visible,.market-panel select:focus-visible{outline:3px solid #a65c35;outline-offset:3px}.market-panel .primary{background:#314e3f;color:#fff8e7;border:0}.market-panel button:disabled{opacity:.5;cursor:not-allowed}.market-panel h3{font-size:21px;margin:12px 0}.market-wallet{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:12px 16px;background:#e7edde;border-radius:10px}.market-wallet strong{font-size:24px;font-variant-numeric:tabular-nums}.market-filters{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin:20px 0 8px}.market-filters label:first-child{flex:2 1 180px}.market-filters label{flex:1 1 130px}.market-panel label{display:grid;gap:5px;font-size:13px}.market-panel input,.market-panel select{width:100%;min-width:0;font:inherit;font-size:16px;color:#303f37;background:#fffdf8;border:1px solid #bdb8a7;border-radius:7px;padding:10px;min-height:44px}.market-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px}.market-panel .market-product{text-align:left;display:flex;flex-direction:column;align-items:start;gap:8px;padding:18px;background:#fffdf7}.market-product strong{font-size:17px}.market-product span{font-size:13px;line-height:1.6}.market-product small{color:#66715e}.market-product b{font-size:12px;margin-top:auto;color:#536d43}.market-product:hover{border-color:#526e53;background:#f0f3e8}.market-quote,.market-active{max-width:760px;margin:22px auto}.market-quote>small{display:block;margin-top:16px}.market-panel .quiet{border:0;border-bottom:1px solid #a7b49a;border-radius:0;background:transparent}.market-panel fieldset{display:flex;gap:10px;border:0;padding:0;margin:22px 0 10px}.market-panel legend{font-size:14px;margin-bottom:8px;font-weight:600}.market-panel fieldset button{flex:1;text-align:left;min-width:0}.market-panel fieldset small{display:block;margin-top:6px}.market-panel [aria-pressed=true]{background:#344e40;color:#fff6e3;border-color:#344e40}.market-inspection{padding:14px;background:#eee9d9;border-left:3px solid #b09b70;font-size:13px}.market-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:20px 0}.market-facts>div{padding:10px;border-bottom:1px solid #d5d4c5;min-width:0}.market-facts dt{font-size:12px;color:#64705f}.market-facts dd{margin:4px 0 0;font-size:18px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.market-price-row{display:flex;gap:10px;margin:7px 0}.market-price-row input{flex:1}.market-price-row button{flex:none}.market-note{color:#68715e;font-size:12px;line-height:1.65}.market-warning{background:#f6e5d3;border-left:3px solid #9a613c;padding:12px;color:#6f4328;font-size:14px}.market-response{background:#edf1df;border-left:3px solid #698354;padding:14px;font-size:14px}.market-response button{display:block;margin-top:12px}.market-track{display:flex;list-style:none;padding:0;gap:8px;margin:22px 0}.market-track li{flex:1;font-size:12px;text-align:center;border-bottom:4px solid #d5d1bf;padding:12px 2px}.market-track li.done{border-color:#698354}.market-success{color:#365e43;padding:12px;background:#e9efde}.market-history{margin-top:30px;border-top:1px solid #d2c9b7;padding-top:16px}.market-history summary{font-size:15px;color:#354e40;font-weight:600}.market-history article{padding:14px 0;border-bottom:1px solid #d2c9b7}.market-history h3{font-size:17px}.market-history .market-facts{margin:8px 0}.market-disclaimer{font-size:11px;color:#716b5d;margin:22px 0 0}@media(max-width:540px){.market-panel fieldset{flex-direction:column}.market-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.market-price-row{flex-wrap:wrap}.market-price-row input{flex-basis:100%}.market-price-row button{width:100%}.market-wallet strong{font-size:21px}.market-panel header h2{font-size:20px}}
 
 /* Tinted stock cards are art-directed per family; drawings distinguish actual products. */
@@ -29,3 +47,63 @@
 
 .equipment-product{display:block;width:100%;height:auto;border-radius:8px}
 .equipment-buyer{display:flex;align-items:center;gap:12px}.equipment-buyer img{display:block;flex:none;border-radius:8px;object-fit:cover}.equipment-buyer p{margin:0}
+#deal-room .ws-equipment-state figure{margin:10px 0}
+#deal-room .ws-equipment-state figure img{width:100%;max-height:15rem;object-fit:contain;border-radius:9px}
+#deal-room .ws-equipment-state figcaption{font-size:.8rem;color:inherit}
+#deal-room .ws-equipment-state dl.market-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem}
+#deal-room [data-legacy-route] small{display:block;font-weight:400;line-height:1.45;margin-top:4px}
+
+#deal-room .ws-trade-hint{margin:.7rem 0;padding:.55rem .7rem;border-inline-start:2px solid #bc9a60;background:#241f18;color:#e9dec8}
+#deal-room .ws-trade-hint strong{font-size:.84rem;color:#e4c78c}
+#deal-room .ws-trade-hint p{margin:.2rem 0 0;line-height:1.5}
+#deal-room .ws-equipment-story{line-height:1.55}
+
+/* Dispatch art is part of the decision header; delivery art sits with its reply. */
+#deal-room .ws-carafe-comic{margin:.8rem 0 0;border:1px solid #54483a;border-radius:7px;overflow:hidden;background:#201c16}
+#deal-room .ws-carafe-comic img{display:block;width:100%;height:auto;aspect-ratio:3/2;object-fit:cover}
+#deal-room .ws-carafe .ws-ship-choice .market-note{color:#dfd2bd;font-size:15px;line-height:1.55}
+
+#deal-room .ws-carafe .ws-carafe-call{display:grid;grid-template-columns:64px minmax(0,1fr);gap:.65rem;align-items:center;margin:0 0 .6rem;background:none;padding:0;border:0}
+#deal-room .ws-carafe .ws-carafe-call .ws-carafe-comic{position:relative;aspect-ratio:1;margin:0}
+#deal-room .ws-carafe .ws-carafe-call img{position:absolute;inset:0 auto auto 0;width:215%;max-width:none;height:100%;aspect-ratio:auto;object-fit:fill}
+#deal-room .ws-carafe .ws-carafe-call :is(h3,p){margin:0}
+#deal-room .ws-carafe .ws-carafe-call p{color:#dfd2bd;font-size:.88rem;line-height:1.45}
+#deal-room .ws-carafe .ws-ship-choice>div.ws-carafe-delivery{display:block;margin:.65rem 0}
+#deal-room .ws-carafe .ws-carafe-delivery .ws-carafe-comic{margin:0 0 .5rem}
+#deal-room .ws-carafe .ws-carafe-delivery strong{display:block;color:#e6c587;font-size:.87rem;margin:0 0 .12rem}
+#deal-room .ws-carafe .ws-carafe-delivery p{margin:0 0 .4rem}
+/* Order: one surface, not a stack of boxes within boxes. */
+#deal-room .ws-carafe.ws-order-detail{display:block;padding:clamp(.85rem,3.5vw,1.5rem);border:1px solid #40382c;border-radius:10px;background:#1e1b16}
+#deal-room .ws-order-summary{display:flex;justify-content:space-between;align-items:center;gap:14px;margin:0;background:none;border:0;padding:0;text-align:left}
+#deal-room .ws-order-summary h2{margin:2px 0 3px;color:#f5ead8;font-size:clamp(23px,5vw,30px);line-height:1.18}
+#deal-room .ws-order-summary p{margin:0;color:#cbbda8;font-size:.82rem}
+#deal-room .ws-order-summary .ws-order-kicker{color:#cfac75;margin:0 0 3px}
+#deal-room img.ws-order-product{width:60px;height:56px;border-radius:6px;object-fit:cover;flex:none}
+#deal-room .ws-order-item{display:flex;justify-content:space-between;margin:.72rem 0 .48rem;padding:0 0 .55rem;border-bottom:1px solid #3f3629;color:#ece0cc;font-size:.92rem}
+#deal-room .ws-order-item span{color:#dfc28e}
+#deal-room .ws-order-detail .ws-carafe-track{margin:.5rem 0 .9rem}
+#deal-room .ws-order-detail .ws-carafe-track li{border-color:#4b4132;color:#c6baa7}
+#deal-room .ws-order-detail .ws-carafe-track li[aria-current="step"]{border-color:#c9a367;color:#f2d5a6}
+#deal-room .ws-order-detail .ws-carafe-track[data-stage="paid"] li{border-color:#a98a58}
+#deal-room .ws-order-detail>.ws-ship-choice{border:0;padding:0;background:none;margin:0}
+#deal-room .ws-order-detail .ws-route-decision .ws-carafe-call{grid-template-columns:42px minmax(0,1fr);margin:0 0 .52rem}
+#deal-room .ws-order-detail .ws-route-decision .ws-carafe-call p{font-size:.79rem}
+#deal-room .ws-order-detail .ws-route-compare{width:100%;border-collapse:collapse;table-layout:fixed;margin:0;text-align:center;color:#ede1cc;font-size:.86rem}
+#deal-room .ws-route-compare :is(th,td){padding:.36rem .2rem;border-bottom:1px solid #443a2c}
+#deal-room .ws-route-compare :is(thead,tfoot) th:first-child,#deal-room .ws-route-compare tbody th{width:26%;text-align:left}
+#deal-room .ws-route-compare tbody th{color:#cbbba2;font-weight:500}
+#deal-room .ws-route-compare thead th{color:#dfc28e}
+#deal-room .ws-route-compare tfoot :is(th,td){border-bottom:0;padding-top:.6rem}
+#deal-room .ws-order-detail .ws-route-compare button{width:100%;min-height:42px;white-space:nowrap}
+#deal-room .ws-order-detail .ws-route-note{margin:.35rem 0 .6rem;color:#cbbba2;font-size:.78rem;line-height:1.45}
+#deal-room .ws-order-facts{border-top:1px solid #40382c;margin:.72rem 0 0;padding:.5rem 0 0;color:#dcc6a0}
+#deal-room .ws-order-facts summary{cursor:pointer;min-height:36px;line-height:36px}
+#deal-room .ws-order-thumb{width:60px;height:56px;overflow:hidden;border-radius:6px;flex:none}
+#deal-room .ws-order-thumb .market-plate{width:100%;height:100%;min-height:0;margin:0}
+#deal-room .ws-order-next{padding:.1rem 0 .65rem;border-bottom:1px solid #40382c;margin:0 0 .65rem;color:#eaddc8}
+#deal-room .ws-order-next p{margin:.2rem 0 .55rem}
+#deal-room .ws-order-detail .ws-order-inspection{color:#d9ccb6;margin:.6rem 0 .1rem}
+#deal-room .ws-order-detail :is(.prospect-contact,.market-contact,.market-buyer) p{color:#e2d6c5}
+
+#deal-room .ws-order-detail .ws-order-decision-head{display:block}
+#deal-room .ws-carafe-delivery .ws-carafe-comic img{max-height:156px;object-fit:cover;object-position:center 44%}

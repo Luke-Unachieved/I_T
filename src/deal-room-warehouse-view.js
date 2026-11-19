@@ -1,3 +1,4 @@
+import {exteriorWeatherSvg} from './deal-room-life-view.js';
 import {MARKET_PRODUCTS} from './deal-room-market-data.js';
 import {WAREHOUSE_TIERS,warehouseAvailable,warehouseSummary,previewWarehousePurchase,previewWarehouseExpansion,previewWarehouseWait} from './deal-room-warehouse.js';
 
@@ -70,23 +71,27 @@ function waitView(state,m){
  '<button type="button" data-wh-wait '+(q.valid?'':'disabled')+'>'+esc('等到'+day(q.arrivalDay)+' · 开支 '+cash(q.operatingCost))+'</button>'+
  (q.valid?'<p class="wh-caption">届时手头现金 '+esc(cash(q.cashAfter))+'。</p>':'<p class="wh-warning">'+esc(q.reason)+'</p>')+'</section>';
 }
-import {warehouseSceneArt} from './deal-room-warehouse-art.js';
-export function warehouseView(state,ui={}){
- const m=warehouseSummary(state),ready=warehouseAvailable(state);
- const head='<header class="wh-head"><div><small>工作室资产</small><h2 tabindex="-1" id="wh-title">自有仓库</h2></div><button type="button" data-warehouse-back>返回上一页</button></header>';
+import {warehouseSceneArt,warehouseStage,warehouseSceneBoxes} from './deal-room-warehouse-art.js';
+export function warehouseView(state,ui={},model={}){
+ const m=warehouseSummary(state),ready=warehouseAvailable(state),stage=warehouseStage(m.capacity);
+ const head='<header class="wh-head"><div><h2 tabindex="-1" id="wh-title">自有仓库</h2></div><button type="button" data-warehouse-back>返回上一页</button></header>';
  if(!m.valid)return '<section class="wh-panel">'+head+'<p role="status">'+esc(m.reason)+'</p></section>';
  const updated=String(state.feedback?.kind||'').startsWith('warehouse-')?state.feedback.message:'';
- const art=warehouseSceneArt(m.capacity),scene=art?'<img class="wh-scene" alt="" width="960" height="640" decoding="async" src="'+art+'">':'';
- return '<section class="wh-panel" aria-labelledby="wh-title">'+head+'<div class="wh-wallet"><span>'+esc(day(state.day))+' · 可用现金</span><strong>'+esc(cash(state.cash))+'</strong></div>'+scene+
+ const glass={starter:'3,4 10,8 10,34 3,35',transit:'71,28 87,28 87,38 71,38',highbay:'77,26 89,22 89,40 77,43'}[stage.id];
+ const exterior=exteriorWeatherSvg(model.weather,'0 0 100 66.67',glass);
+ const art=warehouseSceneArt(m.capacity),scene=art?'<div class="wh-scene-frame"><img class="wh-scene" alt="'+stage.name+'" width="960" height="640" decoding="async" src="'+art+'">'+exterior+warehouseSceneBoxes(m.onHandBoxes,stage.id)+'</div>':'';
+ const status=m.onHandBoxes+' 箱已入仓'+(m.inTransitBoxes?'，'+m.inTransitBoxes+' 箱在路上':'')+'，还能放 '+m.freeBoxes+' 箱。';
+ return '<section class="wh-panel wh-original wh-stage-'+stage.id+'" aria-labelledby="wh-title">'+head+'<div class="wh-wallet"><span>'+esc(day(state.day))+' · 可用现金</span><strong>'+esc(cash(state.cash))+'</strong></div><div class="wh-stage-label"><span>'+stage.name+' · 仓位 '+m.usedBoxes+' / '+m.capacity+' 箱</span><span>'+(m.usedBoxes?'余 '+m.freeBoxes+' 箱':'空仓')+'</span></div>'+scene+'<p class="wh-scene-caption">'+status+'</p>'+
  (updated?'<p class="wh-feedback" role="status">'+esc(updated)+'</p>':'')+
- '<p class="wh-summary">已占 <strong>'+m.usedBoxes+' / '+m.capacity+'</strong> 箱位。提前备货会占用现金，只有已到仓的商品可以用于订单。</p>'+bays(m,ui)+
- (ready?waitView(state,m):'')+lots(m)+(ready?stockForm(state,m,ui)+expansion(state,m):'<p class="wh-warning" role="status">请先结清手上的订单，再来安排仓储。</p>')+'</section>';
+ '<details class="wh-rack-details" data-wh-rack'+(ui.warehouseRackOpen?' open':'')+'><summary>查看仓位</summary>'+bays(m,ui)+'</details>'+
+ (ready?waitView(state,m):'')+lots(m)+(ready?'<details class="wh-order-details" data-wh-order'+(ui.warehouseOrderOpen?' open':'')+'><summary>提前订一批货</summary>'+stockForm(state,m,ui)+'</details>'+expansion(state,m):'<p class="wh-warning" role="status">请先结清手上的订单，再来安排仓储。</p>')+'</section>';
 }
 export function bindWarehouse(root,state,ui,rerender,dispatch,close){
  const get=sel=>root.querySelector(sel),event=(s,t,fn)=>get(s)?.addEventListener(t,fn);
  const focus=selector=>{rerender();get(selector)?.focus?.();};
  event('[data-warehouse-back]','click',()=>close());
  root.querySelectorAll('[data-wh-page]').forEach(b=>b.addEventListener('click',()=>{ui.warehouseShelfPage=Number(b.dataset.whPage);focus('#wh-rack-title');}));
+ for(const [sel,key] of [['[data-wh-rack]','warehouseRackOpen'],['[data-wh-order]','warehouseOrderOpen']])event(sel,'toggle',()=>{ui[key]=!!get(sel)?.open;});
  const m=warehouseSummary(state);if(!m.valid||!warehouseAvailable(state))return;
  event('#wh-product','change',e=>{ui.warehouseProduct=e.currentTarget.value;delete ui.warehouseBoxes;delete ui.warehouseChecked;focus('#wh-product');});
  event('#wh-source','change',e=>{ui.warehouseSource=e.currentTarget.value;delete ui.warehouseBoxes;delete ui.warehouseChecked;focus('#wh-source');});

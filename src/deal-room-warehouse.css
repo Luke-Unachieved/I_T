@@ -29,3 +29,48 @@
 }
 
 .wh-scene{display:block;width:100%;height:auto;max-height:27rem;object-fit:cover;object-position:center;border-radius:.8rem;margin:0 0 1rem}.wh-shortcut{display:flex;justify-content:flex-end;padding:.6rem 1rem}.wh-shortcut button{min-height:2.4rem}
+/* Screenshot-led restoration: original dark warehouse, not a dashboard. */
+#deal-room .wh-original{background:#201f1a;color:#e8e6dc;border:1px solid #3e3b32;border-radius:20px;padding:17px;max-width:940px}
+#deal-room .wh-original .wh-head{margin-bottom:14px}#deal-room .wh-original h2{font-size:21px;margin:0}
+#deal-room .wh-original .wh-wallet{background:#27251e;color:#eeeade;border-radius:10px;padding:14px 15px;margin:0 0 20px;font-size:15px}
+#deal-room .wh-original .wh-wallet strong{font-size:21px}
+#deal-room .wh-original .wh-stage-label{display:flex;justify-content:space-between;gap:8px;margin:0 0 10px;align-items:center;font-size:16px}
+#deal-room .wh-original .wh-stage-label>span:last-child{font-size:13px;color:#c9b57d}
+#deal-room .wh-original .wh-scene-frame{position:relative;overflow:hidden;aspect-ratio:3/2;background:#1b1915}
+#deal-room .wh-original .wh-scene{display:block;object-fit:cover;width:100%;height:100%;max-height:none;margin:0;border-radius:0}
+#deal-room .wh-original .wh-arrived-boxes{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#deal-room .wh-original .wh-scene-caption{font-size:13px;color:#c7c2b2;margin:7px 0 12px}
+#deal-room .wh-original button,#deal-room .wh-original select,#deal-room .wh-original input{background:#28261f;color:#eee9db;border-color:#4e4738;border-radius:5px}
+#deal-room .wh-original .wh-section,#deal-room .wh-original .wh-rack{background:transparent;border:0;border-radius:0;padding:0;margin:12px 0}
+#deal-room .wh-original .wh-section>h3{font-size:16px}
+#deal-room .wh-original .wh-stock-list li{border-color:#403b30}#deal-room .wh-original .wh-stock-list li span,#deal-room .wh-original .wh-caption,#deal-room .wh-original .wh-facts dt{color:#c8c1af}
+#deal-room .wh-original .wh-facts>div{border-color:#403b30}
+#deal-room .wh-original .wh-rack-details>summary{font-size:13px;color:#c8c1af;min-height:40px}
+#deal-room .wh-original .wh-order-details{margin:16px 0}
+#deal-room .wh-original .wh-order-details>summary{padding:10px 12px;border:1px solid #454033;border-radius:5px;font-weight:400;min-height:44px}
+#deal-room .wh-original [data-wh-expand]{display:block;width:100%;text-align:left}
+#deal-room .wh-original .wh-feedback,#deal-room .wh-original .wh-warning{background:#2c2920;color:#e0d2b3;border-color:#ac905b}
+#deal-room .wh-original .wh-tiers li{border-color:#403b30}
+@media(min-width:900px){#deal-room .wh-original .wh-scene-frame{max-width:720px;margin-inline:auto}}
+/* Shared top chrome owns date/cash. Let the warehouse scene carry this page. */
+#deal-room .wh-original{padding:0;border:0;border-radius:0;background:transparent}
+#deal-room .wh-original .wh-head{margin:4px 0 22px;align-items:center}
+#deal-room .wh-original .wh-head button{background:transparent;border-color:#4c4638;color:#d5c8ac}
+#deal-room .wh-original .wh-stage-label{padding-bottom:9px;border-bottom:1px solid #3d382f;color:#f1eadb}
+#deal-room .wh-original .wh-stage-label>span:first-child{font-weight:600}
+#deal-room .wh-original .wh-scene-frame{border-radius:5px;border:1px solid #4a4031}
+#deal-room .wh-original .wh-scene-caption{line-height:1.65;margin-bottom:16px;color:#c8bdab}
+#deal-room .wh-original .wh-stock-list strong{font-size:16px;color:#f0e8d8}
+#deal-room .wh-original .wh-stock-list li{padding:12px 0;gap:7px}
+#deal-room .wh-original .wh-section>h3{margin-top:21px;margin-bottom:10px;font-weight:600;color:#e4d4b4}
+#deal-room .wh-original .wh-order-details>summary{background:#27231c;border-color:#5b4c36;color:#e7d3a8;padding:12px 14px}
+#deal-room .wh-original [data-wh-expand]{padding:12px 14px;border-color:#8d7145;background:#31291d;color:#f3dba9;font-weight:600}
+#deal-room .wh-original .wh-key{color:#d4c8b4}
+#deal-room .wh-original .wh-tiers{color:#d0c6b5}
+#deal-room .wh-original .wh-feedback{background:transparent;padding:8px 12px}
+/* The restock preview is on the dark canvas; keep its labels and totals readable. */
+#deal-room .wh-original .wh-purchase :is(.wh-form-grid label,.wh-facts dt,.wh-caption){color:#d4cbb9}
+#deal-room .wh-original .wh-purchase .wh-facts dd{color:#f0e6d5;font-size:15px}
+#deal-room .wh-original .wh-purchase .wh-facts>div:nth-child(4) dd{color:#f3d69e;font-size:18px}
+#deal-room .wh-original .wh-purchase>p{color:#d4cbb9;font-size:14px}
+#deal-room .wh-original .wh-scene-frame>.exterior-weather{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}

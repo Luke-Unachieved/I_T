@@ -38,3 +38,63 @@
 .reduce-motion .life-coffee-ground,.reduce-motion .life-coffee-cup{animation:none}
 .life-reading-companions{display:flex;gap:14px;align-items:center;padding:12px 14px;margin:12px 0 0;background:#f4e8d4;border:1px solid #d7c3a4;border-radius:12px}.life-reading-companions>svg{width:88px;flex:0 0 88px}.life-reading-companions p{margin:3px 0;font-size:14px;line-height:1.6}.life-reading-companions small{display:block;color:#71624d;line-height:1.6}@media(max-width:430px){.life-reading-companions{gap:8px;padding:10px}.life-reading-companions>svg{width:64px;flex-basis:64px}}
 .balcony-picture{margin:8px 0 12px;overflow:hidden;border-radius:18px;background:#e9dfcd;color:#405246}.balcony-picture svg{display:block;width:100%;height:auto}.balcony-picture figcaption{font-size:12px;padding:6px 12px}.balcony-ritual>div{width:100%}.balcony-ritual button{margin:4px 6px 2px 0}.life-reading-companions .garden-posy{width:48px;min-width:36px;height:54px}
+
+/* Recovered 390px home: 358×203 artwork, arrows below it; no purchase on entry. */
+#deal-room:has(>.home-original) .ws-account{display:none}
+#deal-room:has(>.home-original) .ws-nav{grid-row:2}
+#deal-room .home-original{grid-column:1/-1;justify-self:center;width:100%;max-width:960px;color:#e9e5dc}
+#deal-room .home-original>header{display:block;margin:0 0 8px}
+#deal-room .home-original>header button{background:transparent;padding:0;color:#bdb6aa;font-size:14px;border:0}
+#deal-room .home-original>header h2{font-size:23px;margin:4px 0 0}
+#deal-room .home-original figure{margin:0;aspect-ratio:358/203;overflow:hidden;border-radius:8px}
+#deal-room .home-original figure img{width:100%;height:100%;object-fit:cover}
+#deal-room .home-original figure[data-angle="1"] img{transform:scale(1.65);transform-origin:100% 85%}
+#deal-room .home-original figure[data-angle="2"] img{transform:scale(1.65);transform-origin:39% 10%}
+#deal-room .home-original nav,#deal-room .home-rest{display:flex;justify-content:space-between;align-items:center}
+#deal-room .home-original nav{padding:0;background:none;border:0;color:#c3bcae;font-size:13px}
+#deal-room .home-original nav button{height:44px;width:44px;background:none;border:0;color:#d7bb85;font-size:24px}
+#deal-room .home-rest{padding:20px 0 8px;border-bottom:1px solid #3c3b37}
+#deal-room .home-rest h3{font-size:17px;margin:0 0 3px}
+#deal-room .home-original :is(.home-rest,.home-sleep-sheet)>button{min-height:48px;background:#28251f;color:#d7bb85;border:1px solid #3c3b37;border-radius:10px;padding:8px 12px}
+#deal-room .home-furniture{color:#c9b48d;margin:0}
+#deal-room .home-furniture>summary{padding:8px 0;min-height:40px}
+#deal-room .home-sleep-sheet{padding:12px;border:1px solid #4d473c;border-radius:8px;background:#24211c}
+#deal-room .home-sleep-sheet h3{margin:0}
+#deal-room .home-sleep-sheet button+button{margin-left:8px}
+#deal-room:has(.home-original)>.adviser-panel :is(p,[data-adviser-tab]){display:none}
+/* When the furniture sheet is open its interactive panel replaces the static
+   establishing shot. Keep the actual owned objects and their keyboard targets. */
+#deal-room .home-original:has(>.home-furniture[open])>figure,
+#deal-room .home-original:has(>.home-furniture[open])>nav[aria-label="房间视角"]{display:none}
+#deal-room .home-comic-frame{position:relative;isolation:isolate;overflow:hidden;border:2px solid #695e4a;border-radius:6px;background:#302a21}
+#deal-room .home-comic-frame :is(.life-room,.balcony-picture){display:block;margin:0;width:100%}
+#deal-room .home-panel-label,#deal-room .home-record-frame figcaption{position:absolute;inset:8px auto auto 8px;z-index:1;pointer-events:none;background:#eee4c9;color:#342a20;padding:3px 9px;border:1px solid #594d3a;font-size:.75rem;line-height:1.3}
+#deal-room .home-comic>.life-welcome{border-left:3px solid #bba16c;margin:8px 0 14px;padding:5px 12px}
+#deal-room .home-comic>.life-welcome p{margin:0}
+#deal-room .home-comic>.life-purchase{margin-bottom:16px}
+#deal-room .home-record-frame{position:relative;min-height:110px;margin:0;background:#302b25 url('../assets/deal-life-furniture.webp') right center/300% auto no-repeat;border:1px solid #786b56;border-radius:4px;grid-column:1/-1;aspect-ratio:2.7}
+#deal-room .home-comic-ritual .life-book,#deal-room .home-comic-ritual.life-coffee>svg{border:1px solid #796d58;border-radius:4px}
+#deal-room .home-record-frame{background:#302b25;overflow:hidden;height:clamp(112px,24vw,170px);aspect-ratio:auto}
+#deal-room .home-record-frame::before{content:"";position:absolute;inset:0;margin:auto;aspect-ratio:1;background:url('../assets/deal-life-furniture.webp') right center/300% 100% no-repeat}
+/* Keep the established scene artwork, not the old paper card chrome, in this
+   nested after-work view. The legacy standalone furniture panel is unchanged. */
+#deal-room .home-original .home-comic{background:#211d18;color:#eee6d7;border:1px solid #5b4c3a;border-radius:8px}
+#deal-room .home-comic>header :is(h2,small),#deal-room .home-comic>.life-welcome{color:#eee6d7}
+#deal-room .home-original .home-comic :is(.life-purchase,.life-actions button){background:#30291f;border-color:#665439;color:#eee6d7}
+#deal-room .home-original .home-comic .life-purchase :is(h3,p,strong),#deal-room .home-original .home-comic .life-actions button strong{color:#f5ead5}
+#deal-room .home-original .home-comic .life-actions button span{color:#d5c2a1}
+#deal-room .home-original .home-comic :is(.life-purchase,header) button{background:#332a20;border-color:#776344;color:#f1dbaf}
+#deal-room .home-original .home-comic [data-life-buy]{background:#d5b47e;color:#251b11;border-color:#d5b47e}
+/* Exterior layers move with the exact same camera crop as the underlying image. */
+#deal-room .home-original>figure{position:relative}
+#deal-room .home-original>figure>.exterior-weather{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#deal-room .home-original>figure[data-angle="1"]>.exterior-weather{transform:scale(1.65);transform-origin:100% 85%}
+#deal-room .home-original>figure[data-angle="2"]>.exterior-weather{transform:scale(1.65);transform-origin:39% 10%}
+#deal-room .exterior-weather{pointer-events:none}
+#deal-room .weather-rain .exterior-particles{animation:outdoor-rain .8s linear infinite}
+#deal-room .weather-snow .exterior-particles{animation:outdoor-snow 3.6s ease-in-out infinite alternate}
+@keyframes outdoor-rain{from{transform:translate(.35px,-1.2px)}to{transform:translate(-.35px,1.2px)}}
+@keyframes outdoor-snow{from{transform:translate(-.6px,-1.4px)}to{transform:translate(.7px,1.4px)}}
+#deal-room .balcony-picture:is([data-balcony-weather="rain"],[data-balcony-weather="snow"],[data-balcony-weather="cloud"])>svg>circle:first-of-type{opacity:.15}
+@media(prefers-reduced-motion:reduce){#deal-room .exterior-weather .exterior-particles{animation:none}}
+.reduce-motion #deal-room .exterior-weather .exterior-particles,#deal-room.reduce-motion .exterior-weather .exterior-particles{animation:none}

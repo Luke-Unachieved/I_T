@@ -1,3 +1,4 @@
+import {equipmentComicView} from './deal-room-equipment-comics.js';
 import {EQUIPMENT_PROJECTS,equipmentOpportunity,previewEquipment,canRebookEquipment} from './deal-room-equipment.js';
 import {DAY_COST} from './deal-room-market.js';
 
@@ -50,6 +51,11 @@ function quoteView(state, project, shipping) {
     <button class="primary" data-equipment-sign="${project.id}" ${q.valid?'':'disabled'}>确认报价，签约备货</button></section>`;
 }
 
+// Keep both decisions on the same labeled rows, including on small screens.
+export function equipmentRoutePair(wait,early){
+ return '<div class="eq-routes">'+[wait,early].map(r=>'<article><h4>'+r.title+'</h4><dl>'+[['现在另付',money(r.fee)],['到货验收','第 '+r.day+' 天'],['收尾款','第 '+r.pay+' 天']].map(([k,v])=>'<div><dt>'+k+'</dt><dd>'+v+'</dd></div>').join('')+'</dl><button type="button" '+r.action+(r.enabled?'':' disabled')+'>'+r.button+'</button></article>').join('')+'</div>';
+}
+
 function activeView(state, project) {
   const a = state.market.active;
   const preparing = a.status === 'preparing', transit = a.status === 'transit', paid = a.status === 'paid';
@@ -57,17 +63,18 @@ function activeView(state, project) {
   if (preparing) {
     action = `<p>已按合同备齐 ${a.quantity} ${a.unit}，第 ${a.shipDay} 天出运。</p><button class="primary" data-market-action="SHIP_EQUIPMENT">整批出运</button>`;
   } else if (transit) {
-    const transfer = a.transfer && !a.rebookPaid ? `<p>船公司通知换船。场站费 ${money(a.stationPaid)} 已付。现在多付 ${money(a.rebookFee)} 改订可提前 ${a.daysSaved} 天到港和收款，场站费照收。</p><button data-market-action="REBOOK_EQUIPMENT" ${canRebookEquipment(state,DAY_COST)?'':'disabled'}>改订接驳船 · 立即付 ${money(a.rebookFee)}</button>${canRebookEquipment(state,DAY_COST)?'':'<p>手头现金不足以改订后等到回款，可保留现有船期。</p>'}` : '';
-    action = `${transfer}<p>整批已出运，预计第 ${a.deliveryDay} 天到港。${a.rebookPaid?'改订后的船期已确认。':''}</p><button class="primary" data-market-action="DELIVER_MARKET">到港，按清单整单验收</button>`;
+    const choose=a.transfer&&!a.rebookPaid;
+    const available=choose&&canRebookEquipment(state,DAY_COST);
+    action=choose?`<section class="eq-decision"><h3>船期变了，怎么安排？</h3><p>场站费 ${money(a.stationPaid)} 已付，两种方案都不退。改订可早 ${a.daysSaved} 天回款，少付 ${money(a.daysSaved*DAY_COST)} 日常开支。</p>${equipmentRoutePair({title:'照现在的船期等',fee:0,day:a.deliveryDay,pay:a.paymentDay,action:'data-market-action="DELIVER_MARKET"',enabled:true,button:'按现在船期验收'},{title:'改订更早的班次',fee:a.rebookFee,day:a.deliveryDay-a.daysSaved,pay:a.paymentDay-a.daysSaved,action:'data-market-action="REBOOK_EQUIPMENT"',enabled:available,button:'确认改订'})}${available?'':'<p>现金不足以改订并等到回款。</p>'}</section>`:`<p>整批已出运，预计第 ${a.deliveryDay} 天到港。${a.rebookPaid?'改订后的船期已确认。':''}</p><button class="primary" data-market-action="DELIVER_MARKET">到港，按清单整单验收</button>`;
   } else if (paid) {
     action = '<p class="market-success">货款已收齐，项目已记入工作室账本。</p><button class="primary" data-market-action="CLOSE_MARKET">回工作室</button>';
   } else {
     action = `<p>已到港并整单验收。第 ${a.paymentDay} 天可收尾款 ${money(a.balanceDue)}。</p><button class="primary" data-market-action="COLLECT_MARKET">到付款日，收齐尾款</button>`;
   }
-  return `<section class="market-active equipment-active">${projectSummary(project, a.status)}
+  return `<section class="market-active equipment-active eq-order"><small>${project.company} · ${project.buyer}</small><h3>${project.name} · ${a.quantity} ${a.unit}</h3><p>已验收 ${a.delivered} / ${a.quantity} ${a.unit}。</p>${action}${equipmentComicView(a,a.status)}<details><summary>合同与费用明细</summary>${projectSummary(project, a.status)}
     <ol class="market-track"><li class="done">第 ${a.signedDay} 天<br>签约</li><li class="${preparing?'':'done'}">第 ${a.shipDay} 天<br>整批出运</li><li class="${preparing||transit?'':'done'}">第 ${a.deliveryDay} 天<br>到港验收</li><li class="${paid?'done':''}">第 ${a.paymentDay} 天<br>收齐尾款</li></ol>
     <dl class="market-facts">${costs(a)}${fact('已到账',a.received)}${fact('应收余额',a.revenue-a.received)}${fact(paid?'实际净利':preparing&&a.shipping==='standard'?'顺利时预计净利':'预计净利',a.netProfit)}${preparing&&a.shipping==='standard'?fact('换船风险下预计净利',a.riskNetProfit):''}</dl>
-    <p>已验收 ${a.delivered} / ${a.quantity} ${a.unit}。</p>${action}</section>`;
+    </details></section>`;
 }
 
 export function equipmentView(state, ui) {

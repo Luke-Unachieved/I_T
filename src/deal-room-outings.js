@@ -29,7 +29,14 @@ function outingBlock(s){
  return '';
 }
 export function outingsAvailable(s){return !outingBlock(s);}
-export function availableFriendEvents(companionId){return FRIEND_EVENTS.filter(e=>choicesOf(e,companionId));}
+// Check the saved decision, not which page the player last had open.
+function friendChapterUnlocked(event,companionId,mementos){
+ const {requires}=event;
+ return !requires||Array.isArray(mementos)&&mementos.some(m=>m.kind==='friend'&&m.placeId===requires.eventId&&m.choiceId===requires.choiceId&&m.companionId===companionId);
+}
+export function availableFriendEvents(companionId,mementos=[]){
+ return FRIEND_EVENTS.filter(e=>choicesOf(e,companionId)&&friendChapterUnlocked(e,companionId,mementos));
+}
 export function outingSummary(s){
  const b=bookOf(s);
  if(!goodBook(b))return {valid:false,revision:null,activeTrip:null,mementos:[],reason:'出游记录无效。'};
@@ -63,6 +70,7 @@ export function previewOutingTrip(s,draft){
 export function previewFriendOuting(s,draft){
  const e=eventOf(draft?.eventId),o=e?.choices.find(x=>x.id===draft.choiceId),id=draft?.companionId;
  if(!choicesOf(e,id)||!o)return bad('请选择一位朋友，再选这场活动的一种走法。');
+ if(!friendChapterUnlocked(e,id,bookOf(s)?.mementos))return bad('这段故事还没到。先和这位朋友去看看前一场。');
  return {...quote(s,{eventId:e.id,choiceId:o.id,companionId:id},o.cost,'CONFIRM_FRIEND_OUTING',bookOf(s)?.friendVisits),name:e.name,label:o.label,companionId:id,companionName:companion(id).name};
 }
 function remember(b,{kind,placeId,choiceId,companionId,day}){

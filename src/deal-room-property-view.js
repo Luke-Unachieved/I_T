@@ -18,7 +18,7 @@ const pvBtn=(attr,text,cls='')=>'<button type="button" '+attr+(cls?' class="'+cl
 function pvArt(map,id){
   if(!map||!Object.hasOwn(map,id))return '';
   const url=map[id];
-  if(typeof url!=='string'||!/^assets\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_.-]+\.(?:webp|png|jpe?g|avif)$/i.test(url))return '';
+  if(typeof url!=='string'||!(/^assets\/(?:[A-Za-z0-9_-]+\/)*[A-Za-z0-9_.-]+\.(?:webp|png|jpe?g|avif)$/i.test(url)||/^data:image\/webp;base64,[A-Za-z0-9+/]+={0,2}$/.test(url)))return '';
   return '<img class="pv-art" alt="" loading="lazy" decoding="async" src="'+pvEsc(url)+'">';
 }
 export function propertyEntriesView(state,place){
@@ -98,7 +98,7 @@ export function propertyView(state,ui={},options={}){
   const k=ui.kind,t=pvTerm(k);if(!t)return '';
   const h=propertyHoldings(state),item=pvItem(k,ui.assetId);
   return '<section class="pv-panel" data-pv-kind="'+k+'" aria-label="'+pvEsc(pvTitle(k,h))+'">'+
-    (item?pvDetail(state,k,item,h,ui,options.artById):pvList(k,state,h,options.artById))+'</section>';
+    (item?pvDetail(state,k,item,h,ui,options.detailArtById??options.artById):pvList(k,state,h,options.artById))+'</section>';
 }
 /** render replaces the panel, dispatch journals one approved business action.
  * All browsing and quote edits are local to ui. Hooks follow the current panel. */

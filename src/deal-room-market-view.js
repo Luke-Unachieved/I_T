@@ -1,3 +1,7 @@
+import {marketProductComicView} from './deal-room-workspace-product-comics.js';
+import {prospectDisplayText} from './deal-room-prospect-locale.js';
+import {carafeTransportView,carafeCustomerFollowup,carafeComicFrame} from './deal-room-market-carafe-transport.js';
+import {legacyEquipmentInvite,legacyEquipmentView,bindLegacyEquipment} from './deal-room-equipment-legacy-view.js';
 import {previewWarehouseIssue} from './deal-room-warehouse.js';
 import {prospectInboxView,bindProspectInbox,prospectAdviserQuote,prospectReceiptContact} from './deal-room-prospect-view.js';
 import {equipmentInvite,equipmentView,bindEquipment,equipmentReceiptCosts} from './deal-room-equipment-view.js';
@@ -7,7 +11,7 @@ import {marketPlate} from './deal-room-market-art.js';
 import {MARKET_PRODUCTS} from './deal-room-market-data.js';
 import {DAY_COST,previewMarket,marketBook} from './deal-room-market.js';
 import {previewEquipment} from './deal-room-equipment.js';
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc=s=>String(prospectDisplayText(s)??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>Number.isSafeInteger(n)?`¥${n.toLocaleString('zh-CN')}`:'—';
 const modeName=m=>m==='neighborhood'?'门店联采':m==='project'?'设备项目':m==='bulk'?'铺货':'试单';
 const sourceName=s=>s==='warehouse'?'自有仓库':s==='factory'?'工厂排产':'现货联仓';
@@ -52,16 +56,37 @@ export function marketReceiptText(state){
 }
 function marketStageText(state){
  const status=state.market?.status,kind=state.feedback?.kind;
+ if(kind==='market-chartered')return state.feedback.message;
  if(status==='paid')return marketReceiptText(state);
  if(status==='transit'&&kind==='market-signed'||status==='receivable'&&kind==='market-delivered')return state.feedback.message;
  return '';
 }
-function activeView(state){
+function orderSheet(a,status,visual,body,facts,kicker='订单进度'){
+ const heading=status==='transit'?'已签约，等交货':status==='receivable'?'已交货，等尾款':'货款已收齐';
+ const steps=[['签约',a.signedDay],['交货',a.deliveryDay],['收款',a.paymentDay]];
+ return '<section class="ws-carafe ws-order-detail"><header class="ws-order-summary"><div><p class="ws-order-kicker">'+esc(kicker)+'</p><h2>'+heading+'</h2><p>'+esc(a.buyer)+'</p></div>'+visual+'</header>'+
+  '<p class="ws-order-item"><strong>'+esc(a.productName)+'</strong><span>'+a.quantity+esc(a.unit)+'</span></p>'+
+  '<ol class="ws-carafe-track" data-stage="'+esc(status)+'">'+steps.map(([label,n],i)=>'<li'+(i===(status==='transit'?1:status==='receivable'?2:-1)?' aria-current="step"':'')+'><b>'+label+'</b><span>第 '+n+' 天</span></li>').join('')+'</ol>'+
+  body+'<details class="ws-order-facts"><summary>订单明细</summary>'+facts+'</details></section>';
+}
+function activeView(state,ui={}){
  const a=state.market?.active,status=state.market?.status;
  if(!a)return '<p role="status">没有待处理的商品合同。返回工作室后再打开商品业务。</p>';
  const product=MARKET_PRODUCTS.find(p=>p.id===a.productId);
+ const choice=status==='transit'?carafeTransportView(state,ui.adviserId):'';
+ const carafeReply=carafeCustomerFollowup(state),replyLine=carafeReply?'<p class="market-note">'+esc(carafeReply)+'</p>':'';
+ const restored=Boolean(a.carafeCharter);
+ const scene=carafeReply?'<div class="ws-carafe-delivery">'+carafeComicFrame(restored?'early':'standard')+'<div><strong>岚岸采购负责人</strong>'+replyLine+'</div></div>':'';
+ const next=choice||(restored&&status==='transit'?'<section class="ws-ship-choice"><h3>联仓已确认包车</h3><p>已付 ¥96。第 '+a.deliveryDay+' 天交货，第 '+a.paymentDay+' 天收款。</p><button type="button" data-market-action="DELIVER_MARKET">按新安排交货</button></section>':(restored||carafeReply)&&status==='receivable'?'<section class="ws-ship-choice"><h3>买方签收</h3><p>第 '+a.paymentDay+' 天收尾款 '+money(a.balanceDue)+'。</p>'+scene+'<button type="button" data-market-action="COLLECT_MARKET">到付款日，收齐尾款</button></section>':(restored||carafeReply)&&status==='paid'?'<section class="ws-ship-choice"><h3>货款已收齐</h3><p>'+esc(marketReceiptText(state))+'</p>'+replyLine+'<button type="button" data-market-action="CLOSE_MARKET">回工作室</button></section>':'');
+ if(next)return orderSheet(a,status,'<img class="ws-order-product" src="assets/deal-original-order-carafe.webp" alt="">',next,'<dl>'+fact('合同货款',money(a.revenue))+fact('已收定金',money(a.deposit))+fact(status==='paid'?'实际净利':'预计净利',money(a.netProfit))+'</dl>');
  const contact=a.kind==='neighborhood'?neighborhoodContact(status==='transit'?`定金付好了。请按每店 ${a.perStore} ${a.unit}配齐装箱，门店照清单点货。`:status==='receivable'?`${a.stores} 家店都点过数了。这批货我签收，余款在第 ${a.paymentDay} 天付。`:`财务已经付清。谢谢你把 ${a.stores} 家店的货配齐。`):a.kind==='prospect'?prospectReceiptContact(state):'';
- return `<section class="market-active">${contact}<small>${status==='paid'?'这单已经结清':status==='receivable'?'已经交货，尾款仍在账上':'已经采购，按合同交付'}</small><h3>${esc(a.productName)} · ${esc(a.quantity)}${esc(a.unit)}</h3>${marketPlate(product)}<p>${esc(a.buyer)} · ${esc(a.sourceName)} · ${esc(modeName(a.mode))}</p><ol class="market-track"><li class="done">第 ${a.signedDay} 天<br>签约采购</li><li class="${status!=='transit'?'done':''}">第 ${a.deliveryDay} 天<br>交货验收</li><li class="${status==='paid'?'done':''}">第 ${a.paymentDay} 天<br>收齐货款</li></ol><p class="market-inspection"><strong>验收约定</strong> ${esc(a.inspection||product?.inspection)}</p><dl class="market-facts">${fact(a.source==='warehouse'?'自仓已出库':'本单采购',a.quantity+a.unit)}${fact('本单未交货',String(a.quantity-a.delivered)+a.unit)}${fact('买方已收货',a.delivered+a.unit)}${fact('总货款',money(a.revenue))}${fact('已收定金',money(a.deposit))}${fact('采购及运输',money(a.cost))}${fact(status==='paid'?'尾款已收':'待收尾款',money(a.balanceDue))}${fact('本单日常开支',money(a.operatingCost))}${fact(status==='paid'?'本单净利':'预计净利',money(a.netProfit))}</dl>${status==='transit'?`<p>推进到第 ${a.deliveryDay} 天，按上述标准交付。期间日常开支会从主账扣除${a.paymentDay===a.deliveryDay?'，验收后当日收齐尾款':'；尾款到期前不会提前到账'}。</p><button class="primary" data-market-action="DELIVER_MARKET">按合同验收并交货</button>`:status==='receivable'?`<p>推进到第 ${a.paymentDay} 天，再收 ${money(a.balanceDue)} 尾款，扣除这段时间的日常开支。</p><button class="primary" data-market-action="COLLECT_MARKET">到付款日，收齐尾款</button>`:`<p class="market-success">${esc(a.buyer)} 已付清货款。这笔采购、运费和日常开支已计入主账；不是额外赠送利润。</p><button class="primary" data-market-action="CLOSE_MARKET">回工作室，继续下一笔生意</button>`}</section>`;
+ const action=status==='transit'?`<p>第 ${a.deliveryDay} 天交货。期间日常开支从主账扣除，${a.paymentDay===a.deliveryDay?'验收当日收齐尾款。':'尾款按约定日期到账。'}</p><button class="primary" data-market-action="DELIVER_MARKET">按合同验收并交货</button>`:status==='receivable'?`<p>第 ${a.paymentDay} 天收尾款 <strong>${money(a.balanceDue)}</strong>。</p><button class="primary" data-market-action="COLLECT_MARKET">到付款日，收齐尾款</button>`:`<p>${esc(a.buyer)} 已付清 <strong>${money(a.received)}</strong>，已记入账本。</p><button class="primary" data-market-action="CLOSE_MARKET">回工作室，继续下一笔生意</button>`;
+ const details='<p class="ws-order-inspection"><strong>验收约定</strong> '+esc(a.inspection||product?.inspection)+'</p><dl>'+
+  fact(a.source==='warehouse'?'自仓已出库':'本单采购',a.quantity+a.unit)+fact('本单未交货',String(a.quantity-a.delivered)+a.unit)+fact('买方已收货',a.delivered+a.unit)+
+  fact('货源',a.sourceName)+fact('总货款',money(a.revenue))+fact('已收定金',money(a.deposit))+fact('采购及运输',money(a.cost))+
+  fact(status==='paid'?'尾款已收':'待收尾款',money(a.balanceDue))+fact('本单日常开支',money(a.operatingCost))+fact(status==='paid'?'本单净利':'预计净利',money(a.netProfit))+'</dl>';
+ return orderSheet(a,status,'<div class="ws-order-thumb">'+marketPlate(product)+'</div>',
+  '<section class="ws-order-next" aria-label="下一步">'+action+'</section>'+contact+marketProductComicView(a,status),details,a.kind==='neighborhood'?'门店联采':a.kind==='prospect'?'客户订单':modeName(a.mode));
 }
 function quoteView(state,ui,d){
  const p=MARKET_PRODUCTS.find(p=>p.id===d.productId),q=previewMarket(state,d),supplier=sourceSpec(p,d.source);
@@ -78,13 +103,17 @@ export function marketAdviserQuote(state,ui={}){
  return draft?previewMarket(state,draft):null;
 }
 export function marketView(state,ui={}){
- const equipment=equipmentView(state,ui);
+ const equipment=legacyEquipmentView(state,ui)||equipmentView(state,ui);
  const status=state.market?.status||'draft',stageText=marketStageText(state),d=draftOf(ui,state),categories=[...new Set(MARKET_PRODUCTS.map(p=>p.category))],search=String(ui.search||'').trim().toLocaleLowerCase(),filtered=MARKET_PRODUCTS.filter(p=>(!ui.category||p.category===ui.category)&&(!search||`${p.name} ${p.category} ${p.brief} ${p.buyer}`.toLocaleLowerCase().includes(search)));
- return `<section class="market-panel"><header><div><small>采购 · 报价 · 履约</small><h2>找下一件好货</h2></div><button data-market-action="CLOSE_MARKET" ${['preparing','transit','receivable'].includes(status)?'disabled title="先交付并收齐这笔合同，再返回工作室"':''}>回工作室</button></header><div class="market-wallet"><span>第 ${state.day} 天 · 主账可用现金</span><strong>${money(state.cash)}</strong></div>${stageText?`<p role="status">${esc(stageText)}</p>`:''}${equipment?equipment:status!=='draft'?activeView(state):ui.prospectId?prospectInboxView(state,ui):d?quoteView(state,ui,d):`<p>给真实用途找货，替买方核对交期。${MARKET_PRODUCTS.length} 种不同商品，采购和收款都走工作室的同一本账。</p>${equipmentInvite(state)}${recentShelf(state)}${neighborhoodInvite(state,paidReceipts(state))}${prospectInboxView(state,ui)}<form data-market-search-form class="market-filters"><label for="market-search">找商品或用途<input id="market-search" type="search" value="${esc(ui.search||'')}" placeholder="例如：餐桌、收纳、咖啡"></label><label for="market-category">品类<select id="market-category"><option value="">全部品类</option>${categories.map(c=>`<option value="${esc(c)}" ${ui.category===c?'selected':''}>${esc(c)}</option>`).join('')}</select></label><button type="submit">筛选</button></form><p class="market-note">找到 ${filtered.length} 种。先选商品，再比较小批试单和大批铺货。</p><div class="market-grid">${filtered.map(p=>`<button class="market-product" data-market-product="${esc(p.id)}">${marketPlate(p)}<small>${esc(p.category)}</small><strong>${esc(p.name)}</strong><span>${esc(p.brief)}</span><small>${esc(p.buyer)} · 试单 ${p.offers.trial.quantity}${esc(p.unit)}</small><b>看货源与报价 →</b></button>`).join('')||'<p>没有符合条件的商品。试着换个词或选全部品类。</p>'}</div>`}${historyView(state,ui)}<p class="market-disclaimer">价格、买方与交易均为游戏设定，不是真实商品采购服务。</p></section>`;
+ if(status==='draft'&&ui.prospectId)return '<section class="market-panel ws-letter-panel">'+prospectInboxView(state,ui)+'</section>';
+ if(equipment&&status!=='draft')return '<section class="market-panel ws-carafe-panel ws-equipment-panel"><button type="button" data-workspace-market-order-list>‹ 订单列表</button>'+equipment+'</section>';
+ if(state.market?.active&&['transit','receivable','paid'].includes(status))return '<section class="market-panel ws-carafe-panel"><button type="button" data-workspace-market-order-list>‹ 订单列表</button>'+activeView(state,ui)+historyView(state,ui)+'</section>';
+ return `<section class="market-panel"><header><div><small>采购 · 报价 · 履约</small><h2>找下一件好货</h2></div><button data-market-action="CLOSE_MARKET" ${['preparing','transit','receivable','legacy-preparing','legacy-transit','legacy-receivable'].includes(status)?'disabled title="先交付并收齐这笔合同，再返回工作室"':''}>回工作室</button></header><div class="market-wallet"><span>第 ${state.day} 天 · 主账可用现金</span><strong>${money(state.cash)}</strong></div>${stageText?`<p role="status">${esc(stageText)}</p>`:''}${equipment?equipment:status!=='draft'?activeView(state,ui):ui.prospectId?prospectInboxView(state,ui):d?quoteView(state,ui,d):`<p>给真实用途找货，替买方核对交期。${MARKET_PRODUCTS.length} 种不同商品，采购和收款都走工作室的同一本账。</p>${equipmentInvite(state)}${legacyEquipmentInvite(state)}${recentShelf(state)}${neighborhoodInvite(state,paidReceipts(state))}${prospectInboxView(state,ui)}<form data-market-search-form class="market-filters"><label for="market-search">找商品或用途<input id="market-search" type="search" value="${esc(ui.search||'')}" placeholder="例如：餐桌、收纳、咖啡"></label><label for="market-category">品类<select id="market-category"><option value="">全部品类</option>${categories.map(c=>`<option value="${esc(c)}" ${ui.category===c?'selected':''}>${esc(c)}</option>`).join('')}</select></label><button type="submit">筛选</button></form><p class="market-note">找到 ${filtered.length} 种。先选商品，再比较小批试单和大批铺货。</p><div class="market-grid">${filtered.map(p=>`<button class="market-product" data-market-product="${esc(p.id)}">${marketPlate(p)}<small>${esc(p.category)}</small><strong>${esc(p.name)}</strong><span>${esc(p.brief)}</span><small>${esc(p.buyer)} · 试单 ${p.offers.trial.quantity}${esc(p.unit)}</small><b>看货源与报价 →</b></button>`).join('')||'<p>没有符合条件的商品。试着换个词或选全部品类。</p>'}</div>`}${historyView(state,ui)}<p class="market-disclaimer">价格、买方与交易均为游戏设定，不是真实商品采购服务。</p></section>`;
 }
-export function bindMarket(root,state,ui,rerender,dispatch){
+export function bindMarket(root,state,ui,rerender,dispatch,options){
+ bindLegacyEquipment(root,state,ui,rerender,dispatch);
  bindEquipment(root,state,ui,rerender,dispatch);
- bindProspectInbox(root,state,ui,rerender,dispatch);
+ bindProspectInbox(root,state,ui,rerender,dispatch,options);
  const renderFocus=selector=>{rerender();root.querySelector(selector)?.focus?.({preventScroll:true});};
  const changeDraft=patch=>{Object.assign(ui,patch,{quoted:null});renderFocus('[data-market-heading]');};
  root.querySelectorAll('[data-neighborhood-product]').forEach(b=>b.addEventListener('click',()=>changeDraft({productId:b.dataset.neighborhoodProduct,mode:'neighborhood',source:'factory',unitPrice:undefined})));

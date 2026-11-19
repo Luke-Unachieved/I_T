@@ -27,3 +27,18 @@
 .pv-panel .pv-owned,.pv-panel .pv-status{color:var(--pv-gold);margin:.75rem 0}
 .pv-entries{display:flex;flex-wrap:wrap;gap:.45rem;border-radius:.5rem;padding:.45rem}
 @media(max-width:480px){.pv-panel .pv-list{grid-template-columns:1fr}.pv-panel .pv-tile-copy{grid-template-columns:auto minmax(0,1fr) auto}.pv-panel .pv-list-price{grid-column:auto}.pv-panel .pv-facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Property catalogue and detail follow the archived workspace surface, with
+   the price and cash disclosure retained from the later approved revision. */
+#deal-room .pv-panel{color:var(--ws-type);background:transparent;padding:0;max-width:68rem;border-radius:0}
+#deal-room .pv-panel .pv-heading h2{font:700 clamp(1.32rem,3vw,1.7rem)/1.35 system-ui,sans-serif}
+#deal-room .pv-panel .pv-heading{gap:.55rem;margin-bottom:.6rem}
+#deal-room .pv-panel .pv-tile{border-color:var(--ws-rule);background:var(--ws-card)}
+#deal-room .pv-panel .pv-tile-copy{padding:.5rem .6rem;gap:.25rem .5rem;grid-template-columns:minmax(0,1fr) auto}
+#deal-room .pv-panel .pv-tile-copy .pv-rank{display:none}
+#deal-room .pv-panel .pv-list-price{grid-column:2}
+#deal-room .pv-panel .pv-tile-status{font-size:.78rem}
+#deal-room .pv-panel[data-pv-kind=office] .pv-list{grid-template-columns:repeat(4,minmax(0,1fr))}
+#deal-room .pv-panel .pv-back,#deal-room .pv-panel .pv-primary{line-height:1.3;white-space:normal}
+@media(max-width:730px){#deal-room .pv-panel[data-pv-kind=office] .pv-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){#deal-room .pv-panel[data-pv-kind=office] .pv-tile-copy{grid-template-columns:minmax(0,1fr);gap:.22rem}#deal-room .pv-panel[data-pv-kind=office] .pv-list-price{grid-column:1}}

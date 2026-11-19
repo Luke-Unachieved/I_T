@@ -23,3 +23,14 @@
 .ws-office .ws-totals>div{min-width:0;border-bottom:1px solid #cccbb8;padding:.3rem 0}.ws-office .ws-totals dt{color:#586757;font-size:.83rem}.ws-office .ws-totals dd{margin:0;font-weight:650}
 .ws-office .ws-breakdown li{display:flex;flex-wrap:wrap;gap:.12rem .75rem;justify-content:space-between;padding:.35rem 0}.ws-office .ws-breakdown span{color:#4d604f}
 @media(max-width:540px){.ws-nav{gap:.1rem}.ws-nav button{font-size:.92rem}.ws-office .ws-totals{grid-template-columns:repeat(2,minmax(0,1fr))}.ws-office .ws-desk{min-height:210px}.ws-office .ws-breakdown li{flex-direction:column}.ws-office .ws-section,.ws-office .ws-ledger{padding-inline:.75rem}}
+.ws-index header{display:flex;justify-content:space-between;align-items:center}.ws-index-list{list-style:none;padding:0;display:grid;gap:.55rem}.ws-index-list li{display:flex;align-items:baseline;flex-wrap:wrap;gap:.6rem;border-bottom:1px solid #6b625544;padding:.65rem}.ws-index-status{display:inline-flex;gap:.35rem;align-items:center;color:#754045}.ws-index-status i{width:.46rem;height:.46rem;border-radius:50%;background:#a44547}
+.ws-office .ws-desk{position:relative}.ws-office .ws-desk-scene{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center}.ws-desk-label{position:relative;z-index:1}.ws-desk[data-weather='阴'] .ws-desk-scene{filter:saturate(.82) brightness(.91)}.ws-desk[data-weather='雨'] .ws-desk-scene{filter:saturate(.78) brightness(.82)}.ws-desk[data-weather='雪'] .ws-desk-scene{filter:saturate(.72) brightness(1.06)}
+/* Office weather belongs behind the real window frames, never over the desk. */
+.ws-original-office .ws-desk[data-weather] .ws-desk-scene{filter:none}
+#deal-room .ws-desk>.ws-office-weather{position:absolute;inset:0;display:block;width:100%;height:100%;pointer-events:none;overflow:hidden}
+.ws-weather-rain{animation:ws-window-rain .85s linear infinite}
+.ws-weather-snow{animation:ws-window-snow 3.2s ease-in-out infinite alternate}
+@keyframes ws-window-rain{from{transform:translate(.5px,-2px)}to{transform:translate(-.5px,2px)}}
+@keyframes ws-window-snow{from{transform:translate(-.6px,-2px)}to{transform:translate(.6px,2px)}}
+@media(prefers-reduced-motion:reduce){.ws-weather-rain,.ws-weather-snow{animation:none}}
+html.reduce-motion .ws-weather-rain,html.reduce-motion .ws-weather-snow{animation:none}

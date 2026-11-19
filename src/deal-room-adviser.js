@@ -1,6 +1,11 @@
+import {previewWorkspaceSleep} from './deal-room-workspace-sleep.js';
+import {carafeTransport} from './deal-room-market-carafe-transport.js';
+import {prospectDisplayText} from './deal-room-prospect-locale.js';
 import {DEAL_SAVE_KEY} from './deal-room-save.js';
 import {marketBook} from './deal-room-market.js';
 import {neighborhoodRequest} from './deal-room-neighborhood.js';
+import {prospectInbox} from './deal-room-prospects.js';
+import {previewPromotion} from './deal-room-promotion.js';
 import {equipmentOpportunity} from './deal-room-equipment.js';
 
 // Advisory text is projected from the current view. Navigating from a note only focuses a
@@ -12,7 +17,7 @@ const ADVISERS = [
   {id:'xu', name:'许明珊', first:'我把收款日记在单子旁边了。咱们先挑一笔能周转过来的。'}
 ];
 const money = n => '¥' + n.toLocaleString('zh-CN');
-const escape = value => String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const escape = value => String(prospectDisplayText(value)).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const known = id => id === 'solo' || ADVISERS.some(person => person.id === id);
 
 export function readAdviserChoice(storage, saveKey = DEAL_SAVE_KEY) {
@@ -25,14 +30,15 @@ function suggested(text, target, label) { return {text, target, label}; }
 
 function quoteNote(quote, state, target) {
   const {quantity, minQuantity, deliveryDay, deadlineDay, cashRequired} = quote;
-  if (quantity < minQuantity) return suggested('这批数量还没到起订量。看看现货，或者和买方换个数量。', target, '查看货源和数量');
-  if (deliveryDay > deadlineDay) return suggested('这批货赶不上买方的交期。换个货源再算。', target, '查看货源和交期');
-  if (cashRequired > state.cash) return suggested(`开工前还差 ${money(cashRequired - state.cash)}。尾款没到账，别急着拿它付货款。`, target, '核对报价');
-  if (quote.reason && !quote.valid) return suggested(quote.reason, target, '查看报价');
-  if (quote.accepted === false) return suggested('客户对这份条件还有顾虑，看看对方的要求，再换一份报价。', target, '查看买方要求');
-  if (quote.netProfit < 0) return suggested(`按这份报价要亏 ${money(-quote.netProfit)}。确认前还能调整条件。`, target, '核对成本');
-  if (quote.kind === 'equipment') return suggested('采购、运费和验收费用都得留出来。往下看船期，再决定接不接。', target, '查看设备条款');
-  return suggested('先比采购和运费，再看交付和收款隔几天。价格由你来定。', target, '查看报价');
+  const desk=target==='.market-quote',source=desk?'quote-source':target,price=desk?'quote-price':target,facts=desk?'quote-costs':target;
+  if (quantity < minQuantity) return suggested('这批数量还没到起订量。看看现货，或者和买方换个数量。', source, '查看货源和数量');
+  if (deliveryDay > deadlineDay) return suggested('这批货赶不上买方的交期。换个货源再算。', source, '查看货源和交期');
+  if (cashRequired > state.cash) return suggested(`开工前还差 ${money(cashRequired - state.cash)}。尾款没到账，别急着拿它付货款。`, facts, '核对报价');
+  if (quote.reason && !quote.valid) return suggested(quote.reason, price, '查看报价');
+  if (quote.accepted === false) return suggested('客户对这份条件还有顾虑，看看对方的要求，再换一份报价。', price, '查看买方要求');
+  if (quote.netProfit < 0) return suggested(`按这份报价要亏 ${money(-quote.netProfit)}。确认前还能调整条件。`, facts, '核对成本');
+  if (quote.kind === 'equipment') return suggested('采购、运费和验收费用都得留出来。往下看船期，再决定接不接。', desk?'equipment-route':target, '查看设备条款');
+  return suggested('先比采购和运费，再看交付和收款隔几天。价格由你来定。', price, '查看报价');
 }
 
 function inboxNote(state, atDesk) {
@@ -47,7 +53,33 @@ function inboxNote(state, atDesk) {
   return null;
 }
 
+function workspaceNote(s,person){
+ const nav=(text,label,tab,ref)=>({text,label,tab,ref});
+ if(s.phase==='paid'||s.phase==='market'&&s.market?.active&&s.market.status==='paid')return nav('这笔货款已收齐。可以去订单核对收款凭据。','查看收款凭据','orders');
+ if(s.phase==='market'&&s.market?.active&&s.market.status!=='paid'||['fulfilling','supply','collection','collection-revision','stock-procurement','atelier-restock','linen-freight','studio-project'].includes(s.phase))
+  return nav('手上有一笔单。去看交接安排和款项，不用从头再报价。','看这笔订单','orders');
+ if(s.phase==='negotiating')return nav(person.first,'去收件箱','inbox');
+ if(!['review','complete','market'].includes(s.phase))return null;
+ const letters=prospectInbox(s);
+ if(letters.some(letter=>letter.replyBy===s.day))return nav('有询盘今天截止。先看看数量和收货日，再决定要不要报价。','去收件箱','inbox');
+ if(letters.length||inboxNote(s,false))return nav('有新来信。先看数量和收货日，再决定接哪笔。','去收件箱','inbox');
+ if(previewPromotion(s,'district').valid)return nav('暂时没有待回的询盘。想找新客户，可以先看看版位和价格。','去推广获客','development','promotion');
+ const sleep=previewWorkspaceSleep(s);
+ if(sleep.valid)return nav('今天没有待办的订单。可以先回家，睡到明天再看。','去下班','afterwork');
+ return null;
+}
+export function adviserWorkspaceAdvice(s,ui={}){
+ const person=ADVISERS.find(x=>x.id===ui.choice), note=person?workspaceNote(s,person):null;
+ return note?.tab?[{title:note.label,tab:note.tab,text:note.text,ref:note.ref}]:[];
+}
 function currentNote(state, context, person) {
+  if(context.place==='办公室'){const actionable=workspaceNote(state,person);if(actionable)return actionable;}
+  if (context.place === '下班'||context.place === '住处') {
+    const home=context.place==='住处',q=previewWorkspaceSleep(state);
+    if(!q.valid)return home?{text:q.reason}:suggested(q.reason,'[data-workspace-home]','先回家');
+    const text=q.pending.length?'还有询盘今天截止。「睡到明天」会先列给你看。':'想开始明天，就点「睡到明天」，先看今天的工作室开支。';
+    return suggested(text,home?'[data-home-sleep]':'[data-workspace-sleep]','去看睡觉入口');
+  }
   if (context.place === '生活') return {text:'今天先歇一会儿。想添件东西时，看一下标价和手里的周转钱。'};
   if (context.place === '工作室布置') return {text:'先看布置和标价。确认购买后才会从工作室扣款。'};
   if (context.place === '展览') return {text:'看一看这次手里的作品。陈列顺序由你来排。'};
@@ -60,6 +92,11 @@ function currentNote(state, context, person) {
       return inboxNote(state,true) || suggested('先看买方要什么。报价之前，把货源和交期问清楚。', '#market-search', '去采购台找货');
     }
     if (!active) return {text:'回采购台核对手里的合同。'};
+    if(carafeTransport(state))return suggested('联仓的车已配好。包车会早两天交货和收款，但比照原安排多花 ¥36；两边的日期可以一起比。','.ws-carafe .ws-ship-choice','比较两种运输安排');
+    if(active.carafeCharter&&status==='transit')return suggested('包车已订，第 '+active.deliveryDay+' 天交货。先看看新的验收安排。','.ws-carafe [data-market-action="DELIVER_MARKET"]','查看新交货安排');
+    if(status==='legacy-preparing')return suggested('客户定金已收。到第 '+active.shipDay+' 天再付工厂尾款和运费。','.market-active','看出运安排');
+    if(status==='legacy-transit')return suggested('第 '+active.deliveryDay+' 天交接。先留出验收费，验完才收中间一笔。','.market-active','看验收安排');
+    if(status==='legacy-receivable')return suggested('中间一笔已到账。尾款 '+money(active.balanceDue)+'，等第 '+active.paymentDay+' 天收。','.market-active','看尾款');
     if (status === 'preparing') return suggested(`货已订好。第 ${active.shipDay} 天整批出运，先核对出运清单。`, '.market-active', '查看出运安排');
     if (status === 'transit') return suggested(`这批${active.productName}约在第 ${active.deliveryDay} 天交付。请按合同清单验收。`, '.market-active', '查看交货安排');
     if (status === 'receivable') return suggested(`货已验收，${money(active.balanceDue)} 尾款约在第 ${active.paymentDay} 天收。届时再入账。`, '[data-market-action="COLLECT_MARKET"]', '查看应收尾款');
@@ -95,9 +132,17 @@ export function adviserView(state, context, ui) {
   const controls = pick ? `<div class="adviser-options" role="group" aria-label="选择工作室搭档">${ADVISERS.map(p => `<button type="button" data-adviser-choice="${p.id}" aria-pressed="${ui.choice === p.id}"><i class="adviser-face adviser-${p.id}" aria-hidden="true"></i>${p.name}</button>`).join('')}<button type="button" data-adviser-choice="solo">先自己来</button></div>` : '';
   if (!person) return `<aside class="adviser-panel" aria-label="工作室搭档"><button class="quiet" type="button" data-adviser-picker aria-expanded="${pick}">${band}</button>${controls}</aside>`;
   const note = currentNote(state, context, person);
-  return `<aside class="adviser-panel" aria-label="搭档便笺"><div class="adviser-byline"><i class="adviser-face adviser-${person.id}" aria-hidden="true"></i><strong>${person.name}</strong><button type="button" class="quiet" data-adviser-picker aria-expanded="${pick}">${band}</button></div>${controls}<p>${escape(note.text)}</p>${note.target ? `<button type="button" class="quiet" data-adviser-focus="${escape(note.target)}">${note.label} →</button>` : ''}${equipmentCosts(context.quote)}</aside>`;
+  return `<aside class="adviser-panel" aria-label="搭档便笺"><div class="adviser-byline"><i class="adviser-face adviser-${person.id}" aria-hidden="true"></i><strong>${person.name}</strong><button type="button" class="quiet" data-adviser-picker aria-expanded="${pick}">${band}</button></div>${controls}<p>${escape(note.text)}</p>${note.tab?`<button type="button" class="quiet" data-adviser-tab="${note.tab}"${note.ref==='promotion'?' data-adviser-ref="promotion"':''}>${note.label} →</button>`:note.target ? `<button type="button" class="quiet" data-adviser-focus="${escape(note.target)}">${note.label} →</button>` : ''}${equipmentCosts(context.quote)}</aside>`;
 }
-export function bindAdviser(root, ui, storage, rerender, saveKey = DEAL_SAVE_KEY) {
+// Resolve the nearest meaningful live control, never a paid action dispatch.
+const adviserTargets=Object.freeze({
+ 'quote-source':['[data-prospect-source][aria-pressed="true"]','[data-market-source][aria-pressed="true"]','.market-quote'],
+ 'quote-price':['#prospect-unit-price','#market-unit-price','#legacy-price','.market-quote'],
+ 'quote-costs':['.market-quote .market-facts','.market-quote'],
+ 'equipment-route':['[data-equipment-shipping][aria-pressed="true"]','[data-legacy-route][aria-pressed="true"]','.market-quote']
+});
+export function bindAdviser(root, ui, storage, rerender, saveKey = DEAL_SAVE_KEY, navigate) {
+  root.querySelector('[data-adviser-tab]')?.addEventListener('click',event=>{const k=event.currentTarget.dataset.adviserTab;if(['inbox','orders','development','afterwork'].includes(k)){const ref=event.currentTarget.dataset.adviserRef;ref==='promotion'?navigate?.(k,ref):navigate?.(k);}});
   root.querySelector('[data-adviser-picker]')?.addEventListener('click', () => {
     ui.choosing = !root.querySelector('.adviser-options');
     rerender();
@@ -119,7 +164,8 @@ export function bindAdviser(root, ui, storage, rerender, saveKey = DEAL_SAVE_KEY
   });
   const jump = root.querySelector('[data-adviser-focus]');
   if (!jump) return;
-  const target = root.querySelector(jump.dataset.adviserFocus);
+  const key=jump.dataset.adviserFocus;
+  const target=Object.hasOwn(adviserTargets,key)?adviserTargets[key].map(selector=>root.querySelector(selector)).find(Boolean):root.querySelector(key);
   if (!target) { jump.hidden = true; return; }
   jump.addEventListener('click', () => {
     for (let p = target.parentElement; p; p = p.parentElement) if (p.tagName === 'DETAILS') p.open = true;

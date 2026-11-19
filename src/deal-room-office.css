@@ -48,3 +48,47 @@
 @media(max-width:850px){.workspace.freight-workspace{height:auto;min-height:0;padding:8px}.freight-board{padding:12px}}
 
 .exhibition-proof{margin:.65rem 0;color:#394f42}.exhibition-proof>summary{cursor:pointer;min-height:44px;align-content:center}.exhibition-proof>svg{display:block;width:min(100%,350px);height:auto;margin:.4rem 0;background:#f5ecdb;border-radius:8px}.exhibition-proof>p{margin:.3rem 0;font-size:.9em}
+
+/* Layout from the photographed 390px office: desktop and its unfinished work
+   share the same table edge. Keep the photograph intact at larger widths. */
+#deal-room .ws-original-office{color:var(--ws-type,#e9e5dc);max-width:1000px;min-width:0}
+#deal-room .ws-original-office .ws-tabletop{overflow:hidden;border-radius:9px;background:#28211b}
+#deal-room .ws-original-office .ws-desk{position:relative;display:block;height:auto;aspect-ratio:358/242;min-height:0;margin:0;padding:0;border:0;border-radius:0;background:none}
+#deal-room .ws-original-office .ws-desk-scene{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:none}
+#deal-room .ws-original-office .ws-offscreen{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+#deal-room .ws-original-office .ws-agenda{min-height:156px;background:linear-gradient(#33251c,#261f1b);padding:12px 15px 22px}
+#deal-room .ws-original-office :is(.ws-agenda,.ws-original-note) h3{font:700 16px/24px system-ui,sans-serif;margin:0 0 4px}
+#deal-room .ws-original-office .ws-agenda h3 small{font:400 13px/1 system-ui;color:#c6bcae;margin-left:4px}
+#deal-room .ws-original-office .ws-agenda-rows{list-style:none;padding:0;margin:0;border-top:1px solid #493c32}
+#deal-room .ws-original-office .ws-agenda li{border-bottom:1px solid #493c32}
+#deal-room .ws-original-office .ws-agenda button{display:flex;align-items:center;gap:10px;width:100%;padding:6px 0;min-height:52px;background:none;border:0;color:inherit;text-align:left}
+#deal-room .ws-original-office .ws-agenda-rows span{min-width:0;flex:1}
+#deal-room .ws-original-office .ws-agenda-rows :is(small,strong){display:block}
+#deal-room .ws-original-office .ws-agenda-rows :is(small,em){font:400 13px/18px system-ui;color:#cbbfaf}
+#deal-room .ws-original-office .ws-agenda-rows b{color:#cdb88b;font-size:16px;margin-right:4px}
+#deal-room .ws-original-office .ws-agenda details{margin:0;color:#c6bcae}
+#deal-room .ws-original-office .ws-agenda summary{padding:10px 0;font:400 14px/24px system-ui}
+#deal-room .ws-original-office .ws-original-note{margin:16px 0 7px}
+#deal-room .ws-original-office .ws-original-note h3{margin-bottom:7px}
+#deal-room .ws-original-office .ws-original-note>div{display:flex;align-items:flex-start;gap:12px}
+#deal-room .ws-original-office .ws-original-note>div>div{min-width:0;flex:1;max-width:220px;border-left:1px solid #a99164;padding:0 0 0 10px}
+#deal-room .ws-original-office .ws-original-note p{font-size:13px;line-height:1.52;margin:0;color:#c3bcae}
+#deal-room .ws-original-office .ws-original-note button{padding:4px 0;color:#ddc18b;justify-content:start;gap:4px}
+#deal-room .ws-original-office .ws-note-face{flex:0 0 min(54%,234px);aspect-ratio:136/91;border-radius:6px;background-image:url('../assets/deal-advisers-recovered.webp');background-size:400% auto;background-repeat:no-repeat}
+#deal-room .ws-original-office .ws-note-face.adviser-liang{background:url('../assets/deal-office-original-liang.webp') center/cover}
+#deal-room .ws-original-office .ws-ledger{margin:0;padding:0;background:none;border:0;border-top:1px solid #3c3b37;border-radius:0}
+#deal-room .ws-original-office .ws-ledger>summary{font-size:13px;color:#c3bcae}
+#deal-room:has(.ws-original-office)>.adviser-panel:not(:has(.adviser-options)) :is(p,[data-adviser-tab]){display:none}
+#deal-room:has(.ws-original-office)>.wh-shortcut{order:1;grid-column:1/-1}
+@media(min-width:760px){#deal-room .ws-original-office .ws-tabletop{display:grid;grid-template-columns:minmax(0,3fr) minmax(230px,2fr)}}
+/* The global header spans the full grid for page headings, not for this inset
+   desktop photograph. Give the recovered 358px frame its native width. */
+@media(min-width:760px){
+ #deal-room .ws-original-office{max-width:810px}
+ #deal-room .ws-original-office .ws-tabletop{grid-template-columns:358px minmax(0,1fr);align-items:start}
+ #deal-room .ws-original-office .ws-tabletop>.ws-desk{grid-column:1;grid-row:1;width:358px}
+ #deal-room .ws-original-office .ws-tabletop>.ws-agenda{grid-column:2;grid-row:1;align-self:stretch;min-width:0}
+}
+@media(min-width:430px) and (max-width:759px){#deal-room .ws-original-office{max-width:390px}}
+#deal-room .ws-office.ws-original-office .ws-ledger{border-radius:0;padding:0;border:0;border-top:1px solid var(--ws-rule);background:transparent}
+#deal-room .ws-office.ws-original-office .ws-original-note .ws-items button{color:#ddc18b}
