@@ -48,9 +48,10 @@
 #deal-room .ws-equipment-state dl.market-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem}
 #deal-room [data-legacy-route] small{display:block;font-weight:400;line-height:1.45;margin-top:4px}
 
-#deal-room .ws-trade-hint{margin:.7rem 0;padding:.55rem .7rem;border-inline-start:2px solid #bc9a60;background:#241f18;color:#e9dec8}
+#deal-room .ws-trade-hint{display:grid;grid-template-columns:2rem minmax(0,1fr);align-items:start;gap:.55rem;margin:.7rem 0;padding:.55rem .7rem;border-inline-start:2px solid #bc9a60;background:#241f18;color:#e9dec8}
+#deal-room .ws-trade-hint .adviser-face{width:2rem;height:auto;aspect-ratio:272/309;border-radius:5px}
 #deal-room .ws-trade-hint strong{font-size:.84rem;color:#e4c78c}
-#deal-room .ws-trade-hint p{margin:.2rem 0 0;line-height:1.5}
+#deal-room .ws-trade-hint p{margin:.2rem 0 0;line-height:1.5;overflow-wrap:anywhere}
 #deal-room .ws-equipment-story{line-height:1.55}
 
 /* Dispatch art is part of the decision header; delivery art sits with its reply. */

@@ -2,7 +2,7 @@ import {workProductComicView} from './deal-room-workspace-product-comics.js';
 import {officeIntroMode} from './deal-room-workspace-intro.js';
 import {localizeBuyerDisplay} from './deal-room-prospect-locale.js';
 import {previewWorkspaceSleep} from './deal-room-workspace-sleep.js';
-import {adviserView,bindAdviser,readAdviserChoice,adviserWorkspaceAdvice} from './deal-room-adviser.js';
+import {adviserView,bindAdviser,readAdviserChoice,adviserWorkspaceAdvice,adviserPickerOpen} from './deal-room-adviser.js';
 import {marketBook} from './deal-room-market.js';
 import {marketView,bindMarket,marketReceiptText,marketAdviserQuote} from './deal-room-market-view.js';
 let marketUI={};
@@ -190,7 +190,6 @@ function focusCustomerRoute(){
  globalThis.scrollTo?.({top:0,left:0,behavior:'instant'});
 }
 function officeIntroAction(action){
- if(action==='choose'){adviserUI.choosing=true;render();root.querySelector('[data-adviser-choice]')?.focus?.();return;}
  if(!['skip','open'].includes(action))return;
  finishOfficeIntro();
  const id=action==='open'?openFirstBuyers(state)[0]?.id:null;
@@ -267,7 +266,11 @@ function openWorkspaceCaseGrowth(){
  workspaceOverride=null;event='arriving';render();focusCustomerRoute();
 }
 function openRecap(route){showCareerRecap=route;tradeEvidence='chain';event='';render();root.querySelector('.career-recap h3')?.focus();root.querySelector('.career-recap')?.scrollIntoView({block:'nearest'});}
+let lastRenderedTab=null;
 function render(){
+ const currentTab=tabsNow();
+ if(lastRenderedTab!==null&&lastRenderedTab!==currentTab)adviserUI.choosing=false;
+ lastRenderedTab=currentTab;
  const productDetailsOpen=root.querySelector('.curation-product-details')?.open;
  renderCurrentPage();
  const productDetails=root.querySelector('.curation-product-details');
@@ -338,7 +341,7 @@ function renderCurrentPage(){
  }
  if(workspaceOverride==='office'){
   const h=propertyHoldings(state), office=PROPERTY_CATALOG.find(x=>x.id===h?.active?.office);
-  const intro=officeIntroMode(state,loadedDeal.status,officeIntroSeen,adviserUI.choice),advice=adviserWorkspaceAdvice(state,adviserUI);
+  const intro=officeIntroMode(state,loadedDeal.status,officeIntroSeen,adviserUI.choice,adviserPickerOpen(state,adviserUI)),advice=adviserWorkspaceAdvice(state,adviserUI);
   const adviceKey=adviserUI.choice&&advice[0]?.text?adviserUI.choice+':'+advice[0].text:'';
   root.innerHTML=adviserView(state,{place:'办公室'},adviserUI)+workspaceOfficeView(state,{intro,adviserId:adviserUI.choice,officeName:office?.name,officeId:office?.id,art:propertySceneArt(office?.id),weather:workspaceWeather(state.day),advice})+dealSaveView(savePanel,saveNotice);
   root.querySelectorAll('[data-workspace-intro]').forEach(b=>b.onclick=()=>officeIntroAction(b.dataset.workspaceIntro));

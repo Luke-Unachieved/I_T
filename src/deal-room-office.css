@@ -216,6 +216,9 @@
 #deal-room .ws-original-office .ws-original-note button{padding:4px 0;color:#ddc18b;justify-content:start;gap:4px}
 #deal-room .ws-original-office .ws-note-face{flex:0 0 min(54%,234px);aspect-ratio:136/91;border-radius:6px;background-image:url('../assets/deal-advisers-recovered.webp');background-size:400% auto;background-repeat:no-repeat}
 #deal-room .ws-original-office .ws-note-face.adviser-liang{background:url('../assets/deal-office-original-liang.webp') center/cover}
+#deal-room .ws-original-office .ws-note-face.adviser-fang{background:url('../assets/deal-office-original-fang.webp') center/cover}
+#deal-room .ws-original-office .ws-note-face.adviser-tao{background:url('../assets/deal-office-original-tao.webp') center/cover}
+#deal-room .ws-original-office .ws-note-face.adviser-xu{background:url('../assets/deal-office-original-xu.webp') center/cover}
 #deal-room .ws-original-office .ws-ledger{margin:0;padding:0;background:none;border:0;border-top:1px solid #3c3b37;border-radius:0}
 #deal-room .ws-original-office .ws-ledger>summary{font-size:13px;color:#c3bcae}
 #deal-room:has(.ws-original-office)>.adviser-panel:not(:has(.adviser-options)) :is(p,[data-adviser-tab]){display:none}

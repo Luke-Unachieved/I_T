@@ -1,3 +1,4 @@
+import {tradeAdviserHint} from './deal-room-market-adviser-hint.js';
 // Only this ordinary offer/consignment is evidenced in the pre-loss screenshot.
 const carafePanels=Object.freeze({
  standard:'assets/deal-work-comic-carafe-standard.webp',
@@ -38,5 +39,5 @@ export function carafeTransportView(s,adviserId){
   '<td><button type="button" data-market-action="CHARTER_CARAFE_V1" aria-label="确认包车 · ¥96"'+(q.affordable?'':' disabled')+'>确认包车</button></td></tr></tfoot></table>';
  return '<section class="ws-ship-choice ws-route-decision"><header class="ws-carafe-call ws-order-decision-head"><div><h3>选运输方案</h3><p>联仓来电话。调度员说，货已配齐，可以随原车发走。</p></div></header>'+board+
   '<p class="ws-route-note">包车省 ¥60 日常开支，净多花 ¥36。'+(!q.affordable?'手头现金不够包车并等到回款。':'')+'</p>'+
-  (['liang','fang','tao','xu'].includes(adviserId)?'<aside class="ws-trade-hint" aria-label="助理建议"><strong>助理建议</strong><p>'+(q.affordable?'包车净多花 ¥36，能早两天收款。下一单要是正缺这笔钱，才值得换。':'包车费要现在付，但买家的款没那么快到。先保住手里的周转金。')+'</p></aside>':'')+'</section>';
+  tradeAdviserHint(adviserId,q.affordable?'包车净多花 ¥36，能早两天收款。下一单要是正缺这笔钱，才值得换。':'包车费要现在付，但买家的款没那么快到。先保住手里的周转金。')+'</section>';
 }

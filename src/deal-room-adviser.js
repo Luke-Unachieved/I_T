@@ -129,7 +129,7 @@ function currentNote(state, context, person) {
   if(context.place==='办公室'){const actionable=workspaceNote(state,person);if(actionable)return actionable;}
   if (context.place === '下班'||context.place === '住处') {
     const home=context.place==='住处',q=previewWorkspaceSleep(state);
-    if(!q.valid)return q.nextStep?suggested(q.reason,'[data-workspace-continue]',q.nextStep.label):{text:q.reason};
+    if(!q.valid)return null; // The sleep panel already supplies the blocking reason and any action.
     const text=q.pending.length?'还有询盘今天截止。「睡到明天」会先列给你看。':'想开始明天，就点「睡到明天」，先看今天的工作室开支。';
     return suggested(text,home?'[data-home-sleep]':'[data-workspace-sleep]','看看睡前安排');
   }
@@ -182,15 +182,19 @@ function equipmentCosts(q) {
   return '<details class="adviser-costs"><summary>这份设备报价怎么算</summary><dl>' + rows.map(([label,n]) => `<div><dt>${label}</dt><dd>${money(n)}</dd></div>`).join('') + '</dl></details>';
 }
 
+export function adviserPickerOpen(state,ui){
+  return ui.choosing ?? (!ui.choice && !state.history.length);
+}
+
 export function adviserView(state, context, ui) {
   const person = ADVISERS.find(p => p.id === ui.choice);
-  const pick = ui.choosing ?? (!ui.choice && !state.history.length);
+  const pick = adviserPickerOpen(state,ui);
   const band = person ? '换搭档' : '选助理';
   const controls = pick ? `<div class="adviser-options" role="group" aria-label="选择工作室搭档">${ADVISERS.map(p => `<button type="button" data-adviser-choice="${p.id}" aria-pressed="${ui.choice === p.id}"><i class="adviser-face adviser-${p.id}" aria-hidden="true"></i>${p.name}</button>`).join('')}<button type="button" data-adviser-choice="solo">先自己来</button></div>` : '';
   if (!person) return `<aside class="adviser-panel" aria-label="工作室搭档"><button class="quiet" type="button" data-adviser-picker aria-expanded="${pick}">${band}</button>${controls}</aside>`;
   const minimal=context.place==='订单列表'||(context.orderFocus&&state.phase==='account'&&state.account?.status!=='draft');
-  const note = minimal?{}:currentNote(state, context, person);
-  return `<aside class="adviser-panel" aria-label="搭档便笺"><div class="adviser-byline"><i class="adviser-face adviser-${person.id}" aria-hidden="true"></i><strong>${person.name}</strong><button type="button" class="quiet" data-adviser-picker aria-expanded="${pick}">${band}</button></div>${controls}${context.compact||minimal?'':`<p>${escape(note.text)}</p>`}${note.tab?`<button type="button" class="quiet" data-adviser-tab="${note.tab}"${note.ref==='promotion'?' data-adviser-ref="promotion"':''}>${note.label} →</button>`:note.target ? `<button type="button" class="quiet" data-adviser-focus="${escape(note.target)}">${note.label} →</button>` : ''}${equipmentCosts(context.quote)}</aside>`;
+  const note = pick||minimal?{}:currentNote(state, context, person)??{};
+  return `<aside class="adviser-panel" aria-label="搭档便笺"><div class="adviser-byline"><i class="adviser-face adviser-${person.id}" aria-hidden="true"></i><strong>${person.name}</strong><button type="button" class="quiet" data-adviser-picker aria-expanded="${pick}">${band}</button></div>${controls}${pick||context.compact||minimal||!note.text?'':`<p>${escape(note.text)}</p>`}${note.tab?`<button type="button" class="quiet" data-adviser-tab="${note.tab}"${note.ref==='promotion'?' data-adviser-ref="promotion"':''}>${note.label} →</button>`:note.target ? `<button type="button" class="quiet" data-adviser-focus="${escape(note.target)}">${note.label} →</button>` : ''}${pick?'':equipmentCosts(context.quote)}</aside>`;
 }
 // Resolve the nearest meaningful live control, never a paid action dispatch.
 const adviserTargets=Object.freeze({
@@ -206,6 +210,16 @@ export function bindAdviser(root, ui, storage, rerender, saveKey = DEAL_SAVE_KEY
     rerender();
     root.querySelector(ui.choosing ? '[data-adviser-choice]' : '[data-adviser-picker]')?.focus?.({preventScroll:true});
   });
+  if (root.querySelector('.adviser-options')) {
+    root.querySelector('.adviser-panel')?.addEventListener('keydown', event => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      ui.choosing = false;
+      rerender();
+      root.querySelector('[data-adviser-picker]')?.focus?.({preventScroll:true});
+    });
+  }
   root.querySelectorAll('[data-adviser-choice]').forEach(b => b.addEventListener('click', () => {
     const id = b.dataset.adviserChoice;
     if (!known(id)) return;

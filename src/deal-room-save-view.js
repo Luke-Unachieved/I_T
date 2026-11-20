@@ -1,34 +1,33 @@
-import {encodeDealBackup,loadDealSave,restoreDealBackup,DEAL_SAVE_KEY} from './deal-room-save.js';
+import {encodeDealBackup,loadDealSave,restoreDealBackup,DEAL_SAVE_KEY,DEAL_BACKUP_MAX_BYTES} from './deal-room-save.js';
+import {saveFileEntry,bindSaveBackupFile} from './deal-room-save-file.js';
 const escapeSave=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function dealSaveView(panel,saveNotice='进度自动保存'){
  const warning=saveNotice&&saveNotice!=='进度自动保存';
- return `<details class="deal-save-tools" ${panel.open?'open':''}><summary>游戏存档${warning?`<span class="deal-save-alert" role="status">${escapeSave(saveNotice)}</span>`:''}</summary><div class="deal-save-body">
- <header class="deal-save-head"><h2>备份和恢复</h2><p>${warning?'':'进度自动保存。'}离开页面不会自动推进日期或扣款。</p></header>
+ return `<details class="deal-save-tools" ${panel.open?'open':''}><summary>游戏存档${warning?`<span class="deal-save-alert" role="status">${escapeSave(saveNotice)}</span>`:'<small class="deal-save-auto">自动保存</small>'}</summary><div class="deal-save-body">
+ ${warning?'':'<p class="deal-save-head">进度自动保存在本浏览器。</p>'}
  ${panel.conflict?`<section class="deal-save-conflict" aria-label="存档冲突"><p role="alert">本页副本尚未保存，浏览器里已有其他页面更新的进度。</p><button type="button" id="deal-save-reload">重新加载已保存进度</button>${panel.reloadConfirm?'<p>重新加载会放弃本页尚未保存的变化。请先下载本页副本。</p><div class="deal-save-actions"><button type="button" id="deal-save-reload-confirm">放弃本页变化并重新加载</button><button type="button" id="deal-save-reload-cancel">暂不重新加载</button></div>':''}</section>`:''}
+ <details class="deal-save-files" ${panel.filesOpen||panel.preview?'open':''}><summary>存档文件</summary><div class="deal-save-file-grid">
  <section class="deal-save-section deal-save-export" aria-labelledby="deal-save-export-title">
- <h3 id="deal-save-export-title">备份当前进度</h3><p>换浏览器或设备前，先下载一份可恢复的备份。</p>
- <div class="deal-save-actions"><button type="button" id="deal-save-download">下载当前存档</button><button type="button" id="deal-save-raw">保留浏览器原始进度</button></div>
- <div class="deal-save-copies"><small>恢复时保留的副本</small><div class="deal-save-actions"><button type="button" id="deal-save-before">取回恢复前进度</button><button type="button" id="deal-save-unreadable">取回异常进度原件</button></div></div></section>
+ <h3 id="deal-save-export-title">备份当前进度</h3><p>换设备前请备份。离开页面不会自动推进日期或扣款。</p>
+ <div class="deal-save-actions"><button type="button" id="deal-save-download">下载当前存档</button></div>
+ <details class="deal-save-copies"><summary>更多备份副本</summary><div class="deal-save-actions"><button type="button" id="deal-save-raw">下载原始进度</button><button type="button" id="deal-save-before">取回恢复前进度</button><button type="button" id="deal-save-unreadable">取回异常进度原件</button></div></details></section>
  <section class="deal-save-section deal-save-restore" aria-labelledby="deal-save-restore-title">
- <h3 id="deal-save-restore-title">恢复进度</h3><label for="deal-save-text">粘贴存档文件里的全部内容</label>
- <textarea id="deal-save-text" rows="3" spellcheck="false" placeholder="在这里粘贴备份的完整内容">${escapeSave(panel.text)}</textarea>
- <button type="button" id="deal-save-preview">先查看恢复内容</button>
+ <h3 id="deal-save-restore-title">恢复进度</h3>
+ ${saveFileEntry(panel.fromFile?'':escapeSave(panel.text),panel.pasteOpen)}
  ${panel.preview?`<div class="deal-save-confirm" role="group" aria-label="确认替换进度"><p>将恢复到第 ${panel.preview.summary.day} 天 · 可用资金 ¥${panel.preview.summary.cash}。确认后替换当前浏览器进度；原始数据会先保留。</p><div class="deal-save-actions"><button type="button" id="deal-save-confirm">确认替换当前进度</button><button type="button" id="deal-save-cancel">取消</button></div></div>`:''}</section>
- <p class="deal-save-status" role="status">${escapeSave(panel.message)}</p></div></details>`;
+ </div></details><p class="deal-save-status" role="status">${escapeSave(panel.message)}</p></div></details>`;
 }
-/** Bind only explicit clicks. download receives bytes from this game's save only;
- * no file input, upload, network or permissions are used here.
- */
 export function bindDealSaveTools(root,{panel,storage,getState,render,onRestored,onReload,download,key=DEAL_SAVE_KEY}){
  const details=root.querySelector('.deal-save-tools');if(details)details.ontoggle=()=>{panel.open=details.open;};
- const text=root.querySelector('#deal-save-text');if(text)text.oninput=()=>{panel.text=text.value;};
+ const files=root.querySelector('.deal-save-files');if(files)files.ontoggle=()=>{panel.filesOpen=files.open;};
+ const text=root.querySelector('#deal-save-text');if(text)text.oninput=()=>{panel.fileRead=null;panel.fromFile=false;panel.text=text.value;};
  const on=(id,fn)=>{const b=root.querySelector(id);if(b)b.onclick=fn;};
  const report=message=>{panel.message=message;panel.open=true;render();};
- on('#deal-save-reload',()=>{if(!panel.conflict)return;panel.reloadConfirm=true;report('重新加载前，请先保留本页副本。');});
+ on('#deal-save-reload',()=>{if(!panel.conflict)return;panel.reloadConfirm=true;panel.filesOpen=true;report('重新加载前，请先保留本页副本。');});
  on('#deal-save-reload-cancel',()=>{panel.reloadConfirm=false;report('已取消重新加载，本页副本仍保留，自动保存仍暂停。');});
  on('#deal-save-reload-confirm',()=>{if(panel.conflict&&panel.reloadConfirm)onReload?.();});
- on('#deal-save-download',()=>{try{download(encodeDealBackup(getState()),'贸易工作室-进度备份.json','application/json');report('已发起备份下载，请保留下载的文件。');}catch(e){report('当前页面的进度无法导出为有效备份，请先保留浏览器原始进度。');}});
- on('#deal-save-raw',()=>{const old=loadDealSave(storage,key);if(typeof old.raw!=='string'){report(old.status==='empty'?'浏览器还没有已保存进度。':'无法读取原始进度，请勿清理浏览器数据。');return;}try{download(old.raw,'贸易工作室-原始进度.txt','text/plain');report('已发起原始数据下载；此文本不是经过验证的恢复备份。');}catch(e){report('原始数据未能下载，请勿清理浏览器数据。');}});
+ on('#deal-save-download',()=>{try{download(encodeDealBackup(getState()),'贸易工作室-进度备份.json','application/json');report('已发起下载，请保留文件。');}catch(e){report('无法导出有效备份，请在更多备份副本中下载原始进度。');}});
+ on('#deal-save-raw',()=>{const old=loadDealSave(storage,key);if(typeof old.raw!=='string'){report(old.status==='empty'?'浏览器还没有已保存进度。':'无法读取原始进度，请勿清理浏览器数据。');return;}try{download(old.raw,'贸易工作室-原始进度.txt','text/plain');report('已发起原始数据下载；不能直接恢复。');}catch(e){report('原始数据未能下载，请勿清理浏览器数据。');}});
  for(const [id,copy,label] of [['#deal-save-before','before-restore','恢复前进度'],['#deal-save-unreadable','unreadable-backup','异常进度原件']])on(id,()=>{
   const saved=loadDealSave(storage,key,{copy});
   if(saved.status==='empty'){report('浏览器没有保留这份'+label+'，未修改当前进度。');return;}
@@ -43,8 +42,10 @@ export function bindDealSaveTools(root,{panel,storage,getState,render,onRestored
    }
   }catch{report('未能导出这份副本，浏览器保留的数据未删除。');}
  });
- on('#deal-save-preview',()=>{const p=restoreDealBackup(storage,panel.text,{key});panel.preview=p.needsConfirmation?{...p,text:panel.text}:null;report(p.needsConfirmation?'请核对天数与资金，再决定是否替换。':(p.status==='unavailable'?'浏览器暂时无法读取进度，未作修改。':p.error?.includes('5 MiB')?'这份备份太大，请确认粘贴的是本游戏导出的存档。':'这段内容不是有效备份，请粘贴本游戏导出的完整存档内容。当前进度未修改。'));});
- on('#deal-save-cancel',()=>{panel.preview=null;report('已取消，当前进度未替换。');});
+ const preview=(data=panel.text)=>{panel.fileRead=null;panel.filesOpen=true;const p=restoreDealBackup(storage,data,{key});if(p.needsConfirmation&&data!==panel.text){panel.fromFile=true;panel.text=data;}panel.preview=p.needsConfirmation?{...p,text:data}:null;report(p.needsConfirmation?'请核对天数与资金，再决定是否替换。':(p.status==='unavailable'?'浏览器暂时无法读取进度，未作修改。':p.error?.includes('5 MiB')?'这份备份太大，请确认粘贴的是本游戏导出的存档。':'不是有效备份，请使用本游戏导出的存档。当前进度未修改。'));}
+ on('#deal-save-preview',()=>{if(panel.fromFile){panel.text=text.value;panel.fromFile=false;}preview();});
+ bindSaveBackupFile(root,panel,preview,report,DEAL_BACKUP_MAX_BYTES);
+ on('#deal-save-cancel',()=>{panel.fileRead=null;panel.preview=null;report('已取消，当前进度未替换。');});
  on('#deal-save-confirm',()=>{
   const p=panel.preview;if(!p||p.text!==panel.text){panel.preview=null;report('备份文本已变化，请重新查看恢复内容。');return;}
   const result=restoreDealBackup(storage,p.text,{key,confirmed:true,expectedRaw:p.expectedRaw});

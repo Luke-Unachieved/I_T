@@ -1,8 +1,8 @@
-// Apertures traced on the original desk crop (358:242) or full property artwork
-// (3:2); fit="slice" matches the centred object-fit:cover background at any width.
+// Apertures traced on native 3:2 room artwork; fit="slice" matches
+// the centred object-fit:cover background at any width.
 // Split panes and conservative lower edges protect foreground furniture/people.
 const wFrames=Object.freeze({
- starter:['M36.7 2.5 41 4V18.7L36.7 17.8Z M43 4.3 51.7 7.4V21L43 19Z M53.2 7.7 59.8 10V22.8L53.2 21.4Z M37 20 41 21V62L37 62.5Z M43 21.5 51.7 23.5V61.7L43 62Z M53.2 24 59.6 25.4V61L53.2 61.5Z',358,242],
+ starter:['M36.7 2.2 41.5 4.6V18.8L36.7 17.5Z M43 5 51.4 9V21L43 19.2Z M53.2 9.8 59.7 13V23.1L53.2 21.5Z M36.7 20.6 41.5 21.8V64.2L36.7 64.9Z M43 22.2 51.4 23.9V63.9L43 64.2Z M53.2 24.2 59.7 25.8V63.5L53.2 63.8Z'],
  'office-window':['M69 1 76 0V4L69 5Z M78 0H89.5V3.2L78 4Z M69 8 76 7V27L67 29Z M78 6.5 89.5 5V27L78 28Z'],
  'office-city':['M30 .5H42V35.5H30Z M46.7 .5H95.8V36.4L47.8 35.6Z M48.4 38.5H82L80 52.4H49Z'],
  'office-loft':['M71 15 75 11V19L71 22Z M77 10 84 4.4V14L77 18Z M72 25 75 23V30L72 33Z M77 22 84 18V27L77 30Z M88.5 14 95 10V20L88.5 23Z M88.5 27 95 23V32L88.5 35Z M71 38 84 30V47L71 49Z'],

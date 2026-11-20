@@ -4,7 +4,7 @@ import {lifeCatalogue,lifeLightLevel,lifePurchasePreview} from './deal-room-life
 const money=n=>'¥'+Number(n).toLocaleString('zh-CN');
 // Percent coordinates follow the original image plane; unknown pictures get no precipitation.
 const homeWeatherGlass={
- 'home-starter':['0 0 100 56.7','23,1 58,2 58,19 23,22'],
+ 'home-starter':['0 0 100 66.67','21.6,.6 60,5.4 60,23.8 21.6,25.2'],
  'home-flat':['0 0 100 66.67','1,4 17,9 17,29 1,34'],
  'home-harbor':['0 0 100 66.67','25,15 65,15 65,36 25,36'],
  'home-tower':['0 0 100 66.67','10,6 31,14 31,40 10,45 10,6 34,16 50,15 50,38 34,40 34,16'],
