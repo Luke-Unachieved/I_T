@@ -1,0 +1,76 @@
+/* The rack distinguishes physical cartons from reservations by shape and words,
+   not colour alone. Layout stays in normal flow, including the purchase form. */
+.wh-panel{grid-column:1/-1;width:100%;max-width:940px;min-width:0;margin-inline:auto;padding:clamp(.85rem,3vw,1.8rem);background:#f9f5e9;border:1px solid #c7c1a9;border-radius:1rem;color:#2f4035;line-height:1.55;overflow-wrap:anywhere}
+.wh-panel *{box-sizing:border-box}.wh-panel [hidden]{display:none!important}
+.wh-panel .wh-head,.wh-panel .wh-bar,.wh-panel .wh-wallet,.wh-panel .wh-pages{display:flex;align-items:center;justify-content:space-between;gap:.5rem 1rem;flex-wrap:wrap}
+.wh-panel h2,.wh-panel h3,.wh-panel p{margin:.4rem 0 .6rem}.wh-panel h2{font-size:clamp(1.45rem,3.5vw,2rem)}.wh-panel h3{font-size:1.17rem}
+.wh-panel .wh-head small,.wh-panel .wh-caption{font-size:.82rem;color:#516353}.wh-panel .wh-wallet{margin-top:.65rem;padding:.65rem .9rem;background:#e4eadc;border-radius:.5rem}.wh-panel .wh-wallet strong{font-weight:700;font-size:1.3rem}
+.wh-panel button,.wh-panel select,.wh-panel input{font:inherit;min-width:0;min-height:44px;background:#fffaf0;color:#34453a;border:1px solid #acac93;border-radius:.45rem;padding:.48rem .7rem}
+.wh-panel button{cursor:pointer}.wh-panel button:disabled{opacity:.5;cursor:not-allowed}.wh-panel button:focus-visible,.wh-panel :is(input,select,summary):focus-visible{outline:3px solid #93572e;outline-offset:2px}
+.wh-panel .wh-strong{background:#355441;color:#fffbee;border-color:#355441}.wh-panel input,.wh-panel select{width:100%;font-size:16px}
+.wh-panel .wh-rack,.wh-panel .wh-section{min-width:0;margin-top:1.1rem;padding:.85rem;border:1px solid #cbc7b5;border-radius:.7rem;background:#fffcf4}
+.wh-panel .wh-rack{background:#efeede;border-color:#bdbdab}.wh-panel .wh-bar strong{font-size:.95rem}
+.wh-panel .wh-bays{list-style:none;margin:.85rem 0;padding:0;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:.32rem}
+.wh-panel .wh-bay{position:relative;display:grid;place-items:center;min-width:0;height:clamp(44px,5.2vw,60px);overflow:hidden;background:#f9f7ef;border:1px solid #c5c5b5;border-radius:.22rem;color:#435846}
+.wh-panel .wh-reserved{border:2px dashed #84704d;background:repeating-linear-gradient(135deg,transparent,transparent 6px,#e7e1ce 6px,#e7e1ce 7px)}
+.wh-panel .wh-stocked{background:#e8e9d8;border-color:#88987c}
+.wh-panel .wh-slot-number{position:absolute;left:.17rem;top:0;line-height:1.25;font-size:.61rem;z-index:1}.wh-panel .wh-reserved-word{font-size:.72rem;font-weight:650}.wh-panel .wh-carton{position:relative;display:block;width:clamp(15px,45%,35px);height:45%;margin-top:.2rem;background:#d4af7c;border:1.5px solid #6e5535;border-bottom-width:3px;border-radius:2px}
+.wh-panel .wh-carton::before{content:"";position:absolute;top:0;left:40%;width:22%;height:45%;background:#f0d5a6;border-inline:1px solid #907550}
+.wh-panel .wh-partial{position:absolute;right:1px;bottom:0;color:#4f452f;background:#fff8e4;font-size:.58rem}.wh-panel .wh-key,.wh-panel .wh-pages{display:flex;gap:.4rem .85rem;flex-wrap:wrap;align-items:center}
+.wh-panel .wh-key,.wh-panel .wh-pages span{font-size:.82rem}.wh-panel .wh-key span{padding:.12rem .4rem;border:1px solid #c9c7b6;border-radius:.3rem}.wh-panel .wh-pages{justify-content:flex-start;margin:.5rem 0}
+.wh-panel .wh-stock-list,.wh-panel .wh-tiers{list-style:none;margin:.5rem 0;padding:0}.wh-panel .wh-stock-list li,.wh-panel .wh-tiers li{display:flex;gap:.12rem 1rem;flex-wrap:wrap;justify-content:space-between;padding:.45rem 0;border-bottom:1px solid #d8d5c7}.wh-panel .wh-stock-list li span{color:#4d604f;font-variant-numeric:tabular-nums}
+.wh-panel details{margin-top:.7rem}.wh-panel summary{cursor:pointer;min-height:44px;padding:.5rem 0;font-weight:600}.wh-panel .wh-form-grid{display:grid;grid-template-columns:1.1fr 1fr minmax(6rem,.45fr);gap:.65rem}.wh-panel .wh-form-grid label{display:grid;min-width:0;gap:.3rem;font-size:.85rem}
+.wh-panel .wh-facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.35rem .75rem}.wh-panel .wh-facts>div{padding:.35rem 0;border-bottom:1px solid #d2d0c0;min-width:0}.wh-panel .wh-facts dt{color:#526554;font-size:.78rem}.wh-panel .wh-facts dd{font-weight:650;margin:.18rem 0;font-variant-numeric:tabular-nums}
+.wh-panel .wh-feedback,.wh-panel .wh-warning{padding:.6rem .8rem;border-inline-start:3px solid #648061;background:#e7eddf}.wh-panel .wh-warning{border-color:#9c6f46;background:#f3e7d4}
+@media(max-width:620px){
+ .wh-panel .wh-bays{grid-template-columns:repeat(5,minmax(0,1fr))}.wh-panel .wh-form-grid{grid-template-columns:minmax(0,1fr)}
+ .wh-panel .wh-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.wh-panel .wh-stock-list li{flex-direction:column}
+ .wh-panel .wh-pages{justify-content:space-between}.wh-panel .wh-bay{height:46px}
+}
+
+.wh-scene{display:block;width:100%;height:auto;max-height:27rem;object-fit:cover;object-position:center;border-radius:.8rem;margin:0 0 1rem}.wh-shortcut{display:flex;justify-content:flex-end;padding:.6rem 1rem}.wh-shortcut button{min-height:2.4rem}
+/* Screenshot-led restoration: original dark warehouse, not a dashboard. */
+#deal-room .wh-original{background:#201f1a;color:#e8e6dc;border:1px solid #3e3b32;border-radius:20px;padding:17px;max-width:940px}
+#deal-room .wh-original .wh-head{margin-bottom:14px}#deal-room .wh-original h2{font-size:21px;margin:0}
+#deal-room .wh-original .wh-wallet{background:#27251e;color:#eeeade;border-radius:10px;padding:14px 15px;margin:0 0 20px;font-size:15px}
+#deal-room .wh-original .wh-wallet strong{font-size:21px}
+#deal-room .wh-original .wh-stage-label{display:flex;justify-content:space-between;gap:8px;margin:0 0 10px;align-items:center;font-size:16px}
+#deal-room .wh-original .wh-stage-label>span:last-child{font-size:13px;color:#c9b57d}
+#deal-room .wh-original .wh-scene-frame{position:relative;overflow:hidden;aspect-ratio:3/2;background:#1b1915}
+#deal-room .wh-original .wh-scene{display:block;object-fit:cover;width:100%;height:100%;max-height:none;margin:0;border-radius:0}
+#deal-room .wh-original .wh-arrived-boxes{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#deal-room .wh-original .wh-scene-caption{font-size:13px;color:#c7c2b2;margin:7px 0 12px}
+#deal-room .wh-original button,#deal-room .wh-original select,#deal-room .wh-original input{background:#28261f;color:#eee9db;border-color:#4e4738;border-radius:5px}
+#deal-room .wh-original .wh-section,#deal-room .wh-original .wh-rack{background:transparent;border:0;border-radius:0;padding:0;margin:12px 0}
+#deal-room .wh-original .wh-section>h3{font-size:16px}
+#deal-room .wh-original .wh-stock-list li{border-color:#403b30}#deal-room .wh-original .wh-stock-list li span,#deal-room .wh-original .wh-caption,#deal-room .wh-original .wh-facts dt{color:#c8c1af}
+#deal-room .wh-original .wh-facts>div{border-color:#403b30}
+#deal-room .wh-original .wh-rack-details>summary{font-size:13px;color:#c8c1af;min-height:40px}
+#deal-room .wh-original .wh-order-details{margin:16px 0}
+#deal-room .wh-original .wh-order-details>summary{padding:10px 12px;border:1px solid #454033;border-radius:5px;font-weight:400;min-height:44px}
+#deal-room .wh-original [data-wh-expand]{display:block;width:100%;text-align:left}
+#deal-room .wh-original .wh-feedback,#deal-room .wh-original .wh-warning{background:#2c2920;color:#e0d2b3;border-color:#ac905b}
+#deal-room .wh-original .wh-tiers li{border-color:#403b30}
+@media(min-width:900px){#deal-room .wh-original .wh-scene-frame{max-width:720px;margin-inline:auto}}
+/* Shared top chrome owns date/cash. Let the warehouse scene carry this page. */
+#deal-room .wh-original{padding:0;border:0;border-radius:0;background:transparent}
+#deal-room .wh-original .wh-head{margin:4px 0 22px;align-items:center}
+#deal-room .wh-original .wh-head button{background:transparent;border-color:#4c4638;color:#d5c8ac}
+#deal-room .wh-original .wh-stage-label{padding-bottom:9px;border-bottom:1px solid #3d382f;color:#f1eadb}
+#deal-room .wh-original .wh-stage-label>span:first-child{font-weight:600}
+#deal-room .wh-original .wh-scene-frame{border-radius:5px;border:1px solid #4a4031}
+#deal-room .wh-original .wh-scene-caption{line-height:1.65;margin-bottom:16px;color:#c8bdab}
+#deal-room .wh-original .wh-stock-list strong{font-size:16px;color:#f0e8d8}
+#deal-room .wh-original .wh-stock-list li{padding:12px 0;gap:7px}
+#deal-room .wh-original .wh-section>h3{margin-top:21px;margin-bottom:10px;font-weight:600;color:#e4d4b4}
+#deal-room .wh-original .wh-order-details>summary{background:#27231c;border-color:#5b4c36;color:#e7d3a8;padding:12px 14px}
+#deal-room .wh-original [data-wh-expand]{padding:12px 14px;border-color:#8d7145;background:#31291d;color:#f3dba9;font-weight:600}
+#deal-room .wh-original .wh-key{color:#d4c8b4}
+#deal-room .wh-original .wh-tiers{color:#d0c6b5}
+#deal-room .wh-original .wh-feedback{background:transparent;padding:8px 12px}
+/* The restock preview is on the dark canvas; keep its labels and totals readable. */
+#deal-room .wh-original .wh-purchase :is(.wh-form-grid label,.wh-facts dt,.wh-caption){color:#d4cbb9}
+#deal-room .wh-original .wh-purchase .wh-facts dd{color:#f0e6d5;font-size:15px}
+#deal-room .wh-original .wh-purchase .wh-facts>div:nth-child(4) dd{color:#f3d69e;font-size:18px}
+#deal-room .wh-original .wh-purchase>p{color:#d4cbb9;font-size:14px}
+#deal-room .wh-original .wh-scene-frame>.exterior-weather{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}

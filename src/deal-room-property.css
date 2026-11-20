@@ -1,0 +1,44 @@
+.pv-panel,.pv-entries{--pv-ink:#f1eadb;--pv-muted:#c2b6a2;--pv-line:#514838;--pv-gold:#e7be78;--pv-base:#201e1a;--pv-top:#2b2822;color:var(--pv-ink);background:var(--pv-base);color-scheme:dark}
+.pv-panel{box-sizing:border-box;width:100%;max-width:76rem;min-width:0;margin:0 auto;padding:clamp(1rem,3vw,2.1rem);border-radius:.85rem}
+.pv-panel *,.pv-entries *{box-sizing:border-box}
+.pv-panel button,.pv-entries button,.pv-panel select{font:inherit;min-height:44px;cursor:pointer}
+.pv-panel button:focus-visible,.pv-panel select:focus-visible,.pv-entries button:focus-visible{outline:3px solid var(--pv-gold);outline-offset:3px}
+.pv-panel .pv-heading{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;background:transparent;padding:0;margin:0 0 1rem;border:0;position:static}
+.pv-panel .pv-heading h2{margin:.12rem 0;font:600 clamp(1.35rem,3vw,1.85rem)/1.28 Georgia,serif;color:var(--pv-ink)}
+.pv-panel .pv-kicker,.pv-panel .pv-note,.pv-panel .pv-tile-status{color:var(--pv-muted);font-size:.85rem}
+.pv-panel .pv-kicker{margin:0}
+.pv-panel .pv-back,.pv-entries .pv-entry{background:transparent;border:1px solid var(--pv-line);border-radius:.45rem;padding:.55rem .85rem;color:var(--pv-gold)}
+.pv-panel .pv-lead,.pv-panel .pv-note{line-height:1.6;margin:.6rem 0 1rem}
+.pv-panel .pv-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,14rem),1fr));gap:.65rem;list-style:none;padding:0;margin:0}
+.pv-panel .pv-list li{display:block;min-width:0;margin:0;padding:0}
+.pv-panel .pv-tile{display:block;width:100%;height:100%;text-align:start;background:var(--pv-top);color:var(--pv-ink);border:1px solid var(--pv-line);border-radius:.55rem;overflow:hidden;padding:0}
+.pv-panel .pv-tile:hover{border-color:var(--pv-gold)}
+.pv-panel .pv-tile-copy{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.2rem .65rem;align-items:start;padding:.9rem}
+.pv-panel .pv-rank{font-size:.76rem;color:var(--pv-muted);padding-top:.15rem}
+.pv-panel .pv-tile strong,.pv-panel .pv-tile-status{display:block}.pv-panel .pv-tile-status{margin-top:.15rem}
+.pv-panel .pv-list-price{grid-column:2;color:var(--pv-gold);font-variant-numeric:tabular-nums}
+.pv-panel .pv-art{width:100%;height:auto;display:block;border-radius:.4rem;max-height:28rem;object-fit:contain}
+.pv-panel .pv-tile .pv-art{aspect-ratio:16/10;object-fit:cover;border-radius:0}
+.pv-panel .pv-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr));gap:.7rem 1.15rem;margin:1rem 0;max-width:62rem}
+.pv-panel .pv-facts>div{border-top:1px solid var(--pv-line);padding:.65rem 0 0;min-width:0}
+.pv-panel dt{font-size:.86rem;color:var(--pv-muted)}.pv-panel dd{margin:.25rem 0 0;font-weight:650;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.pv-panel .pv-trade{display:grid;gap:.4rem;max-width:38rem}.pv-panel select{width:100%;min-width:0;padding:.6rem;background:var(--pv-top);border:1px solid var(--pv-line);border-radius:.45rem;color:var(--pv-ink)}
+.pv-panel .pv-primary{background:var(--pv-gold);color:#231e16;border:0;border-radius:.45rem;padding:.65rem 1.15rem;margin:.25rem .6rem .2rem 0;font-weight:650}
+.pv-panel .pv-owned,.pv-panel .pv-status{color:var(--pv-gold);margin:.75rem 0}
+.pv-entries{display:flex;flex-wrap:wrap;gap:.45rem;border-radius:.5rem;padding:.45rem}
+@media(max-width:480px){.pv-panel .pv-list{grid-template-columns:1fr}.pv-panel .pv-tile-copy{grid-template-columns:auto minmax(0,1fr) auto}.pv-panel .pv-list-price{grid-column:auto}.pv-panel .pv-facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Property catalogue and detail follow the archived workspace surface, with
+   the price and cash disclosure retained from the later approved revision. */
+#deal-room .pv-panel{color:var(--ws-type);background:transparent;padding:0;max-width:68rem;border-radius:0}
+#deal-room .pv-panel .pv-heading h2{font:700 clamp(1.32rem,3vw,1.7rem)/1.35 system-ui,sans-serif}
+#deal-room .pv-panel .pv-heading{gap:.55rem;margin-bottom:.6rem}
+#deal-room .pv-panel .pv-tile{border-color:var(--ws-rule);background:var(--ws-card)}
+#deal-room .pv-panel .pv-tile-copy{padding:.5rem .6rem;gap:.25rem .5rem;grid-template-columns:minmax(0,1fr) auto}
+#deal-room .pv-panel .pv-tile-copy .pv-rank{display:none}
+#deal-room .pv-panel .pv-list-price{grid-column:2}
+#deal-room .pv-panel .pv-tile-status{font-size:.78rem}
+#deal-room .pv-panel[data-pv-kind=office] .pv-list{grid-template-columns:repeat(4,minmax(0,1fr))}
+#deal-room .pv-panel .pv-back,#deal-room .pv-panel .pv-primary{line-height:1.3;white-space:normal}
+@media(max-width:730px){#deal-room .pv-panel[data-pv-kind=office] .pv-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){#deal-room .pv-panel[data-pv-kind=office] .pv-tile-copy{grid-template-columns:minmax(0,1fr);gap:.22rem}#deal-room .pv-panel[data-pv-kind=office] .pv-list-price{grid-column:1}}

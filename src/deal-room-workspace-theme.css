@@ -1,0 +1,132 @@
+/* Shared office chrome. Illustration tones stay natural; tables and form fields use warm paper. */
+:root{--ui-ink:#24241f;--ui-gold:#d4b376;--ui-line:#a6864c;--ui-paper:#f7efe0;--ui-shell:#201f1a}
+#deal-room{color:var(--ui-ink)}
+#deal-room .ws-nav{background:#282720;border:1px solid #534632;box-shadow:0 4px 12px #17140f22}
+#deal-room .ws-nav button{color:#f3e4c6;background:transparent;font-weight:650;min-height:44px}
+#deal-room .ws-nav button[aria-current=page]{color:#241b0e;background:linear-gradient(120deg,#e4c689,#be9959);box-shadow:0 1px 4px #07060340}
+#deal-room > .adviser-panel{display:grid;grid-template-columns:minmax(165px,auto) minmax(0,1fr) max-content;align-items:center;gap:.55rem .9rem;border:1px solid #503f28;border-left:3px solid var(--ui-gold);background:#333027;color:#fbf3e5;padding:.45rem .85rem}
+#deal-room > .adviser-panel p{padding:0;margin:0;color:#f2e6cd;line-height:1.5}
+#deal-room .adviser-byline{gap:.55rem;min-width:0}
+#deal-room .adviser-byline>.quiet{margin-inline-start:.2rem}
+#deal-room > .adviser-panel .adviser-options,#deal-room > .adviser-panel details{grid-column:1/-1}
+#deal-room .adviser-panel button{border-radius:.55rem;border:1px solid #a48252;color:#282013;background:#ecd3a0;min-height:36px;font:inherit;padding:.32rem .6rem}
+#deal-room .adviser-face{border-radius:.5rem}
+#deal-room .market-panel>header,#deal-room .wh-head,#deal-room .oo-strip,#deal-room .pv-titlebar{background:#302c22;color:#f6e9cd;border-color:#8c714b;border-radius:.75rem;padding:.62rem .8rem}
+#deal-room :is(.market-panel,.wh-panel,.outings-room,.pv-panel,.ws-office) .primary,
+#deal-room :is(.market-panel,.wh-panel,.outings-room,.pv-panel,.ws-office) button.oo-main{background:#6b4c22;color:#fff8e2;border-color:#856535}
+#deal-room button:disabled{cursor:not-allowed}
+#deal-room button:focus-visible,#deal-room summary:focus-visible{outline:2px solid #b5843e;outline-offset:3px}
+#deal-room .ws-desk-label{background:#211d15eb;color:#fff7e6;border:1px solid #dfbb77}
+#deal-room .ws-desk-label small{color:#e5c992}
+/* Modern inner screens have charcoal surfaces. Set inherited ink on the
+   surface only, preserving the ink of pale rack slots and gold controls. */
+#deal-room :is(.pv-panel,.outings-room,.wh-original){color:var(--ws-type)}
+#deal-room :is(.pv-panel,.outings-room){grid-column:1/-1}
+#deal-room .outings-room header.oo-heading{display:block}
+#deal-room .ws-index-status{color:#713d42}
+@media(max-width:650px){#deal-room > .adviser-panel{grid-template-columns:minmax(0,1fr) auto;gap:.35rem .5rem;padding:.45rem .55rem}#deal-room > .adviser-panel p{grid-column:1/-1;font-size:.86rem}#deal-room > .adviser-panel [data-adviser-tab],#deal-room > .adviser-panel [data-adviser-focus]{grid-column:1/-1;justify-self:start}#deal-room .ws-nav button{font-size:.9rem;padding:.25rem .15rem}}
+#deal-room .ws-hub{display:grid;gap:1rem;margin-top:1rem}
+#deal-room .ws-hub-hero{position:relative;min-height:clamp(205px,32vw,330px);display:flex;align-items:flex-end;overflow:hidden;border-radius:1rem;background:#2e2822;border:1px solid #7e6441}
+#deal-room .ws-hub-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 48%}
+#deal-room .ws-hub-hero div{position:relative;color:#ffedc8;background:#211b14ed;margin:1rem;padding:.7rem 1.2rem;min-width:7.5rem;border:1px solid #a48046;border-radius:.65rem}
+#deal-room .ws-hub-hero h2{font-size:clamp(1.5rem,4vw,2.1rem);margin:.1rem 0}
+#deal-room .ws-hub-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:1rem}
+#deal-room .ws-hub-card{padding:clamp(.75rem,2.6vw,1.15rem);min-width:0;background:#fcf4e4;border:1px solid #c4a479;border-radius:.85rem}
+#deal-room .ws-hub-card h3{margin:0 0 .55rem;color:#32291b;font-size:1.17rem}
+#deal-room .ws-hub-card p{margin:.35rem 0 .65rem;line-height:1.55;color:#5b4c35}
+#deal-room .ws-hub-card nav{background:transparent;border:0;padding:0;display:flex;gap:.55rem;flex-wrap:wrap}
+#deal-room .ws-rest,#deal-room .ws-promo-options{display:flex;gap:.55rem;flex-wrap:wrap}
+#deal-room .ws-hub button:not([disabled]),#deal-room .wh-shortcut button{color:#30200e;background:#eddfc0;border:1px solid #b4915a;border-radius:.6rem;padding:.55rem .82rem;min-height:44px;font:inherit}
+#deal-room .ws-hub button[disabled]{padding:.55rem .82rem;min-height:44px;font:inherit;border:1px solid #c8b79d;border-radius:.6rem;background:#eee5d6;color:#615c51}
+#deal-room .ws-hub button[data-workspace-sleep],#deal-room .ws-hub button[data-promotion-book]{background:#574124;color:#fff1d3;border-color:#917148}
+#deal-room .ws-day-end{display:flex;justify-content:space-between;align-items:center;gap:.7rem}
+#deal-room .ws-promo-quote{border-top:1px solid #d6bd96;margin:.8rem 0 0;padding:.7rem 0 0}
+#deal-room .ws-promo-quote h4{margin:0 0 .4rem}
+#deal-room .wh-shortcut{justify-content:flex-end}
+@media(max-width:650px){#deal-room .ws-hub-grid{grid-template-columns:minmax(0,1fr)}#deal-room .ws-rest{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}#deal-room .ws-day-end{flex-wrap:wrap}#deal-room .ws-hub-hero div{margin:.72rem;padding:.6rem .8rem}}
+
+/* Original 390px workspace chrome. Flat fills sampled from the 77c capture. */
+:root:has(#deal-room){--ws-canvas:#141311;--ws-card:#201d18;--ws-rule:#3c3b37;--ws-type:#e9e5dc;--ws-secondary:#c3bcae;--ws-mark:#cdb88b;background:var(--ws-canvas)}
+#deal-room{position:relative;--ws-gutter:clamp(16px,3vw,30px);padding:0 var(--ws-gutter) 24px;row-gap:0;color:var(--ws-type);background:var(--ws-canvas);align-content:start}
+#deal-room .ws-mast,#deal-room .ws-account{grid-column:1/-1}
+#deal-room .ws-mast{grid-row:1;height:51px;margin-inline:calc(0px - var(--ws-gutter));padding-inline:var(--ws-gutter) 120px;border-bottom:1px solid var(--ws-rule);display:flex;align-items:center;font-size:14px;color:var(--ws-secondary)}
+#deal-room .ws-account{grid-row:2;min-height:77px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+#deal-room .ws-account small{display:block;color:var(--ws-secondary);font-size:13px;line-height:20px}
+#deal-room .ws-account h1,#deal-room .ws-account strong{font:700 20px/26px system-ui,sans-serif;margin:0;color:var(--ws-type)}
+#deal-room .ws-account>div:last-child{text-align:right;font-variant-numeric:tabular-nums}
+#deal-room .ws-mast~header:has(>.brand):has(>.wallet){display:none}
+#deal-room .ws-nav{grid-row:3;gap:0;padding:0;border:0;border-bottom:1px solid var(--ws-rule);border-radius:0;background:transparent;box-shadow:none;margin:0 0 16px}
+#deal-room .ws-nav button,#deal-room .ws-nav button[aria-current=page]{height:48px;min-height:44px;border:0;border-bottom:3px solid transparent;border-radius:0;background:none;box-shadow:none;color:var(--ws-secondary);font:400 14px/1.2 system-ui,sans-serif}
+#deal-room .ws-nav button[aria-current=page]{border-bottom-color:var(--ws-mark);color:var(--ws-mark);font-weight:700}
+#deal-room > .adviser-panel{position:static;grid-column:1/-1;order:1;display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:16px 0 0;border:0;background:none;padding:0;color:var(--ws-secondary)}
+#deal-room > .adviser-panel:has(.adviser-options){order:0}
+#deal-room > .adviser-panel:has(>[data-adviser-picker]:only-child){margin:0;height:0}
+#deal-room > .adviser-panel .adviser-byline,#deal-room > .adviser-panel>[data-adviser-picker]{position:absolute;top:3px;right:10px;z-index:2;height:44px;min-width:88px;background:#282520;color:var(--ws-type);border:1px solid var(--ws-rule);border-radius:24px;display:flex;align-items:center;justify-content:center;gap:6px;padding:3px 10px 3px 4px;font-size:14px}
+#deal-room > .adviser-panel>[data-adviser-picker]{padding:3px 12px}
+#deal-room .adviser-byline .adviser-face{width:34px;height:34px;border-radius:50%}
+#deal-room .adviser-byline strong{font-size:14px;font-weight:500}
+#deal-room .adviser-byline [data-adviser-picker]{position:absolute;inset:0;opacity:0;width:100%;height:100%;margin:0}
+#deal-room .adviser-byline:focus-within{outline:2px solid var(--ws-mark);outline-offset:2px}
+#deal-room .adviser-panel p,#deal-room .ws-office :is(.ws-muted,.ws-items small,.ws-totals dt,.ws-breakdown span,.ws-arrow),#deal-room>.save-state,#deal-room>details{color:var(--ws-secondary)}
+#deal-room :is(.ws-office,.ws-index,.ws-hub){color:var(--ws-type)}
+#deal-room .ws-office :is(.ws-section,.ws-ledger),#deal-room .ws-hub-card{border:1px solid var(--ws-rule);background:var(--ws-card);color:var(--ws-type);border-radius:8px}
+#deal-room .ws-office :is(.ws-items button,details),#deal-room .ws-hub-card h3{color:var(--ws-type)}
+#deal-room .ws-office :is(.ws-items li,.ws-breakdown li,.ws-totals>div){border-color:var(--ws-rule)}
+#deal-room .ws-hub-card p{color:var(--ws-secondary)}
+/* The existing paper forms keep their own ink rather than inheriting pale chrome text. */
+#deal-room :is(.business,.market-panel,.wh-panel:not(.wh-original),.activity,.desk-label){color:#292e2b}
+#deal-room .ws-index-status{color:#e3a4a5}
+#deal-room .ws-index-list li{border-color:var(--ws-rule)}
+
+/* The archived shipping-choice section is a separate dark order sheet, even
+   when reached from the purchasing desk. */
+#deal-room .market-panel:has(.ws-ship-choice){color:var(--ws-type);background:var(--ws-canvas);border:0;padding:0}
+#deal-room .market-panel:has(.ws-ship-choice) > header{background:none;padding:.2rem 0;border:0;color:var(--ws-type)}
+#deal-room .market-panel:has(.ws-ship-choice) :is(.market-wallet,.market-inspection,.ws-ship-choice){background:var(--ws-card);color:var(--ws-type);border-color:var(--ws-rule)}
+#deal-room .market-panel:has(.ws-ship-choice) :is(.market-facts dt,.market-disclaimer,.market-history summary){color:var(--ws-secondary)}
+#deal-room .market-panel:has(.ws-ship-choice) :is(.market-facts>div,.market-history,.market-history article){border-color:var(--ws-rule)}
+#deal-room .market-panel:has(.ws-ship-choice) button{background:var(--ws-card);color:var(--ws-type);border-color:var(--ws-rule)}
+#deal-room .market-panel .ws-ship-choice h3{color:var(--ws-mark)}
+#deal-room .market-panel.ws-carafe-panel{max-width:48rem;margin:0 auto}
+#deal-room .ws-carafe-panel>button{border:0;background:none;color:var(--ws-mark);padding-inline:0;margin-bottom:.7rem}
+#deal-room .ws-carafe{display:grid;gap:.95rem;padding:.9rem;background:#201e18;border:1px solid var(--ws-rule);border-radius:1.1rem}
+#deal-room .ws-carafe>article{background:#29251f;border:1px solid var(--ws-rule);border-radius:.85rem;padding:.75rem}
+#deal-room .ws-carafe h2{font-size:1.27rem;margin:.25rem 0 .75rem}
+#deal-room .ws-carafe h3{font-size:1.12rem}
+#deal-room .ws-carafe-track{list-style:none;padding:0;margin:.8rem 0;display:grid;grid-template-columns:repeat(3,1fr);text-align:center;color:var(--ws-type)}
+#deal-room .ws-carafe-track li{border-top:1px solid var(--ws-rule);padding:.5rem 0 .25rem;display:grid;gap:.15rem;font-size:.8rem}
+#deal-room .ws-carafe-track li:nth-child(2){border-top-color:var(--ws-mark)}
+#deal-room .ws-carafe article>dl{display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem;margin:.7rem 0}
+#deal-room .ws-carafe dt{color:var(--ws-secondary);font-size:.82rem}
+#deal-room .ws-carafe dd{font-size:1.1rem;font-weight:bold;margin:0}
+#deal-room .ws-carafe .ws-ship-choice{border-width:1px 0 0;border-style:solid;border-radius:0;background:none;padding:.8rem 0 0}
+#deal-room .ws-carafe .ws-ship-choice>div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.5rem}
+#deal-room .ws-carafe .ws-ship-choice article{border:1px solid var(--ws-rule);border-radius:.5rem;padding:.55rem;display:flex;flex-direction:column;align-items:stretch}
+#deal-room .ws-carafe .ws-ship-choice article h4{font-size:.88rem;margin:0 0 .3rem}
+#deal-room .ws-carafe .ws-ship-choice article p{font-size:.81rem;margin:.2rem 0 .4rem}
+#deal-room .ws-carafe .ws-ship-choice article button{margin-top:auto;padding:.45rem .35rem;font-size:.85rem}
+
+/* The archived screens use one header: top-level workspace dashboard,
+   abbreviated tab header on inbox/subpages, and a back link on shipment. */
+:root:has(#deal-room){color-scheme:dark;scrollbar-color:#5e5442 #141311}
+#deal-room[data-workspace-chrome="tabs"] .ws-nav{grid-row:2}
+#deal-room[data-workspace-chrome="detail"] .ws-mast{margin-bottom:.7rem}
+#deal-room .wh-shortcut{grid-column:1/-1;justify-content:center;padding:.35rem 0}
+#deal-room .wh-shortcut button{background:none;color:var(--ws-mark);padding:.3rem .45rem;border:0;border-radius:.2rem;min-height:44px;font-size:.85rem}
+#deal-room .wh-shortcut button:hover{text-decoration:underline}
+@media(max-width:600px){:root:has(#deal-room){scrollbar-width:none}}
+
+/* Give the black-and-gold interface contrast through weight, not font changes. */
+#deal-room{--ws-sans:"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",system-ui,sans-serif;font-family:var(--ws-sans)}
+#deal-room :is(.ws-account h1,.ws-mail-ledger header h2,.ws-hub-title,.ws-receipts header h2,.ws-original-office .ws-original-note h3,.ws-mail-advice h3){font-family:var(--ws-sans);font-weight:750;letter-spacing:.015em}
+#deal-room :is(.ws-contact,.ws-hub-label)>* strong,#deal-room .ws-hub-label>strong,#deal-room .ws-original-office .ws-original-note .ws-items button{font-weight:700}
+#deal-room .ws-account strong{font:650 21px/26px var(--ws-sans);font-variant-numeric:tabular-nums;letter-spacing:-.025em;color:#f2dfbc}
+#deal-room .ws-nav button,#deal-room .ws-nav button[aria-current=page]{font-family:var(--ws-sans);letter-spacing:.045em}
+
+/* Crop the same individual portraits to headshots in compact UI; the
+   character picker and office illustration keep their wider compositions. */
+#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech) .adviser-face{border-radius:50%;background-size:950% auto;box-shadow:inset 0 0 0 1px #ceaf7360;outline:1px solid #6e5a3b;outline-offset:1px}
+#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech) .adviser-fang{background-position:8.6% 2%}
+#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech) .adviser-liang{background-position:35.5% 10%}
+#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech) .adviser-tao{background-position:63.7% 5%}
+#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech) .adviser-xu{background-position:92% 4%}
