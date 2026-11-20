@@ -18,7 +18,12 @@ export function quoteOptionExplanation(state, offer) {
   }
   return (offer.exchange || '').replace('本次总净赚较少','这单预计赚得较少');
 }
-export function quoteCommitmentView(state, offer, {roundActive=false,counterMessage='',action='PROPOSE',quantityLabel=null,client=null,opening=false}={}) {
+function openingContractActions(offer, action){
+  const agreed=offer.accepted!==false;
+  const ask=agreed?'':`<button type="button" class="quiet opening-ask" data-action="${escape(action)}"${offer.valid?'':' disabled'}>询问客户</button>`;
+  return ask+`<div class="opening-contract-actions"><button type="button" class="quiet" data-workspace-open="inbox">先不接</button><button type="button" class="primary"${agreed?` data-action="${escape(action)}"`:''}${agreed&&offer.valid?'':' disabled'}>签下这单</button></div>`;
+}
+export function quoteCommitmentView(state, offer, {roundActive=false,counterMessage='',action='PROPOSE',quantityLabel=null,client=null,opening=false,openingDesk=false}={}) {
   if (!offer) return '';
   const signed = offer.accepted !== false;
   const nextStep = roundActive&&action==='PROPOSE' ? (signed&&offer.valid?roundQuoteNote(state,offer,client?.id):'') : offer.opportunityNote;
@@ -45,7 +50,7 @@ export function quoteCommitmentView(state, offer, {roundActive=false,counterMess
     ${opening?'':`<p class="quote-action-note">${escape(offer.id==='promise'&&client?.id==='samir'?'120 只定制，不能作为开业批签约':offer.title)}</p>`}
     <p class="quote-action-note">${opening?'条件尚未谈妥，这一步不花钱。':'付款和交货条件还没谈妥，先听听客户的回复，这一步不花钱。'}</p>
     ${reason}${counter}
-    <button class="primary" data-action="${escape(action)}" ${offer.valid?'':'disabled'}>${opening?'询问客户':'问问客户的意思'} <span aria-hidden="true">→</span></button>
+    ${openingDesk?openingContractActions(offer,action):`<button class="primary" data-action="${escape(action)}" ${offer.valid?'':'disabled'}>${opening?'询问客户':'问问客户的意思'} <span aria-hidden="true">→</span></button>`}
   </section>`;
   return `<section class="quote-commitment" aria-label="签约与资金明细">
     ${offerFacts}<div class="quote-price"><span>${opening?'合同货款':'这单货款'}</span><strong>${money(offer.revenue)}</strong>${opening?'':`<small>${showQuantity}</small>`}</div>
@@ -55,7 +60,7 @@ export function quoteCommitmentView(state, offer, {roundActive=false,counterMess
     ${(state.businessRound||state.clientProjectActive)&&nextStep?`<p class="opportunity quote-choice" aria-label="接下这单后的安排">${escape(nextStep)}</p>`:''}
     <details class="quote-breakdown"><summary>这单怎么结算</summary>${opening?pricing:''}<p>货款 ${money(offer.revenue)} − 备货交付 ${money(offer.cost)} − ${roundActive?'仅做这单预计花费的':'回款前的'}日常开销 ${money(offer.operatingCost)} = 预计赚到 ${money(offer.netProfit)}</p><p>待收尾款 ${money(offer.balanceDue)}。${offer.valid&&!twoReceipts?(roundActive?'按已签订单的回款日期估算，收齐后':'本单收齐后')+'预计可用现金 '+money(offer.cashAfterPayment)+'。':''}</p>${expectedBalances}</details>
     ${reason}${counter}${signed?'':'<p class="quote-action-note">先听听客户的回复，这一步不花钱。</p>'}
-    <button class="primary" data-action="${escape(action)}" ${offer.valid?'':'disabled'}>${signed?'签下这单':'问问客户的意思'} <span aria-hidden="true">→</span></button>
+    ${openingDesk?openingContractActions(offer,action):`<button class="primary" data-action="${escape(action)}" ${offer.valid?'':'disabled'}>签下这单 <span aria-hidden="true">→</span></button>`}
   </section>`;
 }
 

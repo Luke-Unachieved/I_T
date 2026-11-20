@@ -409,3 +409,25 @@
 #deal-room .prospect-panel .prospect-contract-actions>[data-prospect-sign]:disabled{
  background:#32302d;border:1px solid #615b51;color:#c0b8aa;opacity:1;
 }
+
+/* The introductory desk also keeps its signing action stable while terms change. */
+#deal-room .ws-opening-inquiry .opening-contract-actions{
+ display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:.55rem;
+ margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--ws-rule,#51463b);
+}
+#deal-room .ws-opening-inquiry .opening-contract-actions>button{
+ width:100%;min-width:0;min-height:44px;margin:0;padding:.55rem .4rem;
+ justify-content:center;text-align:center;overflow-wrap:anywhere;
+}
+#deal-room .ws-opening-inquiry .opening-contract-actions>.primary:disabled{
+ background:#32302d;border:1px solid #615b51;color:#c0b8aa;opacity:1;
+}
+#deal-room .ws-opening-inquiry .quote-commitment .opening-ask{
+ min-height:44px;width:auto;padding:.5rem .75rem;
+}
+#deal-room .ws-opening-inquiry .opening-contract-actions>.quiet{
+ background:transparent;border:1px solid #8b7757;color:#f0dfbd;border-radius:10px;
+}
+#deal-room .ws-opening-inquiry .quote-commitment .opening-ask:not(:disabled){
+ background:#59462b;border:1px solid #c6a569;color:#fff1d2;border-radius:10px;
+}

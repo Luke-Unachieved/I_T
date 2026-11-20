@@ -1,12 +1,12 @@
 {
   "mode": "modern-workshop",
   "title": "再开一单就下班",
-  "sourceCommit": "c04bbf9b26630e1fcab697bfc1218a61d966ec1b",
+  "sourceCommit": "57109698bba694c6be7a5f5797bd4310f662fdbc",
   "entry": "index.html",
   "saveKey": "trade-tycoon:deal-room:v1",
   "oldGame": "legacy-game.html",
   "oldSaveKey": "trade-tycoon:data:v2",
-  "releaseSha256": "e277527ae2c5b14d3a5ff95cdcf29b9d62ac8357366836f4313de695641e23b7",
+  "releaseSha256": "efc0290f522c4be151e681d99dc94ca09158e11d96919b59f1faa1d622929906",
   "sha256": "860f7868b79ce6fa9cedf0179f0ae4234577f93cd73091a44af2cecc69fb350f",
   "bytes": 1366
 }
