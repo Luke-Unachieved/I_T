@@ -2,13 +2,13 @@ import {PROMOTION_CHANNELS,previewPromotion,promotionStatus,promotionWaitPreview
 const promoEsc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const promoMoney=n=>Number.isSafeInteger(n)?'¥'+n.toLocaleString('zh-CN'):'—';
 const campaignCopy=Object.freeze({
- district:{before:'商报把版位排在门店进货那一栏。想先补一两个货架的店主，会先拿这页问价。',pending:'印刷样张发来了，工作室的联系方式就在商品下面。下一步就等店主回信。'},
- 'cross-city':{before:'通讯会发给外地买手。有的想一次铺几家店，也有人先拿一小批试卖。',pending:'通讯发出后，编辑把这期转给了订阅买手。等来信到了，再看对方是试卖还是铺货。'}
+ district:{before:'商报把版位排在门店进货那一栏。想先补一两个货架的店主，会先拿这页问价。',pending:'印刷样张发来了，联系方式印在商品下方。回信会进收件箱。'},
+ 'cross-city':{before:'通讯会发给外地买手。有的想一次铺几家店，也有人先拿一小批试卖。',pending:'编辑已把这期转给了订阅买手。回信会进收件箱。'}
 });
 export function promotionView(s,ui={}){
  const st=promotionStatus(s),q=ui.promotionChannel?previewPromotion(s,ui.promotionChannel):null,w=promotionWaitPreview(s);
- const state=st?.pending?'<p>版位已刊登。第 '+st.pending.replyDay+' 天会有一封询价，届时在收件箱看。</p><p>'+promoEsc(campaignCopy[st.pending.channelId]?.pending)+'</p>'+
-  (w.valid?'<button type="button" data-promotion-wait>等到第 '+w.replyDay+' 天 · 日常开支 '+promoMoney(w.cost)+'</button>':''):
+ const state=st?.pending?'<p>'+promoEsc(campaignCopy[st.pending.channelId]?.pending||'广告已刊登，回信会进收件箱。')+'</p>'+
+  (w.valid?'<button type="button" data-promotion-wait>等回信 · 日常开支 '+promoMoney(w.cost)+'</button>':''):
   '<p>只付一次版位费。回的是询价，不是已签订单；不投也照常收来信。</p>'+
   '<div class="ws-promo-options">'+PROMOTION_CHANNELS.map(c=>'<button type="button" data-promotion-channel="'+c.id+'">'+promoEsc(c.name)+' · '+promoMoney(c.fee)+'</button>').join('')+'</div>';
  const info=q&&!st?.pending?'<section class="ws-promo-quote"><h4>'+promoEsc(q.name??'刊登前核对')+'</h4>'+

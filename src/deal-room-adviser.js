@@ -192,9 +192,12 @@ export function adviserView(state, context, ui) {
   const band = person ? '换搭档' : '选助理';
   const controls = pick ? `<div class="adviser-options" role="group" aria-label="选择工作室搭档">${ADVISERS.map(p => `<button type="button" data-adviser-choice="${p.id}" aria-pressed="${ui.choice === p.id}"><i class="adviser-face adviser-${p.id}" aria-hidden="true"></i>${p.name}</button>`).join('')}<button type="button" data-adviser-choice="solo">先自己来</button></div>` : '';
   if (!person) return `<aside class="adviser-panel" aria-label="工作室搭档"><button class="quiet" type="button" data-adviser-picker aria-expanded="${pick}">${band}</button>${controls}</aside>`;
-  const minimal=context.place==='订单列表'||(context.orderFocus&&state.phase==='account'&&state.account?.status!=='draft');
+  const minimal=context.identityOnly||context.place==='订单列表'||(context.orderFocus&&state.phase==='account'&&state.account?.status!=='draft');
   const note = pick||minimal?{}:currentNote(state, context, person)??{};
-  return `<aside class="adviser-panel" aria-label="搭档便笺"><div class="adviser-byline"><i class="adviser-face adviser-${person.id}" aria-hidden="true"></i><strong>${person.name}</strong><button type="button" class="quiet" data-adviser-picker aria-expanded="${pick}">${band}</button></div>${controls}${pick||context.compact||minimal||!note.text?'':`<p>${escape(note.text)}</p>`}${note.tab?`<button type="button" class="quiet" data-adviser-tab="${note.tab}"${note.ref==='promotion'?' data-adviser-ref="promotion"':''}>${note.label} →</button>`:note.target ? `<button type="button" class="quiet" data-adviser-focus="${escape(note.target)}">${note.label} →</button>` : ''}${pick?'':equipmentCosts(context.quote)}</aside>`;
+  const action=note.tab?`<button type="button" class="quiet" data-adviser-tab="${note.tab}"${note.ref==='promotion'?' data-adviser-ref="promotion"':''}>${note.label} →</button>`:note.target?`<button type="button" class="quiet" data-adviser-focus="${escape(note.target)}">${note.label} →</button>`:'';
+  const message=!pick&&!context.compact&&!minimal&&note.text;
+  const tip=message?`<div class="adviser-message"><i class="adviser-face adviser-${person.id}" aria-hidden="true"></i><div><p>${escape(note.text)}</p>${action}</div></div>`:action;
+  return `<aside class="adviser-panel" aria-label="搭档便笺"><div class="adviser-byline"><i class="adviser-face adviser-${person.id}" aria-hidden="true"></i><strong>${person.name}</strong><button type="button" class="quiet" data-adviser-picker aria-expanded="${pick}">${band}</button></div>${controls}${tip}${pick?'':equipmentCosts(context.quote)}</aside>`;
 }
 // Resolve the nearest meaningful live control, never a paid action dispatch.
 const adviserTargets=Object.freeze({

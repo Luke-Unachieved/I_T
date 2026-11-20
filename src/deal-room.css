@@ -174,3 +174,40 @@
   html:not(.reduce-motion) .adviser-byline .adviser-face {animation:adviser-arrive .25s ease-out}
 }
 @keyframes adviser-arrive {from {opacity:.75;transform:translateY(2px)} to {opacity:1;transform:translateY(0)}}
+
+/* Opening order and payment receipt share the dark surface of the order archive. */
+#deal-room > .business:is(.ws-opening-paid,.ws-opening-signed){
+ grid-column:1/-1;width:100%;max-width:42rem;justify-self:center;min-width:0;
+ background:#201d18;color:var(--ws-type,#ece8de);border:1px solid var(--ws-rule,#403c35);
+ padding:clamp(1rem,3vw,1.65rem);border-radius:14px;box-shadow:none;
+}
+#deal-room :is(.ws-opening-paid,.ws-opening-signed) .client-head{min-width:0;flex-wrap:wrap;row-gap:8px}
+#deal-room :is(.ws-opening-paid,.ws-opening-signed) .client-head h2{color:inherit;overflow-wrap:anywhere}
+#deal-room :is(.ws-opening-paid,.ws-opening-signed) .client-head :is(small,.product){color:var(--ws-secondary,#c9c1af)}
+#deal-room :is(.ws-opening-paid,.ws-opening-signed) .client-head .product{max-width:none;padding:0;border:0}
+#deal-room .ws-opening-paid-total{
+ display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:.3rem .8rem;
+ padding:.85rem 0;margin-top:.9rem;border-block:1px solid var(--ws-rule,#403c35);
+}
+#deal-room .ws-opening-paid-total span{font-size:14px;color:var(--ws-secondary,#c9c1af)}
+#deal-room .ws-opening-paid-total strong{font-size:clamp(1.4rem,5vw,1.8rem);color:#d7bd89;font-variant-numeric:tabular-nums}
+#deal-room .ws-opening-paid :is(.opening-life-goal,.opening-home-reminder,.ws-opening-paid-delivery){margin:.7rem 0;font-size:14px;line-height:1.6;color:var(--ws-secondary,#c9c1af)}
+#deal-room :is(.ws-opening-paid,.ws-opening-signed) > .primary{
+ margin-top:.85rem;min-height:44px;text-align:left;background:#d4b376;color:#241b0e;border:1px solid #d4b376;
+}
+#deal-room .ws-opening-paid > .ws-work-story{margin:.65rem 0 0;background:transparent;border:0;border-radius:0;color:var(--ws-mark,#d7bd89)}
+#deal-room .ws-opening-paid > .ws-work-story > summary{padding-inline:0}
+#deal-room .ws-opening-signed .ws-signed-status{
+ display:flex;justify-content:space-between;gap:.5rem;padding:.85rem 0;margin-top:.9rem;
+ border-block:1px solid var(--ws-rule,#403c35);font-size:14px;color:var(--ws-secondary,#c9c1af)
+}
+#deal-room .ws-opening-signed .ws-signed-status strong{color:var(--ws-mark,#d7bd89)}
+#deal-room .ws-opening-signed .ws-signed-stages{
+ display:flex;gap:.6rem;padding:0;margin:.85rem 0 .45rem;list-style:none;
+}
+#deal-room .ws-opening-signed .ws-signed-stages li{
+ flex:1;min-width:0;border-top:2px solid var(--ws-rule,#565044);padding:.45rem .15rem 0;
+ display:grid;gap:.2rem;font-size:.83rem;line-height:1.35;color:var(--ws-secondary,#c9c1af);
+}
+#deal-room .ws-opening-signed .ws-signed-stages li[aria-current=step]{border-color:#d4b376}
+#deal-room .ws-opening-signed .ws-signed-stages time{font-weight:700;color:var(--ws-type,#ece8de)}

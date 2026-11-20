@@ -64,6 +64,12 @@
 #deal-room > .adviser-panel .adviser-byline,#deal-room > .adviser-panel>[data-adviser-picker]{position:absolute;top:3px;right:10px;z-index:2;height:44px;min-width:88px;background:#282520;color:var(--ws-type);border:1px solid var(--ws-rule);border-radius:24px;display:flex;align-items:center;justify-content:center;gap:6px;padding:3px 10px 3px 4px;font-size:14px}
 #deal-room > .adviser-panel>[data-adviser-picker]{padding:3px 12px}
 #deal-room .adviser-byline .adviser-face{width:34px;height:34px;border-radius:50%}
+#deal-room > .adviser-panel:not(:has(>.adviser-options,>.adviser-message,>.adviser-costs,>[data-adviser-focus],>[data-adviser-tab])){height:0;margin:0}
+#deal-room > .adviser-panel > .adviser-message{display:grid;grid-template-columns:34px minmax(0,1fr);align-items:start;gap:.65rem;width:100%;padding:.65rem .75rem;background:#27231d;border-inline-start:2px solid #92774e;border-radius:0 12px 12px 0}
+#deal-room > .adviser-panel .adviser-message .adviser-face{width:34px;height:34px;border-radius:50%}
+#deal-room > .adviser-panel .adviser-message p{margin:0;line-height:1.55;overflow-wrap:anywhere}
+#deal-room > .adviser-panel .adviser-message button{margin-top:.15rem;padding:.1rem .15rem;min-height:44px;color:#ebcf98;background:none;border:0;text-align:left}
+#deal-room:has(>.adviser-panel>.adviser-message) > .deal-save-tools{order:2}
 #deal-room .adviser-byline strong{font-size:14px;font-weight:500}
 #deal-room .adviser-byline [data-adviser-picker]{position:absolute;inset:0;opacity:0;width:100%;height:100%;margin:0}
 #deal-room .adviser-byline:focus-within{outline:2px solid var(--ws-mark);outline-offset:2px}
@@ -125,11 +131,11 @@
 
 /* Crop the same individual portraits to headshots in compact UI; the
    character picker and office illustration keep their wider compositions. */
-#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech,.ws-order-tip) .adviser-face{border-radius:50%;background-size:950% auto;box-shadow:inset 0 0 0 1px #ceaf7360;outline:1px solid #6e5a3b;outline-offset:1px}
-#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech,.ws-order-tip) .adviser-fang{background-position:8.6% 2%}
-#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech,.ws-order-tip) .adviser-liang{background-position:35.5% 10%}
-#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech,.ws-order-tip) .adviser-tao{background-position:63.7% 5%}
-#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech,.ws-order-tip) .adviser-xu{background-position:92% 4%}
+#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech,.ws-order-tip,.adviser-message) .adviser-face{border-radius:50%;background-size:950% auto;box-shadow:inset 0 0 0 1px #ceaf7360;outline:1px solid #6e5a3b;outline-offset:1px}
+#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech,.ws-order-tip,.adviser-message) .adviser-fang{background-position:8.6% 2%}
+#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech,.ws-order-tip,.adviser-message) .adviser-liang{background-position:35.5% 10%}
+#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech,.ws-order-tip,.adviser-message) .adviser-tao{background-position:63.7% 5%}
+#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech,.ws-order-tip,.adviser-message) .adviser-xu{background-position:92% 4%}
 
 /* A shared reading rhythm. Text and controls use the same Chinese font; money
    is distinguished by alignment, not extra faces or decorative separators. */
@@ -165,4 +171,44 @@
 @media(max-width:560px){
  #deal-room > .adviser-panel > .adviser-options{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 
+}
+
+/* The same warm charcoal and brass signal a choice or primary action
+   in both first inquiries and the later procurement/quote screens. */
+#deal-room .market-quote.prospect-panel :is([data-prospect-source],[data-prospect-option])[aria-pressed="true"]:not(:disabled),
+#deal-room .market-modern .market-trade-sheet :is([data-market-mode],[data-market-source])[aria-pressed="true"]:not(:disabled){
+ background:#30281e;color:#f0dfc3;border-color:#bf9e68;box-shadow:none
+}
+#deal-room .market-modern .market-trade-sheet :is([data-market-mode],[data-market-source])[aria-pressed="true"]:not(:disabled) :is(strong,small){
+ color:inherit
+}
+#deal-room .market-quote.prospect-panel [data-prospect-source][aria-pressed="true"]:not(:disabled) .prospect-source-total b{
+ color:#f0dfb8
+}
+#deal-room .market-quote.prospect-panel :is([data-prospect-sign],.market-price-row>button):not(:disabled),
+#deal-room .market-modern .market-trade-sheet :is([data-market-sign],.market-price-row>button):not(:disabled){
+ background:#d4b376;border-color:#d4b376;color:#21180e
+}
+#deal-room > .business.ws-work-quote .quote-profit{
+ background:#2c251b;color:#f0e4cd
+}
+#deal-room > .business.ws-work-quote .quote-profit strong{
+ color:#e3c591
+}
+
+/* Do not cram a company or a product into the buyer's name on narrow orders. */
+#deal-room > .business .client-head.opening-customer-head{
+ display:grid;grid-template-columns:48px minmax(0,1fr);column-gap:.65rem;row-gap:.38rem;align-items:center
+}
+#deal-room > .business .opening-customer-head .client-avatar{
+ grid-row:1/3;width:46px;height:46px;min-width:0;align-self:start
+}
+#deal-room > .business .opening-customer-head h2{
+ margin:0;font-size:1.25rem;line-height:1.25;overflow-wrap:anywhere;color:var(--ws-type,#e9e5dc)
+}
+#deal-room > .business .opening-customer-head .opening-customer-company{
+ display:block;margin-top:.12rem;color:var(--ws-secondary);line-height:1.35;overflow-wrap:anywhere
+}
+#deal-room > .business .opening-customer-head>.product{
+ grid-column:2;margin:0;justify-self:start;max-width:none;white-space:normal;color:var(--ws-mark)
 }

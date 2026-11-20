@@ -103,7 +103,7 @@ const rejectedAdvice=Object.freeze({
 function response(c) {
  if(!c.asked)return '';
  const person=c.row.person;
- const bubble=(line,price='')=>'<div class="prospect-quote-chat">'+face(person)+'<p class="market-response" role="status"><strong>'+esc(person.displayName)+'</strong><span class="prospect-chat-line">'+esc(line)+(price?'<small>'+esc(price)+'</small>':'')+'</span></p></div>';
+ const bubble=(line,price='')=>'<div class="prospect-quote-chat">'+face(person)+'<p class="market-response" role="status" tabindex="-1" data-prospect-reply><strong>'+esc(person.displayName)+'</strong><span class="prospect-chat-line">'+esc(line)+(price?'<small>'+esc(price)+'</small>':'')+'</span></p></div>';
  if(overBudget(c)){const note=Object.hasOwn(rejectedAdvice,c.adviserId)?rejectedAdvice[c.adviserId]:null;return bubble('这个单价我这边接不了。你能再报一个价吗？')+(note?'<aside class="market-note" aria-label="助理便笺"><strong>'+esc(note[0])+'：</strong>'+esc(note[1])+'</aside>':'');}
  if(!c.q?.accepted)return '';
  const line=c.row.isRepeat?'':prospectSceneLine(person.id,'agreed',c.o.id,c.row.product.id);
@@ -145,20 +145,21 @@ function sourceOptions(state,c) {
   terms='库存货款已付，本次只付出库配送费'+(Number.isSafeInteger(q.freight)?' '+cash(q.freight):'')+(Number.isSafeInteger(q.deliveryDay)?' · 预计'+day(q.deliveryDay)+'送达客户':'');
  }else if(stock.valid)terms='已到仓库存不足，不能供本单';
  const warehouse='<button type="button" data-prospect-source="warehouse" aria-pressed="'+(source==='warehouse')+'"'+(issue.valid?'':' disabled')+'><strong>自有仓库</strong><small>'+esc(detail)+(terms?'<br>'+esc(terms):'')+'</small></button>';
+ if(stock.valid&&!item?.onHand&&!item?.inTransit)return supplier;
  return supplier+(issue.valid?warehouse:'<details class="prospect-warehouse-more"><summary>'+(item?.inTransit?'仓库有货在途':'仓库暂无可用库存')+'</summary>'+warehouse+'</details>');
 }
 function quote(state,c) {
  const {row,o,draft:d,source,q,asked}=c,{person:p,product}=row,unit=product.unit;
  const old=row.previous;
  const quotedQty=pack(o.quantity,unit),reason=overBudget(c)?'':(q.reason||'');
- return '<section class="market-quote prospect-panel" aria-label="客户来信报价"><div class="prospect-quote-top"><button type="button" class="quiet" data-prospect-back>← 收件箱</button><button type="button" class="prospect-dismiss-button" data-prospect-dismiss>不接这单</button></div>'+
- '<div class="prospect-byline">'+face(p)+'<div><div class="prospect-identity"><h3 tabindex="-1" data-prospect-heading>'+esc(p.displayName)+'</h3><span class="prospect-quote-status">待报价</span></div><span class="prospect-origin">'+esc(p.organization)+'</span><span class="prospect-region">'+esc(prospectMarketLabel(p).replaceAll(' · ','，'))+'</span></div></div>'+
+ return '<section class="market-quote prospect-panel" aria-label="客户来信报价"><div class="prospect-quote-top"><button type="button" class="quiet" data-prospect-back>← 收件箱</button></div>'+
+ '<div class="prospect-byline">'+face(p)+'<div><div class="prospect-identity"><h3 tabindex="-1" data-prospect-heading>'+esc(p.displayName)+'</h3><span class="prospect-quote-status" data-prospect-quote-status>'+(asked?(q.accepted?'报价已接受':'待重新报价'):'待报价')+'</span></div><span class="prospect-origin">'+esc(p.organization)+'</span><span class="prospect-region">'+esc(prospectMarketLabel(p).replaceAll(' · ','，'))+'</span></div></div>'+
  '<div class="prospect-contact-meta"><span>合作关系：'+esc(prospectRelationship(row))+'</span>'+
  (Number.isSafeInteger(row.replyBy)?'<span>'+esc(day(row.replyBy))+'前可回复</span>':'')+'</div>'+
  '<div class="market-sheet">'+marketPlate(product)+'<div><small>'+esc(row.isRepeat?'熟客补货':o.mode==='bulk'?'批量采购':'首批试订')+'</small><h3>'+esc(product.name)+'</h3><strong>'+esc(quotedQty)+'</strong></div></div>'+
  '<dl class="prospect-request-facts">'+fact('最迟收货',day(state.day+o.deadlineDays))+fact('付款方式',payment(o))+'</dl>'+
  '<details class="prospect-disclosure prospect-request"><summary>客户要求</summary><blockquote class="prospect-message">'+(row.promotion?esc('我是在《'+row.promotion.channelName+'》上看到你的。'+(o.mode==='bulk'?'我想按铺货量问价，先看看整批怎么报。':'先问一批试货的价格，合不合适还要看报价。'))+'<br>':'')+esc(displayProspectCopy(p.id,row.isRepeat?'reorder':'inquiry',row.opening))+(row.isRepeat&&prospectSceneLine(p.id,'repeat',null,product.id)?'<br>'+esc(prospectSceneLine(p.id,'repeat',null,product.id)):'')+'</blockquote>'+
- (row.isRepeat&&old?'<p class="market-prior"><strong>上次已结清</strong> · '+esc(old.productName||product.name)+' '+esc(pack(old.quantity,old.unit||unit))+'，成交单价 '+esc(cash(old.unitPrice))+'，'+esc(day(old.paidDay))+'收齐。这次按下面的新数量、货源和账期另算。</p>':'')+
+ (row.isRepeat&&old?'<p class="market-prior"><strong>上次已结清</strong> · '+esc(old.productName||product.name)+' '+esc(pack(old.quantity,old.unit||unit))+'，成交单价 '+esc(cash(old.unitPrice))+'，'+esc(day(old.paidDay))+'收齐。</p>':'')+
  (q.prospectVoice?.bargain?'<blockquote class="prospect-message"><strong>'+esc(p.displayName)+'：</strong>'+esc(displayProspectCopy(p.id,'bargain',q.prospectVoice.bargain))+'</blockquote>':'')+
  '<h4>验收要求</h4><p>'+esc(product.inspection)+'</p></details>'+
  '<fieldset><legend>请哪家供货</legend>'+sourceOptions(state,c)+'</fieldset>'+
@@ -167,15 +168,15 @@ function quote(state,c) {
  '<button type="button" data-prospect-option="'+esc(v.id)+'" aria-pressed="'+(v.id===o.id)+'"><strong>'+esc(optionName(v.id))+'</strong><small>'+
  esc(pack(v.quantity,unit)+' · '+v.deadlineDays+' 天内交货')+'<br>'+esc(payment(v))+(v.id==='concession'?'<br>对方要求比常规方案更低的价格。':v.id==='vip-volume'?'<br>客户愿意多订，也可以照常补货。':'')+
  (Number.isSafeInteger(v.followupDays)?'<br>'+esc('结清 '+v.followupDays+' 天后可再询价'):'')+'</small></button>').join('')+'</fieldset></details>':'')+
- '<form data-prospect-form><label for="prospect-unit-price">向'+esc(p.displayName)+'报单价（元 / '+esc(unit)+'）</label><div class="market-price-row"><input type="number" id="prospect-unit-price" inputmode="numeric" min="1" max="100000" step="1" required value="'+esc(d.unitPrice)+'"><button type="submit">发送报价</button></div></form>'+
+ '<form data-prospect-form><label for="prospect-unit-price">报单价（元 / '+esc(unit)+'）</label><div class="market-price-row"><input type="number" id="prospect-unit-price" inputmode="numeric" min="1" max="100000" step="1" required value="'+esc(d.unitPrice)+'"><button type="submit">发送报价</button></div></form>'+
  '<p class="market-note" data-prospect-edit-hint hidden role="status">单价已改，请重新发送报价。</p><div data-prospect-terms>'+response(c)+
- '<dl class="prospect-sign-facts">'+(Number.isSafeInteger(q.netProfit)?fact(q.netProfit<0?'预计亏损':'预计净赚',cash(Math.abs(q.netProfit))):'')+
+ '<dl class="prospect-sign-facts">'+(Number.isSafeInteger(q.netProfit)?fact(q.netProfit<0?'预计亏损':'预计净利',cash(Math.abs(q.netProfit))):'')+
  (Number.isSafeInteger(q.deliveryDay)?(q.paymentDay===q.deliveryDay?fact('交货并收款',day(q.deliveryDay)):fact('交货',day(q.deliveryDay))+fact('收款',day(q.paymentDay))):'')+'</dl>'+
  (reason?'<p class="market-warning" role="status">'+esc(reason)+'</p>':'')+
- (q.netProfit<0?'<p class="market-warning">按这个价签，扣完货款、运费和日常开支会亏 '+esc(cash(-q.netProfit))+'。</p>':'')+
- '<details class="prospect-disclosure"><summary>收支明细</summary><dl class="market-facts">'+fact('总货款',cash(q.revenue))+fact('签约收定金',cash(q.deposit))+fact(q.paymentDay===q.deliveryDay?'验收当日收款':'到期收尾款',cash(q.balanceDue))+fact(source==='warehouse'?'库存成本（已付）':'付给货源',cash(q.goodsCost))+fact('这批运费',cash(q.freight))+fact('回款前日常开支',cash(q.operatingCost))+fact('至少要备的周转金',cash(q.cashRequired))+fact('签后手头现金',cash(q.cashAfterSigning))+fact('收齐后的本单净利',cash(q.netProfit))+fact('收齐后的可用资金',cash(q.cashAfterPayment))+'</dl></details>'+
- (asked&&q.valid?'<p class="market-note">'+(source==='warehouse'?'签约后安排出库。':'签约时支付采购款和运费。')+'</p><button type="button" class="primary" data-prospect-sign>'+(source==='warehouse'?'签约并安排出库':'签约采购')+'</button>':!asked?'<p class="prospect-sign-wait">客户接受报价后才能签约。</p>':'')+
- '</div>'+
+ '<details class="prospect-disclosure"><summary>收支明细</summary><dl class="market-facts">'+fact('总货款',cash(q.revenue))+ (q.deposit>0?fact('签约收定金',cash(q.deposit))+fact(q.paymentDay===q.deliveryDay?'验收当日收尾款':'到期收尾款',cash(q.balanceDue)):'')+fact(source==='warehouse'?'库存成本（已付）':'付给货源',cash(q.goodsCost))+ (q.freight>0?fact('这批运费',cash(q.freight)):'')+(q.operatingCost>0?fact('回款前日常开支',cash(q.operatingCost)):'')+fact('至少要备的周转金',cash(q.cashRequired))+fact('签后手头现金',cash(q.cashAfterSigning))+fact('收齐后的可用资金',cash(q.cashAfterPayment))+'</dl></details>'+
+ (!asked?'<p class="prospect-sign-wait">客户接受报价后才能签约。</p>':'')+
+ '</div><div class="prospect-contract-actions"><button type="button" class="prospect-dismiss-button" data-prospect-dismiss>不接这单</button>'+
+ '<button type="button" class="primary" data-prospect-sign'+(asked&&q.valid?'':' disabled')+'>'+(source==='warehouse'?'签约并安排出库':'签约采购')+'</button></div>'+
  '</section>';
 }
 export function prospectInboxView(state,ui={}) {
@@ -214,10 +215,11 @@ export function bindProspectInbox(root,state,ui,rerender,dispatch,options) {
   ui.prospectPrice=input.value===''?'':Number(input.value);ui.prospectAsked=null;
   const terms=root.querySelector('[data-prospect-terms]'),hint=root.querySelector('[data-prospect-edit-hint]'),sign=root.querySelector('[data-prospect-sign]');
   if(terms)terms.hidden=true;if(hint)hint.hidden=false;if(sign)sign.disabled=true;
+  const badge=root.querySelector('[data-prospect-quote-status]');if(badge)badge.textContent='待报价';
  });
  root.querySelector('[data-prospect-form]')?.addEventListener('submit',e=>{
   e.preventDefault();if(!input||!Number.isSafeInteger(Number(input.value))||Number(input.value)<1||Number(input.value)>100000)return;
-  ui.prospectPrice=Number(input.value);const c=draftContext(state,ui);if(c)change({prospectAsked:JSON.stringify(c.draft)},'#prospect-unit-price');
+  ui.prospectPrice=Number(input.value);const c=draftContext(state,ui);if(c)change({prospectAsked:JSON.stringify(c.draft)},'[data-prospect-reply]');
  });
  root.querySelector('[data-prospect-dismiss]')?.addEventListener('click',()=>{
   const c=draftContext(state,ui);if(!c)return;

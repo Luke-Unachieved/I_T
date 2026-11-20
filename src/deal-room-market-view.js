@@ -115,14 +115,13 @@ function quoteView(state,ui,d){
   </section><section class="market-trade-price" aria-label="报价与周转">
    <form data-market-quote-form><label for="market-unit-price">报单价（元/${esc(p.unit)}）</label><div class="market-price-row"><input id="market-unit-price" name="price" type="number" min="1" max="100000" step="1" inputmode="numeric" value="${esc(d.unitPrice)}" required><button type="submit">发送报价</button></div></form>
    <p class="market-note" data-market-edit-hint role="status" hidden>单价已改。重新报价后，会按新价格核对费用。</p><div data-market-terms>
-   ${response||'<p class="market-note">报价不扣钱。更改数量、货源或价格后，需要重新报价。</p>'}
-   <dl class="market-facts market-trade-totals">${fact('合同货款',money(q.revenue))}${fact('至少需要周转金',money(q.cashRequired))}${fact('预计净利',money(q.netProfit))}</dl>
-   ${Number.isSafeInteger(q.deliveryDay)?`<p class="market-trade-dates"><span><strong>第 ${q.deliveryDay} 天</strong>交货</span><span><strong>第 ${q.paymentDay} 天</strong>收齐货款</span></p>`:''}
-   <details class="market-trade-detail"><summary>采购、收款与费用明细</summary><dl class="market-facts">${fact(d.source==='warehouse'?'库存成本（已付）':'采购货款',money(q.goodsCost))}${fact('运输费用',money(q.freight))}${fact('买方定金',money(q.deposit))}${fact('到收齐的日常开支',money(q.operatingCost))}${fact('签约后现金',money(q.cashAfterSigning))}${fact('最终剩余现金',money(q.cashAfterPayment))}</dl></details>
-   ${q.valid&&q.netProfit<0?`<p class="market-warning">扣完采购、运费和日费，本单亏损 ${money(-q.netProfit)}。可以提高单价再谈。</p>`:''}
+   ${response}
+   <dl class="market-facts market-trade-totals">${fact('合同货款',money(q.revenue))}${fact('至少需要周转金',money(q.cashRequired))}${fact(q.netProfit<0?'预计亏损':'预计净利',money(Number.isSafeInteger(q.netProfit)?Math.abs(q.netProfit):null))}</dl>
+   ${Number.isSafeInteger(q.deliveryDay)?`<p class="market-trade-dates"><span><strong>第 ${q.deliveryDay} 天</strong>${q.paymentDay===q.deliveryDay?'交货并收款':'交货'}</span>${q.paymentDay===q.deliveryDay?'':`<span><strong>第 ${q.paymentDay} 天</strong>收款</span>`}</p>`:''}
+   <details class="market-trade-detail"><summary>采购、收款与费用明细</summary><dl class="market-facts">${fact(d.source==='warehouse'?'库存成本（已付）':'采购货款',money(q.goodsCost))}${q.freight>0?fact('运输费用',money(q.freight)):''}${q.deposit>0?fact('买方定金',money(q.deposit))+fact(q.paymentDay===q.deliveryDay?'验收当日收尾款':'到期收尾款',money(q.balanceDue)):''}${q.operatingCost>0?fact('回款前日常开支',money(q.operatingCost)):''}${fact('签约后现金',money(q.cashAfterSigning))}${fact('最终剩余现金',money(q.cashAfterPayment))}</dl></details>
    ${q.reason&&!(finite&&d.unitPrice>o.maxUnitPrice)?`<p class="market-warning" role="status">${esc(q.reason)}</p>`:''}
-   <button type="button" class="primary" data-market-sign ${q.valid&&quoted?'':'disabled'}>确认签约</button>
-  </div></section></div></section>`;
+  </div><button type="button" class="primary" data-market-sign ${q.valid&&quoted?'':'disabled'}>确认签约</button>
+  </section></div></section>`;
 }
 export function marketAdviserQuote(state,ui={}){
  if(state.phase!=='market'||state.market?.status!=='draft')return null;

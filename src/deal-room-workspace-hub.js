@@ -3,6 +3,7 @@ import {propertyHoldings,PROPERTY_CATALOG} from './deal-room-property.js';
 import {openingCurationOffers,curationOffers,reduceDealRoom} from './deal-room-engine.js';
 import {propertySceneArt,propertyCatalogueArt} from './deal-room-property-art.js';
 import {promotionView,bindPromotion} from './deal-room-promotion-view.js';
+import {promotionStatus} from './deal-room-promotion.js';
 import {previewWorkspaceSleep} from './deal-room-workspace-sleep.js';
 import {cooperationChapter} from './deal-room-cooperation.js';
 import {tradingChapter} from './deal-room-trading-chapter.js';
@@ -75,8 +76,9 @@ export function workspaceHubView(state,tab,lifeEnabled,sleepOpen=false,promotion
  ].join(''):'';
  const recap=recapRows?'<section class="ws-hub-card"><h3>已做成的合作</h3>'+recapRows+'</section>':'';
  const q=previewWorkspaceSleep(state);
- const confirm=sleepOpen&&q.valid?'<section class="ws-hub-card" aria-label="睡前确认"><h3>睡前看一眼</h3>'+(q.pending.length?'<ul>'+q.pending.map(x=>'<li>'+wsEsc(x)+'</li>').join('')+'</ul>':'')+'<p>工作室开支 ¥'+q.cost+'，确认后进入第 '+q.nextDay+' 天。</p><button type="button" data-workspace-sleep-confirm>进入第 '+q.nextDay+' 天</button><button type="button" data-workspace-sleep-cancel>先不睡</button></section>':'';
- const promotion='<details class="ws-hub-promotion" data-hub-promotion'+(promotionUI.hubPromotionOpen||promotionUI.promotionChannel?' open':'')+'><summary class="ws-hub-row">'+hubIcon('promo')+hubLabel('推广获客','选择推广渠道')+'</summary><div class="ws-hub-promotion-body">'+promotionView(state,promotionUI)+'</div></details>';
+ const confirm=sleepOpen&&q.valid?'<section id="workspace-sleep-confirmation" class="ws-hub-card" aria-labelledby="workspace-sleep-title"><h3 id="workspace-sleep-title" tabindex="-1">睡前看一眼</h3>'+(q.pending.length?'<ul>'+q.pending.map(x=>'<li>'+wsEsc(x)+'</li>').join('')+'</ul>':'')+'<p>工作室开支 ¥'+q.cost+'，确认后进入第 '+q.nextDay+' 天。</p><button type="button" data-workspace-sleep-confirm>进入第 '+q.nextDay+' 天</button><button type="button" data-workspace-sleep-cancel>先不睡</button></section>':'';
+ const pendingPromotion=dev?promotionStatus(state)?.pending:null;
+ const promotion='<details class="ws-hub-promotion" data-hub-promotion'+(promotionUI.hubPromotionOpen||promotionUI.promotionChannel?' open':'')+'><summary class="ws-hub-row">'+hubIcon('promo')+hubLabel('推广获客',pendingPromotion?'等第 '+pendingPromotion.replyDay+' 天回信':'选择推广渠道')+'</summary><div class="ws-hub-promotion-body">'+promotionView(state,promotionUI)+'</div></details>';
  const office='<button type="button" class="ws-hub-row ws-hub-office" data-property-enter="office"><img alt="" src="'+propertyCatalogueArt('office-window')+'">'+hubLabel('挑间办公室','看房间和价格 · ¥'+Math.min(...PROPERTY_CATALOG.filter(x=>x.kind==='office'&&Number.isSafeInteger(x.price)).map(x=>x.price)).toLocaleString('zh-CN')+' 起')+'</button>';
  // The original starter room is recovered from the uninterrupted original in-game scene crop.
  const roomArt=home?.id&&home.id!=='home-starter'?propertySceneArt(home.id):'assets/deal-afterwork-original-room.webp';
@@ -86,7 +88,7 @@ export function workspaceHubView(state,tab,lifeEnabled,sleepOpen=false,promotion
  hubRow('data-property-enter="car"',carTitle,'car')+
  hubRow('data-workspace-outing="trips"','旅行','trips')+
  hubRow('data-workspace-outing="friends"','约朋友','friends')+'</nav>';
- const day=q.valid?'<button type="button" class="ws-hub-row ws-hub-night" data-workspace-sleep>'+hubLabel('睡到明天')+'</button>':
+ const day=q.valid?'<button type="button" class="ws-hub-row ws-hub-night" data-workspace-sleep aria-expanded="'+String(sleepOpen)+'"'+(sleepOpen?' aria-controls="workspace-sleep-confirmation"':'')+'>'+hubLabel('睡到明天')+'</button>':
  q.nextStep?'<button type="button" class="ws-hub-row ws-hub-night" data-workspace-continue data-workspace-open="'+wsEsc(q.nextStep.tab)+'">'+hubLabel(q.nextStep.label,q.reason)+'</button>':
  '<section class="ws-hub-card ws-hub-night" aria-label="休息"><p>'+wsEsc(q.reason)+'</p></section>';
  return '<section class="ws-office ws-hub ws-original-hub '+(dev?'ws-original-growth':'ws-original-evening')+'">'+
@@ -98,9 +100,14 @@ export function bindWorkspaceHub(root,{onHome,onOuting,onProperty,onSleep,onSlee
   const panel=root.querySelector('[data-hub-promotion]');
   panel?.addEventListener('toggle',()=>{promotion.ui.hubPromotionOpen=panel.open;});
  }
- root.querySelector('[data-workspace-sleep]')?.addEventListener('click',onSleep);
+ const revealFocus=selector=>{
+  const el=root.querySelector(selector);
+  el?.focus?.({preventScroll:true});
+  el?.scrollIntoView?.({block:'nearest'});
+ };
+ root.querySelector('[data-workspace-sleep]')?.addEventListener('click',()=>{onSleep?.();revealFocus('#workspace-sleep-title');});
  root.querySelector('[data-workspace-sleep-confirm]')?.addEventListener('click',onSleepConfirm);
- root.querySelector('[data-workspace-sleep-cancel]')?.addEventListener('click',onSleepCancel);
+ root.querySelector('[data-workspace-sleep-cancel]')?.addEventListener('click',()=>{onSleepCancel?.();revealFocus('[data-workspace-sleep]');});
  root.querySelectorAll('[data-growth-referral]').forEach(b=>b.addEventListener('click',()=>onReferral?.(b.dataset.growthReferral,b.dataset.growthFirst==='true')));
  root.querySelectorAll('[data-growth-account]').forEach(b=>b.addEventListener('click',()=>onAccountCase?.(b.dataset.growthAccount)));
  root.querySelector('[data-growth-account-expansion]')?.addEventListener('click',()=>onAccountExpansion?.());

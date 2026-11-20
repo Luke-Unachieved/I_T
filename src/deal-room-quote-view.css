@@ -246,6 +246,7 @@
 /* Opening quotes use inherited light text, not the retired paper palette. */
 #deal-room > .business.ws-opening-inquiry .quote-commitment :is(.counter,.quote-blocked){background:#32261d;color:#f5e5cf;border-color:#bb8b5f}
 #deal-room > .business.ws-opening-inquiry .sample-proposal .terms button[aria-pressed="false"]{background:#312a20;color:#efe1ca;border-color:#78684f}
+#deal-room > .business.ws-opening-inquiry .sample-proposal .terms button[aria-pressed="true"]{background:#4a3924;color:#fff1cb;border-color:#c4a56b}
 
 /* Northline contracts and the first series choice use the same workspace
    surface as adjacent quotes; bespoke receipt and status colors stay local. */
@@ -269,9 +270,9 @@
 
 /* A single colored surface per source; status and reason remain readable as text. */
 #deal-room .prospect-panel [data-prospect-source]:not([data-prospect-source="warehouse"]){
- padding:.7rem .6rem;gap:.22rem;background:#263d2f;color:#f5eddb;border-color:transparent;box-shadow:none;
+ padding:.7rem .6rem;gap:.22rem;background:#28231e;color:#f5eddb;border-color:transparent;box-shadow:none;
 }
-#deal-room .prospect-panel [data-prospect-source]:not([data-prospect-source="warehouse"])[aria-pressed="true"]:not(:disabled){background:#335841}
+#deal-room .prospect-panel [data-prospect-source]:not([data-prospect-source="warehouse"])[aria-pressed="true"]:not(:disabled){background:#453722}
 #deal-room .prospect-panel [data-prospect-source]:not([data-prospect-source="warehouse"]):disabled{background:#4b302c;color:#f3e4da}
 #deal-room .prospect-panel [data-prospect-source]:not([data-prospect-source="warehouse"]) small{color:inherit;line-height:1.35}
 #deal-room .prospect-panel [data-prospect-source] .prospect-delivery-tag{background:none;color:inherit;padding:0;line-height:1.4}
@@ -326,9 +327,9 @@
  }
  #deal-room .market-quote.prospect-panel fieldset:has(>[data-prospect-source]){gap:.65rem;margin-top:1rem}
  #deal-room .market-quote.prospect-panel [data-prospect-source]:not([data-prospect-source="warehouse"]){
-  border:0;border-radius:22px 22px 16px 16px;padding:.9rem .72rem .75rem;gap:.3rem;background:#263e34
+  border:0;border-radius:22px 22px 16px 16px;padding:.9rem .72rem .75rem;gap:.3rem;background:#28231e
  }
- #deal-room .market-quote.prospect-panel [data-prospect-source]:not([data-prospect-source="warehouse"])[aria-pressed="true"]:not(:disabled){background:#305646}
+ #deal-room .market-quote.prospect-panel [data-prospect-source]:not([data-prospect-source="warehouse"])[aria-pressed="true"]:not(:disabled){background:#453722;box-shadow:inset 0 0 0 1px #a48350}
  #deal-room .market-quote.prospect-panel [data-prospect-source]:not([data-prospect-source="warehouse"]):disabled{background:#49322f}
  #deal-room .market-quote.prospect-panel .prospect-source-name{padding-bottom:.45rem}
  #deal-room .market-quote.prospect-panel [data-prospect-source] .prospect-source-total{
@@ -376,3 +377,35 @@
  color:#f1e8dc;background:#34302a;border-radius:3px 16px 16px 16px;overflow-wrap:anywhere
 }
 #deal-room .market-quote.prospect-panel .prospect-chat-line small{display:block;color:#cbbb9b;margin-top:.35rem}
+
+/* Opening inquiry: the buyer speaks once; the selected contract repeats no thumbnail data. */
+#deal-room > .business.ws-opening-inquiry .opening-quote-chat{
+ margin:.65rem 0;padding:.65rem .8rem;background:#2c271f;border-radius:10px 10px 10px 2px;color:#eee4d1;
+}
+#deal-room > .business.ws-opening-inquiry .opening-quote-chat strong{font-size:.79rem;color:#d8bf91}
+#deal-room > .business.ws-opening-inquiry .opening-quote-chat p{margin:.15rem 0 0;line-height:1.55}
+#deal-room > .business.ws-opening-inquiry .sample-proposal.opening-selection{margin:.48rem 0 .75rem;padding:.48rem 0 0;border-bottom:0}
+#deal-room > .business.ws-opening-inquiry .opening-selection-note{margin:0 0 .4rem}
+#deal-room > .business.ws-opening-inquiry .opening-quote-facts{display:grid;gap:.3rem;margin:0 0 .68rem}
+#deal-room > .business.ws-opening-inquiry .opening-quote-facts>div{display:grid;grid-template-columns:minmax(4.3em,auto) minmax(0,1fr);gap:.4rem}
+#deal-room > .business.ws-opening-inquiry .opening-quote-facts dt{color:var(--ws-secondary)}
+#deal-room > .business.ws-opening-inquiry .opening-quote-facts dd{margin:0;color:var(--ws-type);font-weight:600}
+#deal-room > .business.ws-opening-inquiry .quote-commitment .quote-now{margin:.55rem 0}
+#deal-room > .business.ws-opening-inquiry:has(.opening-option-card) .opening-quote-confirmed{display:none}
+#deal-room > .business.ws-opening-inquiry:has(.opening-option-card > button[aria-pressed="true"] [data-quote-profit]) .quote-commitment > .quote-profit{display:none}
+#deal-room > .business.ws-opening-inquiry .opening-quote-context>summary{
+ color:var(--ws-mark);padding:7px 0;cursor:pointer;
+}
+
+/* Keep refusal and guarded signature visible even while an outdated quote is hidden. */
+#deal-room .prospect-panel .prospect-contract-actions{
+ display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:.55rem;
+ margin-top:.85rem;padding-top:.85rem;border-top:1px solid var(--ws-rule,#51463b);
+}
+#deal-room .prospect-panel .prospect-contract-actions>button{
+ width:100%;min-width:0;min-height:44px;justify-content:center;align-items:center;
+ margin:0;padding:.55rem .4rem;line-height:1.25;text-align:center;overflow-wrap:anywhere;
+}
+#deal-room .prospect-panel .prospect-contract-actions>[data-prospect-sign]:disabled{
+ background:#32302d;border:1px solid #615b51;color:#c0b8aa;opacity:1;
+}
