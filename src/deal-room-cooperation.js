@@ -93,7 +93,11 @@ export function cooperationChapter(state){
  result.step=stores===3?'已确认版本已经铺到三店，下一步可谈余下三店；首批合同保持不变。':'把 Northline 已确认的版本带到门店，继续同一份合作。';
  if(home&&stores===3&&canExpandAccount(state))result.nextAction=next('OPEN_ACCOUNT_EXPANSION','沿原版本谈余下三店');
  else if(home&&!state.accountHistory?.length&&accountCollectionBasis(state))result.nextAction=next('START_ACCOUNT_FROM_COLLECTION','用已确认版本谈门店采购');
- else if(state.phase==='account'&&state.account?.status==='fulfilling'&&state.account.seriesSource)result.nextAction=next(state.account.expansion?'FULFIL_ACCOUNT_EXPANSION':'FULFIL_ACCOUNT','完成已签门店交付');
+ else if(state.phase==='account'&&state.account?.seriesSource){
+  const a=state.account;
+  if(a.status==='fulfilling'&&state.day===a.deliveryDay)result.nextAction=next('DELIVER_ACCOUNT_V1','确认门店交付');
+  if(a.status==='receivable'&&state.day===a.paymentDay)result.nextAction=next('COLLECT_ACCOUNT_V1','收取门店尾款');
+ }
  else if(state.accountHistory?.length&&!stores){
   result.step=handed?'专用系列与上市陈列已交接。此前铺店的通用商品单独记账，不混作同一批货。':'已铺店的是通用商品；这份专用系列可向原买方交接陈列，不重新采购。';
   if(home&&launch?.buyerId===buyerId)result.nextAction=next('OPEN_LAUNCH_PROJECT',handed?'回看已交接的陈列':'和原买方完成上市交接');

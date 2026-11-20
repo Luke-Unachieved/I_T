@@ -56,18 +56,19 @@
 /* Office opening: preserve the actual desk and window around the character. */
 #deal-room .ws-first-choose{position:absolute;inset:auto 0 0;z-index:2;display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;justify-content:center;padding:.65rem;background:#201c17ed;color:#f8ead1}
 #deal-room .ws-first-choose p{margin:0}
-#deal-room .ws-first-intro{position:absolute;inset:0;isolation:isolate;display:grid;justify-items:center;align-items:end;background:linear-gradient(0deg,#251e16b5,transparent 62%)}
+#deal-room .ws-first-intro{position:absolute;inset:0;isolation:isolate;display:grid;grid-template-columns:minmax(0,1fr);justify-items:center;align-items:end;background:linear-gradient(0deg,#251e16b5,transparent 62%)}
 #deal-room .ws-intro-enter{position:absolute;inset:0;display:grid;align-items:end;justify-items:center;pointer-events:none}
 #deal-room .ws-intro-breathe{display:grid;place-items:center;transform-origin:center 95%;width:min(56%,21rem);height:100%}
 #deal-room .ws-intro-person{display:block;width:100%;height:100%;min-height:0;object-fit:contain;object-position:center 80%}
 #deal-room .ws-intro-portrait{display:block;width:min(78%,13rem);aspect-ratio:272/309;background-image:url('../assets/deal-advisers-recovered.webp');background-size:400% 100%;border-radius:.6rem;border:1px solid #c3a063}
-#deal-room .ws-intro-dialogue{z-index:1;margin:.6rem;max-width:34rem;padding:.65rem .75rem;border-radius:.65rem;border:1px solid #a18855;background:#242018f5;color:#f8ead1;font-size:.96rem}
+#deal-room .ws-intro-dialogue{z-index:1;box-sizing:border-box;width:min(calc(100% - 1.2rem),34rem);min-width:0;margin:.6rem;padding:.65rem .75rem;overflow-wrap:anywhere;border-radius:.65rem;border:1px solid #a18855;background:#242018f5;color:#f8ead1;font-size:.96rem}
 #deal-room .ws-intro-dialogue strong{color:#efce91}
 #deal-room .ws-intro-dialogue p{margin:.2rem 0 .5rem;line-height:1.38}
 #deal-room .ws-intro-dialogue div{display:flex;gap:.5rem;flex-wrap:wrap}
 #deal-room :is(.ws-first-choose,.ws-intro-dialogue) button{min-height:42px;padding:.4rem .65rem;border-radius:.4rem;border:1px solid #b89558;background:#614c2f;color:#fff5e0;font-weight:650}
 #deal-room :is(.ws-first-choose,.ws-intro-dialogue) [data-workspace-intro="skip"]{background:#2d281f;color:#e3d6bd}
 #deal-room .ws-desk:has(.ws-first-intro){min-height:25rem}
+@media(max-width:759px){#deal-room .ws-original-office .ws-tabletop>.ws-desk:has(.ws-first-intro){width:100%;max-width:100%}}
 @media(max-width:620px){#deal-room .ws-desk:has(.ws-first-intro){min-height:22rem}#deal-room .ws-intro-breathe{width:min(70%,16rem)}}
 @media(prefers-reduced-motion:no-preference){
  html:not(.reduce-motion) #deal-room .ws-intro-enter{animation:ws-intro-arrive .55s ease-out both}
@@ -81,3 +82,8 @@
  html:not(.reduce-motion) #deal-room .ws-original-note .ws-note-face{transform-origin:center 95%;animation:ws-adviser-breathe 6.5s ease-in-out infinite}
  html:not(.reduce-motion) #deal-room .ws-original-note .ws-note-face.ws-note-react{animation:ws-adviser-note .48s ease-out both,ws-adviser-breathe 6.5s .48s ease-in-out infinite}
 }
+
+/* The opening signed-order card shares .business with paper views; only the
+   opening fulfillment timeline needs the dark workspace surface here. */
+#deal-room .business:has(>.fulfil-track){background:#201d18;color:var(--ws-type);border-color:var(--ws-rule)}
+#deal-room .business:has(>.fulfil-track) :is(.client-head small,.payer,.fulfil-track span,.muted){color:var(--ws-secondary)}

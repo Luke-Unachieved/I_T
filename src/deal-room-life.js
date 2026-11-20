@@ -1,5 +1,7 @@
 /** Optional personal consumption. The core reducer owns action journaling.
  * No business buffs, automatic maintenance fees, refunds, time skips or storage. */
+import {workspaceProgressCue} from './deal-room-workspace-sleep.js';
+
 export const LIFE_ACTION_KEYS = Object.freeze({PLANT_BALCONY:['type','itemId','plant'],HARVEST_BALCONY:['type','itemId'],BREW_BALCONY_TEA:['type','itemId'],BUY_LIFE_ITEM:['type','itemId'],ARRANGE_LIFE_ITEM:['type','itemId','position'],READ_LIFE_BOOK:['type','itemId','page'],SELECT_LIFE_RECORD:['type','itemId','track']});
 export const LIFE_ITEMS = Object.freeze([
  Object.freeze({id:'chair',name:'靠窗的阅读椅',price:800,detail:'把折叠椅换成宽一点的扶手椅，给自己留个读书角。',verb:'坐下来读一页'}),
@@ -28,8 +30,9 @@ export function lifePurchasePreview(state,id){
  const needsChair=['books','readinglamp'].includes(id)&&!state?.personalLife?.purchases?.some(p=>p.itemId==='chair');
  const needsRecord=id==='records'&&!state?.personalLife?.purchases?.some(p=>p.itemId==='record');
  const needsHome=id==='balcony'&&!balconyOpen(state);
- const valid=!needsHome&&!needsBasis&&!needsRecord&&!needsChair&&!!item&&lifeAvailable(state)&&!owned&&Number.isSafeInteger(state.cash)&&state.cash>=item.price;
- return {item,owned,valid,cashAfter:item?state.cash-item.price:state.cash,reason:!item?'没有这件物品':owned?'已在家里':needsHome?'先布置一件自己的家具，并结清一笔熟客复购':needsBasis?'先让 Mira 实际采用这款调光灯并结清货款':needsChair?'先给阅读角添一把椅子':needsRecord?'先给家里添一台唱片机':!lifeAvailable(state)?'先把当前合作处理完，再回家看看':state.cash<item.price?'手头的钱还不够':''};
+ const available=lifeAvailable(state),valid=!needsHome&&!needsBasis&&!needsRecord&&!needsChair&&!!item&&available&&!owned&&Number.isSafeInteger(state.cash)&&state.cash>=item.price;
+ const gate=!available&&item&&!owned&&!needsHome&&!needsBasis&&!needsRecord&&!needsChair?workspaceProgressCue(state):null;
+ return {item,owned,valid,cashAfter:item?state.cash-item.price:state.cash,reason:!item?'没有这件物品':owned?'已在家里':needsHome?'先布置一件自己的家具，并结清一笔熟客复购':needsBasis?'先让 Mira 实际采用这款调光灯并结清货款':needsChair?'先给阅读角添一把椅子':needsRecord?'先给家里添一台唱片机':gate?gate.reason:state.cash<item.price?'手头的钱还不够':'',...(gate?.tab?{nextStep:{tab:gate.tab,label:gate.label}}:{})};
 }
 export function canonicalLifeAction(a){
  if(!a||typeof a!=='object'||Array.isArray(a)||!Object.hasOwn(LIFE_ACTION_KEYS,a.type)||!itemFor(a.itemId))return null;

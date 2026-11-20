@@ -8,8 +8,14 @@ export function selectedSample(option){return option==='ready'?'plain':['branded
 const productAtlas='assets/deal-products-v1.webp';
 export function sampleSvg(kind,custom=false){
  const index=kind==='lamp'?0:kind==='cup'?1:2;
- const box=kind==='cup'&&custom?'<g class="sample-box"><path d="M112 46l50 13v102l-50-13z" fill="#a67e52"/><path d="M69 62l43-16v102l-43 17z" fill="#d9c49a"/><path d="M87 55l17-6v102l-17 7z" fill="#406052"/></g>':'';
+ const box=kind==='cup'&&custom?'<image class="sample-box" href="assets/deal-work-sample-carton.webp" x="78" y="43" width="104" height="119" preserveAspectRatio="xMaxYMid meet"/>':'';
  return `<svg viewBox="0 0 200 190" aria-hidden="true">${box}<g ${kind==='cup'&&custom?'transform="translate(-10 8) scale(.92)"':''}><svg class="sample-crop" x="0" y="0" width="200" height="190" viewBox="0 0 200 190" style="overflow:hidden;width:200px;height:190px"><image href="${productAtlas}" x="${-index*200}" y="0" width="600" height="200"/></svg></g></svg>`;
+}
+
+export function cupPaperProofArt(side,label){
+ const src=side==='back'?'assets/deal-work-sleeve-back.webp':'assets/deal-work-sleeve-front.webp';
+ const aria=String(label).replace(/[&"<>]/g,c=>({'&':'&amp;','"':'&quot;','<':'&lt;','>':'&gt;'}[c]));
+ return `<svg viewBox="0 0 420 170" role="img" aria-label="${aria}"><image href="${src}" width="420" height="170"/></svg>`;
 }
 
 /** Visual only. The accepted studio sample follows the selected real Mira quote. */

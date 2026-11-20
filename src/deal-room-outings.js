@@ -18,13 +18,16 @@ const newBook=()=>({revision:0,spent:0,tripVisits:0,friendVisits:0,activeTrip:nu
 const bookOf=s=>s&&!Object.hasOwn(s,'afterWorkOutings')?newBook():s?.afterWorkOutings;
 const goodBook=b=>b&&uint(b.revision)&&uint(b.spent)&&uint(b.tripVisits)&&uint(b.friendVisits)&&Array.isArray(b.mementos)&&(!b.activeTrip||Array.isArray(b.activeTrip.seen));
 const bad=reason=>({valid:false,reason,action:null});
+const outingAfterWorkPhase=(s,phase)=>['review','complete'].includes(phase)||
+ (phase==='market'&&(s.market?.status==='draft'&&!s.market.active||
+  s.market?.status==='paid'&&s.market.active?.status==='paid'&&[undefined,'prospect','neighborhood'].includes(s.market.active.kind)));
 function outingBlock(s){
  if(!s||!Number.isSafeInteger(s.day)||s.day<1||!uint(s.cash))return '当前日期或经营资金无效。';
  const b=bookOf(s);
  if(!goodBook(b)||!uint(b.revision+1))return '出游记录无效或已达上限。';
  if(b.activeTrip)return '旅程还没结束，可以先返回下班。';
- if(!['review','complete'].includes(s.phase))return '先把手上这段工作收好，再安排下班。';
  if(!Array.isArray(s.contracts)||!['mira','samir','ines'].every(id=>s.contracts.some(c=>c?.clientId===id&&c.status==='paid'&&!c.businessRound&&!c.projectId)))return '三位开场客户的首单都收齐后，就能下班出门。';
+ if(!outingAfterWorkPhase(s,s.phase))return '先把手上这段工作收好，再安排下班。';
  if(s.contracts.some(c=>!c||c.status!=='paid'))return '先处理尚未结清的合同。';
  return '';
 }
@@ -108,7 +111,7 @@ export function applyOutingAction(s,action,canStart=true){
   return n;
  }
  const active=prior.activeTrip;
- if(s.phase!=='outing-trip'||!active||active.tripId!==a.tripId||!['review','complete'].includes(active.returnPhase))return s;
+ if(s.phase!=='outing-trip'||!active||active.tripId!==a.tripId||!outingAfterWorkPhase(s,active.returnPhase))return s;
  if(a.type==='INTERACT_OUTING_TRIP'&&active.seen.includes(a.sceneId))return s;
  const n=structuredClone(s),b=n.afterWorkOutings;b.revision++;
  if(a.type==='INTERACT_OUTING_TRIP'){

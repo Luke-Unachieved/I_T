@@ -125,8 +125,16 @@
 
 /* Crop the same individual portraits to headshots in compact UI; the
    character picker and office illustration keep their wider compositions. */
-#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech) .adviser-face{border-radius:50%;background-size:950% auto;box-shadow:inset 0 0 0 1px #ceaf7360;outline:1px solid #6e5a3b;outline-offset:1px}
-#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech) .adviser-fang{background-position:8.6% 2%}
-#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech) .adviser-liang{background-position:35.5% 10%}
-#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech) .adviser-tao{background-position:63.7% 5%}
-#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech) .adviser-xu{background-position:92% 4%}
+#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech,.ws-order-tip) .adviser-face{border-radius:50%;background-size:950% auto;box-shadow:inset 0 0 0 1px #ceaf7360;outline:1px solid #6e5a3b;outline-offset:1px}
+#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech,.ws-order-tip) .adviser-fang{background-position:8.6% 2%}
+#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech,.ws-order-tip) .adviser-liang{background-position:35.5% 10%}
+#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech,.ws-order-tip) .adviser-tao{background-position:63.7% 5%}
+#deal-room :is(.adviser-byline,.ws-mail-advice,.oo-speech,.ws-order-tip) .adviser-xu{background-position:92% 4%}
+
+/* A shared reading rhythm. Text and controls use the same Chinese font; money
+   is distinguished by alignment, not extra faces or decorative separators. */
+#deal-room{--ws-sans:"PingFang SC","Microsoft YaHei","Noto Sans CJK SC","Source Han Sans SC",system-ui,sans-serif;font-family:var(--ws-sans);font-optical-sizing:auto}
+#deal-room :is(button,input,select,textarea,summary){font-family:var(--ws-sans)}
+#deal-room :is(.ws-dedicated-inquiry,.market-modern,.ws-referral-business,.deep-exhibition-panel) :is(p,dd,blockquote,li){line-height:1.55;text-wrap:pretty}
+#deal-room :is(.ws-dedicated-inquiry,.market-modern,.ws-referral-business,.deep-exhibition-panel) :is(h2,h3){letter-spacing:normal;line-height:1.3;font-weight:720}
+#deal-room :is(.ws-dedicated-inquiry,.market-modern,.ws-referral-business) :is(dt,small){font-weight:450}

@@ -6,6 +6,8 @@ import {marketBook} from './deal-room-market.js';
 import {neighborhoodRequest} from './deal-room-neighborhood.js';
 import {prospectInbox} from './deal-room-prospects.js';
 import {previewPromotion} from './deal-room-promotion.js';
+import {warehouseAvailable,warehouseSummary} from './deal-room-warehouse.js';
+import {previewAccount} from './deal-room-account.js';
 import {equipmentOpportunity} from './deal-room-equipment.js';
 
 // Advisory text is projected from the current view. Navigating from a note only focuses a
@@ -38,7 +40,7 @@ function quoteNote(quote, state, target) {
   if (quote.accepted === false) return suggested('客户对这份条件还有顾虑，看看对方的要求，再换一份报价。', price, '查看买方要求');
   if (quote.netProfit < 0) return suggested(`按这份报价要亏 ${money(-quote.netProfit)}。确认前还能调整条件。`, facts, '核对成本');
   if (quote.kind === 'equipment') return suggested('采购、运费和验收费用都得留出来。往下看船期，再决定接不接。', desk?'equipment-route':target, '查看设备条款');
-  return suggested('先比采购和运费，再看交付和收款隔几天。价格由你来定。', price, '查看报价');
+  return suggested(desk?'先比采购和运费，再看从交货到回款要等几天。':'这几种方案垫的钱、回款的日子都不一样。先看看哪档周转得开。', price, '查看报价');
 }
 
 function inboxNote(state, atDesk) {
@@ -47,8 +49,8 @@ function inboxNote(state, atDesk) {
   const openDesk = '[data-action="OPEN_MARKET"]';
   if (project) return suggested(`${project.buyer}有一封${project.name}询价。先看看订舱和验收条款。`, atDesk ? '[data-equipment-open]' : openDesk, '查看设备来信');
   if (request) {
-    if (!state.neighborhoodRegistered) return suggested('四邻百货在找门店供货方。采购台收件箱里有林妍的登记邀请。', atDesk ? '[data-market-action="REGISTER_NEIGHBORHOOD"]' : openDesk, '查看联采登记');
-    return suggested(`林妍把 ${request.stores} 家店的清单发来了，先核对每店数量。`, atDesk ? '[data-neighborhood-product]' : openDesk, '查看林妍的来信');
+    if (!state.neighborhoodRegistered) return suggested('四邻百货在找门店供货方。到「商品与项目」看看林妍的联采登记。', atDesk ? '[data-market-action="REGISTER_NEIGHBORHOOD"]' : openDesk, '查看联采登记');
+    return suggested(`林妍把 ${request.stores} 家店的清单发来了，先核对每店数量。`, atDesk ? '[data-neighborhood-product]' : openDesk, '查看联采清单');
   }
   return null;
 }
@@ -72,13 +74,64 @@ export function adviserWorkspaceAdvice(s,ui={}){
  const person=ADVISERS.find(x=>x.id===ui.choice), note=person?workspaceNote(s,person):null;
  return note?.tab?[{title:note.label,tab:note.tab,text:note.text,ref:note.ref}]:[];
 }
+function accountNote(s,option){
+ const a=s.account;
+ if(a.status==='draft'){
+  const q=previewAccount(s,a.expansion?'remaining':option||'pilot');
+  if(q&&!q.valid&&q.requiredCash>s.cash)return suggested('算上回款前的开支，还差 '+money(q.requiredCash-s.cash)+'。先别签。','.account-order-section .offer','核对款项');
+  return a.expansion?suggested('前三家已结清。这次只给另外三家备货，先看看供什么货、要先垫多少钱。','.account-order-specs','核对两批商品'):
+   suggested('先核对定金和要垫的货款，再看尾款哪天到。只签眼前这一批。','.account-order-section','查看款项');
+ }
+ if(a.status==='paid')return {text:a.expansion?'尾款收齐了，六家店都收到货了。':'货款收齐了。要不要给另外三家店供货，回办公室再决定。'};
+ const delivered=a.status==='receivable', due=delivered?a.paymentDay:a.deliveryDay;
+ if(!['receivable','fulfilling'].includes(a.status)||!Number.isSafeInteger(due))return null;
+ if(s.day===due)return delivered?suggested('今天到收款日，核对 '+money(a.balanceDue)+' 尾款。','[data-action="COLLECT_ACCOUNT_V1"]','核对尾款'):
+  suggested('今天该交货。确认这一批送到门店，再等尾款。','[data-action="DELIVER_ACCOUNT_V1"]','查看交货安排');
+ return {text:delivered?'货已交了，第 '+due+' 天收尾款。':'第 '+due+' 天交货，到时候再来确认。'};
+}
+export function orderFooterAdvice(s,adviserId){
+ const person=ADVISERS.find(p=>p.id===adviserId);
+ if(!person)return '';
+ let text;
+ if(s.phase==='account'&&s.account){
+  const a=s.account;
+  if(a.status==='fulfilling')text=s.day===a.deliveryDay?'确认门店签收后，就可以等尾款了。':'等到交货日再确认，先不用动这单。';
+  if(a.status==='receivable')text=s.day===a.paymentDay?'这次只收尾款，签约时的定金已经到账。':'货已经送到，等收款日再来处理这单。';
+  if(a.status==='paid'&&!a.expansion)text='另外三家店的订单不用现在接，明天再决定也行。';
+ }else if((s.contracts||[]).some(o=>o.status==='fulfilling'))text='先看哪笔快到交货日，别让货压在手里。';
+ else if(['review','complete'].includes(s.phase))text='要对账的话，从「最近回款」能查到每笔实收。';
+ if(!text)return '';
+ return `<aside class="ws-order-tip" aria-label="${escape(person.name)}"><i class="adviser-face adviser-${person.id}" aria-hidden="true"></i><p>${escape(text)}</p></aside>`;
+}
+function warehouseNote(s){
+ const w=warehouseSummary(s);
+ if(!w.valid)return {text:'这次没能读到仓位，先回上一页，别照这张表备货。'};
+ if(w.inTransitBoxes)return suggested('还有 '+w.inTransitBoxes+' 箱在路上，最早第 '+w.nextArrivalDay+' 天到。没入仓，先别拿来给客户承诺现货。','[data-wh-rack] > summary','查看仓位');
+ if(w.onHandBoxes)return suggested('已入仓 '+w.onHandBoxes+' 箱。报价前先按商品核对，别把总箱数当作同一款的库存。','[data-wh-rack] > summary','查看仓位');
+ if(warehouseAvailable(s))return suggested('仓库还是空的。先看备货会占多少钱，不必为了填满仓位就订货。','[data-wh-order] > summary','看看备货条件');
+ return {text:'仓库还是空的。手上的订单结清后，再来考虑提前备货。'};
+}
+function developmentNote(s){
+ const promo=previewPromotion(s,'district');
+ if(promo.valid)return suggested('想找新客户，可以先比较推广版位和费用。先看条件，不用马上刊登。','[data-hub-promotion] > summary','比较推广版位');
+ return suggested('还不急着投推广。已合作的客户如果愿意引荐，可以先看看买手要什么。','.ws-leads > summary','查看客户机会');
+}
 function currentNote(state, context, person) {
+  if(context.place==='发展')return developmentNote(state);
+  if(context.place==='自有仓库')return warehouseNote(state);
+  if(context.place==='订单列表') {
+    if(context.orderList==='market')return suggested('手头这笔订单可以打开核对交期和款项。','[data-workspace-current-market-order]','找到订单详情');
+    if(context.orderList==='opening')return suggested('先核对约好的交付和回款日期。','[data-workspace-order-detail]','查看交货安排');
+    return suggested('想接下一单？可以去看看还有哪些商品和项目。','[data-workspace-products]','去商品与项目');
+  }
+  if(context.place==='业务'&&state.phase==='account'&&state.account){const note=accountNote(state,context.accountOption);if(note)return note;}
+
   if(context.place==='办公室'){const actionable=workspaceNote(state,person);if(actionable)return actionable;}
   if (context.place === '下班'||context.place === '住处') {
     const home=context.place==='住处',q=previewWorkspaceSleep(state);
-    if(!q.valid)return home?{text:q.reason}:suggested(q.reason,'[data-workspace-home]','先回家');
+    if(!q.valid)return q.nextStep?suggested(q.reason,'[data-workspace-continue]',q.nextStep.label):{text:q.reason};
     const text=q.pending.length?'还有询盘今天截止。「睡到明天」会先列给你看。':'想开始明天，就点「睡到明天」，先看今天的工作室开支。';
-    return suggested(text,home?'[data-home-sleep]':'[data-workspace-sleep]','去看睡觉入口');
+    return suggested(text,home?'[data-home-sleep]':'[data-workspace-sleep]','看看睡前安排');
   }
   if (context.place === '生活') return {text:'今天先歇一会儿。想添件东西时，看一下标价和手里的周转钱。'};
   if (context.place === '工作室布置') return {text:'先看布置和标价。确认购买后才会从工作室扣款。'};
@@ -100,7 +153,11 @@ function currentNote(state, context, person) {
     if (status === 'preparing') return suggested(`货已订好。第 ${active.shipDay} 天整批出运，先核对出运清单。`, '.market-active', '查看出运安排');
     if (status === 'transit') return suggested(`这批${active.productName}约在第 ${active.deliveryDay} 天交付。请按合同清单验收。`, '.market-active', '查看交货安排');
     if (status === 'receivable') return suggested(`货已验收，${money(active.balanceDue)} 尾款约在第 ${active.paymentDay} 天收。届时再入账。`, '[data-market-action="COLLECT_MARKET"]', '查看应收尾款');
-    if (status === 'paid') return suggested(`这笔 ${money(active.received)} 已收齐，可以回工作室了。`, '[data-market-action="CLOSE_MARKET"]', '查看返回入口');
+    if(status==='paid'&&active.kind==='prospect')return {text:`这笔 ${money(active.received)} 已收齐，账本上也记好了。`};
+    if (status === 'paid') {
+      const back=context.back==='orders'?'返回订单':'返回收件箱';
+      return suggested(`这笔 ${money(active.received)} 已收齐，可以${back}了。`, '[data-market-action="CLOSE_MARKET"]', back);
+    }
   }
   if (state.phase === 'negotiating') {
     if (context.quote && (state.history.length || !context.quote.valid)) return quoteNote(context.quote, state, '.business');
@@ -114,7 +171,7 @@ function currentNote(state, context, person) {
     return suggested('先看看哪位客户这次需要补货。', '.business','查看客户需求');
   }
   if (['review','complete'].includes(state.phase) && context.place === '工作室') return inboxNote(state,false) || suggested('手里这轮合同已经结清。可以看看采购台的新货，再决定接哪单。', '[data-action="OPEN_MARKET"]', '去找下一单');
-  return suggested('先看眼前这份约定，数量和付款日以单子为准。', '.business h2', '查看当前业务');
+  return suggested('先看眼前这份约定，数量和付款日以单子为准。', '.business h2', '看看手头的单子');
 }
 
 function equipmentCosts(q) {
@@ -131,8 +188,9 @@ export function adviserView(state, context, ui) {
   const band = person ? '换搭档' : '选助理';
   const controls = pick ? `<div class="adviser-options" role="group" aria-label="选择工作室搭档">${ADVISERS.map(p => `<button type="button" data-adviser-choice="${p.id}" aria-pressed="${ui.choice === p.id}"><i class="adviser-face adviser-${p.id}" aria-hidden="true"></i>${p.name}</button>`).join('')}<button type="button" data-adviser-choice="solo">先自己来</button></div>` : '';
   if (!person) return `<aside class="adviser-panel" aria-label="工作室搭档"><button class="quiet" type="button" data-adviser-picker aria-expanded="${pick}">${band}</button>${controls}</aside>`;
-  const note = currentNote(state, context, person);
-  return `<aside class="adviser-panel" aria-label="搭档便笺"><div class="adviser-byline"><i class="adviser-face adviser-${person.id}" aria-hidden="true"></i><strong>${person.name}</strong><button type="button" class="quiet" data-adviser-picker aria-expanded="${pick}">${band}</button></div>${controls}<p>${escape(note.text)}</p>${note.tab?`<button type="button" class="quiet" data-adviser-tab="${note.tab}"${note.ref==='promotion'?' data-adviser-ref="promotion"':''}>${note.label} →</button>`:note.target ? `<button type="button" class="quiet" data-adviser-focus="${escape(note.target)}">${note.label} →</button>` : ''}${equipmentCosts(context.quote)}</aside>`;
+  const minimal=context.place==='订单列表'||(context.orderFocus&&state.phase==='account'&&state.account?.status!=='draft');
+  const note = minimal?{}:currentNote(state, context, person);
+  return `<aside class="adviser-panel" aria-label="搭档便笺"><div class="adviser-byline"><i class="adviser-face adviser-${person.id}" aria-hidden="true"></i><strong>${person.name}</strong><button type="button" class="quiet" data-adviser-picker aria-expanded="${pick}">${band}</button></div>${controls}${context.compact||minimal?'':`<p>${escape(note.text)}</p>`}${note.tab?`<button type="button" class="quiet" data-adviser-tab="${note.tab}"${note.ref==='promotion'?' data-adviser-ref="promotion"':''}>${note.label} →</button>`:note.target ? `<button type="button" class="quiet" data-adviser-focus="${escape(note.target)}">${note.label} →</button>` : ''}${equipmentCosts(context.quote)}</aside>`;
 }
 // Resolve the nearest meaningful live control, never a paid action dispatch.
 const adviserTargets=Object.freeze({

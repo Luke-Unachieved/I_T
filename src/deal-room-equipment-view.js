@@ -13,17 +13,18 @@ const fact = (label, amount) => `<div><dt>${label}</dt><dd>${money(amount)}</dd>
 export function equipmentInvite(state) {
   const project = equipmentOpportunity(state);
   if (!project) return '';
-  return `<section class="market-repeat"><h3>设备项目来信</h3><button data-equipment-open="${project.id}">${project.buyer} · ${project.name} ${project.quantity} ${project.unit}，看项目报价 →</button></section>`;
+  return `<section class="market-repeat"><h3>设备项目来信</h3><button data-equipment-open="${project.id}"><strong>${project.name}（${project.quantity} ${project.unit}）</strong><small>${project.buyer}</small></button></section>`;
 }
 
-function projectSummary(project, status) {
+function projectSummary(project, status, draft = false) {
   const [productImage,portrait] = artwork[project.id];
   const manifest = project.consignees
     ? `<p><strong>收货清单</strong> ${project.consignees.map(factory => factory.name+' '+factory.quantity+' 条').join('、')}。</p>` : '';
-  return `<div class="market-sheet"><img class="equipment-product" src="${productImage}" alt="${project.name}"><div><small>${project.company} · 设备采购</small><h3 tabindex="-1" data-equipment-heading>${project.name} · ${project.quantity} ${project.unit}</h3><p>${project.brief}</p></div></div>
-    <div class="equipment-buyer">${portrait ? `<img src="${portrait}" width="64" height="64" alt="${project.buyer}">` : ''}<p><strong>${project.buyer}</strong><br>“${project.dialogue[status]}”</p></div>
-    <p><strong>供货与出运</strong> ${project.supplier}。 ${project.shipping}</p>${manifest}
-    <p class="market-inspection"><strong>验收约定</strong> ${project.inspection}</p>`;
+  const heading=draft?'h2':'h3';
+  return `<div class="market-sheet${draft?' market-trade-hero':''}"><img class="equipment-product" src="${productImage}" alt="${project.name}"><div><small>${project.company}</small><${heading} tabindex="-1" data-equipment-heading>${project.name}（${project.quantity} ${project.unit}）</${heading}>${draft?'':`<p>${project.brief}</p>`}</div></div>
+    <section aria-label="客户留言"><div class="equipment-buyer">${portrait ? `<img src="${portrait}" width="64" height="64" alt="${project.buyer}">` : ''}<p><strong>${project.buyer}</strong><br>“${project.dialogue[status]}”</p></div></section>
+    ${draft?'<details class="market-trade-detail"><summary>供货、清单与验收约定</summary>':''}<p><strong>供货与装船</strong> ${project.supplier}。${project.shipping}</p>${manifest}
+    <p class="market-inspection"><strong>验收约定</strong> ${project.inspection}</p>${draft?'</details>':''}`;
 }
 
 function costs(q) {
@@ -36,19 +37,44 @@ export function equipmentReceiptCosts(q) {
     (q.stationPaid ? fact('已付场站费',q.stationPaid) : '') + (q.rebookPaid ? fact('已付改订费',q.rebookPaid) : '') + fact('项目直接成本',q.cost);
 }
 
+export function equipmentQuoteMilestones(ship,arrival,pay,{fixed=false}={}) {
+ if(![ship,arrival,pay].every(Number.isSafeInteger))return '';
+ return `<ol class="market-milestones" aria-label="${fixed?'锁定船期':'预计船期'}">
+  <li><strong>第 ${ship} 天装船</strong><small>整批发货</small></li>
+  <li><strong>第 ${arrival} 天</strong><small>${fixed?'到港验收':'预计到港验收'}</small></li>
+  <li><strong>第 ${pay} 天</strong><small>${fixed?'收尾款':'预计收尾款'}</small></li>
+ </ol>`;
+}
+export function equipmentQuoteDelay({slipDays,stationFee,rebookFee,daysSaved,riskProfit}) {
+ if(!slipDays)return '';
+ return `<section class="market-quote-risk" aria-label="换船的影响"><h3>如果换船</h3><dl>
+  <div><dt>验收和回款</dt><dd>晚 ${slipDays} 天</dd></div>
+  <div><dt>场站费</dt><dd>${money(stationFee)}</dd></div>
+  <div><dt>多付的日常开支</dt><dd>${money(slipDays*DAY_COST)}</dd></div>
+  ${Number.isSafeInteger(riskProfit)?`<div><dt>换船风险下预计净利</dt><dd>${money(riskProfit)}</dd></div>`:''}
+ </dl><p>可加付 ${money(rebookFee)} 改早班，比原延误方案早 ${daysSaved} 天。场站费仍要付。</p></section>`;
+}
 function quoteView(state, project, shipping) {
-  const q = previewEquipment(state, project.id, shipping, DAY_COST);
-  if (!q) return '';
-  const flexible = shipping === 'standard';
-  return `<section class="market-quote equipment-quote"><button class="quiet" data-equipment-back>← 返回采购台</button>
-    ${projectSummary(project, 'draft')}
-    <fieldset><legend>整批出运的订舱方式</legend><button data-equipment-shipping="standard" aria-pressed="${flexible}">常规舱<small>运费 ${money(project.freight)}。转运港可能换船。</small></button><button data-equipment-shipping="locked" aria-pressed="${!flexible}">锁舱<small>运费 ${money(project.freight+project.lockedPremium)}。船期固定。</small></button></fieldset>
-    <dl class="market-facts">${costs(q)}${fact('签约预付款',q.deposit)}${fact('验收后应收尾款',q.balanceDue)}${fact('至少需要周转金',q.cashRequired)}${fact(flexible?'顺利时预计净利':'锁舱预计净利',q.netProfit)}${flexible?fact('换船风险下预计净利',q.riskNetProfit):''}</dl>
-    <p>第 ${q.shipDay} 天整批出运，按原船期第 ${q.deliveryDay} 天到港验收，第 ${q.paymentDay} 天收尾款。</p>
-    ${flexible ? `<p>若换船，晚 ${q.slipDays} 天到港和收款，另付场站费 ${money(q.stationFee)} 和延后期间的日常开支 ${money(q.slipDays*DAY_COST)}。届时也可另付 ${money(q.rebookFee)} 改订，比等原接驳船早 ${q.daysSaved} 天，场站费照收。</p>` : '<p>锁定船期后按上述日期出运、到港和收款。</p>'}
-    <p>签约时收预付款 ${money(q.deposit)}，向供应商及服务方支付 ${money(q.cost)}。尾款须待验收后按期收取。</p>
-    ${q.valid ? '' : `<p class="market-warning">开工前还差 ${money(q.cashRequired-state.cash)}。尾款没到账，别急着拿它付货款。</p>`}
-    <button class="primary" data-equipment-sign="${project.id}" ${q.valid?'':'disabled'}>确认报价，签约备货</button></section>`;
+ const q=previewEquipment(state,project.id,shipping,DAY_COST);
+ if(!q)return '';
+ const flexible=shipping==='standard';
+ const choices=[['standard','常规舱'],['locked','锁舱']].map(([choice,label])=>{
+   const r=previewEquipment(state,project.id,choice,DAY_COST);
+   return `<div class="market-choice"><button type="button" data-equipment-shipping="${choice}" aria-pressed="${choice===shipping}" aria-describedby="equipment-${choice}-facts">${label}</button>
+   <div id="equipment-${choice}-facts" class="market-choice-facts"><p>运费 <strong>${money(r.freight)}</strong></p><small>${choice==='standard'?'中途可能换船':'加付运费，锁定原船期'}</small></div></div>`;
+ }).join('');
+ return `<section class="market-quote equipment-quote market-trade-sheet" aria-label="设备合同报价"><button type="button" class="quiet" data-equipment-back>‹ 返回商品与项目</button>
+   ${projectSummary(project,'draft',true)}
+   <div class="market-trade-columns"><section aria-label="船期与运输费用"><fieldset class="market-compare"><legend>怎么订舱</legend>${choices}</fieldset>
+   ${equipmentQuoteMilestones(q.shipDay,q.deliveryDay,q.paymentDay,{fixed:!flexible})}
+   ${flexible?equipmentQuoteDelay({slipDays:q.slipDays,stationFee:q.stationFee,rebookFee:q.rebookFee,daysSaved:q.daysSaved,riskProfit:q.riskNetProfit}):''}
+   </section><section class="market-trade-price" aria-label="合同货款与周转">
+   <dl class="market-facts market-trade-totals">${fact('合同货款',q.revenue)}${fact('最低周转金',q.cashRequired)}${fact(flexible?'顺利时预计净利':'锁舱预计净利',q.netProfit)}</dl>
+   <h3 class="market-finance-title">签约当天</h3>
+   <dl class="market-pay-plan">${fact('收到预付款',q.deposit)}${fact('付采购及服务费',q.cost)}</dl>
+   <details class="market-trade-detail"><summary>费用与尾款明细</summary><dl class="market-facts">${equipmentReceiptCosts(q)}${fact('到收齐的日常开支',q.operatingCost)}${fact('总成本（含日常开支）',q.cost+q.operatingCost)}${fact('验收后应收尾款',q.balanceDue)}</dl></details>
+   ${q.valid?'':`<p class="market-warning">开工前还差 ${money(q.cashRequired-state.cash)}。</p>`}
+   <button type="button" class="primary" data-equipment-sign="${project.id}" ${q.valid?'':'disabled'}>确认签约</button></section></div></section>`;
 }
 
 // Keep both decisions on the same labeled rows, including on small screens.
@@ -61,18 +87,18 @@ function activeView(state, project) {
   const preparing = a.status === 'preparing', transit = a.status === 'transit', paid = a.status === 'paid';
   let action;
   if (preparing) {
-    action = `<p>已按合同备齐 ${a.quantity} ${a.unit}，第 ${a.shipDay} 天出运。</p><button class="primary" data-market-action="SHIP_EQUIPMENT">整批出运</button>`;
+    action = `<p>已按合同备齐 ${a.quantity} ${a.unit}，第 ${a.shipDay} 天装船。</p><button class="primary" data-market-action="SHIP_EQUIPMENT">安排装船</button>`;
   } else if (transit) {
     const choose=a.transfer&&!a.rebookPaid;
     const available=choose&&canRebookEquipment(state,DAY_COST);
-    action=choose?`<section class="eq-decision"><h3>船期变了，怎么安排？</h3><p>场站费 ${money(a.stationPaid)} 已付，两种方案都不退。改订可早 ${a.daysSaved} 天回款，少付 ${money(a.daysSaved*DAY_COST)} 日常开支。</p>${equipmentRoutePair({title:'照现在的船期等',fee:0,day:a.deliveryDay,pay:a.paymentDay,action:'data-market-action="DELIVER_MARKET"',enabled:true,button:'按现在船期验收'},{title:'改订更早的班次',fee:a.rebookFee,day:a.deliveryDay-a.daysSaved,pay:a.paymentDay-a.daysSaved,action:'data-market-action="REBOOK_EQUIPMENT"',enabled:available,button:'确认改订'})}${available?'':'<p>现金不足以改订并等到回款。</p>'}</section>`:`<p>整批已出运，预计第 ${a.deliveryDay} 天到港。${a.rebookPaid?'改订后的船期已确认。':''}</p><button class="primary" data-market-action="DELIVER_MARKET">到港，按清单整单验收</button>`;
+    action=choose?`<section class="eq-decision"><h3>船期变了，怎么安排？</h3><p>场站费 ${money(a.stationPaid)} 已付，两种方案都不退。改订可早 ${a.daysSaved} 天回款，少付 ${money(a.daysSaved*DAY_COST)} 日常开支。</p>${equipmentRoutePair({title:'照现在的船期等',fee:0,day:a.deliveryDay,pay:a.paymentDay,action:'data-market-action="DELIVER_MARKET"',enabled:true,button:'按现在船期验收'},{title:'改订更早的班次',fee:a.rebookFee,day:a.deliveryDay-a.daysSaved,pay:a.paymentDay-a.daysSaved,action:'data-market-action="REBOOK_EQUIPMENT"',enabled:available,button:'确认改订'})}${available?'':'<p>现金不足以改订并等到回款。</p>'}</section>`:`<p>已装船，预计第 ${a.deliveryDay} 天到港。${a.rebookPaid?'改订后的船期已确认。':''}</p><button class="primary" data-market-action="DELIVER_MARKET">到港，按清单整单验收</button>`;
   } else if (paid) {
     action = '<p class="market-success">货款已收齐，项目已记入工作室账本。</p><button class="primary" data-market-action="CLOSE_MARKET">回工作室</button>';
   } else {
     action = `<p>已到港并整单验收。第 ${a.paymentDay} 天可收尾款 ${money(a.balanceDue)}。</p><button class="primary" data-market-action="COLLECT_MARKET">到付款日，收齐尾款</button>`;
   }
-  return `<section class="market-active equipment-active eq-order"><small>${project.company} · ${project.buyer}</small><h3>${project.name} · ${a.quantity} ${a.unit}</h3><p>已验收 ${a.delivered} / ${a.quantity} ${a.unit}。</p>${action}${equipmentComicView(a,a.status)}<details><summary>合同与费用明细</summary>${projectSummary(project, a.status)}
-    <ol class="market-track"><li class="done">第 ${a.signedDay} 天<br>签约</li><li class="${preparing?'':'done'}">第 ${a.shipDay} 天<br>整批出运</li><li class="${preparing||transit?'':'done'}">第 ${a.deliveryDay} 天<br>到港验收</li><li class="${paid?'done':''}">第 ${a.paymentDay} 天<br>收齐尾款</li></ol>
+  return `<section class="market-active equipment-active eq-order"><small>${project.company}，${project.buyer}</small><h3>${project.name}（${a.quantity} ${a.unit}）</h3><p>已验收 ${a.delivered} / ${a.quantity} ${a.unit}。</p>${action}${equipmentComicView(a,a.status)}<details><summary>合同与费用明细</summary>${projectSummary(project, a.status)}
+    <ol class="market-track"><li class="done">第 ${a.signedDay} 天<br>签约</li><li class="${preparing?'':'done'}">第 ${a.shipDay} 天<br>装船</li><li class="${preparing||transit?'':'done'}">第 ${a.deliveryDay} 天<br>到港验收</li><li class="${paid?'done':''}">第 ${a.paymentDay} 天<br>收齐尾款</li></ol>
     <dl class="market-facts">${costs(a)}${fact('已到账',a.received)}${fact('应收余额',a.revenue-a.received)}${fact(paid?'实际净利':preparing&&a.shipping==='standard'?'顺利时预计净利':'预计净利',a.netProfit)}${preparing&&a.shipping==='standard'?fact('换船风险下预计净利',a.riskNetProfit):''}</dl>
     </details></section>`;
 }

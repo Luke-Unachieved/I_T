@@ -1,8 +1,16 @@
 /* Only panels that actually contain a special order. Leave the workspace,
    illustrations, focus rings, controls and receipt archive in their own styles. */
 #deal-room .business:has(:is(.curation-controls,[data-action="FULFIL_CURATION"],.account-spec,.account-handover,[data-action="BACK_FROM_ACCOUNT"],[data-action="CLOSE_ACCOUNT"],.collection-styles,[data-action="FULFIL_COLLECTION"],.supply-draft,[data-action="FULFIL_SUPPLY_PLAN"],.supply-progress,.fulfil-track,.freight-card,[data-action="CLOSE_LINEN_FREIGHT"],[data-action="RECEIVE_LINEN_FREIGHT"],[data-action="BACK_COLLECTION_PITCH"],[data-action="CLOSE_COLLECTION"],[data-action="CLOSE_DEVELOPMENT"],[data-action="CLOSE_SAMPLE"],[data-action="RECEIVE_SAMPLE"],[data-action="RECEIVE_SECOND_SAMPLE"],[data-action="CLOSE_SECOND_SUPPLIER"])) {
-  --order-rule:var(--ws-rule,#454139); --order-muted:var(--ws-secondary,#c3bcae);
-  min-width:0; color:var(--ws-type,#e9e5dc); overflow-wrap:break-word;
+  /* The original business sheet is paper unless a documented dark route owns it. */
+  --order-rule:#c9c0b0;
+  --order-muted:#51594d;
+  color:#292e2b;
+  min-width:0; overflow-wrap:break-word;
+  &:is(.ws-account-business,.ws-referral-business,:has(>.fulfil-track),:has(>[data-action="BACK_FROM_COLLECTION"])) {
+    --order-rule:var(--ws-rule,#454139);
+    --order-muted:var(--ws-secondary,#c3bcae);
+    color:var(--ws-type,#e9e5dc);
+  }
   & :is(.brief,.opportunity,.pitch-consequence,.freight-card,.curation-budget,.quotes,.offer,.supply-lots,.account-basis-options,.quote-commitment) {
     border:0; border-radius:0; box-shadow:none; background:transparent;
     padding-inline:0; margin-inline:0;
@@ -10,6 +18,7 @@
   & .freight-card {padding-block:16px;border-top:1px solid var(--order-rule)}
   & :is(.freight-card h3,.offer h3) {margin:0 0 6px;line-height:1.4}
   & :is(.freight-card p,.brief,.opportunity) {color:var(--order-muted);line-height:1.55}
+  & .deal-contact-company {color:var(--order-muted)}
   & .freight-dates {margin:10px 0;padding-inline:0;list-style:none;color:var(--order-muted)}
   & .freight-facts {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 12px;margin:10px 0;font-variant-numeric:tabular-nums}
   & .freight-facts>div {display:contents}
@@ -18,4 +27,197 @@
   & .freight-card summary {cursor:pointer;padding-block:8px;min-height:44px}
   & :is(.primary,.freight-card>button):not(:disabled) {background:#d6bc8a;color:#241d13;border:1px solid #d6bc8a;border-radius:5px;min-height:44px;height:auto;padding:8px 14px;white-space:normal}
   & :is(.primary,.freight-card>button):disabled {opacity:.65;cursor:not-allowed}
+}
+
+/* Northline's signed amounts form one compact, readable pair. */
+#deal-room .ws-account-business .account-signed-amounts{
+ display:flex;flex-wrap:wrap;justify-content:flex-start;gap:10px 28px;
+ margin:14px 0;padding:0;text-align:left;font-variant-numeric:tabular-nums;
+}
+#deal-room .ws-account-business .account-signed-amounts dt{
+ color:var(--ws-secondary,#c3bcae);font-size:.8rem;
+}
+#deal-room .ws-account-business .account-signed-amounts dd{
+ margin:3px 0 0;color:var(--ws-type,#e9e5dc);font-size:1rem;font-weight:700;
+}
+#deal-room .client-head .deal-contact-company{
+ display:block;margin-top:2px;font-size:.85rem;color:var(--ws-secondary,#c3bcae);
+}
+
+#deal-room > .business.ws-account-business{
+ grid-column:1/-1;justify-self:center;box-sizing:border-box;width:100%;max-width:56rem;
+ padding:clamp(15px,3vw,32px);align-self:start;min-width:0;
+}
+#deal-room .ws-account-business > .client-head{margin:0 0 18px;justify-content:flex-start}
+#deal-room .ws-account-business > h3{font-size:clamp(1.35rem,3vw,1.75rem);margin:8px 0 15px}
+#deal-room .ws-account-business .account-order-grid{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:24px;
+}
+#deal-room .ws-account-business .account-order-grid > :last-child{grid-column:1/-1}
+#deal-room .ws-account-business .account-order-section{
+ min-width:0;border-top:1px solid var(--ws-rule,#484238);padding:12px 0;margin:0;
+}
+#deal-room .ws-account-business .account-order-section h4{
+ color:var(--ws-secondary,#c3bcae);font-size:.85rem;font-weight:600;margin:0 0 6px;
+}
+#deal-room .ws-account-business :is(.account-order-section p,.account-order-next p){margin:0 0 6px;line-height:1.5}
+#deal-room .ws-account-business :is(.account-signed-amounts,.offer){
+ display:flex;justify-content:flex-start;flex-wrap:wrap;gap:10px 24px;
+ padding:0;margin:0 0 9px;background:none;border:0;box-shadow:none;
+}
+#deal-room .ws-account-business .account-order-specs{display:grid;gap:10px}
+#deal-room .ws-account-business .account-order-spec>small{color:var(--ws-secondary,#c3bcae)}
+#deal-room .ws-account-business button.primary{
+ width:auto;min-width:9rem;min-height:44px;padding:8px 16px;margin:8px 0 0;
+}
+@media(max-width:600px){
+ #deal-room .ws-account-business .account-order-grid{grid-template-columns:minmax(0,1fr)}
+ #deal-room > .business.ws-account-business{width:100%}
+}
+
+/* The old paper palette set foregrounds directly, including the type inside
+   order cards. Override each foreground on the new dark order sheet itself. */
+#deal-room > .business.ws-account-business :is(.client-head h2, h3,.account-order-spec strong) {
+ color: #e9e5dc;
+}
+#deal-room > .business.ws-account-business :is(.account-order-section p,.account-order-next p,.account-order-section summary) {
+ color: #d8cfc0;
+}
+
+/* Optional delivery evidence sits after the contractual controls. */
+#deal-room .ws-account-business .account-delivery-scene {
+ margin:16px 0 0;padding:0;border-top:1px solid var(--ws-rule,#484238);
+}
+#deal-room .ws-account-business .account-delivery-scene > summary{
+ cursor:pointer;padding:12px 0;min-height:44px;color:var(--ws-type,#e9e5dc);
+}
+#deal-room .ws-account-business .account-delivery-scene figure{
+ width:min(100%,32rem);margin:0;
+}
+#deal-room .ws-account-business .account-delivery-scene img{
+ display:block;width:100%;height:auto;border-radius:6px;
+}
+#deal-room .ws-account-business .account-delivery-scene figcaption{
+ margin-top:8px;color:var(--ws-secondary,#c3bcae);line-height:1.5;
+}
+
+/* Align the order, advice and utilities on a single reading rail. */
+#deal-room:has(> .ws-account-business){
+ --account-rail:56rem;
+}
+#deal-room:has(> .ws-account-business) > .adviser-panel:not(:has(.adviser-options)){
+ order:0;justify-self:center;box-sizing:border-box;width:min(100%,var(--account-rail));
+ margin:0 0 10px;padding-inline:clamp(15px,3vw,32px);
+}
+#deal-room:has(> .ws-account-business) > .adviser-panel:has(>[data-adviser-picker]:only-child){
+ margin:0;
+}
+#deal-room:has(> .ws-account-business) > .adviser-panel :is(.adviser-byline,[data-adviser-picker]):not(.adviser-byline [data-adviser-picker]){
+ right:var(--ws-gutter);
+}
+#deal-room:has(> .ws-account-business) > footer:has(> #motion){
+ order:2;grid-column:1/-1;justify-self:center;width:min(100%,var(--account-rail));margin:.4rem 0 0;
+}
+#deal-room:has(> .ws-account-business) > footer > #motion{
+ min-height:36px;padding:.35rem .6rem;background:transparent;border-color:transparent;color:var(--ws-secondary);
+}
+#deal-room:has(> .ws-account-business) > .deal-save-tools{
+ order:3;max-width:var(--account-rail);margin-block:0 .65rem;
+}
+#deal-room:has(> .ws-account-business) > .ws-orders-end{
+ margin-top:.75rem;padding-inline:clamp(15px,3vw,32px);
+}
+#deal-room .ws-account-business .account-delivery-scene > summary{
+ box-sizing:border-box;font-size:.95rem;font-weight:600;
+}
+#deal-room .ws-account-business .account-delivery-scene figcaption{
+ font-size:.875rem;
+}
+@media(min-width:760px){
+ #deal-room .ws-account-business .account-signed-amounts{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem .9rem;
+ }
+ #deal-room .ws-account-business .account-delivery-scene figure{
+  display:grid;grid-template-columns:minmax(0,3fr) minmax(10rem,1fr);
+  gap:1.2rem;align-items:end;width:100%;
+ }
+ #deal-room .ws-account-business .account-delivery-scene figcaption{
+  padding:0 0 .6rem;margin:0;
+ }
+}
+
+/* Keep both contextual notes distinct from the page canvas and from each other. */
+#deal-room:has(> .ws-account-business) > .adviser-panel:has(> p):not(:has(.adviser-options)){
+ padding:10px clamp(15px,3vw,32px);border:1px solid #514739;border-radius:8px;background:#28231c;
+}
+#deal-room > .ws-orders-end{
+ margin-top:.75rem;background:#28231c;border:1px solid #5e503a;border-radius:8px;
+}
+
+/* Orders history also has a contextual adviser note after its own actions. */
+#deal-room:has(> .ws-orders) > .adviser-panel:has(> p):not(:has(.adviser-options)){
+ justify-self:center;box-sizing:border-box;width:min(100%,56rem);
+ margin:10px 0 0;padding:10px clamp(15px,3vw,32px);border:1px solid #514739;
+ border-radius:8px;background:#28231c;
+}
+
+/* Keep the current order task visible without expanding the whole receipt. */
+#deal-room .ws-account-business .account-order-next{padding:0 0 10px;}
+#deal-room .ws-account-business .account-order-next p{margin:0 0 5px;}
+#deal-room .ws-account-business .account-order-next strong{margin-inline-start:.35rem;}
+#deal-room .ws-account-business .account-order-details{border-top:1px solid var(--ws-rule,#484238);margin-top:12px;}
+#deal-room .ws-account-business .account-order-details>summary{cursor:pointer;min-height:44px;padding:11px 0;box-sizing:border-box;font-weight:600;}
+#deal-room .ws-account-business .account-return{
+ display:inline-flex;align-items:center;min-height:44px;padding:.4rem .7rem;color:var(--ws-type,#e9e5dc);
+ background:transparent;border:1px solid var(--ws-rule,#484238);border-radius:5px;
+}
+#deal-room .ws-account-business .account-return[data-workspace-ref="account-payments"]{
+ margin-inline-start:8px;border-color:transparent;color:var(--ws-secondary,#c3bcae);
+}
+#deal-room:has(> .ws-account-business) > footer:has(> #motion){display:none;}
+#deal-room .ws-account-business .account-order-details>summary{color:var(--ws-type,#e9e5dc)}
+
+/* Keep the dark series draft and the paper pitch, signed order and receipt
+   paired with ink for their actual surfaces. */
+#deal-room > .business:has(> [data-action="BACK_FROM_COLLECTION"]) .quote.chosen[data-collection-model]{
+ color:#292e2b;
+}
+#deal-room > .business:has(> [data-action="BACK_FROM_COLLECTION"]) > .collection-styles > legend{
+ color:#c3bcae;
+}
+#deal-room > .business:has(> :is([data-action="BACK_COLLECTION_PITCH"],[data-action="FULFIL_COLLECTION"],[data-action="CLOSE_COLLECTION"])){
+ --series-ink:#292e2b;
+ --series-muted:#51594d;
+ color:var(--series-ink);
+}
+#deal-room > .business:has(> :is([data-action="BACK_COLLECTION_PITCH"],[data-action="FULFIL_COLLECTION"],[data-action="CLOSE_COLLECTION"])) :is(.client-head h2,.client-head .product,h3){
+ color:var(--series-ink);
+}
+#deal-room > .business:has(> :is([data-action="BACK_COLLECTION_PITCH"],[data-action="FULFIL_COLLECTION"],[data-action="CLOSE_COLLECTION"])) :is(.brief,.deal-contact-company,.pitch-consequence p){
+ color:var(--series-muted);
+}
+
+/* The signed-sheet palette must not supply pale ink to the draft's paper. */
+#deal-room > .business.ws-account-business .quotes[aria-label="连锁采购付款方案"] .quote.chosen{
+ color:#292e2b;
+}
+#deal-room > .business.ws-account-business .account-order-section > .counter[role="status"]{
+ color:#3e2d20;
+}
+#deal-room > .business.ws-account-business .account-order-section .offer > div:first-child strong{
+ color:#c5d8bc;
+}
+
+
+/* Keep the original paper forms readable without recoloring the scene art. */
+#deal-room > .business:has(> [data-action="CLOSE_LAUNCH_PROJECT"]) .deal-contact-company{
+ color:#51594d;
+}
+#deal-room .ws-order-detail .neighborhood-contact small{
+ color:#cbbda8;
+}
+@media(max-width:540px){
+ #deal-room .ws-equipment-panel .eq-order dd{overflow-wrap:anywhere}
+ #deal-room .ws-equipment-panel .eq-order :is(.primary,.eq-routes button){max-width:100%;white-space:normal}
+ #deal-room .business:has(>.supply-draft,>.supply-lots,.freight-card) :is(.freight-facts dd,.supply-lot){overflow-wrap:anywhere}
 }

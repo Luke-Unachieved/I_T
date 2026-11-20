@@ -6,8 +6,8 @@
 
 .life-room [data-life-room-use]{cursor:pointer;outline:none}.life-room [data-life-room-use]:focus-visible{filter:drop-shadow(0 0 4px #dbb66f)}.life-arrived{animation:life-arrival .8s ease-out}@keyframes life-arrival{0%{opacity:.25;filter:brightness(1.25)}100%{opacity:1;filter:brightness(1)}}
 .life-welcome{margin:16px 0;line-height:1.6}.life-welcome p{margin:0}.life-delivery{display:flex;align-items:center;justify-content:space-between;gap:16px;background:#e8dbc1;padding:15px 18px;border-radius:14px;border-left:3px solid #bc9659}.life-delivery button{flex-shrink:0}
-.life-ritual{margin:18px 0 24px;padding:22px;background:#e9ddc8;border-radius:18px;box-shadow:inset 0 1px 0 #fff6e5}.life-ritual h3{font-weight:500;margin:8px 0 12px}.life-ritual-controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.life-book{display:grid;grid-template-columns:1fr 1fr;min-height:200px;background:#fff7e4;border-radius:5px 12px 12px 5px;box-shadow:0 8px 20px #6f54351c}.life-book[data-reading-light="1"]{--paper:#eed8b1;--edge:#c8ad88;--halo:#edbd7033}.life-book[data-reading-light="2"]{--paper:#fff0c6;--edge:#dfc596;--halo:#edbd7066}.life-book[data-reading-light="3"]{--paper:#fffbea;--edge:#ead59f;--halo:#edbd7099}.life-book[data-reading-light]:not([data-reading-light="0"]){box-shadow:0 0 26px 7px var(--halo),0 8px 20px #6f54351c;color:#352d25}.life-book[data-reading-light]:not([data-reading-light="0"]) .life-book-left{background:linear-gradient(92deg,var(--edge),var(--paper) 78%,var(--edge))}.life-book[data-reading-light]:not([data-reading-light="0"]) .life-book-right{background:linear-gradient(100deg,var(--edge),var(--paper) 19%)}.life-book[data-reading-light]:not([data-reading-light="0"]) .life-book-left span{color:#544735}.lamp-switch button[aria-pressed="true"]{box-shadow:inset 0 0 0 2px #6b572e;font-weight:700}.life-book-left,.life-book-right{padding:24px}.life-book-left{background:linear-gradient(90deg,#f2e2c5,#fff4dc 85%,#dcc9a5);position:relative}.life-book-right{background:linear-gradient(90deg,#e6d5b5,#fff8e8 12%)}.life-book-left span{font:12px Georgia,serif;color:#7f6b51}.life-book-right p{line-height:2;margin:0;font-family:Georgia,'Noto Serif CJK SC',serif}.life-coffee{display:grid;grid-template-columns:190px 1fr;align-items:center}.life-coffee>svg{width:100%;height:auto}.life-listening{display:flex;align-items:center;justify-content:space-between;gap:20px}.life-listening .life-ritual-controls{margin:0}
-@media(max-width:560px){.life-delivery,.life-listening{display:block}.life-delivery button{margin-top:12px}.life-ritual{padding:14px}.life-book{grid-template-columns:1fr}.life-book-left,.life-book-right{padding:18px}.life-coffee{grid-template-columns:1fr}.life-coffee>svg{width:160px;justify-self:center}.life-listening .life-ritual-controls{margin-top:14px}}
+.life-ritual{margin:18px 0 24px;padding:22px;background:#e9ddc8;border-radius:18px;box-shadow:inset 0 1px 0 #fff6e5}.life-ritual h3{font-weight:500;margin:8px 0 12px}.life-ritual-controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.life-book{display:grid;grid-template-columns:1fr 1fr;min-height:200px;background:#fff7e4;border-radius:5px 12px 12px 5px;box-shadow:0 8px 20px #6f54351c}.life-book[data-reading-light="1"]{--paper:#eed8b1;--edge:#c8ad88;--halo:#edbd7033}.life-book[data-reading-light="2"]{--paper:#fff0c6;--edge:#dfc596;--halo:#edbd7066}.life-book[data-reading-light="3"]{--paper:#fffbea;--edge:#ead59f;--halo:#edbd7099}.life-book[data-reading-light]:not([data-reading-light="0"]){box-shadow:0 0 26px 7px var(--halo),0 8px 20px #6f54351c;color:#352d25}.life-book[data-reading-light]:not([data-reading-light="0"]) .life-book-left{background:linear-gradient(92deg,var(--edge),var(--paper) 78%,var(--edge))}.life-book[data-reading-light]:not([data-reading-light="0"]) .life-book-right{background:linear-gradient(100deg,var(--edge),var(--paper) 19%)}.life-book[data-reading-light]:not([data-reading-light="0"]) .life-book-left span{color:#544735}.lamp-switch button[aria-pressed="true"]{box-shadow:inset 0 0 0 2px #6b572e;font-weight:700}.life-book-left,.life-book-right{padding:24px}.life-book-left{background:linear-gradient(90deg,#f2e2c5,#fff4dc 85%,#dcc9a5);position:relative}.life-book-right{background:linear-gradient(90deg,#e6d5b5,#fff8e8 12%)}.life-book-left span{font:12px Georgia,serif;color:#7f6b51}.life-book-right p{line-height:2;margin:0;font-family:Georgia,'Noto Serif CJK SC',serif}.life-coffee{display:grid;grid-template-columns:190px 1fr;align-items:center}.life-listening{display:flex;align-items:center;justify-content:space-between;gap:20px}.life-listening .life-ritual-controls{margin:0}
+@media(max-width:560px){.life-delivery,.life-listening{display:block}.life-delivery button{margin-top:12px}.life-ritual{padding:14px}.life-book{grid-template-columns:1fr}.life-book-left,.life-book-right{padding:18px}.life-coffee{grid-template-columns:1fr}.life-listening .life-ritual-controls{margin-top:14px}}
 @media(prefers-reduced-motion:reduce){.life-arrived{animation:none}}.reduce-motion .life-arrived{animation:none}
 
 .life-book-shelf{display:flex;align-items:center;gap:1rem;padding:1rem;background:#e5d5bc;border-bottom:5px solid #967454;color:#423c31}.life-book-shelf>span{font-size:2.6rem;color:#526b67}.life-book-shelf button{margin-left:auto}.life-reading p{line-height:1.9}
@@ -15,27 +15,9 @@
 .life-record-choices{display:flex;gap:.5rem;flex-wrap:wrap}.life-record-choices button{min-height:44px;flex:1 1 8rem}.life-panel .life-record-choices button[aria-pressed="true"]{background:#d1e1d6;color:#233e34;border-color:#546c65}.life-listening>*{min-width:0}.life-listening h3{overflow-wrap:anywhere}
 
 .life-volume{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}.life-volume input{flex:1;min-width:120px;min-height:44px;accent-color:#486b5b}.life-volume output{min-width:3ch;color:#233e34}
-/* A finite brewing gesture, not a permanent loading animation. */
-.life-coffee-pour{stroke-dasharray:52;stroke-dashoffset:52;animation:life-coffee-pour 1.2s ease-in-out both;pointer-events:none}
-@keyframes life-coffee-pour{0%{stroke-dashoffset:52;opacity:0}20%{opacity:.85}55%{stroke-dashoffset:0;opacity:.85}100%{stroke-dashoffset:-52;opacity:0}}
-@media(prefers-reduced-motion:reduce){.life-coffee-pour{animation:none;opacity:0}}
-.reduce-motion .life-coffee-pour{animation:none;opacity:0}
 /* Purchased furniture is unwrapped once; previews never use this reward. */
-.life-wrap-left,.life-wrap-right{transform-box:fill-box;transform-origin:center;animation:life-unwrap-left 1s ease-in-out both}
-.life-wrap-right{animation-name:life-unwrap-right}
-.life-wrap-ribbon{animation:life-unwrap-ribbon .7s ease both}
-@keyframes life-unwrap-left{0%,20%{opacity:1;transform:translateX(0) rotate(0)}100%{opacity:0;transform:translateX(-35%) rotate(-12deg)}}
-@keyframes life-unwrap-right{0%,20%{opacity:1;transform:translateX(0) rotate(0)}100%{opacity:0;transform:translateX(35%) rotate(12deg)}}
-@keyframes life-unwrap-ribbon{0%,15%{opacity:1}65%,100%{opacity:0}}
 @media(prefers-reduced-motion:reduce){.life-unwrapping{display:none}.life-unwrapping *{animation:none!important}}
 .reduce-motion .life-unwrapping{display:none}.reduce-motion .life-unwrapping *{animation:none!important}
-/* A purchased machine is used in explicit steps; no timer or economic reward. */
-.coffee-ground .life-coffee-ground{animation:coffee-ground-settle .35s ease both}
-.coffee-enjoyed .life-coffee-cup{transform-origin:106px 110px;animation:coffee-sip .9s ease both}
-@keyframes coffee-ground-settle{from{opacity:.3;transform:translateY(-5px)}to{opacity:1;transform:none}}
-@keyframes coffee-sip{50%{transform:translateY(-12px) rotate(-5deg)}to{transform:none}}
-@media(prefers-reduced-motion:reduce){.coffee-ground .life-coffee-ground,.coffee-enjoyed .life-coffee-cup{animation:none}}
-.reduce-motion .life-coffee-ground,.reduce-motion .life-coffee-cup{animation:none}
 .life-reading-companions{display:flex;gap:14px;align-items:center;padding:12px 14px;margin:12px 0 0;background:#f4e8d4;border:1px solid #d7c3a4;border-radius:12px}.life-reading-companions>svg{width:88px;flex:0 0 88px}.life-reading-companions p{margin:3px 0;font-size:14px;line-height:1.6}.life-reading-companions small{display:block;color:#71624d;line-height:1.6}@media(max-width:430px){.life-reading-companions{gap:8px;padding:10px}.life-reading-companions>svg{width:64px;flex-basis:64px}}
 .balcony-picture{margin:8px 0 12px;overflow:hidden;border-radius:18px;background:#e9dfcd;color:#405246}.balcony-picture svg{display:block;width:100%;height:auto}.balcony-picture figcaption{font-size:12px;padding:6px 12px}.balcony-ritual>div{width:100%}.balcony-ritual button{margin:4px 6px 2px 0}.life-reading-companions .garden-posy{width:48px;min-width:36px;height:54px}
 
@@ -45,6 +27,7 @@
 #deal-room .home-original{grid-column:1/-1;justify-self:center;width:100%;max-width:960px;color:#e9e5dc}
 #deal-room .home-original>header{display:block;margin:0 0 8px}
 #deal-room .home-original>header button{background:transparent;padding:0;color:#bdb6aa;font-size:14px;border:0}
+#deal-room .home-original>header .home-location{margin:4px 0 0;color:#bdb6aa;font-size:14px}
 #deal-room .home-original>header h2{font-size:23px;margin:4px 0 0}
 #deal-room .home-original figure{margin:0;aspect-ratio:358/203;overflow:hidden;border-radius:8px}
 #deal-room .home-original figure img{width:100%;height:100%;object-fit:cover}
@@ -55,7 +38,8 @@
 #deal-room .home-original nav button{height:44px;width:44px;background:none;border:0;color:#d7bb85;font-size:24px}
 #deal-room .home-rest{padding:20px 0 8px;border-bottom:1px solid #3c3b37}
 #deal-room .home-rest h3{font-size:17px;margin:0 0 3px}
-#deal-room .home-original :is(.home-rest,.home-sleep-sheet)>button{min-height:48px;background:#28251f;color:#d7bb85;border:1px solid #3c3b37;border-radius:10px;padding:8px 12px}
+#deal-room .home-first-chair{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;margin:0 0 12px;color:#d7bb85}
+#deal-room .home-original :is(.home-rest,.home-sleep-sheet,.home-first-chair)>button{min-height:48px;background:#28251f;color:#d7bb85;border:1px solid #3c3b37;border-radius:10px;padding:8px 12px}
 #deal-room .home-furniture{color:#c9b48d;margin:0}
 #deal-room .home-furniture>summary{padding:8px 0;min-height:40px}
 #deal-room .home-sleep-sheet{padding:12px;border:1px solid #4d473c;border-radius:8px;background:#24211c}
@@ -73,7 +57,7 @@
 #deal-room .home-comic>.life-welcome p{margin:0}
 #deal-room .home-comic>.life-purchase{margin-bottom:16px}
 #deal-room .home-record-frame{position:relative;min-height:110px;margin:0;background:#302b25 url('../assets/deal-life-furniture.webp') right center/300% auto no-repeat;border:1px solid #786b56;border-radius:4px;grid-column:1/-1;aspect-ratio:2.7}
-#deal-room .home-comic-ritual .life-book,#deal-room .home-comic-ritual.life-coffee>svg{border:1px solid #796d58;border-radius:4px}
+#deal-room .home-comic-ritual .life-book{border:1px solid #796d58;border-radius:4px}
 #deal-room .home-record-frame{background:#302b25;overflow:hidden;height:clamp(112px,24vw,170px);aspect-ratio:auto}
 #deal-room .home-record-frame::before{content:"";position:absolute;inset:0;margin:auto;aspect-ratio:1;background:url('../assets/deal-life-furniture.webp') right center/300% 100% no-repeat}
 /* Keep the established scene artwork, not the old paper card chrome, in this
@@ -95,6 +79,155 @@
 #deal-room .weather-snow .exterior-particles{animation:outdoor-snow 3.6s ease-in-out infinite alternate}
 @keyframes outdoor-rain{from{transform:translate(.35px,-1.2px)}to{transform:translate(-.35px,1.2px)}}
 @keyframes outdoor-snow{from{transform:translate(-.6px,-1.4px)}to{transform:translate(.7px,1.4px)}}
-#deal-room .balcony-picture:is([data-balcony-weather="rain"],[data-balcony-weather="snow"],[data-balcony-weather="cloud"])>svg>circle:first-of-type{opacity:.15}
 @media(prefers-reduced-motion:reduce){#deal-room .exterior-weather .exterior-particles{animation:none}}
 .reduce-motion #deal-room .exterior-weather .exterior-particles,#deal-room.reduce-motion .exterior-weather .exterior-particles{animation:none}
+
+/* Follow the quiet black-and-gold home screen into the actual activities.
+   Warm paper belongs to the in-world book, never to its outer controls. */
+#deal-room .home-original .home-comic {
+  --life-surface:#26211a;
+  --life-line:#62543f;
+  --life-soft:#d5c5a9;
+  --life-ink:#f4e9d6;
+  --life-gold:#e3c38b;
+  padding:clamp(12px,2.5vw,23px);
+}
+#deal-room .home-original .home-comic header {align-items:flex-start; flex-wrap:wrap}
+#deal-room .home-original .home-comic header h2 {margin:2px 0 10px;font-size:clamp(1.25rem,3vw,1.6rem)}
+#deal-room .home-original .home-comic header > div:last-child {display:flex;flex-wrap:wrap;gap:6px}
+#deal-room .home-furniture > summary {display:list-item;box-sizing:border-box;min-height:44px;padding:12px 0;color:#e1c78f}
+#deal-room .home-original .home-comic .life-ritual {
+  margin:clamp(16px,2vw,22px) 0;
+  padding:clamp(12px,2vw,20px);
+  min-width:0;
+  background:var(--life-surface);
+  color:var(--life-ink);
+  border:1px solid var(--life-line);
+  border-radius:8px;
+  box-shadow:none;
+  line-height:1.55;
+}
+#deal-room .home-original .home-comic .life-ritual :is(h3,p) {margin:0}
+#deal-room .home-original .home-comic .life-ritual h3 {font-size:clamp(1.15rem,2.7vw,1.45rem);font-weight:700;line-height:1.3}
+#deal-room .home-original .home-comic .life-ritual p:not(.life-book p) {margin:.4rem 0;color:var(--life-soft)}
+#deal-room .home-original .home-comic .life-ritual small:not(.life-book small) {display:block;color:var(--life-gold)}
+#deal-room .home-original .home-comic .life-ritual :is(.life-ritual-controls,.life-record-choices) {gap:7px}
+#deal-room .home-original .home-comic button {
+  min-height:44px;
+  max-width:100%;
+  padding:.45rem .75rem;
+  border:1px solid #77664b;
+  border-radius:6px;
+  background:#322a20;
+  color:var(--life-ink);
+  font:inherit;
+  cursor:pointer;
+}
+#deal-room .home-original .home-comic button:not(:disabled):hover {background:#403428}
+#deal-room .home-original .home-comic button[aria-pressed=true] {border-color:#d4b781;background:#4a3827;color:#ffebc1}
+#deal-room .home-original .home-comic :is([data-life-sound],[data-life-coffee-step],[data-life-buy]):not(:disabled) {
+  background:var(--life-gold);border-color:var(--life-gold);color:#251a10;font-weight:650
+}
+#deal-room .home-original .home-comic :is([data-life-sound],[data-life-coffee-step],[data-life-buy]):not(:disabled):hover {background:#f5d8a6}
+#deal-room .home-original .home-comic button:disabled {cursor:default;opacity:.5}
+#deal-room .home-original :is(button,summary,input):focus-visible {outline:2px solid #f3d596;outline-offset:3px}
+#deal-room .home-original .home-comic .life-ritual:focus-visible {outline:2px solid #f3d596;outline-offset:2px}
+/* A preview is a record player, not another generic purchase box. */
+#deal-room .home-original .home-comic .life-listening {display:grid;grid-template-columns:minmax(0,1fr);gap:.7rem}
+#deal-room .home-original .home-comic .life-ritual .life-ritual-copy {display:grid;align-content:start;gap:.32rem;min-width:0}
+#deal-room .home-original .home-comic .home-record-frame {
+  box-sizing:border-box;display:block;
+  grid-column:auto;
+  width:100%;height:clamp(136px,25vw,205px);
+  border-color:var(--life-line);border-radius:6px;
+  background:radial-gradient(ellipse at 50% 45%,#4b3a2a,#211c16 75%);
+}
+#deal-room .home-original .home-comic .home-record-frame::before {inset:5% auto 5% 50%;height:90%;width:auto;transform:translateX(-50%)}
+#deal-room .home-original .home-comic .life-volume {display:grid;grid-template-columns:auto minmax(5rem,1fr) auto;gap:.4rem .65rem;margin:0;color:var(--life-soft)}
+#deal-room .home-original .home-comic .life-volume input {width:100%;min-width:0;accent-color:var(--life-gold)}
+#deal-room .home-original .home-comic .life-volume output {color:var(--life-ink);text-align:right}
+#deal-room .home-original .home-comic .life-ritual [data-life-volume-status] {margin:0;font-size:.88rem}
+#deal-room .home-original .home-comic .life-record-choices button {flex:1 1 8.25rem}
+@media (min-width:700px) {
+  #deal-room .home-original .home-comic .life-listening {grid-template-columns:minmax(12rem,.8fr) minmax(0,1.2fr);align-items:start;column-gap:1rem}
+  #deal-room .home-original .home-comic .home-record-frame {grid-column:1;grid-row:1 / 6;height:100%;min-height:11.8rem}
+  #deal-room .home-original .home-comic .life-listening > :not(.home-record-frame) {grid-column:2}
+}
+#deal-room .home-original .home-comic .life-coffee {gap:clamp(12px,2vw,19px);align-items:start}
+#deal-room .home-original .home-comic .life-coffee-steps {
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;
+  list-style:none;padding:0;margin:.35rem 0;
+}
+#deal-room .home-original .home-comic .life-coffee-steps li {
+  color:#c6b89e;border-top:2px solid #6c5f4b;padding:.32rem 0 0;font-size:.8rem;
+}
+#deal-room .home-original .home-comic .life-coffee-steps li[data-done] {color:#dac597;border-top-color:#9b855e}
+#deal-room .home-original .home-comic .life-coffee-steps li[aria-current=step] {font-weight:700;color:#ffeac0;border-top-color:var(--life-gold)}
+/* Paper and ink stay deliberately light and legible at every lamp setting. */
+#deal-room .home-original .home-comic .life-book {color:#382c1d}
+#deal-room .home-original .home-comic .life-book :is(small,span) {color:#654b31}
+#deal-room .home-original .home-comic .life-book h3 {margin:.35rem 0 .6rem}
+#deal-room .home-original .home-comic :is(.life-reading-companions,.life-book-shelf) {
+  background:#2c241b;color:var(--life-ink);border:1px solid var(--life-line);border-radius:6px;
+}
+#deal-room .home-original .home-comic .life-book-shelf {margin:.65rem 0;flex-wrap:wrap;font-size:.93rem}
+#deal-room .home-original .home-comic .life-book-shelf > span {display:none}
+#deal-room .home-original .home-comic .life-reading-companions :is(p,small) {color:var(--life-soft)}
+#deal-room .home-original .home-comic .life-delivery {background:#30271d;border-radius:6px}
+#deal-room .home-original .home-comic :is(footer,.life-purchase small,.life-actions small) {color:var(--life-soft)}
+#deal-room .home-original .home-comic .life-actions {
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr));align-items:stretch;gap:9px
+}
+#deal-room .home-original .home-comic .life-actions [data-life-preview] {display:grid;align-content:start;gap:.26rem;text-align:left}
+#deal-room .home-original .home-comic .life-actions small {margin:0}
+#deal-room .home-original .home-comic .life-actions > div {
+  align-content:start;padding:10px;border:1px solid var(--life-line);border-radius:6px
+}
+#deal-room .home-original .home-comic .life-actions > div > strong {font-size:.9rem;color:var(--life-gold)}
+
+#deal-room .home-original .home-comic[data-life-mode=activity] > :is(.home-comic-frame,.life-welcome) {display:none}
+#deal-room .home-original .home-comic .life-coffee-frame {
+  position:relative;
+  box-sizing:border-box;
+  width:100%;
+  aspect-ratio:3/2;
+  border:1px solid var(--life-line);
+  background:#201910;
+  border-radius:6px;
+}
+#deal-room .home-original .home-comic .life-coffee-frame img {display:block;object-fit:cover}
+.life-coffee-vapor {
+  position:absolute;pointer-events:none;
+  width:10%;height:24%;
+  left:47%;top:47%;
+  opacity:.62;filter:blur(3px);
+  background:radial-gradient(ellipse at 50% 100%,#f5decfbb,transparent 68%);
+}
+[data-cup=short] .life-coffee-vapor {left:48%;top:55%}
+@media (min-width:700px) {
+  #deal-room .home-original .home-comic .life-coffee {grid-template-columns:minmax(12rem,1fr) minmax(0,1.1fr)}
+}
+@media (max-width:699px) {
+  #deal-room .home-original .home-comic .life-coffee {grid-template-columns:minmax(0,1fr)}
+}
+#deal-room .home-original .home-comic .balcony-picture {
+  aspect-ratio:auto;
+  color:var(--life-soft);
+  background:#272119;
+  border-radius:0;
+}
+#deal-room .balcony-raster-scene {position:relative;aspect-ratio:3/2}
+#deal-room .balcony-raster-scene img {display:block}
+#deal-room .balcony-raster-scene .balcony-backdrop {width:100%;height:auto}
+#deal-room .balcony-raster-scene .balcony-crop {
+  position:absolute;left:42%;bottom:43.5%;width:49%;height:auto;object-fit:contain;
+}
+#deal-room [data-balcony-stage=new] .balcony-crop {width:39%;left:47%}
+#deal-room .balcony-raster-scene > .exterior-weather {display:block;position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#deal-room .home-original .balcony-picture figcaption {padding:.45rem .65rem;font-size:.8rem}
+
+#deal-room .life-reading-companions :is(.garden-posy,.life-reading-cup),
+#deal-room .life-welcome .garden-posy {display:block;flex:0 0 50px;width:50px;max-height:70px;object-fit:contain}
+#deal-room .life-book-shelf .life-book-cover {width:50px;height:42px;object-fit:contain}
+.life-wrap-parcel {transform-box:fill-box;transform-origin:50% 90%;animation:life-lift-parcel .9s ease-in-out both}
+@keyframes life-lift-parcel {0%,25%{opacity:1;transform:scale(1)}100%{opacity:0;transform:translate(-6px,-31px) rotate(-8deg)}}

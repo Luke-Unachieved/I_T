@@ -1,3 +1,5 @@
+import {orderFooterAdvice} from './deal-room-adviser.js';
+import {previewWorkspaceSleep} from './deal-room-workspace-sleep.js';
 import {officeWeatherView} from './deal-room-workspace-office-weather.js';
 import {officeIntroView} from './deal-room-workspace-intro.js';
 import {prospectDisplayText} from './deal-room-prospect-locale.js';
@@ -79,7 +81,7 @@ function ledgerView(s,input){
  for(const r of rows){sales+=BigInt(r.sales);cost+=BigInt(r.cost);}
  const fact=(label,value)=>'<div><dt>'+label+'</dt><dd>'+esc(value)+'</dd></div>';
  return '<details class="ws-ledger"><summary aria-label="经营账本 · '+rows.length+' 笔已结清">销售账本</summary><p class="ws-muted">统计范围：'+esc(scope)+'。</p>'+
- (rows.length?'<dl class="ws-totals">'+fact('实际销售额',money(sales))+fact('直接成本',money(cost))+fact('销售毛利',money(sales-cost))+fact('毛利率',margin(sales-cost,sales))+'</dl><p class="ws-muted">毛利为销售额减合同直接成本，还没有扣工作室日常开支，不等于手头现金。</p><details><summary>按商品看</summary>'+breakdown(rows,'product')+'</details><details><summary>按客户看</summary>'+breakdown(rows,'customer')+'</details>':'<p>还没有符合这份口径的到账订单。签约和交货不会先记作已收销售额。</p>')+'</details>';
+ (rows.length?'<dl class="ws-totals">'+fact('实际销售额',money(sales))+fact('直接成本',money(cost))+fact('销售毛利',money(sales-cost))+fact('毛利率',margin(sales-cost,sales))+'</dl><p class="ws-muted">毛利为销售额减合同直接成本，还没有扣工作室日常开支，不等于手头现金。</p><details><summary>按商品看</summary>'+breakdown(rows,'product')+'</details><details><summary>按客户看</summary>'+breakdown(rows,'customer')+'</details>':'<p>还没有收齐货款的订单。尾款到账后，订单才会记到这里。</p>')+'</details>';
 }
 /** OFFICE ONLY: put the navigation and any existing partner controls alongside
  * it in the application. Pending/advice records navigate; they cannot sign/pay.
@@ -104,6 +106,31 @@ export function workspaceOfficeView(state,model={}){
  '<section class="ws-agenda" aria-label="今日待办"><h3>未完成 <small>'+jobs.length+'</small></h3>'+(jobs.length?rows(jobs.slice(0,2)):'<p>今天没有待办。</p>')+
  (jobs.length>2?'<details><summary>其余 '+(jobs.length-2)+' 件</summary>'+rows(jobs.slice(2))+'</details>':'')+'</section></div>'+
  '<section class="ws-original-note" aria-label="工作建议"><h3>助理建议</h3>'+(note?'<div>'+portrait+'<div><p>'+esc(lead)+'</p>'+itemList([{title:note.title,tab:note.tab,ref:note.ref}])+'</div></div>':'<p>暂无额外建议。</p>')+'</section>'+ledgerView(state,model.ledger)+'</section>';
+}
+export function canEndOrderDay(s){
+ // A settled Northline receipt is already in the ledger. Explicitly leaving it only closes the screen.
+ const next=s.phase==='account'&&s.account?.status==='paid'?{...s,phase:'review'}:s;
+ return previewWorkspaceSleep(next).valid;
+}
+export function showWarehouseShortcut(root,tab){
+ const button='<button type="button" data-open-warehouse>仓库 <span aria-hidden="true">›</span></button>';
+ const group=tab==='orders'&&root.querySelector('.ws-orders-shortcuts');
+ if(typeof group?.insertAdjacentHTML==='function'){group.insertAdjacentHTML('beforeend',button);return;}
+ const shortcut='<div class="wh-shortcut">'+button+'</div>';
+ const saveFooter=root.querySelector('.deal-save-tools');
+ if(typeof saveFooter?.insertAdjacentHTML==='function')saveFooter.insertAdjacentHTML('beforebegin',shortcut);
+ else root.insertAdjacentHTML('beforeend',shortcut);
+}
+export function showOrdersEnd(root,state,adviserId){
+ const advice=orderFooterAdvice(state,adviserId);
+ const account=state.phase==='account'&&state.account;
+ const due=account?.status==='fulfilling'?account.deliveryDay:account?.status==='receivable'?account.paymentDay:null;
+ const message=Number.isSafeInteger(due)&&due>state.day?'今天没有到期的订单':'今天的订单已全部完成';
+ const done=canEndOrderDay(state)?'<footer class="ws-orders-end"><p>'+message+'</p><button type="button" data-workspace-open="afterwork" data-workspace-ref="orders-end">去下班</button></footer>':'';
+ if(!advice&&!done)return;
+ const insertionPoint=root.querySelector('footer:has(> #motion)')||root.querySelector('.deal-save-tools');
+ if(typeof insertionPoint?.insertAdjacentHTML==='function')insertionPoint.insertAdjacentHTML('beforebegin',advice+done);
+ else root.insertAdjacentHTML('beforeend',advice+done);
 }
 export function bindWorkspaceNav(root,onNavigate){
  if(typeof onNavigate!=='function')return;

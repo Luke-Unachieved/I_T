@@ -74,7 +74,7 @@ function waitView(state,m){
 import {warehouseSceneArt,warehouseStage,warehouseSceneBoxes} from './deal-room-warehouse-art.js';
 export function warehouseView(state,ui={},model={}){
  const m=warehouseSummary(state),ready=warehouseAvailable(state),stage=warehouseStage(m.capacity);
- const head='<header class="wh-head"><div><h2 tabindex="-1" id="wh-title">自有仓库</h2></div><button type="button" data-warehouse-back>返回上一页</button></header>';
+ const head='<button type="button" class="wh-back" data-warehouse-back><span aria-hidden="true">←</span> 返回上一页</button><h2 class="wh-title" tabindex="-1" id="wh-title">自有仓库</h2>';
  if(!m.valid)return '<section class="wh-panel">'+head+'<p role="status">'+esc(m.reason)+'</p></section>';
  const updated=String(state.feedback?.kind||'').startsWith('warehouse-')?state.feedback.message:'';
  const glass={starter:'3,4 10,8 10,34 3,35',transit:'71,28 87,28 87,38 71,38',highbay:'77,26 89,22 89,40 77,43'}[stage.id];

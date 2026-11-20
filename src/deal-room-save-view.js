@@ -1,7 +1,20 @@
 import {encodeDealBackup,loadDealSave,restoreDealBackup,DEAL_SAVE_KEY} from './deal-room-save.js';
 const escapeSave=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export function dealSaveView(panel){
- return `<details class="deal-save-tools" ${panel.open?'open':''}><summary>游戏存档</summary><div class="deal-save-body"><p>离开页面不会自动推进日期或扣款。</p>${panel.conflict?`<p role="alert">本页副本尚未保存，浏览器里已有其他页面更新的进度。</p><button id="deal-save-reload">重新加载已保存进度</button>${panel.reloadConfirm?'<p>重新加载会放弃本页尚未保存的变化。请先下载本页副本。</p><button id="deal-save-reload-confirm">放弃本页变化并重新加载</button><button id="deal-save-reload-cancel">暂不重新加载</button>':''}`:''}<button id="deal-save-download">下载当前进度 JSON</button><button id="deal-save-raw">保留浏览器原始进度</button><div class="deal-save-copies"><small>恢复时保留的副本</small><button id="deal-save-before">取回恢复前进度</button><button id="deal-save-unreadable">取回异常进度原件</button></div><label for="deal-save-text">恢复进度备份</label><textarea id="deal-save-text" rows="3" spellcheck="false" placeholder="在这里粘贴本游戏导出的 JSON">${escapeSave(panel.text)}</textarea><button id="deal-save-preview">先查看恢复内容</button>${panel.preview?`<div class="deal-save-confirm" role="group" aria-label="确认替换进度"><p>将恢复到第 ${panel.preview.summary.day} 天 · 可用资金 ¥${panel.preview.summary.cash}。确认后替换当前浏览器进度；原始数据会先保留。</p><button id="deal-save-confirm">确认替换当前进度</button><button id="deal-save-cancel">取消</button></div>`:''}<p role="status">${escapeSave(panel.message)}</p></div></details>`;
+export function dealSaveView(panel,saveNotice='进度自动保存'){
+ const warning=saveNotice&&saveNotice!=='进度自动保存';
+ return `<details class="deal-save-tools" ${panel.open?'open':''}><summary>游戏存档${warning?`<span class="deal-save-alert" role="status">${escapeSave(saveNotice)}</span>`:''}</summary><div class="deal-save-body">
+ <header class="deal-save-head"><h2>备份和恢复</h2><p>${warning?'':'进度自动保存。'}离开页面不会自动推进日期或扣款。</p></header>
+ ${panel.conflict?`<section class="deal-save-conflict" aria-label="存档冲突"><p role="alert">本页副本尚未保存，浏览器里已有其他页面更新的进度。</p><button type="button" id="deal-save-reload">重新加载已保存进度</button>${panel.reloadConfirm?'<p>重新加载会放弃本页尚未保存的变化。请先下载本页副本。</p><div class="deal-save-actions"><button type="button" id="deal-save-reload-confirm">放弃本页变化并重新加载</button><button type="button" id="deal-save-reload-cancel">暂不重新加载</button></div>':''}</section>`:''}
+ <section class="deal-save-section deal-save-export" aria-labelledby="deal-save-export-title">
+ <h3 id="deal-save-export-title">备份当前进度</h3><p>换浏览器或设备前，先下载一份可恢复的备份。</p>
+ <div class="deal-save-actions"><button type="button" id="deal-save-download">下载当前存档</button><button type="button" id="deal-save-raw">保留浏览器原始进度</button></div>
+ <div class="deal-save-copies"><small>恢复时保留的副本</small><div class="deal-save-actions"><button type="button" id="deal-save-before">取回恢复前进度</button><button type="button" id="deal-save-unreadable">取回异常进度原件</button></div></div></section>
+ <section class="deal-save-section deal-save-restore" aria-labelledby="deal-save-restore-title">
+ <h3 id="deal-save-restore-title">恢复进度</h3><label for="deal-save-text">粘贴存档文件里的全部内容</label>
+ <textarea id="deal-save-text" rows="3" spellcheck="false" placeholder="在这里粘贴备份的完整内容">${escapeSave(panel.text)}</textarea>
+ <button type="button" id="deal-save-preview">先查看恢复内容</button>
+ ${panel.preview?`<div class="deal-save-confirm" role="group" aria-label="确认替换进度"><p>将恢复到第 ${panel.preview.summary.day} 天 · 可用资金 ¥${panel.preview.summary.cash}。确认后替换当前浏览器进度；原始数据会先保留。</p><div class="deal-save-actions"><button type="button" id="deal-save-confirm">确认替换当前进度</button><button type="button" id="deal-save-cancel">取消</button></div></div>`:''}</section>
+ <p class="deal-save-status" role="status">${escapeSave(panel.message)}</p></div></details>`;
 }
 /** Bind only explicit clicks. download receives bytes from this game's save only;
  * no file input, upload, network or permissions are used here.
@@ -23,14 +36,14 @@ export function bindDealSaveTools(root,{panel,storage,getState,render,onRestored
   try{
    if(saved.status==='valid'){
     download(encodeDealBackup(saved.state),'贸易工作室-'+label+'-可恢复.json','application/json');
-    report('已发起'+label+'下载，可用下载的 JSON 查看恢复内容；尚未替换当前进度。');
+    report('已发起'+label+'下载，可用下载的备份预览要恢复的进度；尚未替换当前进度。');
    }else{
     download(saved.raw,'贸易工作室-'+label+'-原文.txt','text/plain');
     report('这份副本无法验证，已发起原文下载供保全；不是可直接恢复的备份。');
    }
   }catch{report('未能导出这份副本，浏览器保留的数据未删除。');}
  });
- on('#deal-save-preview',()=>{const p=restoreDealBackup(storage,panel.text,{key});panel.preview=p.needsConfirmation?{...p,text:panel.text}:null;report(p.needsConfirmation?'请核对天数与资金，再决定是否替换。':(p.status==='unavailable'?'浏览器暂时无法读取进度，未作修改。':p.error?.includes('5 MiB')?'备份超过 5 MiB，请检查是否粘贴了正确文件。':'这段内容不是有效备份，请粘贴本游戏导出的完整 JSON。当前进度未修改。'));});
+ on('#deal-save-preview',()=>{const p=restoreDealBackup(storage,panel.text,{key});panel.preview=p.needsConfirmation?{...p,text:panel.text}:null;report(p.needsConfirmation?'请核对天数与资金，再决定是否替换。':(p.status==='unavailable'?'浏览器暂时无法读取进度，未作修改。':p.error?.includes('5 MiB')?'这份备份太大，请确认粘贴的是本游戏导出的存档。':'这段内容不是有效备份，请粘贴本游戏导出的完整存档内容。当前进度未修改。'));});
  on('#deal-save-cancel',()=>{panel.preview=null;report('已取消，当前进度未替换。');});
  on('#deal-save-confirm',()=>{
   const p=panel.preview;if(!p||p.text!==panel.text){panel.preview=null;report('备份文本已变化，请重新查看恢复内容。');return;}

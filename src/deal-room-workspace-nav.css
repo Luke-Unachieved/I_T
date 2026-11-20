@@ -34,3 +34,17 @@
 @keyframes ws-window-snow{from{transform:translate(-.6px,-2px)}to{transform:translate(.6px,2px)}}
 @media(prefers-reduced-motion:reduce){.ws-weather-rain,.ws-weather-snow{animation:none}}
 html.reduce-motion .ws-weather-rain,html.reduce-motion .ws-weather-snow{animation:none}
+
+/* End of the entire Orders view, not part of any customer order. */
+#deal-room > .ws-orders-end{grid-column:1/-1;justify-self:center;box-sizing:border-box;width:min(100%,56rem);display:flex;align-items:center;justify-content:space-between;gap:.7rem 1.2rem;flex-wrap:wrap;padding:.9rem 1rem;border-top:1px solid #8b775445;color:#e4dbca}
+#deal-room > .ws-orders-end p{margin:0}
+#deal-room > .ws-orders-end button{min-height:44px;padding:.5rem .95rem;font:inherit;font-weight:650;background:#29241c;color:#e9d5a7;border:1px solid #937b51;border-radius:.45rem;cursor:pointer}
+#deal-room > .ws-orders-end button:focus-visible{outline:2px solid #e7cb8c;outline-offset:3px}
+
+#deal-room > .ws-order-tip{
+ grid-column:1/-1;justify-self:center;width:min(100%,56rem);box-sizing:border-box;
+ display:flex;align-items:center;gap:.7rem;margin:.35rem 0 0;padding:.65rem .85rem;
+ color:var(--ws-secondary,#c3bcae);background:#221e19;border:1px solid #4b4235;border-radius:.5rem;
+}
+#deal-room > .ws-order-tip p{margin:0;min-width:0;font-size:.85rem;line-height:1.45;}
+#deal-room > .ws-order-tip .adviser-face{width:30px;height:30px;flex:none;border-radius:50%;background-size:950% auto;}

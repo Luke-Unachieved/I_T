@@ -66,6 +66,18 @@
 #deal-room .wh-original .wh-order-details>summary{background:#27231c;border-color:#5b4c36;color:#e7d3a8;padding:12px 14px}
 #deal-room .wh-original [data-wh-expand]{padding:12px 14px;border-color:#8d7145;background:#31291d;color:#f3dba9;font-weight:600}
 #deal-room .wh-original .wh-key{color:#d4c8b4}
+/* 在途仓位铺满深色底，文字不再同时落在明暗相反的条纹上。 */
+#deal-room .wh-original .wh-bay.wh-reserved{
+ background:repeating-linear-gradient(135deg,#362c20 0 6px,#51412e 6px 7px);
+ color:#fff1d2;border-color:#bfa477;
+}
+#deal-room .wh-original .wh-rack-details>summary{min-height:44px}
+#deal-room .wh-original :is(button,input,select,summary):focus-visible{outline-color:#e7cb8c}
+@media(max-width:620px){
+ #deal-room .wh-original .wh-slot-number{font-size:.7rem}
+ #deal-room .wh-original .wh-reserved-word{font-size:.8rem}
+ #deal-room .wh-original .wh-partial{font-size:.69rem}
+}
 #deal-room .wh-original .wh-tiers{color:#d0c6b5}
 #deal-room .wh-original .wh-feedback{background:transparent;padding:8px 12px}
 /* The restock preview is on the dark canvas; keep its labels and totals readable. */
@@ -74,3 +86,11 @@
 #deal-room .wh-original .wh-purchase .wh-facts>div:nth-child(4) dd{color:#f3d69e;font-size:18px}
 #deal-room .wh-original .wh-purchase>p{color:#d4cbb9;font-size:14px}
 #deal-room .wh-original .wh-scene-frame>.exterior-weather{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+#deal-room .wh-original .wh-arrived-carton{position:absolute;display:block;width:10%;height:auto;transform:translateY(-20%);filter:drop-shadow(2px 3px 2px #23180a65)}
+
+#deal-room .wh-panel > .wh-back{
+ display:inline-flex;align-items:center;gap:.4rem;min-height:44px;
+ padding:.25rem .15rem;background:none;border:0;box-shadow:none;color:#d5c8ac;
+}
+#deal-room .wh-panel > .wh-back:focus-visible{outline:2px solid #e7cb8c;outline-offset:2px}
+#deal-room .wh-panel > .wh-title{margin:.25rem 0 .9rem;line-height:1.3}

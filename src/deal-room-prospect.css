@@ -70,3 +70,17 @@
 #deal-room .ws-ship-choice article{min-width:0;padding:8px;border:1px solid #584b3c;border-radius:6px;background:#25211d;color:#efe9df}
 #deal-room .ws-ship-choice article :is(h4,p){margin:0 0 8px}
 #deal-room .ws-ship-choice button{min-height:44px;width:100%;white-space:normal}
+
+/* Mobile letter: keep pricing and status readable without relying on text
+   inherited from a different (light-paper) purchase-desk skin. */
+@media(max-width:540px){
+ #deal-room .market-panel.ws-letter-panel .prospect-panel .market-sheet :is(small,h3,strong){color:#f2e8d6}
+ #deal-room .market-panel.ws-letter-panel .prospect-panel button[data-prospect-source]:disabled{
+  background:#49322f;color:#f0ddc8;border-color:#91615a;opacity:1
+ }
+ #deal-room .market-panel.ws-letter-panel .prospect-panel button[data-prospect-source]:disabled :is(strong,small,b){color:inherit}
+ #deal-room .market-panel.ws-letter-panel .prospect-panel .prospect-source-block{background:#463026;color:#f8e7d2}
+ #deal-room .market-panel.ws-letter-panel .prospect-panel :is([data-prospect-back],[data-prospect-dismiss],.prospect-disclosure>summary){min-height:44px}
+ #deal-room .market-panel .prospect-inbox button.prospect-letter{background:#fffdf6;color:#263c32}
+ #deal-room .market-panel .prospect-inbox button.prospect-letter :is(strong,small){color:#314839}
+}

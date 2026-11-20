@@ -1,0 +1,138 @@
+/* Save tools share the workspace's visual language, not its gameplay state. */
+#deal-room > .deal-save-tools {
+  box-sizing: border-box;
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: 100%;
+  max-width: 58rem;
+  margin: .65rem auto .8rem;
+  padding: 0;
+  color: var(--ws-secondary, #cabda5);
+}
+#deal-room .deal-save-tools > summary {
+  width: fit-content;
+  min-height: 44px;
+  padding: 11px 10px;
+  font: 600 .88rem/1.5 system-ui, sans-serif;
+  border-radius: 5px;
+}
+#deal-room .deal-save-alert {
+  display: block;
+  max-width: min(33rem, 100%);
+  margin: .3rem 0 0 .85rem;
+  color: #ffd3b3;
+  font: 500 .83rem/1.45 system-ui, sans-serif;
+  overflow-wrap: anywhere;
+}
+#deal-room .deal-save-tools[open] > summary {
+  color: var(--ws-type, #f6eddb);
+}
+#deal-room .deal-save-body {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  padding: 0;
+  background: #211e19;
+  color: #f3eadc;
+  border: 1px solid #5d503e;
+  border-radius: 8px;
+  font: 400 .9rem/1.55 system-ui, sans-serif;
+  overflow-wrap: anywhere;
+}
+#deal-room .deal-save-head,
+#deal-room .deal-save-section,
+#deal-room .deal-save-conflict,
+#deal-room .deal-save-status:not(:empty) { padding: clamp(14px, 2.2vw, 22px); }
+#deal-room .deal-save-head,
+#deal-room .deal-save-conflict,
+#deal-room .deal-save-status { grid-column: 1 / -1; }
+#deal-room .deal-save-body > .deal-save-head {
+  display: block;
+  position: static;
+  height: auto;
+  margin: 0;
+  background: transparent;
+  border-bottom: 1px solid #4c4235;
+}
+#deal-room .deal-save-head h2,
+#deal-room .deal-save-section h3 { margin: 0 0 .35rem; }
+#deal-room .deal-save-head h2 { color: #fff4e2; font-size: 1.3rem; }
+#deal-room .deal-save-section h3 { color: #ead4aa; font-size: 1rem; }
+#deal-room .deal-save-head p,
+#deal-room .deal-save-section p,
+#deal-room .deal-save-conflict p { margin: .3rem 0 .65rem; color: #d7cbb6; }
+#deal-room .deal-save-head p { margin-bottom: 0; }
+#deal-room .deal-save-section { min-width: 0; }
+#deal-room .deal-save-restore { border-left: 1px solid #4c4235; }
+#deal-room .deal-save-actions { display: flex; flex-wrap: wrap; gap: .45rem; }
+#deal-room .deal-save-body button {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-height: 44px;
+  padding: .45rem .75rem;
+  border: 1px solid #78664b;
+  border-radius: 6px;
+  background: #332c22;
+  color: #f5e7cb;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+#deal-room .deal-save-body button:hover { background: #3f3428; }
+#deal-room .deal-save-body :is(#deal-save-download, #deal-save-preview) {
+  background: #e6c88e;
+  border-color: #e6c88e;
+  color: #281e11;
+  font-weight: 650;
+}
+#deal-room .deal-save-body :is(#deal-save-download, #deal-save-preview):hover { background: #f3d9a7; }
+#deal-room .deal-save-copies {
+  display: grid;
+  gap: .45rem;
+  margin: .95rem 0 0;
+  padding: .85rem 0 0;
+  border: 0;
+  border-top: 1px solid #4c4235;
+}
+#deal-room .deal-save-copies > small { color: #d7cbb6; }
+#deal-room .deal-save-restore label {
+  display: block;
+  color: #f3eadc;
+  margin-bottom: .35rem;
+}
+#deal-room .deal-save-body textarea {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 5rem;
+  margin: 0 0 .65rem;
+  padding: .65rem .75rem;
+  resize: vertical;
+  border: 1px solid #78664b;
+  border-radius: 6px;
+  color: #f4e7d2;
+  background: #171511;
+  font: .88rem/1.55 system-ui, sans-serif;
+}
+#deal-room .deal-save-body textarea::placeholder { color: #bcae97; opacity: 1; }
+#deal-room .deal-save-conflict,
+#deal-room .deal-save-confirm {
+  background: #33231e;
+  color: #f5ded2;
+  border-color: #967052;
+}
+#deal-room .deal-save-conflict { border-bottom: 1px solid #967052; }
+#deal-room .deal-save-confirm { box-sizing: border-box; margin-top: .75rem; padding: .75rem; border: 1px solid #967052; border-radius: 6px; }
+#deal-room .deal-save-body :is(#deal-save-confirm, #deal-save-reload-confirm) {
+  border-color: #a98462;
+  color: #fbe5d4;
+  background: #5b392b;
+}
+#deal-room .deal-save-status { margin: 0; color: #ead4aa; }
+#deal-room .deal-save-status:not(:empty) { border-top: 1px solid #4c4235; }
+#deal-room .deal-save-tools :focus-visible { outline: 2px solid #f5d798; outline-offset: 3px; }
+@media (max-width: 620px) {
+  #deal-room .deal-save-body { grid-template-columns: minmax(0, 1fr); }
+  #deal-room .deal-save-restore { border-left: 0; border-top: 1px solid #4c4235; }
+}

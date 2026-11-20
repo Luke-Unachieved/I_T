@@ -22,3 +22,4 @@ export function displayProspectCopy(customerId,stage,original){
  const index=prospectContent(customerId)?.lines?.[stage]?.indexOf(original);
  return Object.hasOwn(edits,index)?edits[index]:original;
 }
+export const displayProspectCopy016To025=displayProspectCopy;

@@ -153,7 +153,7 @@ export function outingsView(s,ui={},assets={}){
  if(b.valid&&s.phase==='outing-trip'&&b.activeTrip)return activeTrip(s,b,assets);
  if(!b.valid||!b.available)return panel(s,back('← 返回下班','close')+title('下班','稍后再出门',b.reason));
  if(v.screen==='confirm')return panel(s,confirmView(s,v));
- if(v.screen==='receipt'&&b.last?.kind==='friend')return panel(s,'<header class="oo-story-title oo-receipt-title"><small>今天的记忆</small><h2>'+e(outingMoment(b.last)?.name??'约朋友')+'</h2></header>'+momentView(b.last,assets)+'<div class="oo-story-exits">'+button('friends-back',null,'再看看其他活动')+button('menu',null,'回到下班时间')+'</div>');
+ if(v.screen==='receipt'&&b.last?.kind==='friend')return panel(s,'<header class="oo-story-title oo-receipt-title"><small>今天的记忆</small><h2>'+e(outingMoment(b.last)?.name??'约朋友')+'</h2></header>'+momentView(b.last,assets)+'<div class="oo-story-exits">'+button('friends-back',null,'再看看其他活动')+button('menu',null,'返回出门菜单')+'</div>');
  if(v.screen==='trips')return panel(s,tripList());
  const t=outingTrip(v.tripId);
  if(v.screen==='trip'&&t)return panel(s,tripPreview(s,v,t,assets));

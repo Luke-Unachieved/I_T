@@ -16,5 +16,5 @@ export function equipmentComicFor(a,status){
 }
 export function equipmentComicView(a,status){
  const pic=equipmentComicFor(a,status);
- return pic?'<figure class="ws-equipment-comic"><img class="pv-art" src="'+pic.art+'" alt="'+pic.alt+'"></figure>':'';
+ return pic?'<figure class="ws-equipment-comic"><img class="pv-art" src="'+pic.art+'" alt="'+pic.alt+'" width="960" height="640"></figure>':'';
 }

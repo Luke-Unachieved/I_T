@@ -1,22 +1,164 @@
-.office-improvement-panel{background:#fcf5e8;padding:22px;border-radius:22px;color:#433a2e}.office-improvement-panel header{display:flex;justify-content:space-between;gap:16px;align-items:center}.office-improvement-panel button{min-height:44px;padding:10px 14px;border:1px solid #cabca5;border-radius:10px;background:#fff9ed;color:#433a2e;cursor:pointer}.office-environment{position:relative;aspect-ratio:3/2;background:url('../assets/deal-showroom-v1.webp') center/cover;border-radius:18px;overflow:hidden;margin:18px 0}.office-environment.office-improved{background-image:url('../assets/deal-office-window-v1.webp')}.office-curtain{position:absolute;right:0;top:0;width:42%;height:53%;transform:scaleX(0);transform-origin:right;background:repeating-linear-gradient(90deg,#e8e0cfb8 0,#fcf7e9c7 4%,#c0b69b91 8%);transition:transform .7s;pointer-events:none;box-shadow:0 10px 35px #50412e33}.office-shaded .office-curtain{transform:scaleX(1)}.office-window-control,.office-bench-control,.office-shelf-control{position:absolute;box-shadow:0 2px 10px #473c3422;font-size:12px}.office-window-control{right:4%;top:7%}.office-bench-control{right:6%;top:43%}.office-shelf-control{left:29%;top:32%}.office-scene-note{position:absolute;bottom:0;left:0;right:0;background:#fff8e8ed;padding:12px;font-size:14px;margin:0}.office-comparison,.office-purchase-actions{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}.office-purchase-actions [data-office-buy]{background:#d7e1d0}.office-improvement-panel button:disabled{opacity:.5;cursor:default}.office-work-memory{background:#eee4cf;padding:16px;border-radius:12px}.office-improvement-panel button:focus-visible{outline:3px solid #496d5d;outline-offset:3px}@media(max-width:600px){.office-improvement-panel{padding:12px}.office-environment{aspect-ratio:1/1;background-size:auto 100%}.office-window-control{top:4%;right:2%}.office-shelf-control{left:3%;top:25%}.office-bench-control{top:49%;right:2%}.office-scene-note{font-size:12px}.office-improvement-panel header{align-items:start}}@media(prefers-reduced-motion:reduce){.office-curtain{transition:none}}.reduce-motion .office-curtain{transition:none}
-.workspace.office-upgraded-workspace{background-image:url('../assets/deal-office-window-v1.webp')}
-.office-environment.office-resting{background-size:155% auto;background-position:96% 25%;transition:background-size .6s,background-position .6s}.office-resting .office-shelf-control{display:none}.office-resting .office-bench-control{top:65%;right:8%}@media(prefers-reduced-motion:reduce){.office-environment.office-resting{transition:none}}.reduce-motion .office-environment.office-resting{transition:none}
-.office-improvement-panel{grid-column:1/-1;width:100%;max-width:1100px;box-sizing:border-box;justify-self:center}.office-improvement-panel~.save-state,.office-improvement-panel~.deal-save-tools{grid-column:1/-1}.office-improvement-panel h2{margin:8px 0}.office-improvement-panel header button{flex-shrink:0}
-.annex-panel{grid-column:1/-1;width:100%;box-sizing:border-box;background:#fcf5e8;padding:22px;border-radius:22px;color:#433a2e}.annex-panel header{display:flex;justify-content:space-between;gap:16px;align-items:center}.annex-panel h2{margin:8px 0}.annex-panel button,.annex-panel select{font:inherit;min-height:44px;border:1px solid #b9b39f;border-radius:9px;padding:10px 14px;background:#fff9ed;color:#433a2e}.annex-panel button{cursor:pointer}.annex-panel button.primary{background:#496d5d;color:white}.annex-panel button:disabled{opacity:.5;cursor:default}.annex-panel :focus-visible{outline:3px solid #496d5d;outline-offset:3px}.annex-viewport{overflow:hidden;border-radius:16px;margin:18px 0 0;aspect-ratio:3/2;background:#d3c4a7}.annex-scene{width:100%;height:100%;position:relative;background:url('../assets/deal-annex-room-v1.webp') center/100% 100%;transform-origin:79% 32%;transition:transform .7s}.annex-outside{transform:scale(2.9)}.annex-doorway{position:absolute;left:61.4%;top:14.6%;width:31.8%;height:48%;overflow:hidden}.annex-glass{height:100%;width:100%;box-sizing:border-box;border:3px solid #685f4e;background:linear-gradient(118deg,#d1e3de55 0%,#e2f5ed2c 45%,#fff9d26b 46%,#c2dcd944 49%,#e8f4f145 100%);box-shadow:inset 1px 0 3px #fff9;transition:transform .7s}.annex-glass:after{content:'';position:absolute;right:5%;top:46%;height:13%;width:3%;border-radius:3px;background:#514a40}.annex-door-open{transform:translateX(-101%)}.annex-light-wash{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at 24% 20%,#ffe49c44,transparent 55%),linear-gradient(#fff1bc18,#9c5d3219);transition:opacity .4s}.annex-warm .annex-light-wash{opacity:1}.annex-table{position:absolute;inset:0;pointer-events:none}.annex-sample{position:absolute;bottom:24%;width:18%;height:26%;display:flex;align-items:center;justify-content:end;flex-direction:column}.annex-slot-0{left:25%}.annex-slot-1{left:50%}.annex-sample svg{width:100%;height:100%;overflow:visible}.annex-sample span{position:absolute;top:100%;font-size:clamp(9px,1.4vw,14px);white-space:nowrap;padding:3px 7px;border-radius:5px;background:#fff9e8e8;color:#463b2f}.annex-outside .annex-table{visibility:hidden}.annex-scene-note{padding:12px;background:#ede4d1;margin:0 0 14px;border-radius:0 0 12px 12px}.annex-controls,.annex-purchase>div{display:flex;gap:10px;flex-wrap:wrap}.annex-display{display:flex;gap:14px;flex-wrap:wrap;border:1px solid #cfc2ad;border-radius:12px;margin:16px 0;padding:12px}.annex-display label{display:flex;align-items:center;gap:8px;flex:1}.annex-display select{min-width:0;width:100%}.annex-purchase{background:#eee4cf;padding:16px;border-radius:12px}.annex-purchase>div{margin-top:12px}.annex-panel footer{margin-top:15px}.annex-panel~.save-state,.annex-panel~.deal-save-tools{grid-column:1/-1}@media(max-width:600px){.annex-panel{padding:12px}.annex-panel header{align-items:start}.annex-panel header button{flex-shrink:0}.annex-controls>button{flex:1 1 40%;padding:9px;font-size:14px}.annex-display{gap:10px}.annex-display label{flex-basis:100%}.annex-scene-note{font-size:13px}.annex-sample{width:21%;height:28%}.annex-slot-0{left:23%}.annex-slot-1{left:49%}.annex-purchase>div>button{width:100%}}@media(prefers-reduced-motion:reduce){.annex-scene,.annex-glass,.annex-light-wash{transition:none}}.reduce-motion .annex-scene,.reduce-motion .annex-glass,.reduce-motion .annex-light-wash{transition:none}
+/* Private studio spaces. Keep the art's coordinates and the trade-off side by
+   side on desktop; let the same scene lead the page on a phone. */
+.office-improvement-panel{grid-column:1/-1}
+.annex-panel button,.annex-panel select{min-height:44px}
+.exhibition-panel button,.exhibition-panel select{min-height:44px}
+#deal-room .room-edition{
+ --room-ink:#f1ece4;--room-soft:#c9c1b5;--room-gold:#e6c68b;--room-rule:#514a3d;
+ grid-column:1/-1;justify-self:center;width:100%;max-width:1200px;min-width:0;box-sizing:border-box;
+ display:grid;grid-template-columns:minmax(0,1.52fr) minmax(300px,1fr);grid-template-rows:auto auto;
+ column-gap:clamp(16px,2.6vw,32px);row-gap:16px;align-items:start;
+ padding:clamp(16px,2vw,28px);border:1px solid #443f34;border-radius:14px;
+ background:#232320;color:var(--room-ink);font:400 15px/1.52 system-ui,"Microsoft YaHei",sans-serif;color-scheme:dark;
+}
+#deal-room .room-edition .room-heading{grid-column:1/-1;margin:0;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0}
+#deal-room .room-edition .room-heading h2{margin:2px 0 0;font:750 clamp(22px,2.7vw,35px)/1.25 system-ui,sans-serif;color:var(--room-ink);letter-spacing:.015em}
+#deal-room .room-edition h3,#deal-room .room-edition .room-side legend{margin:0;font:700 19px/1.4 system-ui,sans-serif;color:var(--room-ink)}
+#deal-room .room-edition :is(p,small,details,label){color:var(--room-soft)}
+#deal-room .room-edition p{margin:5px 0 11px;font:inherit;line-height:1.55}
+#deal-room .room-edition small{font-size:13px;line-height:1.5}
+#deal-room .room-edition .room-heading small{color:var(--room-gold);font-size:12px;letter-spacing:.1em}
+#deal-room .room-edition button,#deal-room .room-edition select{box-sizing:border-box;min-height:44px;max-width:100%;font:600 14px/1.35 system-ui,sans-serif;color:var(--room-ink);border:1px solid #665e50;border-radius:7px;background:#34332d;padding:9px 12px}
+#deal-room .room-edition select{font-weight:500;width:100%;padding-inline-end:22px}
+#deal-room .room-edition button{cursor:pointer}
+#deal-room .room-edition button:not(:disabled):hover{border-color:var(--room-gold);background:#453e31}
+#deal-room .room-edition button[aria-pressed=true]{background:#4d422f;border-color:#c5a268;color:#ffe6b4}
+#deal-room .room-edition .room-back{flex-shrink:0;color:var(--room-soft);background:transparent}
+#deal-room .room-edition :is(.room-primary,#open-private-exhibition){display:block;width:100%;font-size:15px;font-weight:750;background:#e1bd7e;color:#241c0e;border-color:#edcd95;text-align:center}
+#deal-room .room-edition :is(.room-primary,#open-private-exhibition):not(:disabled):hover{background:#f0cf96;color:#1f190f}
+#deal-room .room-edition button:disabled{background:#353430;color:#a9a59d;border-color:#49463e;cursor:not-allowed}
+#deal-room .room-edition :is(button,summary,select,[tabindex]):focus-visible{outline:3px solid #f1ce8b;outline-offset:2px}
+#deal-room .room-edition .room-picture{grid-column:1;grid-row:2;margin:0;min-width:0}
+#deal-room .room-edition .room-caption{display:flex;gap:10px;justify-content:space-between;align-items:baseline;padding:8px 0 10px;color:var(--room-soft);font-size:13px;line-height:1.45}
+#deal-room .room-edition .room-caption b{color:var(--room-ink);font-size:15px}
+#deal-room .room-edition .room-side{grid-column:2;grid-row:2;min-width:0;display:grid;gap:14px;align-content:start}
+#deal-room .room-edition .room-side :is(fieldset,section){min-width:0;padding:0;margin:0;border:0}
+#deal-room .room-edition .room-side>section+section,#deal-room .room-edition .room-side>.annex-purchase{border-top:1px solid var(--room-rule);padding-top:14px}
+#deal-room .room-edition .room-side legend{float:left;width:100%;padding:0;margin:0 0 5px}
+#deal-room .room-edition .room-side legend+*{clear:both}
+#deal-room .room-edition .room-cost{display:flex;align-items:baseline;gap:10px;margin:12px 0 0}
+#deal-room .room-edition .room-cost strong{color:var(--room-gold);font-size:clamp(25px,3.3vw,37px);line-height:1.2;font-variant-numeric:tabular-nums}
+#deal-room .room-edition p.room-balance{margin:4px 0 12px;color:var(--room-ink)}
+#deal-room .room-edition .room-purchase>small{display:block;margin:8px 0 0}
+#deal-room .room-edition .spending-liquidity{background:#3d3225;color:#f6d899;border-left:3px solid #cda66d;padding:8px 10px;border-radius:3px;font-size:13px}
+#deal-room .room-edition .spending-liquidity small{display:block;color:#e5d7bd}
+#deal-room .room-edition :is(.room-actions,.office-comparison,.office-memory-picks,.office-memory-navigation,.exhibition-reorder,.exhibition-tour-controls){display:flex;flex-wrap:wrap;gap:8px}
+#deal-room .room-edition .room-interact h3{margin-bottom:9px}
+#deal-room .room-edition :is(.room-disclosure,summary){display:block;width:100%;min-height:44px;padding:11px 0;border:0;border-top:1px solid var(--room-rule);background:transparent;color:var(--room-gold);text-align:left;font:600 14px/1.5 system-ui,sans-serif;cursor:pointer;list-style:none}
+#deal-room .room-edition summary::-webkit-details-marker{display:none}
+#deal-room .room-edition summary::after,#deal-room .room-edition [data-office-works]::after{content:'＋';float:right;padding-left:.45rem;color:var(--room-gold)}
+#deal-room .room-edition details[open]>summary::after,#deal-room .room-edition [data-office-works][aria-expanded=true]::after{content:'−'}
+#deal-room .room-edition .room-interact>.room-disclosure{margin-top:10px}
+#deal-room .room-edition details{margin:0;font-size:14px}
 
-/* Follow the linen cutout alpha, not its rectangular sprite bounds. */
-.annex-kind-linen>svg{filter:drop-shadow(0 3px 2px rgba(53,31,15,.42))}
-@media(max-width:600px){.annex-kind-linen>svg{filter:drop-shadow(0 1.5px 1px rgba(53,31,15,.42))}}
-/* Completed case displays use their actual products, with readable details below. */
-.annex-kind-case{width:30%;height:25%}.annex-kind-case.annex-slot-0{left:14%}.annex-kind-case.annex-slot-1{left:51%}.annex-case-products{display:flex;align-items:flex-end;width:100%;height:100%;gap:2%}.annex-case-product{flex:1;min-width:0;display:flex;align-items:flex-end;height:100%}.annex-case-product>svg{width:100%;height:auto;max-height:100%;overflow:visible}.annex-case-notes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 16px}.annex-case-notes article{padding:12px;background:#f2e8d3;border:1px solid #d8cbb3;border-radius:12px;overflow-wrap:anywhere}.annex-case-notes h3{margin:6px 0;font-size:17px}.annex-case-notes p{margin:7px 0;font-size:14px;line-height:1.5}@media(max-width:600px){.annex-kind-case{width:32%;height:27%}.annex-kind-case.annex-slot-0{left:12%}.annex-kind-case.annex-slot-1{left:50%}.annex-case-notes{grid-template-columns:1fr}.annex-case-notes h3{font-size:16px}}
-.exhibition-panel{grid-column:1/-1;background:#fcf5e8;color:#433a2e;padding:22px;border-radius:22px;min-width:0}.exhibition-panel header{display:flex;justify-content:space-between;align-items:start;gap:14px}.exhibition-panel h2{margin:8px 0}.exhibition-panel button,.exhibition-panel select{font:inherit;min-height:44px;padding:10px 13px;border:1px solid #b9b39f;border-radius:9px;background:#fff9ed;color:#433a2e}.exhibition-panel button{cursor:pointer}.exhibition-panel button.primary,.exhibition-theme [aria-pressed=true]{background:#496d5d;color:#fff}.exhibition-panel button:disabled{opacity:.5;cursor:default}.exhibition-panel :focus-visible{outline:3px solid #496d5d;outline-offset:3px}.exhibition-wall-viewport{aspect-ratio:3/2;overflow:hidden;border-radius:16px;margin:18px 0;background:#d3c4a7}.exhibition-wall{width:100%;height:100%;position:relative;background:url('../assets/deal-annex-room-v1.webp') center/100% 100%;transform:scale(1.8);transform-origin:0 35%}.exhibition-wall-work{position:absolute;bottom:55%;width:10.4%;height:20%;display:flex;align-items:flex-end;transition:filter .3s}.exhibition-wall-0{left:7.4%}.exhibition-wall-1{left:21.4%}.exhibition-wall-2{left:35.4%}.exhibition-highlight{filter:drop-shadow(0 1px 2px #fff1b1)}.exhibition-products{display:flex;align-items:flex-end;justify-content:center;gap:3%;width:100%}.exhibition-product{flex:1;min-width:0;max-width:200px}.exhibition-product>svg{display:block;width:100%;height:auto}.exhibition-theme,.exhibition-slot{border:1px solid #cfc2ad;padding:14px;border-radius:12px;margin:14px 0}.exhibition-theme{display:flex;gap:10px;flex-wrap:wrap}.exhibition-slot label{display:flex;align-items:center;gap:12px;margin:9px 0}.exhibition-slot select{flex:1;min-width:0;max-width:100%;width:100%}.exhibition-reorder,.exhibition-tour-controls{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}.exhibition-current{padding:18px;border:1px solid #d3c6ad;background:#f2e8d3;border-radius:14px;overflow-wrap:anywhere}.exhibition-current h3{margin:8px 0}.exhibition-current>.exhibition-products{max-width:530px;margin:16px auto}.exhibition-current blockquote{margin:14px 0;padding:12px;border-left:3px solid #758b6e;background:#fff7e6;font-size:18px}.exhibition-archive{margin:18px 0}.exhibition-archive button{display:block;width:100%;text-align:left;margin:8px 0}.exhibition-panel~.save-state,.exhibition-panel~.deal-save-tools{grid-column:1/-1}@media(max-width:600px){.exhibition-panel{padding:12px}.exhibition-panel header button{flex-shrink:0}.exhibition-slot label{display:block}.exhibition-slot select{display:block;margin-top:6px}.exhibition-reorder button,.exhibition-tour-controls button{flex:1}.exhibition-current{padding:12px}.exhibition-current blockquote{font-size:16px}.exhibition-theme button{flex:1}.exhibition-current>.exhibition-products{max-width:280px}}@media(prefers-reduced-motion:reduce){.exhibition-wall-work{transition:none}}.reduce-motion .exhibition-wall-work{transition:none}
-
-.exhibition-series{overflow-wrap:anywhere;border-left:4px solid #9c8765;padding:8px 12px;line-height:1.6}.exhibition-series-charcoal{border-color:#343b3c}.exhibition-series-botanical{border-color:#638069}.exhibition-series-tidal-grid{border-color:#426e79}.exhibition-wall-work .exhibition-series{font-size:10px;padding:2px 4px;margin:2px 0;line-height:1.3}
-/* The upgraded display belongs to this run: only fulfilled paid products appear. */
+/* Physical studio and its earned samples. The base frame and the overlaid
+   artwork use the same 1536×1024 image coordinates at every width. */
+.office-environment{position:relative;aspect-ratio:3/2;background:url('../assets/deal-showroom-v1.webp') center/cover;border-radius:9px;overflow:hidden}
+.office-environment.office-improved,.workspace.office-upgraded-workspace{background-image:url('../assets/deal-office-window-v1.webp')}
+.office-environment.office-resting{background-size:155% auto;background-position:96% 25%;transition:background-size .6s,background-position .6s}
+.office-curtain{position:absolute;right:0;top:0;width:37%;height:47%;transform:scaleX(0);transform-origin:right;background:repeating-linear-gradient(90deg,#e8e0cfb8 0,#fcf7e9c7 4%,#c0b69b91 8%);transition:transform .7s;pointer-events:none}
+.office-improved.office-shaded .office-curtain{transform:scaleX(1)}
 .office-earned-art{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;filter:drop-shadow(0 2px 2px #5b42282e)}
 .office-resting .office-earned-art{display:none}
-.office-memory-picks,.office-memory-navigation{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.office-memory-picks button[aria-pressed=true]{background:#3f5e50;color:#fff8e8}.office-memory-card{display:grid;grid-template-columns:minmax(70px,120px) minmax(0,1fr);gap:16px;margin:18px 0;align-items:center}.office-memory-sample svg{display:block;width:100%;max-height:150px}.office-memory-route{display:flex;gap:12px;padding:0;list-style:none;font-size:12px}.office-memory-route li{flex:1;border-top:3px solid #76977d;padding-top:8px}.office-memory-route strong,.office-memory-route span{display:block;margin-bottom:5px}.office-memory-return>strong{color:#315d46;font-size:22px}.office-memory-return small{display:block;margin-top:7px;line-height:1.6}.office-memory-navigation{justify-content:space-between}.office-memory-navigation span{font-size:12px}.office-earned-selected{filter:drop-shadow(0 0 9px #fff3bd)}.office-memory-card:focus-visible{outline:3px solid #496d5d;outline-offset:4px;border-radius:8px}@media(max-width:600px){.office-memory-card{grid-template-columns:70px minmax(0,1fr);gap:10px}.office-memory-card h3{font-size:17px}.office-memory-route{flex-direction:column;gap:4px}.office-memory-route li{display:flex;gap:8px;border-top:0;border-left:3px solid #76977d;padding:4px 0 4px 8px}.office-memory-navigation{justify-content:flex-start}.office-memory-picks button{font-size:12px}}
+.office-earned-selected{filter:drop-shadow(0 0 9px #fff3bd)}
+#deal-room .room-edition .office-comparison{gap:0;background:#292925;border:1px solid #595043;border-radius:8px;overflow:hidden}
+#deal-room .room-edition .office-comparison button{flex:1;border:0;border-radius:0;background:transparent}
+#deal-room .room-edition .office-comparison [aria-pressed=true]{background:#493e2b;box-shadow:inset 0 -3px #d7b373}
+#deal-room .room-edition .office-comparison button:focus-visible{outline-offset:-3px}
+.office-work-memory{grid-column:1/-1;padding-block-start:14px;border-top:1px solid #514a3d}
+#deal-room .room-edition .office-memory-picks{margin-top:8px}
+.office-memory-card{display:grid;grid-template-columns:minmax(70px,140px) minmax(0,1fr);gap:16px;margin:12px 0;align-items:center}
+.office-memory-sample svg{display:block;width:100%;max-height:160px}
+.office-memory-route{display:flex;gap:12px;padding:0;list-style:none;font-size:14px}
+.office-memory-route li{flex:1;border-top:2px solid #a38b5e;padding-top:7px}
+.office-memory-route strong,.office-memory-route span{display:block;margin-bottom:3px}
+.office-memory-return>strong{color:#ead096;font-size:22px}
+.office-memory-return small{display:block;margin-top:5px}
+.office-memory-navigation{align-items:center;justify-content:space-between}
+@media(prefers-reduced-motion:reduce){.office-curtain,.office-environment.office-resting{transition:none}}
+.reduce-motion .office-curtain,.reduce-motion .office-environment.office-resting{transition:none}
 
+/* Objects stay anchored to the tabletop; optional case notes sit off the art. */
+.annex-viewport{aspect-ratio:3/2;overflow:hidden;border-radius:9px;background:#413c31}
+.annex-scene{width:100%;height:100%;position:relative;background:url('../assets/deal-annex-room-v1.webp') center/100% 100%;transform-origin:79% 32%;transition:transform .7s}
+.annex-outside{transform:scale(2.9)}
+.annex-doorway{position:absolute;left:61.4%;top:14.6%;width:31.8%;height:48%;overflow:hidden}
+.annex-glass{position:relative;height:100%;width:100%;box-sizing:border-box;border:2px solid #685f4e;background:linear-gradient(118deg,#d1e3de55 0%,#e2f5ed2c 45%,#fff9d26b 46%,#c2dcd944 49%,#e8f4f145 100%);box-shadow:inset 1px 0 3px #fff9;transition:transform .7s}
+.annex-glass:after{content:'';position:absolute;right:5%;top:46%;height:13%;width:3%;border-radius:3px;background:#514a40}
+.annex-door-open{transform:translateX(-101%)}
+.annex-light-wash{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at 24% 20%,#ffe49c55,transparent 55%),linear-gradient(#fff1bc26,#9c5d3233);transition:opacity .4s}
+.annex-warm .annex-light-wash{opacity:1}
+.annex-table{position:absolute;inset:0;pointer-events:none}.annex-outside .annex-table{visibility:hidden}
+.annex-sample{position:absolute;bottom:24%;width:18%;height:26%;display:flex;align-items:center;justify-content:end;flex-direction:column}
+.annex-slot-0{left:25%}.annex-slot-1{left:50%}
+.annex-sample>svg{width:100%;height:100%;overflow:visible}
+.annex-sample span{position:absolute;top:101%;font:600 clamp(10px,1.15vw,13px)/1.3 system-ui,sans-serif;white-space:nowrap;padding:2px 5px;border-radius:3px;background:#28241de8;color:#fff4df}
+.annex-kind-linen>svg{filter:drop-shadow(0 3px 2px rgba(53,31,15,.42))}
+.annex-kind-case{width:30%;height:25%}.annex-kind-case.annex-slot-0{left:14%}.annex-kind-case.annex-slot-1{left:51%}
+.annex-case-products,.annex-case-product{display:flex;align-items:flex-end;width:100%;height:100%;gap:2%}
+.annex-case-product{flex:1;min-width:0}.annex-case-product>svg{width:100%;height:auto;max-height:100%;overflow:visible}
+#deal-room .room-edition .annex-display label,#deal-room .room-edition .exhibition-slot label{display:grid;min-width:0;grid-template-columns:3.5em minmax(0,1fr);gap:8px;align-items:center;margin:8px 0}
+#deal-room .room-edition .annex-case-notes article{padding:9px 0}.annex-case-notes article h3{overflow-wrap:anywhere}
+#deal-room .annex-panel>p:last-child:has(#open-private-exhibition){grid-column:2;grid-row:3;margin:0}
+@media(min-width:761px){
+ #deal-room .annex-panel:has(#open-private-exhibition){grid-template-rows:auto auto minmax(0,1fr)}
+ #deal-room .annex-panel:has(#open-private-exhibition) .room-picture{grid-row:2 / span 2}
+}
+@media(prefers-reduced-motion:reduce){.annex-scene,.annex-glass,.annex-light-wash{transition:none}}
+.reduce-motion .annex-scene,.reduce-motion .annex-glass,.reduce-motion .annex-light-wash{transition:none}
+
+/* Three real wall niches, and a separate close study of the selected piece. */
+.exhibition-wall-viewport{aspect-ratio:3/2;overflow:hidden;border-radius:9px;background:#413c31}
+.exhibition-wall{width:100%;height:100%;position:relative;background:url('../assets/deal-annex-room-v1.webp') center/100% 100%;transform:scale(1.8);transform-origin:0 35%}
+.exhibition-wall-work{position:absolute;bottom:54.9%;width:10.4%;height:20%;display:flex;align-items:flex-end;transition:filter .3s}
+.exhibition-wall-0{left:7.4%}.exhibition-wall-1{left:21.4%}.exhibition-wall-2{left:35.4%}
+.exhibition-highlight{filter:drop-shadow(0 1px 3px #fff1b1)}
+.exhibition-highlight:after{position:absolute;content:'';top:100%;left:15%;right:15%;height:2px;background:#ffe5a4;box-shadow:0 0 3px #64482c}
+.exhibition-products{display:flex;align-items:flex-end;justify-content:center;gap:3%;width:100%}
+.exhibition-product{min-width:0}.exhibition-product>svg{display:block;width:100%;height:auto}
+/* The frame dimensions follow the distinct product sizes, not the niche size.
+   Shrink groups proportionally and keep every product on its shelf line. */
+.exhibition-wall-scale .exhibition-product{flex:0 1 var(--exhibit-width);max-width:var(--exhibit-width)}
+.exhibition-wall-scale .annex-kind-lamp{--exhibit-width:82%}
+.exhibition-wall-scale .annex-kind-cup{--exhibit-width:50%}
+.exhibition-wall-scale .annex-kind-linen{--exhibit-width:88%}
+.exhibition-detail-scale .exhibition-product{flex:0 1 var(--exhibit-close);max-width:var(--exhibit-close)}
+.exhibition-detail-scale .annex-kind-lamp{--exhibit-close:138px}
+.exhibition-detail-scale .annex-kind-cup{--exhibit-close:92px}
+.exhibition-detail-scale .annex-kind-linen{--exhibit-close:151px}
+.exhibition-draft-hint{margin:.3rem 0 0;font-size:.83rem;color:var(--room-muted,#c6bbaa)}
+#deal-room .room-edition .exhibition-console{gap:10px}
+#deal-room .room-edition .exhibition-theme button{margin:2px 4px 0 0;font-size:13px}
+#deal-room .room-edition .exhibition-slot{border-top:1px solid var(--room-rule);padding-top:9px}
+#deal-room .room-edition .exhibition-slot legend{font-size:15px;color:var(--room-gold)}
+#deal-room .room-edition .exhibition-slot label{font-size:14px}
+#deal-room .room-edition .exhibition-station-note summary{border:0;padding:9px 0}
+.exhibition-current{overflow-wrap:anywhere}
+.exhibition-current>.exhibition-products{max-width:350px;margin:8px auto 12px}
+.exhibition-current blockquote{margin:8px 0 2px;padding:6px 12px;border-left:3px solid #b99c6b;color:#f0daaf}
+.exhibition-series{border-left:3px solid #aaa083;padding:6px 10px}
+.exhibition-series-charcoal{border-color:#aba9a4}.exhibition-series-botanical{border-color:#9db490}.exhibition-series-tidal-grid{border-color:#7fb0b7}
+.exhibition-proof>svg{display:block;width:min(100%,350px);height:auto;margin:.4rem 0;background:#f5ecdb;border-radius:6px}
+.exhibition-lineup{margin:12px 0;padding-left:1.6em}
+.exhibition-lineup li{padding:2px 0}
+#deal-room .room-edition .exhibition-tour-controls>*{flex:1;min-width:0;width:auto}
+.exhibition-archive{grid-column:1/-1}
+.exhibition-archive button{display:block;width:100%;text-align:left;margin:5px 0}
+.room-edition~.save-state,.room-edition~.deal-save-tools{grid-column:1/-1}
+@media(prefers-reduced-motion:reduce){.exhibition-wall-work{transition:none}}
+.reduce-motion .exhibition-wall-work{transition:none}
+@media(max-width:760px){
+ #deal-room .room-edition{display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:14px}
+ #deal-room .room-edition .room-heading h2{font-size:24px}
+ #deal-room .room-edition .room-side{gap:12px}
+ #deal-room .room-edition :is(.room-heading .room-back,.annex-controls button){padding:7px 9px}
+ #deal-room .room-edition .annex-controls button{flex:1 1 auto}
+ .office-memory-card{grid-template-columns:72px minmax(0,1fr);gap:10px}
+ .office-memory-route{flex-direction:column;gap:4px}
+ .office-memory-route li{display:flex;gap:7px;border-top:0;border-left:2px solid #a38b5e;padding:3px 0 3px 8px}
+ .annex-kind-linen>svg{filter:drop-shadow(0 1.5px 1px rgba(53,31,15,.42))}
+}
+@media(max-width:410px){#deal-room .room-edition{padding:11px;gap:10px}#deal-room .room-edition .room-heading h2{font-size:21px}}
 
 /* A single live cabinet. Its twelve positions are the signed display lot, not repeated decoration. */
 .workspace.shop-window{display:grid;place-items:center;isolation:isolate;overflow:hidden;min-width:0;container-type:inline-size;background:#cfd4bb;background-image:linear-gradient(140deg,transparent 43%,#fff4c145 44%,transparent 63%),repeating-linear-gradient(90deg,#c9cfb5 0 8%,#bec7ad 8.3%,#cbd3b8 8.6% 16%);padding:clamp(10px,2vw,24px);box-sizing:border-box}
@@ -46,8 +188,6 @@
 .freight-bale:after{content:'';position:absolute;inset:-1px 7px;background:#f5e7c2;border-inline:1px solid #7f856c}.freight-bale.arrived:after{background:#91aa82;border-color:#577650}
 .freight-card{padding:10px 12px;margin:10px 0;background:#f9f6e9;border:1px solid #c5cbb6;border-radius:8px}.freight-card h3{margin:0}.freight-card p{margin:6px 0;font-size:.9rem}
 @media(max-width:850px){.workspace.freight-workspace{height:auto;min-height:0;padding:8px}.freight-board{padding:12px}}
-
-.exhibition-proof{margin:.65rem 0;color:#394f42}.exhibition-proof>summary{cursor:pointer;min-height:44px;align-content:center}.exhibition-proof>svg{display:block;width:min(100%,350px);height:auto;margin:.4rem 0;background:#f5ecdb;border-radius:8px}.exhibition-proof>p{margin:.3rem 0;font-size:.9em}
 
 /* Layout from the photographed 390px office: desktop and its unfinished work
    share the same table edge. Keep the photograph intact at larger widths. */
@@ -92,3 +232,121 @@
 @media(min-width:430px) and (max-width:759px){#deal-room .ws-original-office{max-width:390px}}
 #deal-room .ws-office.ws-original-office .ws-ledger{border-radius:0;padding:0;border:0;border-top:1px solid var(--ws-rule);background:transparent}
 #deal-room .ws-office.ws-original-office .ws-original-note .ws-items button{color:#ddc18b}
+
+/* Desktop office: keep the scene as the working surface; stack agenda and
+   adviser alongside it instead of pushing both below a phone-width picture. */
+@media (min-width:1024px){
+ #deal-room .ws-office.ws-original-office{
+  width:100%;max-width:1280px;display:grid;
+  grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);
+  grid-template-rows:auto minmax(0,1fr) auto;gap:16px 22px;align-items:start;
+ }
+ #deal-room .ws-original-office .ws-tabletop{display:contents}
+ #deal-room .ws-original-office .ws-tabletop>.ws-desk{
+  grid-area:1 / 1 / 3 / 2;width:100%;border-radius:9px;overflow:hidden;align-self:start;
+ }
+ #deal-room .ws-original-office .ws-tabletop>.ws-agenda{
+  grid-area:1 / 2 / 2 / 3;align-self:start;min-height:0;padding:15px 18px;border-radius:9px;
+ }
+ #deal-room .ws-original-office>.ws-original-note{
+  grid-area:2 / 2 / 3 / 3;margin:0;padding:4px 18px 12px;min-width:0;
+ }
+ #deal-room .ws-original-office .ws-original-note>div>div{max-width:none}
+ #deal-room .ws-original-office>.ws-ledger{grid-area:3 / 1 / 4 / 3}
+}
+
+/* The review desk reached after returning from a buyer's introduction. */
+#deal-room:has(>.business>.ws-workbench)>.workspace{
+ align-self:start;min-height:0;aspect-ratio:1.22;border-radius:10px;box-shadow:none;background-position:center;
+}
+#deal-room:has(>.business>.ws-workbench)>.workspace .desk-label{
+ top:14px;left:14px;background:#211e18;color:#f6ead3;font-size:13px;line-height:1.4;
+}
+#deal-room:has(>.business>.ws-workbench)>.workspace .cooperation-seals{top:58px;left:14px;right:12px;max-width:none;flex-wrap:wrap}
+#deal-room:has(>.business>.ws-workbench)>.workspace .cooperation-seals span{
+ color:#efe5d4;background:#2b271de8;border:1px solid #8f7c58;border-radius:5px;box-shadow:none;padding:5px 7px;
+}
+#deal-room:has(>.business>.ws-workbench)>.workspace .cooperation-seals b{color:#dfc08a}
+#deal-room:has(>.business>.ws-workbench)>.workspace .activity{
+ top:auto;inset-inline:0;bottom:0;padding:24px 14px 13px;border-radius:0;box-shadow:none;
+ color:#fcf4e6;background:linear-gradient(transparent,#1d1813f4);font-size:13px;
+}
+#deal-room:has(>.business>.ws-workbench)>.workspace .sample-stage{top:auto;bottom:48px;height:auto}
+#deal-room:has(>.business>.ws-workbench)>.workspace .sample-piece{max-width:clamp(92px,12vw,140px)}
+#deal-room:has(>.business>.ws-workbench)>.workspace .sample-piece span{display:none}
+#deal-room>.business:has(>.ws-workbench){
+ --bench-ink:#f0ebe1;--bench-soft:#c9c1b5;--bench-gold:#e4c389;--bench-bg:#232320;--bench-elev:#2d2b24;--bench-line:#514a3d;
+ min-width:0;padding:clamp(14px,2.1vw,25px);background:var(--bench-bg);color:var(--bench-ink);
+ border:1px solid #484137;border-radius:10px;box-shadow:none;color-scheme:dark;
+}
+#deal-room>.business:has(>.ws-workbench)>.client-head{padding-bottom:9px;border-bottom:1px solid var(--bench-line)}
+#deal-room>.business:has(>.ws-workbench)>.client-head small{color:var(--bench-gold)}
+#deal-room>.business:has(>.ws-workbench)>.client-head h2{color:var(--bench-ink)}
+#deal-room>.business:has(>.ws-workbench)>.client-head .client-avatar{display:none}
+#deal-room>.business:has(>.ws-workbench)>.client-head .product{display:none}
+#deal-room .ws-workbench{display:grid;min-width:0;gap:16px;padding-top:12px}
+#deal-room .ws-workbench :is(h2,h3,h4,strong){color:var(--bench-ink)}
+#deal-room .ws-workbench h3{font-size:18px;line-height:1.35;margin:0 0 5px}
+#deal-room .ws-workbench :is(p,small,summary,label){color:var(--bench-soft);font-size:13px;line-height:1.52}
+#deal-room .ws-workbench :is(p,details){margin:0}
+#deal-room .ws-workbench p{margin-block:3px 8px}
+#deal-room .ws-workbench :is(.workbench-next,.opening-curation,.home-life,.home-opportunities,.other-business,.home-archive,.workbench-net){
+ margin:0;padding:12px 0 0;background:none;border:0;border-top:1px solid var(--bench-line);border-radius:0;
+}
+#deal-room .ws-workbench>.opening-curation:first-child,#deal-room .ws-workbench>.workbench-next:first-child{padding-top:0;border-top:0}
+#deal-room .ws-workbench :is(.business-route,.career-focus,.revision-invite,.studio-invite,.stock-invite,.launch-invite,.launch-archive,.account-completion-glance,.lineroute,.account-receipt,.project-completion,.atelier-restock-invite,.case-growth-invite){
+ margin:0;color:var(--bench-ink);background:var(--bench-elev);border:1px solid var(--bench-line);border-radius:8px;padding:12px;
+}
+#deal-room .ws-workbench .workbench-next{display:grid;gap:8px}
+#deal-room .ws-workbench .workbench-next>h3{margin:0}
+#deal-room .ws-workbench button{
+ font:650 14px/1.35 system-ui,sans-serif;min-height:44px;max-width:100%;
+ color:var(--bench-ink);background:#36332a;border:1px solid #615645;border-radius:7px;padding:8px 12px;text-align:left;overflow-wrap:anywhere;
+}
+#deal-room .ws-workbench button small{font-weight:450}
+#deal-room .ws-workbench button:not(:disabled):hover{background:#494031;border-color:#caa76d}
+#deal-room .ws-workbench button:is(.primary,[aria-pressed=true]){background:#dfbf85;color:#241a0e;border-color:#e3c691}
+#deal-room .ws-workbench button:is(.primary,[aria-pressed=true]):hover{background:#f2d39c;color:#231b10}
+#deal-room .ws-workbench :is(button,summary):focus-visible{outline:3px solid #eccb90;outline-offset:2px}
+#deal-room .ws-workbench .workbench-route{
+ width:100%;min-width:0;display:grid;grid-template-columns:50px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:63px;
+}
+#deal-room .ws-workbench .workbench-route strong{display:block;font-size:16px;line-height:1.35}
+#deal-room .ws-workbench .workbench-route>b{color:var(--bench-gold);font-size:22px}
+.workbench-thumbnail,.workbench-sample{display:block;width:50px;height:46px;max-width:100%;background:center/contain no-repeat}
+.workbench-thumbnail{background-image:url('../assets/deal-market-thumb-vase.webp')}
+.workbench-sample{background-image:url('../assets/deal-products-v1.webp');background-size:300% 100%}
+.workbench-sample-0{background-position:left}.workbench-sample-1{background-position:center}.workbench-sample-2{background-position:right}
+#deal-room .ws-workbench .opening-curation .referral-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:6px 0 0}
+#deal-room .ws-workbench .opening-curation .referral-choices button{display:grid;justify-items:center;text-align:center;align-content:start;gap:3px;min-width:0;padding:7px}
+#deal-room .ws-workbench .opening-curation .referral-choices :is(strong,small){white-space:normal;line-height:1.3}
+#deal-room .ws-workbench .opening-curation .referral-choices small{font-size:12px}
+#deal-room .ws-workbench .home-life-links{margin:8px 0 0}
+#deal-room .ws-workbench .home-life details{margin-top:6px}
+#deal-room .ws-workbench summary{
+ min-height:44px;padding:9px 0;font:650 14px/1.5 system-ui,sans-serif;color:var(--bench-gold);cursor:pointer
+}
+#deal-room .ws-workbench .workbench-net strong{margin-left:5px;font-variant-numeric:tabular-nums}
+#deal-room .ws-workbench .business-routes{display:grid;gap:8px}
+#deal-room .ws-workbench details.home-opportunities>*+*,#deal-room .ws-workbench .career-directions+*{margin-top:8px}
+#deal-room .ws-workbench .career-directions{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+#deal-room .ws-workbench .career-directions button{margin:0}
+#deal-room .ws-workbench .finish-session{margin:0}
+@media(max-width:850px){
+ #deal-room:has(>.business>.ws-workbench)>.workspace{aspect-ratio:3/2;margin-bottom:-3px}
+ #deal-room:has(>.business>.ws-workbench)>.workspace .sample-stage{bottom:34px}
+ #deal-room:has(>.business>.ws-workbench)>.workspace .sample-piece{max-width:96px}
+}
+@media(max-width:410px){
+ #deal-room .ws-workbench .opening-curation .referral-choices{gap:5px}
+ #deal-room .ws-workbench .opening-curation .referral-choices button{padding-inline:4px;font-size:13px}
+}
+
+/* Original office ledger has a transparent charcoal canvas, unlike the older
+   light ledger cards. Pin muted labels to that actual surface. */
+@media(max-width:540px){
+ #deal-room .ws-office.ws-original-office .ws-ledger :is(summary,dt,.ws-muted,.ws-breakdown span){color:#d3c9b7}
+ #deal-room .ws-office.ws-original-office .ws-ledger :is(dd,.ws-breakdown strong){color:#f1e9de}
+ #deal-room .ws-office.ws-original-office .ws-original-note>div>div{max-width:none}
+ #deal-room .ws-office.ws-original-office .ws-original-note p{font-size:.875rem}
+}

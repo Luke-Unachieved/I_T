@@ -19,15 +19,8 @@
 .market-panel{grid-column:1/-1;width:100%;min-width:0;padding:clamp(16px,3vw,30px);border:1px solid #d2c9b7;border-radius:20px;background:#fcf8ef;color:#303f37;line-height:1.65}.market-panel *{box-sizing:border-box}.market-panel header{gap:16px;flex-wrap:wrap;margin-bottom:16px}.market-panel button{border:1px solid #bdb8a7;background:#f8f3e6;color:#354e40;border-radius:8px;padding:10px 13px;min-height:44px}.market-panel button:focus-visible,.market-panel input:focus-visible,.market-panel select:focus-visible{outline:3px solid #a65c35;outline-offset:3px}.market-panel .primary{background:#314e3f;color:#fff8e7;border:0}.market-panel button:disabled{opacity:.5;cursor:not-allowed}.market-panel h3{font-size:21px;margin:12px 0}.market-wallet{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:12px 16px;background:#e7edde;border-radius:10px}.market-wallet strong{font-size:24px;font-variant-numeric:tabular-nums}.market-filters{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin:20px 0 8px}.market-filters label:first-child{flex:2 1 180px}.market-filters label{flex:1 1 130px}.market-panel label{display:grid;gap:5px;font-size:13px}.market-panel input,.market-panel select{width:100%;min-width:0;font:inherit;font-size:16px;color:#303f37;background:#fffdf8;border:1px solid #bdb8a7;border-radius:7px;padding:10px;min-height:44px}.market-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px}.market-panel .market-product{text-align:left;display:flex;flex-direction:column;align-items:start;gap:8px;padding:18px;background:#fffdf7}.market-product strong{font-size:17px}.market-product span{font-size:13px;line-height:1.6}.market-product small{color:#66715e}.market-product b{font-size:12px;margin-top:auto;color:#536d43}.market-product:hover{border-color:#526e53;background:#f0f3e8}.market-quote,.market-active{max-width:760px;margin:22px auto}.market-quote>small{display:block;margin-top:16px}.market-panel .quiet{border:0;border-bottom:1px solid #a7b49a;border-radius:0;background:transparent}.market-panel fieldset{display:flex;gap:10px;border:0;padding:0;margin:22px 0 10px}.market-panel legend{font-size:14px;margin-bottom:8px;font-weight:600}.market-panel fieldset button{flex:1;text-align:left;min-width:0}.market-panel fieldset small{display:block;margin-top:6px}.market-panel [aria-pressed=true]{background:#344e40;color:#fff6e3;border-color:#344e40}.market-inspection{padding:14px;background:#eee9d9;border-left:3px solid #b09b70;font-size:13px}.market-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:20px 0}.market-facts>div{padding:10px;border-bottom:1px solid #d5d4c5;min-width:0}.market-facts dt{font-size:12px;color:#64705f}.market-facts dd{margin:4px 0 0;font-size:18px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.market-price-row{display:flex;gap:10px;margin:7px 0}.market-price-row input{flex:1}.market-price-row button{flex:none}.market-note{color:#68715e;font-size:12px;line-height:1.65}.market-warning{background:#f6e5d3;border-left:3px solid #9a613c;padding:12px;color:#6f4328;font-size:14px}.market-response{background:#edf1df;border-left:3px solid #698354;padding:14px;font-size:14px}.market-response button{display:block;margin-top:12px}.market-track{display:flex;list-style:none;padding:0;gap:8px;margin:22px 0}.market-track li{flex:1;font-size:12px;text-align:center;border-bottom:4px solid #d5d1bf;padding:12px 2px}.market-track li.done{border-color:#698354}.market-success{color:#365e43;padding:12px;background:#e9efde}.market-history{margin-top:30px;border-top:1px solid #d2c9b7;padding-top:16px}.market-history summary{font-size:15px;color:#354e40;font-weight:600}.market-history article{padding:14px 0;border-bottom:1px solid #d2c9b7}.market-history h3{font-size:17px}.market-history .market-facts{margin:8px 0}.market-disclaimer{font-size:11px;color:#716b5d;margin:22px 0 0}@media(max-width:540px){.market-panel fieldset{flex-direction:column}.market-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.market-price-row{flex-wrap:wrap}.market-price-row input{flex-basis:100%}.market-price-row button{width:100%}.market-wallet strong{font-size:21px}.market-panel header h2{font-size:20px}}
 
 /* Tinted stock cards are art-directed per family; drawings distinguish actual products. */
-.market-plate{--mk-object:#ce9b6c;--mk-light:#f5dfbb;--mk-dark:#758b80;position:relative;display:grid;place-items:center;isolation:isolate;border-radius:8px;background:#eee4d2;overflow:hidden}
-.market-plate:before,.market-plate:after{content:"";position:absolute;left:10px;bottom:9px;width:13px;height:4px;border:solid #8c8067;border-width:0 0 1px 1px;opacity:.5}
-.market-plate:after{left:auto;right:10px;transform:scaleX(-1)}
-.market-plate svg{display:block;width:100%;height:100%;max-width:220px}
-.market-plate.mk-kitchen{--mk-object:#8aa394;--mk-light:#e7eddd;--mk-dark:#72817b;background:#e1e8db}
-.market-plate.mk-linen{--mk-object:#d39a83;--mk-light:#f4dbbd;--mk-dark:#849b83;background:#efe1d3}
-.market-plate.mk-desk{--mk-object:#879caa;--mk-light:#eef0e4;--mk-dark:#6b767d;background:#dce6e6}
-.market-plate.mk-travel{--mk-object:#c5a16c;--mk-light:#f2e0b5;--mk-dark:#828975;background:#ece5d5}
-.market-plate.mk-home{--mk-object:#c5967d;--mk-light:#f3dfc1;--mk-dark:#80967c;background:#e9e3d5}
+.market-plate{position:relative;display:block;isolation:isolate;border-radius:8px;background:#ddccaa;overflow:hidden}
+.market-plate img{display:block;width:100%;height:100%;object-fit:contain}
 .market-product>.market-plate{width:100%;height:108px}.market-panel .market-product{gap:6px;padding:13px}
 .market-sheet{display:grid;grid-template-columns:minmax(100px,180px) 1fr;align-items:center;gap:16px;padding:12px 0}
 .market-sheet>.market-plate{aspect-ratio:4/3}.market-sheet small,.market-repeat small{color:#65705e}
@@ -49,6 +42,8 @@
 .equipment-buyer{display:flex;align-items:center;gap:12px}.equipment-buyer img{display:block;flex:none;border-radius:8px;object-fit:cover}.equipment-buyer p{margin:0}
 #deal-room .ws-equipment-state figure{margin:10px 0}
 #deal-room .ws-equipment-state figure img{width:100%;max-height:15rem;object-fit:contain;border-radius:9px}
+#deal-room figure.ws-equipment-comic{display:block;margin:12px 0;inline-size:100%;min-inline-size:0;max-inline-size:100%}
+#deal-room .ws-equipment-comic > img.pv-art{display:block;width:100%;max-width:100%;height:auto;max-height:none;object-fit:contain;margin:0;border-radius:9px}
 #deal-room .ws-equipment-state figcaption{font-size:.8rem;color:inherit}
 #deal-room .ws-equipment-state dl.market-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem}
 #deal-room [data-legacy-route] small{display:block;font-weight:400;line-height:1.45;margin-top:4px}
@@ -107,3 +102,195 @@
 
 #deal-room .ws-order-detail .ws-order-decision-head{display:block}
 #deal-room .ws-carafe-delivery .ws-carafe-comic img{max-height:156px;object-fit:cover;object-position:center 44%}
+
+/* The catalogue and specialised quotes share the workspace's charcoal shell.
+   The prospect mailbox and the active order sheets keep their own layouts. */
+#deal-room .market-panel.market-modern{--trade-bg:#201d18;--trade-soft:#28241e;--trade-line:#4c4335;--trade-fore:#f1e9dc;--trade-muted:#c7b9a3;--trade-gold:#dfc086;grid-column:1/-1;width:100%;max-width:1024px;margin:0 auto;padding:0;color:var(--trade-fore);background:transparent;border:0;box-shadow:none;min-width:0}
+#deal-room .market-modern .market-modern-top{display:flex;align-items:center;justify-content:space-between;gap:.7rem;margin:0 0 .75rem;padding:0;color:var(--trade-fore);background:none;border:0;border-radius:0}
+#deal-room .market-modern-top h2{color:inherit;font:700 clamp(1.25rem,3vw,1.64rem)/1.28 system-ui,sans-serif;margin:0}
+#deal-room .market-modern :is(h2,h3,h4,strong,b){color:var(--trade-fore)}
+#deal-room .market-modern :is(p,small,legend,label,dt){color:var(--trade-muted)}
+#deal-room .market-modern :is(p,section,button,input,select,span){min-width:0}
+#deal-room .market-modern :is(button,input,select){min-height:44px;font:inherit;color:var(--trade-fore);background:var(--trade-soft);border:1px solid var(--trade-line);border-radius:8px;box-shadow:none}
+#deal-room .market-modern button{padding:.48rem .7rem;text-shadow:none;line-height:1.3}
+#deal-room .market-modern :is(button,input,select):focus-visible{outline-color:var(--trade-gold)}
+#deal-room .market-modern :is(button[aria-pressed=true],.market-price-row button,.primary:not(:disabled)){background:#e1c189;border-color:#ddbc7f;color:#21180e}
+#deal-room .market-modern button[aria-pressed=true] :is(strong,small){color:#2d2215}
+#deal-room .market-modern button:disabled{color:#a79983;background:#302b23;border-color:#514637;opacity:1}
+#deal-room .market-modern .market-opportunities,#deal-room .market-modern .market-trade-sheet,#deal-room .market-modern .market-history,#deal-room .market-modern>.market-repeat{margin:.85rem 0;border:1px solid var(--trade-line);border-radius:12px;background:var(--trade-bg);padding:.75rem}
+#deal-room .market-modern .market-opportunities>div{display:grid;gap:.65rem;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));margin-top:.55rem}
+#deal-room .market-modern .market-opportunities .market-repeat,#deal-room .market-modern .market-opportunities .ws-promo{margin:0;padding:.75rem;border:1px solid var(--trade-line);border-radius:10px;background:var(--trade-soft)}
+#deal-room .market-modern .market-opportunities :is(h3,p){margin:.15rem 0 .48rem}
+#deal-room .market-modern .market-opportunities ul{padding:0;margin:.3rem 0;list-style:none;display:grid;gap:.45rem}
+#deal-room .market-modern :is(.market-opportunities summary,.market-trade-detail summary,.market-prior summary,.market-history summary){cursor:pointer;min-height:38px;line-height:1.35;padding:.42rem 0;color:var(--trade-gold);font-weight:650}
+#deal-room .market-modern .market-filters{display:grid;grid-template-columns:minmax(0,1fr) minmax(94px,.55fr) auto;align-items:end;gap:.55rem;margin:.65rem 0}
+#deal-room .market-modern .market-filters :is(input,select){width:100%;padding-inline:.55rem}
+#deal-room .market-modern .market-filters label{display:grid;gap:.3rem;font-size:.83rem}
+#deal-room .market-modern .market-modern-shelf{font-size:1.1rem;display:flex;gap:.65rem;align-items:baseline;margin:1rem 0 .55rem}
+#deal-room .market-modern .market-modern-shelf small{font-size:.82rem;font-weight:500}
+#deal-room .market-modern .market-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.65rem;margin:0}
+#deal-room .market-modern button.market-product{display:block;overflow:hidden;padding:0;text-align:left;border-radius:10px;background:var(--trade-bg);color:var(--trade-fore)}
+#deal-room .market-modern button.market-product>.market-plate{display:block;width:100%;height:auto;aspect-ratio:4/3;min-height:0;margin:0;border:0;border-radius:0}
+#deal-room .market-modern button.market-product>span:last-child{display:grid;padding:.58rem .66rem;gap:.2rem}
+#deal-room .market-modern button.market-product strong{font-size:.98rem;line-height:1.3;overflow-wrap:anywhere}
+#deal-room .market-modern button.market-product small{font-size:.77rem}
+#deal-room .market-modern button.market-product b{color:var(--trade-gold);font-size:.82rem}
+#deal-room .market-modern .market-repeat button{width:100%;text-align:left}
+#deal-room .market-modern .market-repeat .market-plate{width:56px;height:48px;min-height:0;border-radius:6px}
+#deal-room .market-modern .market-trade-sheet{padding:clamp(.7rem,2.3vw,1.15rem)}
+#deal-room .market-modern .market-trade-hero{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:clamp(.7rem,2.7vw,1.25rem);align-items:center;border:0;background:none;padding:0;margin:0 0 .85rem}
+#deal-room .market-modern .market-trade-hero>.market-plate,#deal-room .market-modern .market-trade-hero>.equipment-product{display:block;width:100%;height:auto;min-height:0;aspect-ratio:3/2;object-fit:cover;margin:0;border:0;border-radius:9px}
+#deal-room .market-modern .market-trade-hero h2{font:700 clamp(1.18rem,2.6vw,1.55rem)/1.28 system-ui,sans-serif;margin:.24rem 0}
+#deal-room .market-modern .market-trade-hero p{margin:.25rem 0 .4rem;font-size:.91rem;line-height:1.45}
+#deal-room .market-modern .market-trade-chip{color:var(--trade-gold);font-size:.82rem}
+#deal-room .market-modern .market-trade-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(.7rem,2.7vw,1.2rem);margin-top:.85rem}
+#deal-room .market-modern :is(.market-trade-choices,.market-trade-price){min-width:0}
+#deal-room .market-modern :is(.market-trade-sheet fieldset,.market-trade-sheet .market-prior){padding:0;border:0;margin:.45rem 0 .75rem;background:none;box-shadow:none}
+#deal-room .market-modern .market-trade-sheet fieldset{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,122px),1fr));gap:.52rem;align-items:stretch}
+#deal-room .market-modern .market-trade-sheet legend{margin:0 0 .38rem;color:var(--trade-fore);font-weight:650}
+#deal-room .market-modern .market-trade-sheet fieldset button{text-align:left;align-content:start;min-height:56px}
+#deal-room .market-modern .market-trade-sheet fieldset button small{display:block;margin-top:.26rem;font-size:.81rem}
+#deal-room .market-modern .market-price-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.45rem}
+#deal-room .market-modern .market-price-row input{width:100%;padding:.45rem .65rem}
+#deal-room .market-modern .market-trade-price form,.market-trade-price form>label{margin:0 0 .45rem}
+#deal-room .market-modern .market-facts{margin:.5rem 0;column-gap:.45rem}
+#deal-room .market-modern .market-facts>div{min-width:0;border-color:var(--trade-line);padding:.4rem .15rem;color:var(--trade-fore)}
+#deal-room .market-modern .market-facts dd{color:var(--trade-fore);overflow-wrap:anywhere}
+#deal-room .market-modern .market-trade-totals{grid-template-columns:repeat(3,minmax(0,1fr));border-block:1px solid var(--trade-line)}
+#deal-room .market-modern .market-trade-totals>div{border:0;padding:.55rem .15rem}
+#deal-room .market-modern .market-trade-totals>div:last-child dd{color:var(--trade-gold)}
+#deal-room .market-modern .market-trade-dates{display:flex;flex-wrap:wrap;gap:.35rem .85rem;margin:.5rem 0}
+#deal-room .market-modern .market-trade-dates strong{white-space:nowrap}
+#deal-room .market-modern .market-trade-detail{border-top:1px solid var(--trade-line);margin:.55rem 0}
+#deal-room .market-modern :is(.market-trade-detail p,.market-note,.market-prior p){font-size:.84rem;line-height:1.5;margin:.32rem 0}
+#deal-room .market-modern :is(.market-response,.market-warning){padding:.6rem;background:#30271d;color:#f1cf9b;border:1px solid #62503b;border-radius:8px;line-height:1.45}
+#deal-room .market-modern .market-response p{color:inherit;margin:.28rem 0}
+#deal-room .market-modern :is([data-market-sign],[data-equipment-sign],[data-legacy-sign]){width:100%;margin:.45rem 0 .1rem;font-weight:700}
+#deal-room .market-modern :is(.neighborhood-contact,.equipment-buyer){display:grid;grid-template-columns:44px minmax(0,1fr);gap:.6rem;align-items:start;padding:.65rem;background:var(--trade-soft);border:1px solid var(--trade-line);border-radius:9px;color:var(--trade-fore);margin:.55rem 0}
+#deal-room .market-modern .equipment-buyer:not(:has(img)){grid-template-columns:1fr}
+#deal-room .market-modern :is(.neighborhood-contact,.equipment-buyer) img{width:44px;height:44px;object-fit:cover;border-radius:50%}
+#deal-room .market-modern :is(.neighborhood-contact,.equipment-buyer) p{margin:.24rem 0;font-size:.88rem}
+#deal-room .market-modern .market-history article{background:none;border-color:var(--trade-line);color:var(--trade-fore)}
+@media(max-width:820px){#deal-room .market-modern .market-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){
+ #deal-room .market-modern .market-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem}
+ #deal-room .market-modern .market-trade-columns{grid-template-columns:1fr;gap:.5rem}
+ #deal-room .market-modern .market-trade-hero{grid-template-columns:1fr;gap:.55rem}
+ #deal-room .market-modern .market-trade-hero>.market-plate,#deal-room .market-modern .market-trade-hero>.equipment-product{aspect-ratio:16/8.5}
+ #deal-room .market-modern .market-filters{grid-template-columns:minmax(0,1fr) minmax(75px,.66fr) auto;gap:.36rem}
+ #deal-room .market-modern .market-filters button{padding-inline:.43rem}
+}
+#deal-room .market-modern .market-trade-hero>.pv-art{display:block;width:100%;aspect-ratio:3/2;max-height:240px;object-fit:cover;margin:0;border:0;border-radius:9px}
+#deal-room .market-modern .market-trade-sheet>:is([data-equipment-back],[data-legacy-back]){margin:0 0 .65rem}
+#deal-room .market-modern .market-trade-sheet :is(.market-inspection,.ws-trade-hint){background:none;color:var(--trade-muted);padding:0;border:0}
+
+/* Referrals are an assortment quote, not the previous general office scene.
+   Keep all actual sample choices, but don't carry the office/stamp decoration
+   or the duplicate quote status into this flow. */
+#deal-room>.workspace.ws-referral-workspace{--ref-ink:#f1e9dc;--ref-muted:#c7b9a3;--ref-line:#514839;margin:0 0 .65rem;min-height:0;height:auto;padding:.65rem;border:1px solid var(--ref-line);border-radius:12px;background:#201d18;color:var(--ref-ink);box-shadow:none;overflow:visible}
+#deal-room>.ws-referral-workspace:before,#deal-room>.ws-referral-workspace:after,#deal-room>.ws-referral-workspace :is(.room-light,.desk-label,.cooperation-seals,.activity,.customer-call){display:none}
+#deal-room>.ws-referral-workspace>.sample-stage{position:static;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.45rem;align-items:stretch;width:auto;min-height:0;height:auto;z-index:auto;perspective:none}
+#deal-room>.ws-referral-workspace .sample-stage::before{display:none}
+#deal-room>.ws-referral-workspace>.sample-stage>.sample-piece{display:grid;align-content:end;gap:4px;width:100%;min-width:0;max-width:none;min-height:86px;height:100%;padding:.34rem;filter:none;border:1px solid var(--ref-line);border-radius:8px;background:#2b251c;color:var(--ref-ink);transform:none;box-shadow:none;text-shadow:none;animation:none}
+#deal-room>.ws-referral-workspace .sample-stage .sample-piece.picked{border-color:#c8a86f;background:#3a3022}
+#deal-room>.ws-referral-workspace .sample-stage .sample-piece:not(.picked){opacity:.82}
+#deal-room>.ws-referral-workspace .sample-stage .sample-piece :is(svg,.sample-crop){width:100%;height:clamp(55px,9vw,108px);max-width:100%;object-fit:contain}
+#deal-room>.ws-referral-workspace .sample-stage .sample-piece>span:not(.sample-crop){color:var(--ref-ink);background:none;border:0;padding:.15rem 0;box-shadow:none;white-space:normal;overflow-wrap:anywhere;line-height:1.35;min-height:0}
+#deal-room>.ws-referral-workspace .sample-stage .sample-piece small{color:var(--ref-muted)}
+#deal-room>.business.ws-referral-business{--ref-ink:#f1e9dc;--ref-muted:#c7b9a3;--ref-line:#514839;--ref-gold:#dfc086;background:#201d18;color:var(--ref-ink);border:1px solid var(--ref-line);border-radius:12px;padding:clamp(.75rem,2vw,1.25rem);box-shadow:none;min-width:0}
+#deal-room>.ws-referral-business .client-head{gap:.55rem;grid-template-columns:auto minmax(0,1fr) auto;margin-bottom:.65rem}
+#deal-room>.ws-referral-business .client-head h2{margin:.1rem 0;font-size:clamp(1.2rem,2.5vw,1.52rem)}
+#deal-room>.ws-referral-business :is(h2,h3,h4,dd,strong,b,.quote-commitment){color:var(--ref-ink)}
+#deal-room>.ws-referral-business :is(p,small,legend,dt,.quote-breakdown,.quote-schedule,.quote-action-note){color:var(--ref-muted)}
+#deal-room>.ws-referral-business .client-head .product{display:none}
+#deal-room>.ws-referral-business .curation-budget{padding:.5rem 0;margin:.4rem 0;border-block:1px solid var(--ref-line);border-radius:0;background:none;color:var(--ref-muted)}
+#deal-room>.ws-referral-business .curation-budget b{color:var(--ref-gold);font-size:inherit}
+#deal-room>.ws-referral-business .curation-controls>fieldset{margin:.7rem 0;min-width:0}
+#deal-room>.ws-referral-business :is(button,.material-study,.buyer-demo,.buyer-counter,.quote-profit,.quote-blocked){background:#2c2720;color:var(--ref-ink);border:1px solid var(--ref-line);border-radius:8px;box-shadow:none}
+#deal-room>.ws-referral-business button{min-height:44px;font:inherit;padding:.4rem .65rem;text-shadow:none}
+#deal-room>.ws-referral-business :is(button[aria-pressed=true],button.primary:not(:disabled)){background:#d4b376;border-color:#d4b376;color:#21180e}
+#deal-room>.ws-referral-business button:disabled{color:#aa9c86;background:#29251e;border-color:#524637}
+#deal-room>.ws-referral-business :is(.quote-price,.quote-cash,.quote-profit){border-color:var(--ref-line)}
+#deal-room>.ws-referral-business :is(.quote-price strong,.quote-profit strong,.quote-breakdown summary,.material-study summary){color:var(--ref-gold)}
+#deal-room>.ws-referral-business :is(.material-study summary,.quote-breakdown summary){min-height:40px}
+#deal-room>.ws-referral-business .material-study summary span{color:var(--ref-muted)}
+#deal-room>.ws-referral-business .material-study .study-switches>label{background:#2c2720;color:var(--ref-ink);border-color:var(--ref-line)}
+#deal-room>.ws-referral-business .material-study .study-choice:checked+label{background:#d4b376;color:#21180e}
+#deal-room>.ws-referral-business .buyer-demo .demo-toggle{border:0}
+#deal-room>.ws-referral-business button[data-action=FULFIL_CURATION]{width:100%;font-weight:700}
+#deal-room>.business:has(>.curation-receipt) .curation-receipt{background:#201d18;color:#f1e9dc;border-color:#514839;box-shadow:none}
+#deal-room>.business .curation-receipt :is(h3,dd){color:#f1e9dc}
+#deal-room>.business .curation-receipt :is(dt,small){color:#c7b9a3}
+@media(min-width:850px){
+ #deal-room:has(>.business.ws-referral-business){grid-template-columns:minmax(255px,.75fr) minmax(0,1.25fr);column-gap:1rem}
+ #deal-room>.workspace.ws-referral-workspace{align-self:start}
+ #deal-room>.ws-referral-workspace>.sample-stage{grid-template-columns:1fr}
+ #deal-room>.ws-referral-workspace>.sample-stage>.sample-piece{grid-template-columns:minmax(0,4.25rem) minmax(0,1fr);align-items:center;text-align:left;min-height:56px}
+ #deal-room>.ws-referral-workspace .sample-stage .sample-piece :is(svg,.sample-crop){height:58px}
+}
+
+/* Short controls name the choice; the visible facts below explain it. */
+#deal-room .market-modern .market-compare{grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem;margin:.55rem 0 .7rem}
+#deal-room .market-modern .market-compare:has(.market-choice:nth-of-type(3)){grid-template-columns:repeat(3,minmax(0,1fr))}
+#deal-room .market-modern .market-choice{display:flex;flex-direction:column;min-width:0;padding:.36rem;border:1px solid var(--trade-line);border-radius:9px;background:#26211a}
+#deal-room .market-modern .market-choice:has(button[aria-pressed=true]){border-color:#a3895d;background:#342b1e}
+#deal-room .market-modern .market-compare .market-choice>button{width:100%;min-height:44px;padding:.4rem;text-align:center;font-weight:650}
+#deal-room .market-modern .market-choice-facts{padding:.38rem .2rem .12rem;line-height:1.4}
+#deal-room .market-modern .market-choice-facts :is(p,small){display:block;margin:0;font-size:.85rem}
+#deal-room .market-modern .market-choice-facts small+small{margin-top:.18rem}
+#deal-room .market-modern .market-buyer-brief{margin:.6rem 0 .9rem;padding:.7rem;border:1px solid var(--trade-line);border-radius:10px;background:var(--trade-soft)}
+#deal-room .market-modern .market-buyer-brief>.neighborhood-contact{padding:0 0 .5rem;margin:0;background:none;border:0}
+#deal-room .market-modern .market-brief-facts,#deal-room .market-modern .market-milestones{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4rem;margin:.42rem 0;padding:.45rem 0;border-block:1px solid var(--trade-line)}
+#deal-room .market-modern .market-brief-facts dd,#deal-room .market-modern .market-pay-plan dd,#deal-room .market-modern .market-quote-risk dd{margin:0;color:var(--trade-fore);font-weight:650;font-variant-numeric:tabular-nums}
+#deal-room .market-modern .market-brief-facts dt,#deal-room .market-modern .market-pay-plan dt,#deal-room .market-modern .market-quote-risk dt{font-size:.83rem}
+#deal-room .market-modern .market-brief-pay{display:flex;gap:.26rem 1rem;flex-wrap:wrap;margin:.35rem 0 0;font-size:.85rem}
+#deal-room .market-modern .market-milestones{list-style:none;padding:.55rem 0}
+#deal-room .market-modern .market-milestones li{display:grid;gap:.14rem;align-content:start;font-size:.88rem}
+#deal-room .market-modern .market-milestones li:first-child strong{color:var(--trade-gold)}
+#deal-room .market-modern .market-milestones small{display:block;font-size:.8rem}
+#deal-room .market-modern .market-quote-risk{margin:.7rem 0;padding:.65rem;border:1px solid #635139;background:#2d241a;border-radius:9px}
+#deal-room .market-modern :is(.market-quote-risk h3,.market-finance-title){font-size:.93rem;margin:.12rem 0 .38rem}
+#deal-room .market-modern .market-quote-risk p{font-size:.85rem;margin:.4rem 0 0}
+#deal-room .market-modern :is(.market-quote-risk,.market-trade-price) dl.market-pay-plan,#deal-room .market-modern .market-quote-risk dl{margin:.3rem 0}
+#deal-room .market-modern :is(.market-pay-plan,.market-quote-risk dl)>div{display:flex;gap:.5rem;justify-content:space-between;align-items:baseline;padding:.21rem 0}
+#deal-room .market-modern :is(.market-pay-plan,.market-quote-risk dl)>div dd{white-space:nowrap}
+#deal-room .market-modern .market-trade-dates strong{margin-inline-end:.18rem}
+@media(max-width:355px){
+ #deal-room .market-modern .market-compare:has(.market-choice:nth-of-type(3)){grid-template-columns:repeat(2,minmax(0,1fr))}
+ #deal-room .market-modern .market-compare:has(.market-choice:nth-of-type(3))>.market-choice:last-child{grid-column:1/-1}
+}
+
+/* A prospect receipt inherits the dark order sheet, unlike the inquiry letter. */
+#deal-room .ws-order-detail .prospect-receipt .prospect-byline > div > strong{color:#f5ead8}
+#deal-room .ws-order-detail .prospect-receipt .prospect-byline > div > :is(span,small){color:#cbbda8}
+#deal-room .ws-order-detail .ws-order-next > [data-market-action="DELIVER_MARKET"]{max-width:100%;white-space:normal}
+
+/* Ordinary orders share one paperless surface; special deliveries keep theirs. */
+#deal-room > .market-panel.ws-carafe-panel:has(> .ws-order-detail > .ws-order-next){
+ background:#1e1b16;color:#f5ead8;border-color:#40382c;box-shadow:none;
+}
+#deal-room > .market-panel.ws-carafe-panel > .ws-order-detail:has(> .ws-order-next){
+ background:transparent;border:0;border-radius:0;padding:0;
+}
+/* The receipt archive also belongs to that dark surface. */
+#deal-room > .market-panel.ws-carafe-panel:has(> .ws-order-detail > .ws-order-next) > .market-history{
+ color:#f5ead8;border-color:#534839;
+}
+#deal-room > .market-panel.ws-carafe-panel:has(> .ws-order-detail > .ws-order-next) > .market-history > summary{
+ color:#ead4a5;
+}
+#deal-room > .market-panel.ws-carafe-panel:has(> .ws-order-detail > .ws-order-next) > .market-history :is(.market-facts dt,.market-pager){
+ color:#cbbda8;
+}
+#deal-room > .market-panel.ws-carafe-panel:has(> .ws-order-detail > .ws-order-next) > .market-history :is(article,.market-facts > div){
+ border-color:#534839;
+}
+#deal-room .ws-order-detail > .prospect-receipt{
+ margin:.85rem 0;padding:0;border:0;border-radius:0;background:none;color:#e2d6c5;
+}
+#deal-room .ws-order-detail > .prospect-receipt > .prospect-message{
+ margin:.4rem 0;padding:0;border:0;background:none;color:#e2d6c5;line-height:1.55;
+}
+#deal-room:has(> .ws-carafe-panel > .ws-order-detail > .ws-order-next) > .adviser-panel:not(:has(.adviser-options)){
+ justify-self:center;width:min(100%,48rem);
+}
