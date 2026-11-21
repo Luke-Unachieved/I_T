@@ -1,3 +1,4 @@
+import {prepareGameImages} from './deal-room-image-loading.js';
 import {readCompanyName,bindCompanyName,companyNameView,companyTitleText} from './deal-room-company.js';
 import {openingContractMilestone} from './deal-room-opening-calendar.js';
 import {repeatContractMilestone} from './deal-room-repeat-calendar.js';
@@ -275,6 +276,7 @@ function render(){
  }
  bindAdviser(root,adviserUI,dealStorage,render,SAVE_KEY,workspaceNavigate);
  localizeBuyerDisplay(root);
+ prepareGameImages(root);
 }
 function openWorkspaceAccount(next,resume=false){
  if(!next||next===state&&!resume)return;

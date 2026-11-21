@@ -229,3 +229,23 @@
  :is(figure.ws-opening-inspection,.ws-opening-comic-stage > figure.ws-equipment-comic) > figcaption{
  color:var(--ws-secondary,#c3bcae);
 }
+
+/* Keep art slots warm and steady while the browser fetches or decodes. */
+#deal-room img[data-deal-image="loading"]{
+ background-color:#362d23;
+ background-image:linear-gradient(112deg,#342b22 14%,#524132 42%,#71573b 50%,#524132 58%,#342b22 86%);
+ background-size:250% 100%;
+ background-position:100% 50%;
+ color:#e9d6b6;
+}
+#deal-room img[data-deal-image="failed"]{
+ background-color:#3c3024;
+ background-image:linear-gradient(140deg,#4d3b2b,#322820);
+ color:#f4e4c9;
+}
+@keyframes ws-image-wait{to{background-position:0 50%}}
+@keyframes ws-image-in{from{opacity:.52}to{opacity:1}}
+@media(prefers-reduced-motion:no-preference){
+ html:not(.reduce-motion) #deal-room img[data-deal-image="loading"]{animation:ws-image-wait 1.65s ease-in-out 2}
+ html:not(.reduce-motion) #deal-room img[data-deal-image="revealed"]{animation:ws-image-in .25s ease-out both}
+}
