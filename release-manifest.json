@@ -21,9 +21,12 @@
       "src/deal-room-save.js": "8e79018294e631894ce341ceccc93e95a890f582067a2c5d3f1cbafe3d9e471c",
       "src/deal-room-workspace-nav.js": "8594d37482ea78cbaeae7bd4c419ad5d8fc7de1c7b20fdacef2e02f887ecc423",
       "src/deal-room-adviser.js": "c7e22d45f6b6ed9ecc27be4f5963f2cc13a05167304c98c944a0c64c416ad0dc",
-      "src/deal-room-workspace-theme.css": "92550986f13e6b65d872cf080c4bf1a0898806c9a2212be5c9fed94049df78ad"
+      "src/deal-room-workspace-theme.css": "92550986f13e6b65d872cf080c4bf1a0898806c9a2212be5c9fed94049df78ad",
+      "src/deal-room-workspace-hub.js": "27bb8325a340817aaca915d3800c30cb029e6129919e97815cbd3202a77e1d41",
+      "src/deal-room-workspace-hub-original.css": "9d6380fb4d622c44cdef7cde47384bbc7c3d23e2aca6bb50824f0391d6a38df7"
     },
     "revision": "office-name-adviser-picker",
-    "parentPagesCommit": "c4281b213d219d2388eeb418443b8db9dfaac404"
+    "parentPagesCommit": "c763c2accf14053d7ea362f22acf99e7ce25983c",
+    "developmentIcons": "matched-office-emblem"
   }
 }

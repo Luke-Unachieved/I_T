@@ -13,7 +13,7 @@
 #deal-room .ws-original-hub .ws-hub-icon svg{width:25px;height:25px}
 #deal-room .ws-original-hub .ws-hub-growth-list{display:grid;gap:10px}
 #deal-room .ws-original-hub .ws-hub-growth-list .ws-hub-row{min-height:88px}
-#deal-room .ws-original-hub .ws-hub-growth-list .ws-hub-icon,#deal-room .ws-original-hub .ws-hub-office img{width:48px;height:48px;flex:0 0 48px;border-radius:5px;background:#292c25;object-fit:cover}
+#deal-room .ws-original-hub .ws-hub-growth-list .ws-hub-icon{width:48px;height:48px;flex:0 0 48px;border-radius:5px;background:#292c25;object-fit:cover}
 #deal-room .ws-original-hub .ws-hub-promotion{border:0;background:transparent;margin:0;padding:0;color:var(--hub-ink)}
 #deal-room .ws-original-hub .ws-hub-promotion>summary{list-style:none}
 #deal-room .ws-original-hub .ws-hub-promotion>summary::-webkit-details-marker{display:none}
@@ -50,8 +50,8 @@
 }
 @media(min-width:430px) and (max-width:759px){#deal-room .ws-original-hub.ws-original-evening{max-width:390px}}
 
-#deal-room .ws-original-hub .ws-hub-growth-list .ws-hub-promo-emblem{color:#d8b77b;background:radial-gradient(ellipse at 22% 15%,#59452b,#2b2319 72%);border:1px solid #746041;box-shadow:inset 0 0 0 2px #16131066;border-radius:8px}
-#deal-room .ws-original-hub .ws-hub-promo-emblem svg{width:36px;height:36px}
+#deal-room .ws-original-hub .ws-hub-growth-list .ws-hub-growth-emblem{color:#d8b77b;background:radial-gradient(ellipse at 22% 15%,#59452b,#2b2319 72%);border:1px solid #746041;box-shadow:inset 0 0 0 2px #16131066;border-radius:8px}
+#deal-room .ws-original-hub .ws-hub-growth-emblem svg{width:36px;height:36px}
 
 /* Office opening: preserve the actual desk and window around the character. */
 #deal-room .ws-first-choose{position:absolute;inset:auto 0 0;z-index:2;display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;justify-content:center;padding:.65rem;background:#201c17ed;color:#f8ead1}
