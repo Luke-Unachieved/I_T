@@ -1,4 +1,4 @@
-import {companyRenameView} from './deal-room-company.js';
+import {companyRenameView,companyTitleText} from './deal-room-company.js';
 import {orderFooterAdvice} from './deal-room-adviser.js';
 import {previewWorkspaceSleep} from './deal-room-workspace-sleep.js';
 import {officeWeatherView} from './deal-room-workspace-office-weather.js';
@@ -17,11 +17,11 @@ const valid=n=>Number.isSafeInteger(n)&&n>=0;
 const safeRef=ref=>typeof ref==='string'&&/^[A-Za-z0-9:_-]{1,80}$/.test(ref)?ref:'';
 const day=d=>valid(d)?'第 '+d+' 天':'日期待定';
 
-export function workspaceNavView(selected='office',state=null,weather='',chrome='main'){
+export function workspaceNavView(selected='office',state=null,weather='',chrome='main',companyName=''){
  const active=tabSet.has(selected)?selected:'office';
  const mast=state?'<div class="ws-mast">再开一单就下班</div>':'';
  if(chrome==='detail')return mast;
- const balance=state&&chrome==='main'?'<div class="ws-account"><div><small>'+esc(day(state.day))+(['晴','阴','雨','雪'].includes(weather)?' · '+weather:'')+'</small><h1>'+(active==='afterwork'?'下班以后':'我的贸易工作室')+'</h1></div><div><small>可用资金</small><strong>'+esc(money(state.cash))+'</strong></div></div>':'';
+ const balance=state&&chrome==='main'?'<div class="ws-account"><div><small>'+esc(day(state.day))+(['晴','阴','雨','雪'].includes(weather)?' · '+weather:'')+'</small><h1 id="ws-company-title" tabindex="-1">'+(active==='afterwork'?'下班以后':companyTitleText(companyName))+'</h1></div><div><small>可用资金</small><strong>'+esc(money(state.cash))+'</strong></div></div>':'';
  return mast+balance+'<nav class="ws-nav" aria-label="工作室导航">'+tabs.map(([key,label])=>'<button type="button" data-workspace-tab="'+key+'"'+(key===active?' aria-current="page"':'')+'>'+label+'</button>').join('')+'</nav>';
 }
 function defaultPending(s){

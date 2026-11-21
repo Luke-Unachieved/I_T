@@ -15,7 +15,8 @@ function receiptImage(row){
  const pos={mira:0,samir:50,ines:100}[row.clientId];
  return pos===undefined?'':'<span class="ws-receipt-image ws-story-product" aria-hidden="true" style="--ws-story-pos:'+pos+'%"></span>';
 }
-const inboxHead=()=>'<section class="ws-office ws-index ws-mail-ledger" aria-labelledby="ws-inbox-title"><header><h2 id="ws-inbox-title" tabindex="-1">收件箱</h2><button type="button" data-workspace-open="office">回办公室</button></header><h3>客户询盘</h3><div class="ws-mail-rows">';
+const inboxHead=()=>'<section class="ws-office ws-index ws-mail-ledger" aria-labelledby="ws-inbox-title"><header><h2 id="ws-inbox-title" tabindex="-1">收件箱</h2></header><div class="ws-mail-rows">';
+const inboxFooter='<div class="ws-mail-footer"><button type="button" data-workspace-open="office">回办公室</button></div>';
 const mailAdvisers=new Set(['fang','liang','tao','xu']);
 function inboxAdvice(id,text){
  if(!mailAdvisers.has(id))return '';
@@ -29,14 +30,14 @@ const opening={
 };
 export function workspaceOpeningInbox(s,adviserId=null){
  const rows=openFirstBuyers(s);
- return inboxHead()+rows.map(row=>mailRow('data-first-buyer="'+ixEsc(row.id)+'"','<span class="ws-first-face" aria-hidden="true" style="--face-x:'+opening[row.id][2]+'%"></span>',row.name.split(' · ')[0],row.product,'第 '+s.day+' 天来信')).join('')+'</div></section>'+inboxAdvice(adviserId,'先挑一封看客户要什么、什么时候要。打开来信不会签单。');
+ return inboxHead()+rows.map(row=>mailRow('data-first-buyer="'+ixEsc(row.id)+'"','<span class="ws-first-face" aria-hidden="true" style="--face-x:'+opening[row.id][2]+'%"></span>',row.name.split(' · ')[0],row.product,'第 '+s.day+' 天来信')).join('')+'</div></section>'+inboxAdvice(adviserId,'先挑一封看客户要什么、什么时候要。打开来信不会签单。')+inboxFooter;
 }
 export function workspaceInboxIndex(s,adviserId=null){
  const rows=prospectInbox(s),canOpen=marketAvailable(s)||(s.phase==='market'&&s.market?.status==='draft');
  const ranked=[...rows].sort((a,b)=>(a.replyBy??Infinity)-(b.replyBy??Infinity)),first=ranked[0];
  const hint=first?(Number.isSafeInteger(first.replyBy)?first.person.displayName+' 的来信第 '+first.replyBy+' 天截止，可以先看。':'先看看 '+first.person.displayName+' 的补货数量，再决定要不要报价。'):(canOpen?'暂时没有待回复的客户来信。':'手上的合同还有事要处理，先去订单看看。');
  const list=ranked.map(x=>mailRow('data-workspace-inbox-desk="'+ixEsc(x.person.id)+'"',prospectAvatar(x.person.id),x.person.displayName,x.product.name,Number.isSafeInteger(x.replyBy)?'第 '+x.replyBy+' 天截止':x.previous?'熟客补货':'新来信')).join('')||'<p class="ws-mail-empty">没有待回复的来信。</p>';
- return inboxHead()+list+'</div></section>'+inboxAdvice(adviserId,hint);
+ return inboxHead()+list+'</div></section>'+inboxAdvice(adviserId,hint)+inboxFooter;
 }
 function orderTrack(stops){
  return '<ol class="ws-order-timeline">'+stops.filter(([,n])=>Number.isSafeInteger(n)).map(([label,n])=>'<li><b>'+label+'</b><span>第 '+n+' 天</span></li>').join('')+'</ol>';

@@ -127,7 +127,9 @@
 /* Recovered mobile inbox: one mailbox, clear divider, live totals, one dot per open inquiry. */
 #deal-room .ws-index.ws-mail-ledger{display:block;max-width:52rem;width:100%;padding:16px;margin:12px auto;border:1px solid #3f392f;border-radius:19px;background:#211f1a;color:#eee9de;min-width:0}
 #deal-room .ws-mail-ledger>header{display:flex;gap:12px;margin:0 0 16px;min-height:44px}
-#deal-room .ws-mail-ledger>header>button{margin:0;min-height:44px;color:#eee9de;background:#2b2720;border:1px solid #635748;border-radius:8px}
+#deal-room .ws-mail-footer{grid-column:1/-1;width:100%;max-width:52rem;margin:.4rem auto .2rem}
+#deal-room .ws-mail-footer button{font:inherit;min-height:44px;padding:5px 12px;color:#e6cfaa;background:transparent;border:1px solid #635748;border-radius:8px}
+#deal-room .ws-mail-footer button:focus-visible{outline:2px solid #e6cfaa;outline-offset:2px}
 #deal-room .ws-mail-ledger>h3{margin:16px 0 12px;font-size:20px}
 #deal-room .ws-mail-overview{display:flex;flex-wrap:wrap;gap:8px 18px;margin:0;padding:0;color:#bfb7a8;font-size:13px}
 #deal-room .ws-mail-overview div{display:flex;align-items:baseline;gap:6px}

@@ -13,20 +13,25 @@
     "name": "company-name-and-restart",
     "basePagesCommit": "f2af431ccde4a4c51ca85ef771b438c91fcd98b8",
     "files": {
-      "src/deal-room-app.js": "9dfc1f8b9a1f628104a6ad43bf9e5ad024310c86d418de833606de8acea67503",
-      "src/deal-room-company.js": "cd09bf35deb55639d3413d657753fd526dd36d3e97b3749c399d3e65d759e908",
-      "src/deal-room-office.css": "46d6a4767039faaede9b54fa7d809e783614d9c4d9b03562777e09f9877acb03",
+      "src/deal-room-app.js": "29e8fbe6ec57846a82f3db418518b769f420767014fda755c54db803de39431f",
+      "src/deal-room-company.js": "4b576bb133df03c4df75408425c3b8b666aff9e1392ce2e85d2b44bfa72f7a65",
+      "src/deal-room-office.css": "66ddb0a0c0696f3e654cb5d7b8c9c3cc6c41d0fcb5a34a478c38d0a7de6deba0",
       "src/deal-room-save-view.js": "9324ff392786c384e7e83c519c19b557e5bf357791e7d7b1b673ae69e146215b",
       "src/deal-room-save.css": "cae75eea60a57cfd42e779528e99833dff602dc5bd78b3624d0b25e574452281",
       "src/deal-room-save.js": "8e79018294e631894ce341ceccc93e95a890f582067a2c5d3f1cbafe3d9e471c",
-      "src/deal-room-workspace-nav.js": "8594d37482ea78cbaeae7bd4c419ad5d8fc7de1c7b20fdacef2e02f887ecc423",
+      "src/deal-room-workspace-nav.js": "e45d90daba9225081c3c52560623196fbd7953db2698a581adf41ea3aeb748f4",
       "src/deal-room-adviser.js": "c7e22d45f6b6ed9ecc27be4f5963f2cc13a05167304c98c944a0c64c416ad0dc",
       "src/deal-room-workspace-theme.css": "92550986f13e6b65d872cf080c4bf1a0898806c9a2212be5c9fed94049df78ad",
       "src/deal-room-workspace-hub.js": "27bb8325a340817aaca915d3800c30cb029e6129919e97815cbd3202a77e1d41",
-      "src/deal-room-workspace-hub-original.css": "9d6380fb4d622c44cdef7cde47384bbc7c3d23e2aca6bb50824f0391d6a38df7"
+      "src/deal-room-workspace-hub-original.css": "9d6380fb4d622c44cdef7cde47384bbc7c3d23e2aca6bb50824f0391d6a38df7",
+      "src/deal-room-workspace-index.js": "9cdcbde632e3c4f38185e12c772e03e7f098b361c0ac51d963be590a72a7a350",
+      "src/deal-room-original-orders.css": "ee431f2834fc09751f11002f9a6bb90e2ff334f84610d24c7cae83ac41a62486"
     },
     "revision": "office-name-adviser-picker",
-    "parentPagesCommit": "c763c2accf14053d7ea362f22acf99e7ce25983c",
-    "developmentIcons": "matched-office-emblem"
+    "parentPagesCommit": "c96d76071b360760d6c2f96fe57aad65a5dd325b",
+    "developmentIcons": "matched-office-emblem",
+    "companyTitle": "replaces-workspace-title",
+    "inboxTitle": "single-heading-footer-return",
+    "adviserAdvice": "one-panel"
   }
 }

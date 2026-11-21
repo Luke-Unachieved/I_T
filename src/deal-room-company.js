@@ -8,9 +8,10 @@ export function readCompanyName(storage,key){
 }
 const companyForm=safe=>'<form data-company-name><label for="ws-company-name">公司名称</label><input id="ws-company-name" name="company" value="'+safe+'" maxlength="'+companyNameLimit+'" required>'+
  '<button type="submit">保存名称</button><p role="status" data-company-status></p></form>';
+export const companyTitleText=name=>companyEsc(cleanCompanyName(name)||'我的贸易工作室');
 export function companyNameView(name){
  const safe=companyEsc(cleanCompanyName(name));
- return safe?'<section class="ws-company ws-company-heading" aria-label="公司名称"><h2 id="ws-company-heading" tabindex="-1">'+safe+'</h2></section>':
+ return safe?'':
   '<section class="ws-company ws-company-setup" aria-label="给公司起个名字">'+companyForm('')+'</section>';
 }
 export function companyRenameView(name){
@@ -28,6 +29,6 @@ export function bindCompanyName(root,storage,key,render){
   const status=form.querySelector('[data-company-status]');
   if(!name){status.textContent='请输入 1 到 24 个字符。';return;}
   try{storage.setItem(companyKey(key),name);}catch{status.textContent='浏览器未能保存名称。';return;}
-  render();root.querySelector('#ws-company-heading')?.focus?.();
+  render();root.querySelector('#ws-company-title')?.focus?.();
  });
 }

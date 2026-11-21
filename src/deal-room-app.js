@@ -1,4 +1,4 @@
-import {readCompanyName,bindCompanyName,companyNameView} from './deal-room-company.js';
+import {readCompanyName,bindCompanyName,companyNameView,companyTitleText} from './deal-room-company.js';
 import {workProductComicView} from './deal-room-workspace-product-comics.js';
 import {officeIntroMode} from './deal-room-workspace-intro.js';
 import {localizeBuyerDisplay} from './deal-room-prospect-locale.js';
@@ -268,7 +268,7 @@ function render(){
  const chrome=shippingDetail||warehouseOpen?'detail':nested||tab==='inbox'?'tabs':'main';
  if(root.dataset)root.dataset.workspaceChrome=chrome;
  if(typeof root.insertAdjacentHTML==='function'){
-  root.insertAdjacentHTML('afterbegin',workspaceNavView(tab,state,workspaceWeather(state.day),chrome));
+  root.insertAdjacentHTML('afterbegin',workspaceNavView(tab,state,workspaceWeather(state.day),chrome,readCompanyName(dealStorage,SAVE_KEY)));
   if(!nested&&!shippingDetail&&(tab==='office'||tab==='orders'&&(workspaceMarketOrderList||!orderPhase(state)))&&['review','complete','market'].includes(state.phase)){
    showWarehouseShortcut(root,tab);
    root.querySelector('[data-open-warehouse]')?.addEventListener?.('click',()=>{warehouseOpen=true;render();root.querySelector('#wh-title')?.focus?.();});
@@ -287,7 +287,7 @@ function openWorkspaceAccount(next,resume=false){
 }
 function renderCurrentPage(){
  if(!warehouseOpen&&workspaceOverride==='inbox'&&!viewedFirstBuyer&&openFirstBuyers(state).length){
-  root.innerHTML=adviserView(state,{place:'工作室'},adviserUI)+workspaceOpeningInbox(state,adviserUI.choice)+dealSaveView(savePanel,saveNotice);
+  root.innerHTML=adviserView(state,{place:'工作室',identityOnly:true},adviserUI)+workspaceOpeningInbox(state,adviserUI.choice)+dealSaveView(savePanel,saveNotice);
   root.querySelectorAll('[data-first-buyer]').forEach(b=>b.onclick=()=>{viewedFirstBuyer=b.dataset.firstBuyer;selected='';openingInboxOpen=false;event='choosing';render();rememberOpeningDraft();focusCustomerRoute();});bindSaveTools();return;
  }
  if(!warehouseOpen&&workspaceOverride==='orders'&&!workspaceOrderDetail&&state.phase==='fulfilling'&&!state.businessRound){
@@ -295,7 +295,7 @@ function renderCurrentPage(){
   root.querySelector('[data-workspace-order-detail]')?.addEventListener('click',()=>{workspaceOrderDetail=true;render();root.querySelector('.business h2')?.focus?.({preventScroll:true});});bindSaveTools();return;
  }
  if(!warehouseOpen&&workspaceOverride==='inbox'&&!workspaceMailDesk&&(['review','complete'].includes(state.phase)||state.phase==='market'||orderPhase(state))){
-  root.innerHTML=adviserView(state,{place:'工作室'},adviserUI)+workspaceInboxIndex(state,adviserUI.choice)+dealSaveView(savePanel,saveNotice);
+  root.innerHTML=adviserView(state,{place:'工作室',identityOnly:true},adviserUI)+workspaceInboxIndex(state,adviserUI.choice)+dealSaveView(savePanel,saveNotice);
   root.querySelectorAll('[data-workspace-inbox-desk]').forEach(b=>b.onclick=()=>openWorkspaceMail(b.dataset.workspaceInboxDesk));bindSaveTools();return;
  }
  if(!warehouseOpen&&workspaceOverride==='orders'&&!workspaceMailDesk&&(!orderPhase(state)||workspaceAccountPayments&&state.phase==='account'&&state.account?.status==='paid')){
@@ -328,7 +328,7 @@ function renderCurrentPage(){
   const intro=officeIntroMode(state,loadedDeal.status,officeIntroSeen,adviserUI.choice,adviserPickerOpen(state,adviserUI)),advice=adviserWorkspaceAdvice(state,adviserUI);
   const adviceKey=adviserUI.choice&&advice[0]?.text?adviserUI.choice+':'+advice[0].text:'';
   const companyName=readCompanyName(dealStorage,SAVE_KEY);
-  root.innerHTML=companyNameView(companyName)+adviserView(state,{place:'办公室'},adviserUI)+workspaceOfficeView(state,{intro,adviserId:adviserUI.choice,companyName,officeName:office?.name,officeId:office?.id,art:propertySceneArt(office?.id),weather:workspaceWeather(state.day),advice})+dealSaveView(savePanel,saveNotice);
+  root.innerHTML=companyNameView(companyName)+adviserView(state,{place:'办公室',identityOnly:true},adviserUI)+workspaceOfficeView(state,{intro,adviserId:adviserUI.choice,companyName,officeName:office?.name,officeId:office?.id,art:propertySceneArt(office?.id),weather:workspaceWeather(state.day),advice})+dealSaveView(savePanel,saveNotice);
   root.querySelectorAll('[data-workspace-intro]').forEach(b=>b.onclick=()=>officeIntroAction(b.dataset.workspaceIntro));
   if(!intro&&adviceKey&&adviceKey!==lastOfficeSuggestion)root.querySelector('.ws-original-note .ws-note-face')?.classList.add('ws-note-react');
   lastOfficeSuggestion=adviceKey;
@@ -440,7 +440,7 @@ function renderCurrentPage(){
  const completedCooperations=(marketLedger?.receipts.length||0)+(state.linenFreight?.status==='paid'?1:0)+(state.atelierRestock?.status==='paid'?1:0)+(state.stockProcurement?.status==='paid'?1:0)+(state.collectionRevision?.orders||[]).filter(o=>o.status==='paid').length+state.contracts.filter(c=>c.status==='paid').length+(state.supplyPlanHistory||[]).length+(state.curationHistory||[]).length+(state.caseGrowthHistory||[]).filter(c=>c.status==='paid').length+(state.accountHistory||[]).length+(state.collection?.orders||[]).filter(c=>c.status==='paid').length;
  const p=selected?previewOffer(quoteState,selected):null,paid=state.contracts.filter(c=>c.status==='paid');
  const quoteLampSample=developedQuoteSample(state,selected,sampleBrightness);
- root.innerHTML=`<header><div class="brand"><small>再开一单就下班</small><h1>我的贸易工作室</h1></div><div class="wallet"><span>第 ${state.day} 天</span><strong>${money(state.cash)}</strong><small>可用资金</small></div></header>
+ root.innerHTML=`<header><div class="brand"><small>再开一单就下班</small><h1>${companyTitleText(readCompanyName(dealStorage,SAVE_KEY))}</h1></div><div class="wallet"><span>第 ${state.day} 天</span><strong>${money(state.cash)}</strong><small>可用资金</small></div></header>
  ${adviserView(state,{place:showCareerRecap?'收工':home?'工作室':'业务',quote:state.phase==='negotiating'?p:null,accountOption,orderFocus:true,identityOnly:openingPaid||openingSigned},adviserUI)}
  ${openingSigned||openingPaid||state.phase==='curating'||accountVisual?'':shopVisual?shopShelfScene(state,shopTerms,shelfMoment):`<section class="workspace ${state.phase==='negotiating'?'ws-opening-inquiry':''} ${['curating','curation-fulfillment'].includes(state.phase)?'ws-referral-workspace':''} ${state.officeImprovement&&!buyerScene?'office-upgraded-workspace':''} ${esc(event)} ${buyerScene?'buyer-scene':''} ${collectionVisual||restockBasis||growthVisual?.designStyle?'collection-mode':''} ${demo?.open?'demo-active demo-'+demo.room:''}" style="--demo-glow:${demo?.glow||0};--demo-lamp:${[.75,.95,1.12][demo?.level??1]}" aria-label="${tradeRecap?'已交付贸易成果':buyerScene?'已交付买手店陈列':'现代贸易工作空间'}"><div class="room-light"></div>${`<div class="desk-label">${tradeRecap?esc(recapVisual.buyer)+' · 已交货并收款':buyerScene?esc(curationBrief.buyer)+' · 你的组合已上新':completedCooperations?'合作交付 · '+completedCooperations+' 笔已回款':'今天，从一笔好生意开始'}</div>`}
  ${restockBasis?`<div class="collection-sleeve style-${restockBasis.style}"><strong>Atelier · 原版独家</strong><span>${COLLECTION_STYLES[restockBasis.style]}</span></div>`:''}${collectionVisual?`<div class="collection-sleeve style-${esc((receipt&&receiptMode==='delivered'?receipt.style:null)||pitchVisual?.style||state.collection.style||collectionDraft.style)}"><strong>${collectionVisual.buyer}</strong><span>${COLLECTION_STYLES[(receipt&&receiptMode==='delivered'?receipt.style:null)||pitchVisual?.style||state.collection.style||collectionDraft.style]}</span></div>`:''}
