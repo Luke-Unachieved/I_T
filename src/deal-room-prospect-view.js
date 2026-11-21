@@ -20,7 +20,7 @@ import {displayProspectCopy026To035Followups} from './deal-room-prospect-copy-02
 import {evaTrayStoryMoment,lukaTrayStoryMoment,prospectSceneLine,prospectComicView} from './deal-room-prospect-scenes.js';
 import {lukaRepeatAcceptedLine,lukaRepeatInquiryView,lukaRepeatLetter,lukaRepeatOrder,lukaRepeatOrderSpeech,lukaRepeatPaidView} from './deal-room-luka-repeat-scenes.js';
 import {evaRepeatAcceptedLine,evaRepeatInquiryView,evaRepeatLetter,evaRepeatOrder,evaRepeatPaidView,evaRepeatSpeech} from './deal-room-eva-repeat-scenes.js';
-import {PROSPECT_CONTENT} from './deal-room-prospect-content.js';
+import {PROSPECT_CONTENT,prospectFallbackDialogue} from './deal-room-prospect-content.js';
 import {prospectDisplayText,prospectMarketLabel} from './deal-room-prospect-locale.js';
 import {previewWarehouseIssue,warehouseSummary} from './deal-room-warehouse.js';
 import {prospectInbox,prospectContentById,prospectRelationship} from './deal-room-prospects.js';
@@ -88,10 +88,10 @@ export function prospectAdviserQuote(state,ui={}) {
  return c?quoteAdviserProjection(c.q,state.cash,c.asked,quotePriceRejected(c.q)):null;
 }
 const rejectedAdvice=Object.freeze({
- fang:['方文斌','先别改交期。把运费摊到每件里，看看这一单还能让多少。'],
- liang:['梁佳音','对方只是没接这个价。先算清降价以后还赚不赚，再回话也不迟。'],
- tao:['陶乐','对方没说不要这批货。你可以只改报价再问，不用把刚选好的货源推倒重来。'],
- xu:['许明珊','报价往下改容易，尾款还是那天才到。先看手里的钱够不够撑到收款。']
+ fang:['方文斌','交期这会儿不用动。要是想让点价，我可以陪你把运费摊到每件上，看看还有多少余地。'],
+ liang:['梁佳音','对方嫌这个价高，倒没说不要货。咱们把降价后的利润算一遍，再回也来得及。'],
+ tao:['陶乐','货源还是刚才那个，没必要重选。要是你还想谈，咱们只换个价问一句就行。'],
+ xu:['许明珊','就算单价降了，尾款也不会早到。要不要算一下，手上的钱能不能撑到那天？']
 });
 function response(c,repeatReply) {
  if(!c.asked)return '';
@@ -99,8 +99,10 @@ function response(c,repeatReply) {
  const bubble=(line,price='')=>inquirySpeech(prospectDisplayText(line),{reply:true,extra:price});
  if(quotePriceRejected(c.q)){const note=Object.hasOwn(rejectedAdvice,c.adviserId)?rejectedAdvice[c.adviserId]:null;return bubble('这个单价我这边接不了。你能再报一个价吗？')+(note?'<aside class="market-note" aria-label="助理便笺"><strong>'+esc(note[0])+'：</strong>'+esc(note[1])+'</aside>':'');}
  if(!c.q?.accepted)return '';
- const line=repeatReply||(c.row.isRepeat?prospectSceneLine(person.id,'repeat',null,c.row.product.id):prospectSceneLine(person.id,'agreed',c.o.id,c.row.product.id)||displayProspectCopy(person.id,'bargain',c.q.prospectVoice?.bargain||''));
- return bubble(line||'可以，照这份数量和交期来。',cash(c.draft.unitPrice)+'/'+c.row.product.unit);
+ const agreement=c.row.isRepeat?'':prospectSceneLine(person.id,'agreed',c.o.id,c.row.product.id);
+ const stagedReply=!c.row.isRepeat&&Number(person.id)>=46?displayProspectCopy(person.id,'bargain',c.q.prospectVoice?.bargain||''):'';
+ const line=repeatReply||agreement||stagedReply||(c.row.isRepeat?'好，这次补货就按这份报价来。':'可以，照这份报价和交货日期来。');
+ return bubble(line,cash(c.draft.unitPrice)+'/'+c.row.product.unit);
 }
 const prospectCopyEditors=[
  displayProspectCopy001To005,displayProspectCopy006To015,displayProspectCopy016To025,displayProspectCopy016To025Late,
@@ -109,7 +111,10 @@ const prospectCopyEditors=[
  displayProspectCopy066To075,displayProspectCopy066To075Handover,displayProspectCopy076To085,displayProspectCopy086To095,displayProspectCopy086To095Followups,
  displayProspectCopy096To100,displayProspectCopy096To100Followups
 ];
-const displayProspectCopy=(id,stage,line)=>prospectCopyEditors.reduce((current,edit)=>edit(id,stage,current),line);
+function displayProspectCopy(id,stage,line){
+ const edited=prospectCopyEditors.reduce((current,edit)=>edit(id,stage,current),line);
+ return edited===line?prospectFallbackDialogue(id,stage,line):edited;
+}
 const gcd=(a,b)=>b?gcd(b,a%b):a;
 // prospectInbox advances five buyers a week. For letters whose variant count is
 // in step with a full roster rotation, vary the on-screen copy on later cycles.
@@ -172,9 +177,10 @@ function quote(state,c) {
  const {row,o,draft:d,source,q,guide,asked}=c,{person:p,product}=row,unit=product.unit;
  const old=row.previous,repeat=lukaRepeatLetter(state,row),evaRepeat=evaRepeatLetter(state,row);
  const repeatReply=repeat?lukaRepeatAcceptedLine(repeat,o.id):evaRepeat?evaRepeatAcceptedLine(evaRepeat,o.id):'';
- const opening=row.promotion?'我是在《'+row.promotion.channelName+'》上看到你的。'+(o.mode==='bulk'?'我想问问整批铺货怎么报。':'我想先问一批试货。'):displayProspectCopy(p.id,row.isRepeat?'reorder':'inquiry',row.isRepeat?row.opening:displayOrganicOpening(row));
+ const opening=row.promotion?'我是在《'+row.promotion.channelName+'》上看到你的。'+(o.mode==='bulk'?'我想问问整批铺货怎么报。':'我想先问一批试货。'):
+  (row.isRepeat?prospectSceneLine(p.id,'repeat',null,product.id):'')||displayProspectCopy(p.id,row.isRepeat?'reorder':'inquiry',row.isRepeat?row.opening:displayOrganicOpening(row));
  const choices='<fieldset class="inquiry-choices"><legend>'+esc(row.isRepeat?'这批货怎么补？':'这批货怎么谈？')+'</legend>'+row.options.map(v=>
-  inquiryOption((repeat||p.id==='001'&&row.isRepeat&&product.id==='tray')&&v.id==='reorder'?'常规补货':optionName(v.id),[['订购量',pack(v.quantity,unit)],['最迟收货',day(state.day+v.deadlineDays)],['付款',payment(v)],['收齐后最早再谈补货',Number.isSafeInteger(v.followupDays)?v.followupDays+' 天':'']],
+  inquiryOption((repeat||p.id==='001'&&row.isRepeat&&product.id==='tray')&&v.id==='reorder'?'常规补货':optionName(v.id),[['订购量',pack(v.quantity,unit)],['最迟收货',day(state.day+v.deadlineDays)],['付款',payment(v)],['最早补货',Number.isSafeInteger(v.followupDays)?'回款后 '+v.followupDays+' 天':'']],
     {hook:'data-prospect-option',value:v.id,active:v.id===o.id})).join('')+'</fieldset>';
  const showSettlement=!asked||q.accepted;
  const reason=asked?(quotePriceRejected(q)?'':q.reason):quoteDraftWarning(q,state.cash);

@@ -25,8 +25,24 @@ export function neighborhoodInvite(state, receipts) {
 }
 
 export function neighborhoodQuote(stores, offer, unit) {
+  const line=stores===12?'第一批先供这十二家。每家拿一样多，你给我一个单价，我好把清单分给各店。':stores===18?'上一期的箱单还在。十八家店这回各拿一样多，你照本期总数报单价。':stores===24?'这次二十四家店一起补。每店数量不变，请照新清单报，不用沿用上一期的总数。':'请按每家店的数量配货，报一个单价。';
   return `<section class="market-buyer-brief" aria-label="林妍的采购要求">
-  ${neighborhoodContact('请按每家店的数量配货，报一个单价。')}
+  ${neighborhoodContact(line)}
   <dl class="market-brief-facts"><div><dt>门店</dt><dd>${stores} 家</dd></div><div><dt>每店</dt><dd>${offer.perStore} ${unit}</dd></div><div><dt>合计</dt><dd>${offer.quantity} ${unit}</dd></div></dl>
   <p class="market-brief-pay"><span>签约付 ${offer.depositPercent}% 定金</span><span>验收后 ${offer.payLag} 天付清</span></p></section>`;
+}
+
+export function neighborhoodOrderLine(order,status){
+ const {stores,perStore,unit,paymentDay}=order;
+ const stage=['transit','receivable','paid'].indexOf(status);
+ const lines={
+  12:[`定金付了。先给十二家配齐，每店 ${perStore} ${unit}，收货时照箱单点。`,`十二家都点齐了，签收单我收着。第 ${paymentDay} 天付尾款。`,'这笔付清了。我把第一期的十二张收货记录归在一起。'],
+  18:[`定金到了。十八家这批每店 ${perStore} ${unit}，箱单请用这一期的，别拿上回十二家的那份。`,`十八家这一批都签收了。我拿本期的清单对账，第 ${paymentDay} 天付尾款。`,'十八家这单结清了。签收单留在第二期，不跟头一批混在一起。'],
+  24:[`定金付好了。这期二十四家参加，按每店 ${perStore} ${unit}分好，不用从上一期里的数补差。`,`二十四家这一批都点过了。尾款第 ${paymentDay} 天付，本期的签收单我一并交财务。`,'二十四家这笔也付清了。三期各用各的清单，这一期的账已经结了。']
+ };
+ return lines[stores]?.[stage]??[
+  `定金付好了。请按每店 ${perStore} ${unit}配齐装箱，门店照清单点数。`,
+  `${stores} 家店都点过数了。这批货我签收，余款在第 ${paymentDay} 天付。`,
+  `财务已经付清。谢谢你把 ${stores} 家店的货配齐。`
+ ][stage]??'';
 }

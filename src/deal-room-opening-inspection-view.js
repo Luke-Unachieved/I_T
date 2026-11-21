@@ -14,7 +14,7 @@ export function openingInspectionView(state){
    '萨米尔从纸箱里取出无印字的保温杯，试了试杯盖。'
   );
   return `${comic}
- <blockquote class="ws-opening-inspection-dialogue">“我先试试杯盖拧起来顺不顺手。”</blockquote>`;
+ <blockquote class="ws-opening-inspection-dialogue">“我先拧开一只，试试杯盖合不合。”</blockquote>`;
  }
  if(contract?.status!=='receivable'||state.day<contract.deliveryDay)return '';
  if(contract.clientId==='mira'&&contract.optionId==='rollout'&&contract.product==='便携台灯'){
@@ -28,15 +28,15 @@ export function openingInspectionView(state){
    '萨米尔从箱里拿出一只保温杯，顺着纸套的边摸了一圈。'
   );
   return `${comic}
- <blockquote class="ws-opening-inspection-dialogue">“边上贴得平，这批上架时不用重新套。”</blockquote>`;
+ <blockquote class="ws-opening-inspection-dialogue">“纸套边上没翘。这批我留着补货，收货后第三天付清。”</blockquote>`;
  }
- if(contract.optionId!=='branded-opening')return '';
+ if(contract.optionId!=='branded-opening'||contract.deliveryDay>7)return '';
  const comic=inspectionComic(
   'samir-branded-opening',
   '萨米尔从纸箱里拿出套着橄榄枝纹样纸套的金色保温杯，然后拧回深绿色杯盖',
   '萨米尔从到货箱里取出套着定制纸套的保温杯，又把杯盖拧了回去。'
  );
  return `${comic}
- <blockquote class="ws-opening-inspection-dialogue">“纸套是我选的那版，杯盖拧着也顺手。”</blockquote>
- <div class="ws-signed-status"><strong>待收尾款</strong><span>¥${contract.balanceDue.toLocaleString('zh-CN')}</span></div>`;
+ <blockquote class="ws-opening-inspection-dialogue">“这批是开业用的，纸套是我选的那版。杯盖我也试过了，收货后第三天我付清。”</blockquote>
+ <div class="ws-signed-status"><strong>待收货款</strong><span>¥${contract.balanceDue.toLocaleString('zh-CN')}</span></div>`;
 }

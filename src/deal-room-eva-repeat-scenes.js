@@ -14,8 +14,8 @@ const frames=Object.freeze({
 });
 const image=frame=>'<img src="assets/'+frame[0]+'" width="1440" height="720" decoding="async" alt="'+frame[1]+'">';
 export function evaRepeatInquiryView(letter){
- const line=letter.vip?`早餐台照常补 ${letter.base} 只就够。要是连备餐间的备用量也一起补，可以报 ${letter.vip} 只，还是这款托盘。`:
-  `早餐台还缺这款托盘。麻烦补 ${letter.base} 只，规格和上批一样。`;
+ const line=letter.vip?`光补早餐台的话，${letter.base} 只就够了。备餐间也想留点备用的，麻烦再报个 ${letter.vip} 只的价。两档都要上次那款。`:
+  `早餐台这边想再添 ${letter.base} 只托盘，麻烦按上次那款给我报个价。`;
  return '<figure class="inquiry-comic">'+image(frames.inquiry)+'<figcaption>'+inquirySpeech(line)+'</figcaption></figure>';
 }
 export function evaRepeatAcceptedLine(letter,option){
@@ -24,8 +24,8 @@ export function evaRepeatAcceptedLine(letter,option){
 }
 export function evaRepeatSpeech(scene){
  const vip=scene.option==='vip-volume';
- if(scene.stage==='waiting')return vip?'到货先送备餐间。我另外留了一辆小推车，装这次多订的盘子。':'到货先送备餐间。平时供早餐用的，这批都放那边。';
- if(scene.stage==='receivable')return vip?'盘子都点齐了。多订的那摞留作备用，尾款按合同的日期付。':'这批托盘都点齐了。早餐台照常用，尾款按合同的日期付。';
+ if(scene.stage==='waiting')return vip?'货到了麻烦送到备餐间。多订的那批先不上桌，我留了辆小推车放。':'这批都是早餐台用的。到了麻烦送到备餐间，我在那儿收货。';
+ if(scene.stage==='receivable')return vip?'数量对上了。多订的那摞我留着备用，尾款按约好的日子打。':'托盘都点过了，数量没问题。尾款我们按约好的日子打。';
  return '';
 }
 const orderFigure=(frame,caption,kind)=>'<figure class="ws-order-comic ws-order-comic-'+kind+'">'+image(frame)+'<figcaption>'+caption+'</figcaption></figure>';

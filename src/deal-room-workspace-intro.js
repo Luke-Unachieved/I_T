@@ -1,8 +1,8 @@
 const openings=Object.freeze({
- fang:['方文斌','刚来了一封询盘。先看看对方要多少、哪天收货，再决定怎么报。'],
- liang:['梁佳音','电脑上那封新消息看见没？先看她要什么、什么时候收货。别急着报个漂亮价，手里的钱也得够。'],
- tao:['陶乐','今天先接一封试试。客户要多少、哪天交，这两样先看清。拿不准就回来问我，不用急着答应。'],
- xu:['许明珊','先开收件箱。看完数量和交期，再对采购成本。报价由你发；觉得不合适，这单可以不接。']
+ fang:['方文斌','早，我是方文斌。刚收到一封询盘。要不咱们先看看客户要多少、哪天要货，再商量怎么报价？'],
+ liang:['梁佳音','早啊，我是梁佳音。刚有人来问货。我陪你看看她要什么、什么时候收货，也算算手头的钱够不够垫。'],
+ tao:['陶乐','你好，我是陶乐！第一封询盘已经到了。你要是愿意，咱们就从这封开始。数量和交货日期要是有哪儿没看明白，随时叫我。'],
+ xu:['许明珊','你好，我是许明珊。收件箱里有一封新询盘。等你看完数量和交期，我可以帮你核一下采购成本。合不合适，你看完再决定。']
 });
 export function officeIntroMode(state,status,seen,choice,pickerOpen=false){
  if(status!=='empty'||seen||state.day!==1||state.phase!=='negotiating'||state.history.length||state.contracts.length||choice==='solo'||pickerOpen)return '';

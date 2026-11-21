@@ -26,7 +26,7 @@ function curationBudgetCounter(brief,q,availableCash){
   add(`data-curation-product="${item.id}"`,`保留 ${q.quantity} 套，不放${item.name}`,q.revenue-q.quantity*item.price,q.cost-q.quantity*item.cost);
  }
  if(!offers.length)return '';
- return `<section class="curation-counteroffer" aria-label="买手的预算回价">${buyerSpeech(speaker(brief),`最多 ${money(brief.budget)}。主推款和包装不换，${offers.length>1?'你是想保留整组，还是先铺足数量？':'能不能先少做一批？'}`)}<div class="quotes">${offers.join('')}</div><small>选一项调整报价，不会签单。</small></section>`;
+ return `<section class="curation-counteroffer" aria-label="买手的预算回价">${buyerSpeech(speaker(brief),`这次我最多能批 ${money(brief.budget)}。主推款和包装先别动，你看还能从哪儿省一点？`)}<div class="quotes">${offers.join('')}</div><small>选一项调整报价，不会签单。</small></section>`;
 }
 function curationProductChoices(brief,draft,q,demo){
  const selected=q.products||[],developed=q.lampVersion==='developed';
@@ -109,7 +109,7 @@ export function curationDemoModel(brief,draft,{open=false,room='day',brightness=
  if(!(draft.products||[]).includes('mira'))return null;
  const developed=draft.lampVersion==='developed',night=room==='night';
  const level=developed&&[0,1,2].includes(brightness)?brightness:1;
- const message=!brief.giftAllowed?'我按原规格补货，门店不用重新教店员。新功能这次先不用。':night?(developed?(level===0?'这档柔光适合睡前。同一盏能从看书切到床头，不只是多一个开关。':level===1?'看书可以；睡前我想再柔一点，试试低一档？':'这一档照陈列很醒目，睡前就太亮了。试试低一档？'):'旧款就是这一档。做日常台灯没问题，不能把调光当卖点。'):(developed?(level===0?'白天看样有点暗。把它调亮，我想看清桌上这组搭配。':'白天的搭配看清了。再试试晚上，看看新功能值不值得占这份预算。'):'这版用途直接。省下的预算可以留给更多套数或另一件搭配。');
+ const message=!brief.giftAllowed?'这次还是补原来那款。店员都用熟了，新功能先不加。':night?(developed?(level===0?'这档放床头正好。看书开亮点，看完手边一调，也不用再开另一盏。':level===1?'看书可以；睡前我想再柔一点，试试低一档？':'摆在店里这样挺显眼，不过搁床头就刺眼了。帮我调低一档？'):'旧款就这一档吧？平时照桌子够了，店里别跟客人说还能调亮度。'):(developed?(level===0?'白天看样有点暗。把它调亮，我想看清桌上这组搭配。':'白天摆出来我看清了。再把屋里的灯关一下，我想看看这盏到晚上值不值那个差价。'):'旧款也够用。省下来的钱，要么多铺几套，要么再配一件。');
  return {open,room:night?'night':'day',developed,level,glow:night?[.25,.6,1][level]:[.12,.3,.65][level],message,buyer:speaker(brief)};
 }
 export function curationDemoView(demo){

@@ -17,9 +17,9 @@ const equipmentStory=Object.freeze({
   paid:'工地传回第一铲土的视频。拍的人没说话，只在消息末尾回了个「开工」。'
  },
  ultrasound:{
-  request:'「先到的那几台给门诊，另外的还在等机房开门。装箱单上麻烦把序列号分开写。」',
+  request:'「门诊那几台先留出来。剩下的等机房开门再搬。装箱单上，麻烦把每台的序列号都写明白。」',
   shipped:'几张装箱单摊在桌上。助理把序列号抄到同一页，交接时不用在三份文件里来回找。',
-  accepted:'「最后一台也扫到序列号了。这批设备一张验收单，我今天一起送财务。」',
+  accepted:'「最后一台的序列号也对上了。验收单就开一张，我今天送财务。」',
   paid:'买家发来一张新的值班表。最早那台已经排到周末，其余的也各有了去处。'
  },
  'filling-line':{
@@ -48,14 +48,14 @@ function activeLegacy(s,ui){
  if(status==='legacy-transit'&&a.transfer&&!a.rebooked&&s.day===a.shipDay){
   const earlyDay=a.deliveryDay-a.daysSaved,earlyPay=a.paymentDay-a.daysSaved,difference=a.rebookFee-a.daysSaved*30;
   return '<section class="market-active eq-order" aria-label="设备合同履行"><small>设备在途，'+e(a.buyer)+'</small><h3>'+e(a.productName)+'，'+a.physicalQuantity+e(a.physicalUnit)+'</h3><dl class="market-facts">'+fact('已到账',money(a.received))+fact('还没收到',money(a.balanceDue))+'</dl>'+legacyOrderDetails(a,picture(a.legacyProjectId))+'<section class="eq-decision"><h3>船期变了，怎么安排？</h3><p>换船通知：晚 '+a.slipDays+' 天。验收前共付 '+money(a.acceptanceFee+a.stationFee)+'（含场站费 '+money(a.stationFee)+'），验收后收 '+money(a.progressDue)+'。</p><p>改订早 '+a.daysSaved+' 天回款。算上省下的日常开支，总成本'+(difference===0?'不变':(difference>0?'多':'少')+money(Math.abs(difference)))+'。不改订的话，照常过天，等到到港日再验收。</p>'+
-   tradeAdviserHint(ui.adviserId,rebook?'场站费两边都得付。换的是早几天拿到货和尾款，不是把那笔费用免了。':'手上的钱得先够验收。既然改订后周转不开，别把这一笔也搭进去。')+
+   tradeAdviserHint(ui.adviserId,rebook?'不管换不换船，场站费都得付。多花的这笔钱，买的是早几天到货、早几天收尾款。':'验收得先付费，客户那笔钱要验完才到。现在改订会让手头的钱不够，还是按原安排等吧。')+
    equipmentRoutePair({title:'照现在的船期等',fee:0,day:a.deliveryDay,pay:a.paymentDay,button:'',enabled:false,action:''},{title:'改订更早的班次',fee:a.rebookFee,day:earlyDay,pay:earlyPay,button:'确认改订',enabled:rebook,action:'data-legacy-rebook'})+'</section></section>';
  }
  const route=a.shipping==='shared'?'拼载海运':'直运海舱',preparing=status==='legacy-preparing',transit=status==='legacy-transit',settled=status==='paid';
  const moment=settled?story?.paid:transit?(a.rebooked?'船代把新提单发了过来，旧班次被划掉了。这回别按旧日期通知买方。':story?.shipped):preparing?'工厂收到了首款。助理先把出运要付的钱单独记下来，没算在可挪用的余额里。':(a.transfer&&!a.rebooked?'「晚到那几天，我们把人手挪去做别的了。现在货验完了，我把回执补发给你。」':a.rebooked?'「提前到了，预留的卸货时间用上了。我把验收单发你，财务按新日期排尾款。」':story?.accepted);
  const figure=a.legacyProjectId==='filling-line'&&transit?'<img class="pv-art" alt="" src="assets/deal-original-filling-line-crated.webp">':picture(a.legacyProjectId);
  const next=preparing?'第 '+a.shipDay+' 天装船。届时付工厂余款和运费，共 '+money(a.supplierBalance+a.freight)+'。此时不收买方验收款。':transit?'第 '+a.deliveryDay+' 天验收。先付 '+money(a.acceptanceFee+(a.transfer?a.stationFee:0))+' 交付费用，验收再收 '+money(a.progressDue)+'。':settled?'合同款已收齐。':'第 '+a.paymentDay+' 天收尾款 '+money(a.tailDue)+'。';
- return '<section class="market-active ws-equipment-state eq-order" aria-label="设备合同履行"><small>大型设备合同，'+(preparing?'已订货':statusName[status])+'</small><h3>'+e(a.productName)+'，'+a.physicalQuantity+e(a.physicalUnit)+'</h3><p>'+e(a.buyer)+'，'+route+'，第 '+s.day+' 天</p><dl class="market-facts">'+fact('主账可用现金',money(s.cash))+fact('已收买方款',money(a.received))+fact('已付各项支出',money(a.spent+(settled?0:(s.day-(preparing?a.signedDay:transit?a.shipDay:a.deliveryDay))*30)))+fact('尚未收到',money(a.balanceDue))+'</dl><p role="status">'+e(next)+'</p>'+legacyOrderDetails(a,figure,settled)+(status==='legacy-receivable'?buyerSpeech(moment,'买方验收留言'):storyLine(moment))+equipmentComicView(a,status)+(preparing&&s.day===a.shipDay&&!move?tradeAdviserHint(ui.adviserId,'买方的下一笔钱要等验收才到，先把出运这笔凑齐。'):'')+
+ return '<section class="market-active ws-equipment-state eq-order" aria-label="设备合同履行"><small>大型设备合同，'+(preparing?'已订货':statusName[status])+'</small><h3>'+e(a.productName)+'，'+a.physicalQuantity+e(a.physicalUnit)+'</h3><p>'+e(a.buyer)+'，'+route+'，第 '+s.day+' 天</p><dl class="market-facts">'+fact('主账可用现金',money(s.cash))+fact('已收买方款',money(a.received))+fact('已付各项支出',money(a.spent+(settled?0:(s.day-(preparing?a.signedDay:transit?a.shipDay:a.deliveryDay))*30)))+fact('尚未收到',money(a.balanceDue))+'</dl><p role="status">'+e(next)+'</p>'+legacyOrderDetails(a,figure,settled)+(status==='legacy-receivable'?buyerSpeech(moment,'买方验收留言'):storyLine(moment))+equipmentComicView(a,status)+(preparing&&s.day===a.shipDay&&!move?tradeAdviserHint(ui.adviserId,'工厂尾款和运费得先付。客户那笔验收款还不能算进手头的钱。'):'')+
  (settled?'<button type="button" class="primary" data-market-action="CLOSE_MARKET">回工作室</button>':move?'<button type="button" class="primary" data-legacy-next>'+e(labels[status])+'</button>':s.day===(preparing?a.shipDay:transit?a.deliveryDay:a.paymentDay)?'<p>手头现金不足，无法继续这一步。</p>':'')+
  '</section>';
 

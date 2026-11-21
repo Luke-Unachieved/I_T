@@ -46,5 +46,5 @@ export function carafeTransportView(s,adviserId){
   route('走原车','DELIVER_MARKET',0,a.deliveryDay,a.paymentDay,a.netProfit,true,'按原计划交货')+
   route('确认包车','CHARTER_CARAFE_V1',q.fee,q.delivery,q.payment,a.netProfit-q.fee+q.saved,q.affordable,q.affordable?'先付车费，再安排交货':'手头现金不够包车并等到回款')+
   '</div><p class="ws-route-note">包车少付 '+money(q.saved)+' 日常开支，净多花 '+money(q.fee-q.saved)+'。</p>'+
-  tradeAdviserHint(adviserId,q.affordable?'包车净多花 ¥36，能早两天收款。下一单要是正缺这笔钱，才值得换。':'包车费要现在付，但买家的款没那么快到。先保住手里的周转金。')+'</section>';
+  tradeAdviserHint(adviserId,q.affordable?'包车净多花 ¥36，能早两天收款。下一单要是正缺这笔钱，才值得换。':'包车费现在就得付，货款还要等。要是手头紧，按原班车走更稳。')+'</section>';
 }

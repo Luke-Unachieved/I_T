@@ -5,61 +5,61 @@ const scenes = {
     asset: 'deal-client-comic-mira-trial-paid.webp',
     alt: '米拉在一间门店点亮黄铜台灯，随后把单据收进夹子',
     caption: '米拉先把台灯摆进一家店的橱窗，再把单据收好。',
-    speaker: '米拉', line: '先留在这一家。等店员听听客人怎么问，我们再聊下一批。'
+    speaker: '米拉', line: '这笔我已经付清了。我先在这家摆上，卖得怎么样，回头跟你说。'
   },
   trialInspection: {
     asset: 'deal-client-comic-mira-rollout-inspection.webp',
     alt: '米拉打开纸箱，把一盏新到的黄铜台灯摆到店里的样灯旁',
     caption: '米拉把一盏新灯和店里的样灯并排点亮。',
-    speaker: '米拉', line: '橱窗先试一盏。我想看看隔着玻璃，还是不是这个暖色。'
+    speaker: '米拉', line: '我先拿一盏跟样灯比比。光色一样，我就摆进橱窗试试。'
   },
   rolloutInspection: {
     asset: 'deal-client-comic-mira-rollout-inspection.webp',
     alt: '米拉拆箱，把新到的黄铜台灯和店里的同款样灯并排点亮',
     caption: '米拉把新到的灯和样灯并排点亮，核对两盏灯的颜色。',
-    speaker: '米拉', line: '先把两盏并排开着。灯要分到三家店，不能一盏偏黄，一盏偏白。'
+    speaker: '米拉', line: '我把新灯和样灯一起点亮看看。分到三家店的灯，光色得一样。'
   },
   rolloutPaid: {
     asset: 'deal-client-comic-mira-rollout-paid.webp',
     alt: '米拉把三家门店的文件夹排在桌上，把单据收进其中一本',
     caption: '米拉把这批铺货的单据归到三家店的文件夹里。',
-    speaker: '米拉', line: '往后哪家店想再添灯，我就翻那一本，不必从头把整批都查一遍。'
+    speaker: '米拉', line: '这笔货款我已经付清。三家店的单据我分开收着，哪家想补就翻哪一份。'
   },
   inesSeasonPaid: {
     asset: 'deal-client-comic-ines-season-paid.webp',
     alt: '伊内斯把同款包边桌布放上架，然后在桌布旁归档一张单据',
     caption: '伊内斯收好这批桌布，把单据另放一份。',
-    speaker: '伊内斯', line: '陈列这批的单子我单独收着。下次换季，就不用重新找规格了。'
+    speaker: '伊内斯', line: '换季那批的尾款我付了。我把单子留着，下次还要这款就照它报。'
   },
   inesRestockPaid: {
     asset: 'deal-client-comic-ines-season-paid.webp',
     alt: '伊内斯把同款包边桌布放上架，然后在桌布旁归档一张单据',
     caption: '伊内斯把这批补货放上架，收好单据。',
-    speaker: '伊内斯', line: '这批就按店里补货记。哪边要换桌布，照这份规格找就行。'
+    speaker: '伊内斯', line: '这批补货的尾款我付了。我把规格存好，店里再缺就按这份补。'
   },
   inesSmallPaid: {
     asset: 'deal-client-comic-ines-small-paid.webp',
     alt: '伊内斯铺平米白桌布，把两张交货单分别放进文件夹',
     caption: '伊内斯把两家店的交货单分开归档。',
-    speaker: '伊内斯', line: '两家店的单子我分开收着。哪边要补，我好查是哪一批。'
+    speaker: '伊内斯', line: '试卖这单我已经付清。两家店的单据我分开收，下回补货好找。'
   },
   inesSmall: {
     asset: 'deal-client-comic-ines-opening-inspection.webp',
     alt: '伊内斯从纸箱里抽出棉麻桌布，摊开检查布边',
     caption: '伊内斯抽出一条桌布，摊开量布边。',
-    speaker: '伊内斯', line: '先看这条。两家店的桌子一样大，垂下来得差不多才行。'
+    speaker: '伊内斯', line: '我先量一条，再比比包边。给两家店的都按同一个样来。'
   },
   inesSeason: {
     asset: 'deal-client-comic-ines-opening-inspection.webp',
     alt: '伊内斯从纸箱里抽出棉麻桌布，摊开检查布边',
     caption: '伊内斯把新到的桌布铺开，沿包边量尺寸。',
-    speaker: '伊内斯', line: '这批赶上换陈列了。先看看铺开是什么样，别只看叠起来的颜色。'
+    speaker: '伊内斯', line: '这批赶上换季陈列了。我先铺一条量量，尺寸对了就能摆出去。'
   },
   inesRestock: {
     asset: 'deal-client-comic-ines-opening-inspection.webp',
     alt: '伊内斯从纸箱里抽出棉麻桌布，摊开检查布边',
     caption: '伊内斯拿出一条补货桌布，展开核对尺寸和布边。',
-    speaker: '伊内斯', line: '这批按平时补货收。先量这一条，别跟店里原来那叠差出一截。'
+    speaker: '伊内斯', line: '这批留作平时补货。我先量一条，得跟店里原来的尺寸对得上。'
   }
 };
 const day = n => Number.isSafeInteger(n) && n >= 1;

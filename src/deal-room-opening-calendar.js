@@ -22,7 +22,7 @@ export function applyOpeningCalendar(s,a){
  const n=structuredClone(s),c=n.contracts.at(-1);
  if(due.delivery&&!due.sameDay){
   c.status='receivable';
-  n.feedback={kind:'opening-delivered',message:'货已交付，按合同等尾款。'};
+  n.feedback={kind:'opening-delivered',message:'已交货，按约定日期收'+(c.deposit>0?'尾款':'货款')+'。'};
  }else{
   c.status='paid';n.phase='paid';n.cash+=c.balanceDue;
   n.feedback={kind:'paid',message:`${c.clientName.split(' · ')[0]} 的货款已收齐，这单净赚 ${c.netProfit}。`};

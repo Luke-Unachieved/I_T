@@ -45,7 +45,7 @@ const driedPosy='<img class="garden-posy" src="assets/deal-life-prop-dried-daisi
 
 export function lifeRoomArt(state,ui={}){return (ui.preview==='balcony'&&lifeCatalogue(state).some(i=>i.id==='balcony')||[ui.using,ui.arrival].includes('balcony')&&state.personalLife?.purchases?.some(i=>i.itemId==='balcony'))?balconyArt(state,ui):paintedLifeRoomArt(state,ui).replace('/><', '/>'+exteriorWeatherSvg(ui.weather,...homeWeatherGlass.furniture).replace('<svg class=','<svg width="680" height="383" class=')+'<');}
 const COLLECTION_PAGES=[
- {title:'一 · 迟到的早晨',text:'巷口的早餐铺换了蓝色门帘。老板把最后一张煎饼翻过面，问她今天怎么不赶路。她想了想，说，今天想趁热吃完。门外一辆自行车慢慢过去，车筐里的葱叶晃了两下。'},
+ {title:'一 · 迟到的早晨',text:'巷口的早餐铺换了蓝色门帘。老板刚把煎饼翻过面，抬头问：“今天不赶车啊？”她笑了笑：“嗯，搁这儿吃。您不用包。”门外一辆自行车慢慢过去，车筐里的葱叶晃了两下。'},
  {title:'二 · 旧物店的空盒',text:'她在旧物店找到一只铁盒，盒盖印着已经停航的轮船。店主说里面原本装什么，谁也不知道。她没有急着放东西进去，只把它带回窗边。空着的地方，也可以留给以后。'},
  {title:'三 · 绕远一点',text:'桥在修，回家得绕过花市。她起初有些不情愿，直到看见一盆刚开的白花。卖花人正收摊，让她带走一枝折下来的。那晚桌上没有花瓶，一只喝完水的玻璃杯也很好。'},
  {title:'四 · 灯还亮着',text:'楼下书店关门前，她把借来的伞还了回去。店员正在给书包牛皮纸，两人聊起昨夜的雨。走出店门时她回头看了一眼，灯还亮着。明天不一定再下雨，但她已经知道，可以在哪儿停一停。'}

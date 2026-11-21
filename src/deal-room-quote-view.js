@@ -15,22 +15,32 @@ function shelfProofView(o){
 export function quoteOptionExplanation(state, offer) {
   // Do not reveal an as-yet unmet next buyer's opening window to the player.
   if (!state.businessRound && !state.clientProjectActive && state.clientIndex === 0) {
-    if (offer.id === 'trial') return 'Mira：先做 60 盏试卖，交货时我付清货款。';
-    if (offer.id === 'rollout') return 'Mira：120 盏可以铺进三家店；交货后请给我 4 天账期。';
+    if (offer.id === 'trial') return '米拉：先给我这家 60 盏，货到我就付清。';
+    if (offer.id === 'rollout') return '米拉：三家一起订 120 盏，不付定金，我收货后第四天一次付清。';
   }
   return (offer.exchange || '').replace('本次总净赚较少','这单预计赚得较少');
 }
 const OPENING_DIALOGUE={
-  mira:'我把样灯照片发了过去，另外两家店也来问。先供我这家试卖也行。三家一起铺的话，到货后得给我四天结账。',
-  samir:'开业那天柜台不能空着。第 7 天前能送来吗？印字要是来不及，先说说现货。',
-  ines:'我先给两家店进一批。要是把一季的货都定下来，我能先打定金，尾款得缓几天。'
+  mira:'另外两家店看了我发的样灯照片，也想订。先供我这家，60 盏，货到我就付清。三家一起订 120 盏，不付定金，我收货后第四天一次付清。',
+  samir:'开业前我得把杯子摆上柜台。带店里纸套的能赶上，我就订 120 只；不做纸套的话，先给我 80 只也行。',
+  ines:'两家店先试卖的话，一共 50 条，货到我就付。要是赶得上换季陈列，我可以订 150 条，先付三成，收货后第六天再付剩下的。'
 };
+function samirReadyInTime(state){
+  return previewOffer(state,'ready').deliveryDay<=7;
+}
+function openingBuyerVoice(client,state){
+  if(client.id==='samir'&&state){
+    if(!samirReadyInTime(state))return '这批赶不上开业，就按平时补货谈。无印字的和带纸套的，你都给我报个价吧。';
+    if(previewOffer(state,'branded-opening').accepted!==true)return '开业先给我 80 只无印字的，货到我就付。要做店里的纸套，就按平时补货谈。';
+  }
+  if(client.id==='ines'&&state&&previewOffer(state,'season').deliveryDay>11)
+    return '这批赶不上换季陈列，就按平时备货谈。两家店先试卖，一共 50 条，货到我就付。要是订 150 条，我先付三成，收货后第六天再付剩下的。';
+  return OPENING_DIALOGUE[client.id];
+}
 export function openingBuyerLineView(client,quoteState){
   if(!client||!Object.hasOwn(OPENING_DIALOGUE,client.id))return inquirySpeech(client?.brief);
   if(quoteState&&(quoteState.phase!=='negotiating'||quoteState.businessRound||quoteState.clientProjectActive))return inquirySpeech(client.brief);
-  const late=client.id==='samir'&&quoteState&&previewOffer(quoteState,'ready').deliveryDay>7;
-  const line=late?'开业那一批已经赶不上了，按常规补货谈吧。无印字现货和定制包装，分别要等多久？':OPENING_DIALOGUE[client.id];
-  return inquiryOpening(line,{kind:'opening',customerId:client.id,product:client.product});
+  return inquiryOpening(openingBuyerVoice(client,quoteState),{kind:'opening',customerId:client.id,product:client.product});
 }
 function openingPayment(quote){
   if(quote.paymentDay===quote.deliveryDay)return '交货当天付清';
@@ -57,9 +67,20 @@ export function openingQuoteChoicesView(state,client,options,selected){
 function openingContractActions(offer, action){
   return inquiryActions({backHook:'data-workspace-open="inbox"',backLabel:'先不接',signHook:offer.accepted!==false?'data-action':'',signValue:action,canSign:offer.accepted!==false&&offer.valid});
 }
-function openingCommitment(offer,{action,quantityLabel,counterMessage}){
+function openingCounterVoice(state,offer,message){
+  if(!message||message==='条件尚未谈妥，这一步不花钱。')return '';
+  if(offer.accepted===false&&offer.id==='promise'){
+    return samirReadyInTime(state)
+      ?'纸套等不及了。开业我可以先收无印字的；想做纸套，那批就按平时补货谈。'
+      :'两种杯子都赶不上开业。做不做纸套都行，按平时补货给我重新报。';
+  }
+  if(offer.accepted===false&&offer.id==='all-now')
+    return '150 条我可以订，但不能先付全款。我先付三成，收货后第六天再付剩下的。要是不能留账期，就先做 50 条，货到我就付。';
+  return message;
+}
+function openingCommitment(state,offer,{action,quantityLabel,counterMessage}){
   const accepted=offer.accepted!==false,advance=Math.max(0,offer.cost-(offer.deposit||0));
-  const note=counterMessage&&counterMessage!=='条件尚未谈妥，这一步不花钱。'?counterMessage:'';
+  const note=openingCounterVoice(state,offer,counterMessage);
   const facts=[['订购量',quantityLabel||offer.quantity+' 件'],['总货款',money(offer.revenue)],
    ['备货及交付成本',money(offer.cost)],['定金',offer.deposit>0?money(offer.deposit):''],
    ['你先垫付',offer.deposit>0?money(advance):''],['回款前日常开支',money(offer.operatingCost)],
@@ -74,7 +95,7 @@ function openingCommitment(offer,{action,quantityLabel,counterMessage}){
 }
 export function quoteCommitmentView(state, offer, {roundActive=false,counterMessage='',action='PROPOSE',quantityLabel=null,client=null,opening=false,openingDesk=false}={}) {
   if (!offer) return '';
-  if(openingDesk)return openingCommitment(offer,{action,quantityLabel,counterMessage});
+  if(openingDesk)return openingCommitment(state,offer,{action,quantityLabel,counterMessage});
   const signed = offer.accepted !== false;
   const nextStep = roundActive&&action==='PROPOSE' ? (signed&&offer.valid?roundQuoteNote(state,offer,client?.id):'') : offer.opportunityNote;
   const validLot = Number.isSafeInteger(offer.quantity) && offer.quantity > 0;
@@ -117,7 +138,7 @@ export function quoteCommitmentView(state, offer, {roundActive=false,counterMess
 export function quoteBuyerBrief(state, client, selected='') {
   if(state.businessRound&&!state.clientProjectActive&&client?.id==='samir'&&['cup-front-proof','cup-back-proof'].includes(selected))return '这批杯要上收银货架。标签不能跨包装折线；可以让出正面图案的位置，也可以另付一道背贴工序。普通补货还是原来的条件。';
   if(['developed-lamp','second-developed-lamp'].includes(selected)) return (selected==='second-developed-lamp'?state.secondSupplier:state.productDevelopment)?.factory==='studio'?'展台白天要亮、晚上要柔和。我想先订一批调光灯试试。':'这批门店统一用暖光灯，我想按整批采购来谈。';
-  if (!state.businessRound && !state.clientProjectActive && state.clientIndex === 0 && client?.id === 'mira') return '我想先让一家店试卖。三家店一起铺货也可以，不过要等交货后四天再付清。';
+  if (!state.businessRound && !state.clientProjectActive && state.phase==='negotiating' && client && Object.hasOwn(OPENING_DIALOGUE,client.id)) return openingBuyerVoice(client,state);
   return client?.brief || '';
 }
 

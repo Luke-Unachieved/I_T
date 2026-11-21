@@ -18,8 +18,8 @@ function picture(frame,lazy=false){
 }
 export function lukaRepeatInquiryView(letter){
  const frame=letter.vip?art.vipInquiry:art.reorderInquiry;
- const line=letter.vip?`接下来两场展要用盘。照常补 ${letter.base} 只也行，要是把下一场的备用量一起补上，就报 ${letter.vip} 只。两种都用原来的规格。`:
-  `备餐间还用得上这款托盘。麻烦再补 ${letter.base} 只，规格跟上批一样。`;
+ const line=letter.vip?`这两场展挨得近。照常补 ${letter.base} 只也行，要是把后一场的备用盘也备上，就订 ${letter.vip} 只。能不能把两档都报一下？都是上次那款。`:
+  `上次那款托盘还有吗？备餐间想再补 ${letter.base} 只，尺寸得一样，新旧要能叠在一起。`;
  const speech=inquirySpeech(line);
  return frame?'<figure class="inquiry-comic">'+picture(frame)+'<figcaption>'+speech+'</figcaption></figure>':speech;
 }
@@ -28,7 +28,7 @@ export function lukaRepeatAcceptedLine(letter,option){
 }
 export function lukaRepeatOrderSpeech(scene){
  if(scene.stage==='waiting')return '到货先找我。我拿一只旧盘跟新盘比一下，看能不能叠在一起。';
- if(scene.stage==='receivable')return '新旧托盘叠得上，都点清了。尾款按合同的日期付。';
+ if(scene.stage==='receivable')return '数量没问题，新盘也能跟旧盘叠在一块儿。尾款到约好的日子我安排。';
  return '';
 }
 const orderFigure=(frame,caption,kind,lazy=false)=>'<figure class="ws-order-comic ws-order-comic-'+kind+'">'+picture(frame,lazy)+'<figcaption>'+caption+'</figcaption></figure>';
@@ -41,6 +41,6 @@ export function lukaRepeatInspectionView(scene){
 export function lukaRepeatPaidView(scene){
  if(scene?.stage!=='paid')return '';
  const vip=scene.option==='vip-volume',frame=vip?art.vipPaid:art.reorderPaid;
- const dialogue=vip?'多订的托盘单独放了一摞。下一场一开门就能推过去。':'签收联和回执我放一块，下回查起来方便。';
+ const dialogue=vip?'加订的那摞我单放了。下场布展时，直接连车推过去就行。':'签收联和回执我放一块，下回查起来方便。';
  return frame?orderFigure(frame,'「'+dialogue+'」','paid'):'';
 }

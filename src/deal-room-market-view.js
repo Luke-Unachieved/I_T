@@ -11,7 +11,7 @@ import {legacyEquipmentInvite,legacyEquipmentView,bindLegacyEquipment} from './d
 import {previewWarehouseIssue,warehouseSummary} from './deal-room-warehouse.js';
 import {prospectInboxView,bindProspectInbox,prospectAdviserQuote,prospectReceiptContact} from './deal-room-prospect-view.js';
 import {equipmentInvite,equipmentView,bindEquipment,equipmentReceiptCosts} from './deal-room-equipment-view.js';
-import {neighborhoodInvite,neighborhoodQuote,neighborhoodContact} from './deal-room-neighborhood-view.js';
+import {neighborhoodInvite,neighborhoodQuote,neighborhoodContact,neighborhoodOrderLine} from './deal-room-neighborhood-view.js';
 import {neighborhoodRequest} from './deal-room-neighborhood.js';
 import {marketPlate} from './deal-room-market-art.js';
 import {MARKET_PRODUCTS} from './deal-room-market-data.js';
@@ -89,7 +89,7 @@ function activeView(state,ui={}){
  const inspection=repeat?lukaRepeatInspectionView(repeat):lukaTrayInspectionView(lukaMoment);
  const evaMoment=evaTrayStoryMoment(state),evaRepeat=evaRepeatOrder(state);
  const evaInspection=evaRepeat?evaRepeatInspectionView(evaRepeat):evaTrayInspectionView(evaMoment);
- const contact=a.kind==='neighborhood'?neighborhoodContact(status==='transit'?`定金付好了。请按每店 ${a.perStore} ${a.unit}配齐装箱，门店照清单点货。`:status==='receivable'?`${a.stores} 家店都点过数了。这批货我签收，余款在第 ${a.paymentDay} 天付。`:`财务已经付清。谢谢你把 ${a.stores} 家店的货配齐。`):a.kind==='prospect'?prospectReceiptContact(state,{lukaMoment,repeat,evaMoment,evaRepeat}):'';
+ const contact=a.kind==='neighborhood'?neighborhoodContact(neighborhoodOrderLine(a,status)):a.kind==='prospect'?prospectReceiptContact(state,{lukaMoment,repeat,evaMoment,evaRepeat}):'';
  const due=marketCalendarDue(state);
  const calendarAction=due?(state.day<due.day
   ?'<p>第 '+due.day+' 天'+(due.delivery?'交货':'收尾款')+'。</p>'
@@ -105,19 +105,36 @@ function activeView(state,ui={}){
   (paidStory?contact:'')+'<section class="ws-order-next" aria-label="下一步">'+(lukaMoment==='inspection'||repeat?.stage==='inspection'?inspection:evaInspection)+action+'</section>'+(!paidStory?contact:'')+replay,
   details,a.kind==='neighborhood'?'门店联采':a.kind==='prospect'?'客户订单':modeName(a.mode));
 }
+const catalogBuyerCopy=Object.freeze({
+ '岚岸餐饮采购社':[(price,day)=>`单价 ${price} 可以。第 ${day} 天前送到就行，我按这批数量让门店留地方。`,'这个价我没法替门店定。数量先别动，你再报一个单价。'],
+ '栎街咖啡供应社':[(price,day)=>`就按 ${price}。吧台得照常开，第 ${day} 天前到货，数量不改。`,'吧台这批先按原数。这个单价我接不了，你看还能不能往下调。'],
+ '白榆旅宿布品部':[(price,day)=>`${price} 可以。我跟客房领班说一声，第 ${day} 天前收这批，件数照原单。`,'这批布品先不改件数。单价超了，再给我一份报价吧。'],
+ '折线办公选品社':[(price,day)=>`${price}，可以。请按原数备，第 ${day} 天前到，我把日期记给收货同事。`,'我还不能把这个单价填进采购单。数量照旧，麻烦重报。'],
+ '北岸旅行用品社':[(price,day)=>`单价按 ${price}。这批数量不动，最晚第 ${day} 天送到，我好跟领用的人交代。`,'出行用的这批还是原数。单价得再谈，先不要临时加货。'],
+ '庭序生活馆':[(price,day)=>`${price} 可以。按原数送，第 ${day} 天前到就行，我给陈列台留位置。`,'这个单价不合适。陈列先照原来的安排，你再报一次吧。'],
+ '木桥五金商行':[(price,day)=>`按 ${price}。第 ${day} 天前到，数量不改，收货时我们照清单点。`,'这个价我不接。货号、数量都不用换，重新报单价就行。'],
+ '榆巷宠物用品店':[(price,day)=>`行，${price}。第 ${day} 天前到店，数量照旧，到了我再安排上架。`,'这款想留，数量也不动。单价再往下看看，合适了咱们再签。']
+});
+function catalogQuoteReply({q,priceRejected,quotePrice,unit,buyer,stores}){
+ if(!Number.isSafeInteger(q.quantity))return '这份报价还不能发出。先检查下面的货源或数量提示。';
+ if(q.quantity<q.minQuantity||q.deliveryDay>q.deadlineDay)return '这份方案还不能签。请先按下面的提示调整货源。';
+ const price=money(quotePrice)+'/'+unit;
+ if(stores)return buyer+'：'+(priceRejected?'这个单价我不能拿去给各店确认。先保留每店数量，再报一次。':`按 ${price}。第 ${q.deadlineDay} 天前送到，每店数量不变，请照清单分货。`);
+ const voice=Object.hasOwn(catalogBuyerCopy,buyer)?catalogBuyerCopy[buyer]:null;
+ return buyer+'：'+(priceRejected?(voice?.[1]??'这个单价我这边接不了。你可以降一点再报。'):
+ (voice?.[0](price,q.deadlineDay)??`${price} 可以。请在第 ${q.deadlineDay} 天前送到，采购数量不变。`));
+}
 function quoteView(state,ui,d){
  const p=MARKET_PRODUCTS.find(p=>p.id===d.productId),q=previewMarket(state,d),supplier=sourceSpec(p,d.source);
  const request=d.mode==='neighborhood'?neighborhoodRequest(paidReceipts(state)):null;
  const o=request?request.offers[p.id]:p.offers[d.mode];
  const quoted=ui.quoted===JSON.stringify(d),priceRejected=quotePriceRejected(q);
  const showSettlement=!quoted||q.accepted;
- const reason=quoted?(priceRejected?'':q.reason):quoteDraftWarning(q,state.cash);
+ const warning=quoteDraftWarning(q,state.cash);
+ const reason=quoted?(warning||(priceRejected?'':q.reason)):warning;
  const buyer=request?'林妍':p.buyer;
  const label=request?'四邻百货联采':p.buyer;
- const response=!quoted?'':`<div class="market-response" role="status" tabindex="-1" data-market-quote-reply><p>${esc(buyer)}：${
- priceRejected?'这个单价我这边接不了。你可以降一点再报。':
- !q.accepted?'先找能按数量和日期交付的货源，这份方案还不能签。':
- `${money(d.unitPrice)}/${esc(p.unit)} 可以。请在第 ${q.deadlineDay} 天前送到，采购数量不变。`}</p></div>`;
+ const response=!quoted?'':`<div class="market-response" role="status" tabindex="-1" data-market-quote-reply><p>${esc(catalogQuoteReply({q,priceRejected,quotePrice:d.unitPrice,unit:p.unit,buyer,stores:request?.stores}))}</p></div>`;
  const sources=['stock','factory',...(d.source==='warehouse'||previewWarehouseIssue(state,p.id,o.quantity).valid?['warehouse']:[])];
  const warehouseStock=sources.includes('warehouse')?warehouseSummary(state).items.find(row=>row.productId===p.id):null;
  const finance=fact('合同货款',money(q.revenue))+fact('至少需要周转金',money(q.cashRequired));
