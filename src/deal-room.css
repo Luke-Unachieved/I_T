@@ -223,3 +223,9 @@
 }
 #deal-room .ws-opening-comic-stage .ws-opening-comic-voice p{margin:0}
 #deal-room .ws-opening-comic-stage .ws-opening-comic-voice footer{margin:.20rem 0 0;padding:0;color:#d8c8ad;font-size:.78rem}
+
+/* Opening inspection, story and repeat strips on the dark order surface. */
+#deal-room > .business:is(.ws-opening-signed,.ws-opening-paid)
+ :is(figure.ws-opening-inspection,.ws-opening-comic-stage > figure.ws-equipment-comic) > figcaption{
+ color:var(--ws-secondary,#c3bcae);
+}

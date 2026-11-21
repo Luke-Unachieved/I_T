@@ -1,3 +1,5 @@
+import {openingContractMilestone} from './deal-room-opening-calendar.js';
+import {repeatContractMilestone} from './deal-room-repeat-calendar.js';
 import {marketCalendarDue} from './deal-room-market-calendar.js';
 import {companyRenameView,companyTitleText} from './deal-room-company.js';
 import {orderFooterAdvice} from './deal-room-adviser.js';
@@ -144,7 +146,7 @@ export function showWarehouseShortcut(root,tab){
 export function showOrdersEnd(root,state,adviserId){
  const advice=orderFooterAdvice(state,adviserId);
  const account=state.phase==='account'&&state.account;
- const due=account?.status==='fulfilling'?account.deliveryDay:account?.status==='receivable'?account.paymentDay:marketCalendarDue(state)?.day;
+ const due=openingContractMilestone(state)?.day??repeatContractMilestone(state)?.day??(account?.status==='fulfilling'?account.deliveryDay:account?.status==='receivable'?account.paymentDay:marketCalendarDue(state)?.day);
  const message=Number.isSafeInteger(due)&&due>state.day?'今天没有到期的订单':'今天的订单已全部完成';
  const done=canEndOrderDay(state)?'<footer class="ws-orders-end"><p>'+message+'</p><button type="button" data-workspace-open="afterwork" data-workspace-ref="orders-end">去下班</button></footer>':'';
  if(!advice&&!done)return;

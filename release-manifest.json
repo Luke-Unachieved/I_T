@@ -56,7 +56,7 @@
       "assets/deal-inquiry-mira.webp": "fdca3f93c59faf9d74d2c25e39a061d3cb319b306ac013de468f8252b3178b6e",
       "assets/deal-inquiry-samir.webp": "5b879da13abd21ba34707074e13682c7215f4cb5bbe1881aa000b31503dee614",
       "src/deal-room-adviser.js": "c165717a2607d4e4b4520ee627898eb654da17a80837bf485bf47e9dda326862",
-      "src/deal-room-app.js": "f6cf42da00d29917ce3900335f44751f7769719f5722c71e39b944af66d19b36",
+      "src/deal-room-app.js": "a38e4cf539d06a33e3362acedb863e3d40d047fe32fbcdac70a2c538fcbc49e6",
       "src/deal-room-engine.js": "21c2846194f4dcafd4ce04668ef48a5d5e53bc1086f64435f113cf1fcc7d1ecc",
       "src/deal-room-equipment-legacy-view.js": "682faa23b08652c70a4d10d23f1dc077df3277f593613bb3ab8b1c38bd8889c7",
       "src/deal-room-equipment-legacy.js": "339e494cf53ed47ebbb588ccd25f58496ab4dc6ab067593c1756e3f77876b0e5",
@@ -94,16 +94,17 @@
       "src/deal-room-workspace-hub.js": "7d66aabd951f825c2d02071ae4dd36aeaf3e7d8d60d2ee1710adaf7801a5b71f",
       "src/deal-room-workspace-index.js": "45954e951cdacdade8f1cfdd89d0b08fcb4bce9016249c477d147002c1121082",
       "src/deal-room-workspace-intro.js": "7e3dd82ebb1c99508359cbd109362632e7a62058bb5491a106521fd64e49a53b",
-      "src/deal-room-workspace-nav.js": "ff8de5f3b6a7aef1db7b23e05bf2b85d47928258821068d13654dc43d2f6a6f4",
+      "src/deal-room-workspace-nav.js": "825afaeb8c726ef6d466a62101b71d33b3fe75d45c472e86cde1264697c0a5ef",
       "src/deal-room-workspace-product-comics.js": "6560d1b4d3bbf9d1deb9d3f21b476156826ab2def622e8e42fd1a4ed0e3cb6ab",
       "src/deal-room-workspace-sleep.js": "12bb7e409652c7b512c815dfc645a0d56a690fc945a8b54f1c35035fd64041b1",
       "src/deal-room-workspace-theme.css": "ce64ebc6ab70307fb6b2964a8a975694f65613f5a2882d9e18ec6183382e6987",
-      "src/deal-room.css": "cfbcae1346a3686a4546e818bc91c73324d553c5f88571425f1b01fab4446ef4"
+      "src/deal-room.css": "d328e9631fd3f436ecf3a7bb14a3a01ab1779a34df4b1f5872632ac074752608"
     },
-    "revision": "stage25",
-    "parentPagesCommit": "0856360997c86a34a13ed726bf8766df765928a7",
+    "revision": "stage25-hotfix-1",
+    "parentPagesCommit": "603035fd61e5f6a344af629c18691e2f568fd9dd",
     "developmentIcons": "matched-office-emblem",
     "inboxTitle": "single-heading-footer-return",
-    "adviserAdvice": "one-panel"
+    "adviserAdvice": "one-panel",
+    "hotfix": "order-footer-and-comic-caption"
   }
 }
