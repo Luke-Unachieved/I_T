@@ -31,7 +31,7 @@ export function parseDealBackup(text){
  */
 export function loadDealSave(storage,key=DEAL_SAVE_KEY,{copy}={}){
  let raw;
- try{checkKey(key);if(copy!==undefined&&!['before-restore','unreadable-backup'].includes(copy))throw new Error('不支持的进度副本。');raw=storage.getItem(key+(copy?':'+copy:''));}catch(e){return {ok:false,status:'unavailable',error:errorText(e)};}
+ try{checkKey(key);if(copy!==undefined&&!['before-restore','unreadable-backup','before-restart'].includes(copy))throw new Error('不支持的进度副本。');raw=storage.getItem(key+(copy?':'+copy:''));}catch(e){return {ok:false,status:'unavailable',error:errorText(e)};}
  if(raw===null)return {ok:true,status:'empty',raw:null};
  try{const state=normalizeDealRoom(JSON.parse(checkText(raw)));return {ok:true,status:'valid',raw,state,summary:summaryFor(state)};}
  catch(e){return {ok:false,status:'corrupt',raw,error:errorText(e)};}
@@ -82,4 +82,28 @@ export function restoreDealBackup(storage,text,options={}){
   writeVerified(storage,key,checkText(JSON.stringify(parsed.state)));
   return {ok:true,status:'restored',state:parsed.state,summary:parsed.summary};
  }catch(e){return {ok:false,status:'failed',error:errorText(e)};}
+}
+
+/** Explicit new run; first retain a byte-exact copy of the old valid save. */
+export function restartDealProgress(storage,{key=DEAL_SAVE_KEY,confirmed=false,expectedRaw}={}){
+ try{
+  checkKey(key);
+  const previous=loadDealSave(storage,key);
+  if(!previous.ok)return {ok:false,error:'当前存档无法读取。请先保留原始数据，未重新开始。'};
+  if(!confirmed)return {ok:false,needsConfirmation:true,raw:previous.raw,summary:previous.summary,hasPrior:storage.getItem(key+':before-restart')!==null};
+  if(expectedRaw!==previous.raw)return {ok:false,error:'当前进度已变化，请重新确认。'};
+  if(previous.raw!==null)writeVerified(storage,key+':before-restart',previous.raw);
+  if(storage.getItem(key)!==previous.raw)return {ok:false,error:'备份期间进度已变化，未重新开始。'};
+  if(previous.raw!==null)storage.removeItem(key);
+  if(storage.getItem(key)!==null)return {ok:false,error:'未能重新开始。旧进度副本仍保留。'};
+  return {ok:true};
+ }catch{return {ok:false,error:'浏览器未能完成备份或重开。请下载当前存档后再试。'};}
+}
+
+export function dealSaveCopies(storage,key=DEAL_SAVE_KEY,{unreadable=false}={}){
+ try{
+  checkKey(key);
+  return [['restart',':before-restart'],['restore',':before-restore'],['unreadable',':unreadable-backup']].filter(([,suffix])=>storage.getItem(key+suffix)!==null).map(([name])=>name)
+   .concat(unreadable?['raw']:[]);
+ }catch{return [];}
 }

@@ -353,3 +353,14 @@
  #deal-room .ws-office.ws-original-office .ws-original-note>div>div{max-width:none}
  #deal-room .ws-office.ws-original-office .ws-original-note p{font-size:.875rem}
 }
+
+#deal-room .ws-company{margin:.45rem 0 .65rem;color:var(--ws-type,#f3eadc);overflow-wrap:anywhere}
+#deal-room .ws-company>summary{min-height:44px;padding:.55rem .2rem;cursor:pointer}
+#deal-room .ws-company>summary small{margin-inline-start:.55rem;color:var(--ws-secondary,#cabda5)}
+#deal-room .ws-company form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.45rem;padding:.35rem .2rem}
+#deal-room .ws-company form :is(label,p){grid-column:1/-1;margin:0}
+#deal-room .ws-company form p{font-size:.8rem;color:var(--ws-secondary,#cabda5)}
+#deal-room .ws-company form [role="status"]:empty{display:none}
+#deal-room .ws-company :is(input,button){min-width:0;min-height:44px;border:1px solid #675944;border-radius:6px;padding:.35rem .6rem;font:inherit}
+#deal-room .ws-company input{color:#f3eadc;background:#242119;font-size:16px}
+#deal-room .ws-company button{color:#231c12;background:#d8bb82}

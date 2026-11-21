@@ -139,3 +139,7 @@
   #deal-room .deal-save-file-grid { grid-template-columns: minmax(0, 1fr); }
   #deal-room .deal-save-restore { border-left: 0; border-top: 1px solid #4c4235; }
 }
+
+#deal-room .deal-save-restart{border-bottom:1px solid #4c4235}
+#deal-room .deal-save-body #deal-save-restart-confirm{background:#813d35;border-color:#b5695b;color:#fff1e3;font-weight:650}
+#deal-room .deal-save-body #deal-save-restart-confirm:hover{background:#984d43}

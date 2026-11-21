@@ -1,3 +1,4 @@
+import {companyNameView} from './deal-room-company.js';
 import {orderFooterAdvice} from './deal-room-adviser.js';
 import {previewWorkspaceSleep} from './deal-room-workspace-sleep.js';
 import {officeWeatherView} from './deal-room-workspace-office-weather.js';
@@ -102,7 +103,7 @@ export function workspaceOfficeView(state,model={}){
  const note=advice[0],lead=note?.text||note?.detail||({inbox:'先看最早截止的这单。',orders:'先看这笔订单的交付和回款。',development:'先看看有哪些获客渠道。',afterwork:'今天手上的事办完了。'})[note?.tab]||'';
  const row=x=>'<li><button type="button" data-workspace-open="'+(tabSet.has(x.tab)?x.tab:'inbox')+'"'+(safeRef(x.ref)?' data-workspace-ref="'+esc(x.ref)+'"':'')+'><span><strong>'+esc(x.title)+'</strong>'+(x.detail?'<small>'+esc(x.detail)+'</small>':'')+'</span>'+(x.when?'<em>'+esc(x.when)+'</em>':'')+'<b aria-hidden="true">›</b></button></li>';
  const rows=xs=>'<ul class="ws-agenda-rows">'+xs.map(row).join('')+'</ul>';
- return '<section class="ws-office ws-original-office" aria-labelledby="ws-office-title"><div class="ws-tabletop"><header class="ws-desk'+(improved?' ws-desk-window':'')+'" data-weather="'+weather+'">'+room+officeWeatherView(model.officeId,weather)+'<h2 id="ws-office-title" class="ws-offscreen" tabindex="-1">'+esc(office)+(model.weather?' · '+esc(model.weather):'')+'</h2>'+officeIntroView(model.intro,who)+'</header>'+
+ return '<section class="ws-office ws-original-office" aria-labelledby="ws-office-title"><div class="ws-tabletop"><header class="ws-desk'+(improved?' ws-desk-window':'')+'" data-weather="'+weather+'">'+room+officeWeatherView(model.officeId,weather)+'<h2 id="ws-office-title" class="ws-offscreen" tabindex="-1">'+esc(office)+(model.weather?' · '+esc(model.weather):'')+'</h2>'+officeIntroView(model.intro,who)+'</header>'+companyNameView(model.companyName)+
  '<section class="ws-agenda" aria-label="今日待办"><h3>未完成 <small>'+jobs.length+'</small></h3>'+(jobs.length?rows(jobs.slice(0,2)):'<p>今天没有待办。</p>')+
  (jobs.length>2?'<details><summary>其余 '+(jobs.length-2)+' 件</summary>'+rows(jobs.slice(2))+'</details>':'')+'</section></div>'+
  '<section class="ws-original-note" aria-label="工作建议"><h3>助理建议</h3>'+(note?'<div>'+portrait+'<div><p>'+esc(lead)+'</p>'+itemList([{title:note.title,tab:note.tab,ref:note.ref}])+'</div></div>':'<p>暂无额外建议。</p>')+'</section>'+ledgerView(state,model.ledger)+'</section>';

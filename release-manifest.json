@@ -8,5 +8,18 @@
   "oldSaveKey": "trade-tycoon:data:v2",
   "releaseSha256": "efc0290f522c4be151e681d99dc94ca09158e11d96919b59f1faa1d622929906",
   "sha256": "860f7868b79ce6fa9cedf0179f0ae4234577f93cd73091a44af2cecc69fb350f",
-  "bytes": 1366
+  "bytes": 1366,
+  "uiPatch": {
+    "name": "company-name-and-restart",
+    "basePagesCommit": "f2af431ccde4a4c51ca85ef771b438c91fcd98b8",
+    "files": {
+      "src/deal-room-app.js": "da3cde60b0bd74e88ee85585cfeb5ea213b7741c5ddd6570e9b0d60231d3d8c1",
+      "src/deal-room-company.js": "bb7b7d7f61a6d711e27e8b2ffb543d1430935f2ee076ec9b470f15de34a7d5ad",
+      "src/deal-room-office.css": "d53defabb4979d2dc8aa14a209788a6e3813536cf18a3db3e7acc0c8d579a943",
+      "src/deal-room-save-view.js": "9324ff392786c384e7e83c519c19b557e5bf357791e7d7b1b673ae69e146215b",
+      "src/deal-room-save.css": "cae75eea60a57cfd42e779528e99833dff602dc5bd78b3624d0b25e574452281",
+      "src/deal-room-save.js": "8e79018294e631894ce341ceccc93e95a890f582067a2c5d3f1cbafe3d9e471c",
+      "src/deal-room-workspace-nav.js": "d8835829030ac0aaabcb9c1e1c9ebd9b624139c11df5cbf217d0cd6630963654"
+    }
+  }
 }

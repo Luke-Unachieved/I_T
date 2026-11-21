@@ -1,3 +1,4 @@
+import {readCompanyName,bindCompanyName} from './deal-room-company.js';
 import {workProductComicView} from './deal-room-workspace-product-comics.js';
 import {officeIntroMode} from './deal-room-workspace-intro.js';
 import {localizeBuyerDisplay} from './deal-room-prospect-locale.js';
@@ -36,7 +37,7 @@ import {roundReceivablesActive} from './deal-room-round-receivables.js';
 import {roundCashView,roundProductionView,roundQuoteNote} from './deal-room-round-view.js';
 import {cooperationChapter} from './deal-room-cooperation.js';
 import {previewStudioAllocation} from './deal-room-allocation.js';
-import {loadDealSave,saveDealProgress} from './deal-room-save.js';
+import {dealSaveCopies,loadDealSave,saveDealProgress} from './deal-room-save.js';
 import {dealSaveView,bindDealSaveTools} from './deal-room-save-view.js';
 import {launchBasis} from './deal-room-launch.js';
 import {launchView} from './deal-room-launch-view.js';
@@ -196,7 +197,7 @@ function save(){
  }
 }
 function bindSaveTools(){
- bindDealSaveTools(root,{panel:savePanel,storage:dealStorage,key:SAVE_KEY,getState:()=>state,render,download:downloadDealText,onReload:()=>{clearTimeout(playbackTimer);location.reload();},onRestored:()=>{clearOpeningDraft();clearTimeout(playbackTimer);location.reload();}});
+ bindDealSaveTools(root,{panel:savePanel,storage:dealStorage,key:SAVE_KEY,getState:()=>state,getExpectedRaw:()=>expectedSaveRaw,render,download:downloadDealText,onReload:()=>{clearTimeout(playbackTimer);location.reload();},onRestored:()=>{clearOpeningDraft();clearTimeout(playbackTimer);location.reload();},onRestarted:()=>{clearOpeningDraft();clearTimeout(playbackTimer);for(const key of [INTRO_KEY,SAVE_KEY+':adviser',SAVE_KEY+':focus',SAVE_KEY+':company-name'])try{dealStorage.removeItem(key);}catch{}location.reload();}});
 }
 function downloadDealText(text,name,type){const url=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);try{a.click();}finally{a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}}
 const root=document.querySelector('#deal-room');
@@ -250,6 +251,7 @@ function openWorkspaceCaseGrowth(){
 function openRecap(route){showCareerRecap=route;tradeEvidence='chain';event='';render();root.querySelector('.career-recap h3')?.focus();root.querySelector('.career-recap')?.scrollIntoView({block:'nearest'});}
 let lastRenderedTab=null;
 function render(){
+ savePanel.copies=dealSaveCopies(dealStorage,SAVE_KEY,{unreadable:loadedDeal.status==='corrupt'||saveNotice.startsWith('原始进度无法读取')});
  const currentTab=tabsNow();
  if(lastRenderedTab!==null&&lastRenderedTab!==currentTab)adviserUI.choosing=false;
  lastRenderedTab=currentTab;
@@ -325,10 +327,11 @@ function renderCurrentPage(){
   const h=propertyHoldings(state), office=PROPERTY_CATALOG.find(x=>x.id===h?.active?.office);
   const intro=officeIntroMode(state,loadedDeal.status,officeIntroSeen,adviserUI.choice,adviserPickerOpen(state,adviserUI)),advice=adviserWorkspaceAdvice(state,adviserUI);
   const adviceKey=adviserUI.choice&&advice[0]?.text?adviserUI.choice+':'+advice[0].text:'';
-  root.innerHTML=adviserView(state,{place:'办公室'},adviserUI)+workspaceOfficeView(state,{intro,adviserId:adviserUI.choice,officeName:office?.name,officeId:office?.id,art:propertySceneArt(office?.id),weather:workspaceWeather(state.day),advice})+dealSaveView(savePanel,saveNotice);
+  root.innerHTML=adviserView(state,{place:'办公室'},adviserUI)+workspaceOfficeView(state,{intro,adviserId:adviserUI.choice,companyName:readCompanyName(dealStorage,SAVE_KEY),officeName:office?.name,officeId:office?.id,art:propertySceneArt(office?.id),weather:workspaceWeather(state.day),advice})+dealSaveView(savePanel,saveNotice);
   root.querySelectorAll('[data-workspace-intro]').forEach(b=>b.onclick=()=>officeIntroAction(b.dataset.workspaceIntro));
   if(!intro&&adviceKey&&adviceKey!==lastOfficeSuggestion)root.querySelector('.ws-original-note .ws-note-face')?.classList.add('ws-note-react');
   lastOfficeSuggestion=adviceKey;
+  bindCompanyName(root,dealStorage,SAVE_KEY,render);
   bindSaveTools();return;
  }
  if(personalRoomOpen){
