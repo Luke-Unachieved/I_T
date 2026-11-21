@@ -354,9 +354,12 @@
  #deal-room .ws-office.ws-original-office .ws-original-note p{font-size:.875rem}
 }
 
-#deal-room .ws-company{margin:.45rem 0 .65rem;color:var(--ws-type,#f3eadc);overflow-wrap:anywhere}
-#deal-room .ws-company>summary{min-height:44px;padding:.55rem .2rem;cursor:pointer}
-#deal-room .ws-company>summary small{margin-inline-start:.55rem;color:var(--ws-secondary,#cabda5)}
+#deal-room .ws-company{min-width:0;color:var(--ws-type,#f3eadc);overflow-wrap:anywhere}
+#deal-room > .ws-company{grid-column:1/-1;align-self:start;width:100%;max-width:810px;justify-self:center;box-sizing:border-box;margin:0 0 .65rem}
+#deal-room .ws-company-setup{padding:.35rem .55rem;border:1px solid #5d503e;border-radius:8px;background:#211e19}
+#deal-room .ws-company-heading h2{font-size:clamp(1.18rem,4vw,1.45rem);margin:.15rem 0;line-height:1.35}
+#deal-room .ws-company-edit{grid-column:1/-1;margin:.35rem 0 0;border-top:1px solid var(--ws-rule,#5d503e)}
+#deal-room .ws-company-edit>summary{width:fit-content;min-height:44px;padding:.6rem .2rem;box-sizing:border-box;color:#e7cd9e;cursor:pointer}
 #deal-room .ws-company form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.45rem;padding:.35rem .2rem}
 #deal-room .ws-company form :is(label,p){grid-column:1/-1;margin:0}
 #deal-room .ws-company form p{font-size:.8rem;color:var(--ws-secondary,#cabda5)}

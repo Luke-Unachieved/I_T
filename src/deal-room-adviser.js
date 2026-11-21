@@ -189,8 +189,9 @@ export function adviserPickerOpen(state,ui){
 export function adviserView(state, context, ui) {
   const person = ADVISERS.find(p => p.id === ui.choice);
   const pick = adviserPickerOpen(state,ui);
-  const band = person ? '换搭档' : '选助理';
-  const controls = pick ? `<div class="adviser-options" role="group" aria-label="选择工作室搭档">${ADVISERS.map(p => `<button type="button" data-adviser-choice="${p.id}" aria-pressed="${ui.choice === p.id}"><i class="adviser-face adviser-${p.id}" aria-hidden="true"></i>${p.name}</button>`).join('')}<button type="button" data-adviser-choice="solo">先自己来</button></div>` : '';
+  const band = person ? '换助理' : '选助理';
+  const controls = pick ? `<div class="adviser-options" role="group" aria-label="选择工作室搭档">${ADVISERS.map(p => `<button type="button" data-adviser-choice="${p.id}" aria-pressed="${ui.choice === p.id}"><i class="adviser-face adviser-${p.id}" aria-hidden="true"></i>${p.name}</button>`).join('')}</div>
+    <div class="adviser-defer"><button type="button" data-adviser-choice="solo">稍后再选</button></div>` : '';
   if (!person) return `<aside class="adviser-panel" aria-label="工作室搭档"><button class="quiet" type="button" data-adviser-picker aria-expanded="${pick}">${band}</button>${controls}</aside>`;
   const minimal=context.identityOnly||context.place==='订单列表'||(context.orderFocus&&state.phase==='account'&&state.account?.status!=='draft');
   const note = pick||minimal?{}:currentNote(state, context, person)??{};

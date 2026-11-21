@@ -1,4 +1,4 @@
-import {readCompanyName,bindCompanyName} from './deal-room-company.js';
+import {readCompanyName,bindCompanyName,companyNameView} from './deal-room-company.js';
 import {workProductComicView} from './deal-room-workspace-product-comics.js';
 import {officeIntroMode} from './deal-room-workspace-intro.js';
 import {localizeBuyerDisplay} from './deal-room-prospect-locale.js';
@@ -327,7 +327,8 @@ function renderCurrentPage(){
   const h=propertyHoldings(state), office=PROPERTY_CATALOG.find(x=>x.id===h?.active?.office);
   const intro=officeIntroMode(state,loadedDeal.status,officeIntroSeen,adviserUI.choice,adviserPickerOpen(state,adviserUI)),advice=adviserWorkspaceAdvice(state,adviserUI);
   const adviceKey=adviserUI.choice&&advice[0]?.text?adviserUI.choice+':'+advice[0].text:'';
-  root.innerHTML=adviserView(state,{place:'办公室'},adviserUI)+workspaceOfficeView(state,{intro,adviserId:adviserUI.choice,companyName:readCompanyName(dealStorage,SAVE_KEY),officeName:office?.name,officeId:office?.id,art:propertySceneArt(office?.id),weather:workspaceWeather(state.day),advice})+dealSaveView(savePanel,saveNotice);
+  const companyName=readCompanyName(dealStorage,SAVE_KEY);
+  root.innerHTML=companyNameView(companyName)+adviserView(state,{place:'办公室'},adviserUI)+workspaceOfficeView(state,{intro,adviserId:adviserUI.choice,companyName,officeName:office?.name,officeId:office?.id,art:propertySceneArt(office?.id),weather:workspaceWeather(state.day),advice})+dealSaveView(savePanel,saveNotice);
   root.querySelectorAll('[data-workspace-intro]').forEach(b=>b.onclick=()=>officeIntroAction(b.dataset.workspaceIntro));
   if(!intro&&adviceKey&&adviceKey!==lastOfficeSuggestion)root.querySelector('.ws-original-note .ws-note-face')?.classList.add('ws-note-react');
   lastOfficeSuggestion=adviceKey;
