@@ -1,5 +1,7 @@
-import {cupPaperProofArt} from './deal-room-samples.js';
+import {cupPaperProofArt,selectedSample} from './deal-room-samples.js';
+import {previewOffer} from './deal-room-engine.js';
 import {comparePriorUnitPrice} from './deal-room-goods-prices.js';
+import {inquiryOpening,inquirySpeech,inquiryOption,inquiryActions,inquiryDetails,inquiryFacts} from './deal-room-inquiry-layout.js';
 import {roundQuoteNote} from './deal-room-round-view.js';
 // Presentation only. PROPOSE remains the canonical historical signing action.
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -18,13 +20,61 @@ export function quoteOptionExplanation(state, offer) {
   }
   return (offer.exchange || '').replace('本次总净赚较少','这单预计赚得较少');
 }
+const OPENING_DIALOGUE={
+  mira:'我把样灯照片发了过去，另外两家店也来问。先供我这家试卖也行。三家一起铺的话，到货后得给我四天结账。',
+  samir:'开业那天柜台不能空着。第 7 天前能送来吗？印字要是来不及，先说说现货。',
+  ines:'我先给两家店进一批。要是把一季的货都定下来，我能先打定金，尾款得缓几天。'
+};
+export function openingBuyerLineView(client,quoteState){
+  if(!client||!Object.hasOwn(OPENING_DIALOGUE,client.id))return inquirySpeech(client?.brief);
+  if(quoteState&&(quoteState.phase!=='negotiating'||quoteState.businessRound||quoteState.clientProjectActive))return inquirySpeech(client.brief);
+  const late=client.id==='samir'&&quoteState&&previewOffer(quoteState,'ready').deliveryDay>7;
+  const line=late?'开业那一批已经赶不上了，按常规补货谈吧。无印字现货和定制包装，分别要等多久？':OPENING_DIALOGUE[client.id];
+  return inquiryOpening(line,{kind:'opening',customerId:client.id,product:client.product});
+}
+function openingPayment(quote){
+  if(quote.paymentDay===quote.deliveryDay)return '交货当天付清';
+  return quote.deposit?`先付 ${money(quote.deposit)}，第 ${quote.paymentDay} 天收尾款`:`第 ${quote.paymentDay} 天付清`;
+}
+export function openingQuoteChoicesView(state,client,options,selected){
+  const id=client?.id, samir=id==='samir';
+  if(!['mira','samir','ines'].includes(id))return '';
+  const variants=samir
+    ? [{action:'plain',quote:'ready',label:'无印字现货'},{action:'custom',quote:['promise','branded'].includes(selected)?selected:options.some(o=>o.id==='branded-opening')?'branded-opening':'branded',label:'定制包装'}]
+    : options.filter(o=>o.accepted).map(o=>({action:o.id,quote:selected==='all-now'&&o.id==='season'?selected:o.id,label:id==='mira'?(o.id==='trial'?'1 家店试卖':'3 家店铺货'):(o.id==='small'?'两家店试卖':'季度备货')}));
+  const cards=variants.map(v=>{
+    const q=previewOffer(state,v.quote);
+    if(!Number.isSafeInteger(q.quantity))return '';
+    const active=samir?selectedSample(selected)===v.action:selected===v.quote;
+    const unit=samir?'只':id==='mira'?'盏':'条';
+    const m=[['订购量',q.quantity+' '+unit],['交货日期','第 '+q.deliveryDay+' 天'],
+       ['付款',q.accepted===false?(q.id==='all-now'?'拟全款预付':'待确认'):openingPayment(q)],
+       q.accepted===false?['状态','待客户确认']:[q.netProfit<0?'预计亏损':'预计净利',money(Math.abs(q.netProfit))]];
+    return inquiryOption(v.label,m,{hook:samir?'data-sample':'data-select',value:v.action,active});
+  }).join('');
+  return '<fieldset class="inquiry-choices"><legend>这批货怎么谈？</legend>'+cards+'</fieldset>';
+}
 function openingContractActions(offer, action){
-  const agreed=offer.accepted!==false;
-  const ask=agreed?'':`<button type="button" class="quiet opening-ask" data-action="${escape(action)}"${offer.valid?'':' disabled'}>询问客户</button>`;
-  return ask+`<div class="opening-contract-actions"><button type="button" class="quiet" data-workspace-open="inbox">先不接</button><button type="button" class="primary"${agreed?` data-action="${escape(action)}"`:''}${agreed&&offer.valid?'':' disabled'}>签下这单</button></div>`;
+  return inquiryActions({backHook:'data-workspace-open="inbox"',backLabel:'先不接',signHook:offer.accepted!==false?'data-action':'',signValue:action,canSign:offer.accepted!==false&&offer.valid});
+}
+function openingCommitment(offer,{action,quantityLabel,counterMessage}){
+  const accepted=offer.accepted!==false,advance=Math.max(0,offer.cost-(offer.deposit||0));
+  const note=counterMessage&&counterMessage!=='条件尚未谈妥，这一步不花钱。'?counterMessage:'';
+  const facts=[['订购量',quantityLabel||offer.quantity+' 件'],['总货款',money(offer.revenue)],
+   ['备货及交付成本',money(offer.cost)],['定金',offer.deposit>0?money(offer.deposit):''],
+   ['你先垫付',offer.deposit>0?money(advance):''],['回款前日常开支',money(offer.operatingCost)],
+   [offer.cashAfterSigning<0?'资金缺口':'签约后可用资金',money(Math.abs(offer.cashAfterSigning))],
+   ['收齐后的可用资金',money(offer.cashAfterPayment)]];
+  return '<section class="quote-commitment inquiry-settlement" aria-label="报价与签约">'+
+   (!accepted&&!note?'<p class="inquiry-wait">客户确认后才能签约。</p>':'')+
+   (note?inquirySpeech(note,{reply:true}):'')+
+   (!offer.valid&&offer.reason!==note?'<p class="quote-blocked" role="status">'+escape(offer.reason)+'</p>':'')+
+   (!accepted?'<button type="button" class="primary opening-ask" data-action="'+escape(action)+'"'+(offer.valid?'':' disabled')+'>发送报价</button>':'')+
+   (accepted?inquiryDetails('收支明细',inquiryFacts(facts)):'')+openingContractActions(offer,action)+'</section>';
 }
 export function quoteCommitmentView(state, offer, {roundActive=false,counterMessage='',action='PROPOSE',quantityLabel=null,client=null,opening=false,openingDesk=false}={}) {
   if (!offer) return '';
+  if(openingDesk)return openingCommitment(offer,{action,quantityLabel,counterMessage});
   const signed = offer.accepted !== false;
   const nextStep = roundActive&&action==='PROPOSE' ? (signed&&offer.valid?roundQuoteNote(state,offer,client?.id):'') : offer.opportunityNote;
   const validLot = Number.isSafeInteger(offer.quantity) && offer.quantity > 0;
@@ -42,7 +92,7 @@ export function quoteCommitmentView(state, offer, {roundActive=false,counterMess
   const showQuantity=escape(quantityLabel||`${offer.quantity} 件`);
   const offerFacts=opening?`<dl class="opening-quote-facts${signed?' opening-quote-confirmed':''}">
     <div><dt>数量</dt><dd>${showQuantity}</dd></div>
-    ${signed?`<div><dt>交付</dt><dd>第 ${offer.deliveryDay} 天</dd></div><div><dt>付款方式</dt><dd>${offer.paymentDay===offer.deliveryDay?'交货当天付清':`${deposit>0?(offer.id==='season'?'30% 定金，':'先付定金，'):''}第 ${offer.paymentDay} 天${deposit>0?'收齐尾款':'付清'}`}</dd></div>`:
+    ${signed?`<div><dt>交付</dt><dd>第 ${offer.deliveryDay} 天</dd></div><div><dt>付款方式</dt><dd>${escape(openingPayment(offer))}</dd></div>`:
      `<div><dt>交付</dt><dd>${client?.id==='samir'?`预计第 ${offer.deliveryDay} 天，待确认`:'待确认'}</dd></div><div><dt>付款方式</dt><dd>${offer.id==='all-now'?'拟全款预付，待确认':'待确认'}</dd></div>`}
    </dl>`:'';
   if (!signed) return `<section class="quote-commitment" aria-label="待商议的报价">

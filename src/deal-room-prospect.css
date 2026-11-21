@@ -84,3 +84,24 @@
  #deal-room .market-panel .prospect-inbox button.prospect-letter{background:#fffdf6;color:#263c32}
  #deal-room .market-panel .prospect-inbox button.prospect-letter :is(strong,small){color:#314839}
 }
+
+/* Letter dialogue and trade choices, scoped to the actual quote. */
+#deal-room .market-quote.prospect-panel .prospect-opening-line {
+ margin:.6rem 0 .9rem;padding:.6rem .8rem;background:#34302a;color:#f1e8dc;
+ border-radius:3px 12px 12px 12px;line-height:1.55;overflow-wrap:anywhere;
+}
+#deal-room .market-quote.prospect-panel fieldset.prospect-story-choice{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem;
+ min-width:0;border:0;padding:0;margin:.75rem 0 1rem;
+}
+#deal-room .market-quote.prospect-panel .prospect-story-choice legend{padding:0;margin:0 0 .35rem}
+#deal-room .market-quote.prospect-panel .prospect-story-choice button{
+ display:grid;align-content:start;gap:.35rem;min-width:0;min-height:44px;padding:.55rem;
+ text-align:start;white-space:normal;background:#28241e;color:#f1e8dc;border:1px solid #635440;border-radius:8px;
+}
+#deal-room .market-quote.prospect-panel .prospect-story-choice button[aria-pressed="true"]{
+ background:#362b1e;border-color:#c19d66;color:#f6e5c6;
+}
+#deal-room .market-quote.prospect-panel .prospect-choice-facts{display:grid;gap:.2rem}
+#deal-room .market-quote.prospect-panel .prospect-choice-facts small{line-height:1.4;color:#e6d6be}
+#deal-room .market-quote.prospect-panel .prospect-quote-chat:not(:has(>.prospect-avatar)){grid-template-columns:minmax(0,1fr)}

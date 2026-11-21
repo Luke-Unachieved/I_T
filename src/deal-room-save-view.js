@@ -3,7 +3,7 @@ import {saveFileEntry,bindSaveBackupFile} from './deal-room-save-file.js';
 const escapeSave=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function dealSaveView(panel,saveNotice='进度自动保存'){
  const warning=saveNotice&&saveNotice!=='进度自动保存';
- return `<details class="deal-save-tools" ${panel.open?'open':''}><summary>游戏存档${warning?`<span class="deal-save-alert" role="status">${escapeSave(saveNotice)}</span>`:'<small class="deal-save-auto">自动保存</small>'}</summary><div class="deal-save-body">
+ return `<details class="deal-save-tools" ${panel.open?'open':''}><summary>游戏存档${warning?`<span class="deal-save-alert" role="status">${escapeSave(saveNotice)}</span>`:''}</summary><div class="deal-save-body">
  ${warning?'':'<p class="deal-save-head">进度自动保存在本浏览器。</p>'}
  ${panel.conflict?`<section class="deal-save-conflict" aria-label="存档冲突"><p role="alert">本页副本尚未保存，浏览器里已有其他页面更新的进度。</p><button type="button" id="deal-save-reload">重新加载已保存进度</button>${panel.reloadConfirm?'<p>重新加载会放弃本页尚未保存的变化。请先下载本页副本。</p><div class="deal-save-actions"><button type="button" id="deal-save-reload-confirm">放弃本页变化并重新加载</button><button type="button" id="deal-save-reload-cancel">暂不重新加载</button></div>':''}</section>`:''}
  <section class="deal-save-section deal-save-restart" aria-label="重新开始游戏">

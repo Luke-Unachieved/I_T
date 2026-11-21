@@ -94,3 +94,7 @@
 }
 #deal-room .wh-panel > .wh-back:focus-visible{outline:2px solid #e7cb8c;outline-offset:2px}
 #deal-room .wh-panel > .wh-title{margin:.25rem 0 .9rem;line-height:1.3}
+
+#deal-room .ws-original-office .ws-agenda-top{display:flex;align-items:center;justify-content:space-between;gap:.6rem;min-width:0}
+#deal-room .ws-original-office .ws-agenda-top [data-open-warehouse]{width:auto;min-height:44px;flex:0 0 auto;gap:.25rem;padding:4px 1px;color:var(--ws-mark,#d9be88);font-weight:650}
+#deal-room .ws-original-office .ws-agenda-top [data-open-warehouse]:focus-visible{outline:2px solid var(--ws-mark,#d9be88);outline-offset:2px}

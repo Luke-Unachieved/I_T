@@ -1,3 +1,4 @@
+import {marketCalendarDue} from './deal-room-market-calendar.js';
 import {previewWorkspaceSleep} from './deal-room-workspace-sleep.js';
 import {carafeTransport} from './deal-room-market-carafe-transport.js';
 import {prospectDisplayText} from './deal-room-prospect-locale.js';
@@ -145,6 +146,11 @@ function currentNote(state, context, person) {
       return inboxNote(state,true) || suggested('先看买方要什么。报价之前，把货源和交期问清楚。', '#market-search', '去采购台找货');
     }
     if (!active) return {text:'回采购台核对手里的合同。'};
+    const due=marketCalendarDue(state);
+    if(due&&!due.equipment){
+      if(state.day<due.day)return {text:'第 '+due.day+' 天'+(due.delivery?'交货':'收尾款')+'，现在不用处理。'};
+      return suggested(due.delivery?'这笔货可以交付了。':'这笔尾款已到期。',due.delivery?'[data-market-action="DELIVER_MARKET_V2"]':'[data-market-action="COLLECT_MARKET_V2"]',due.delivery?'查看交货安排':'查看应收尾款');
+    }
     if(carafeTransport(state))return suggested('联仓的车已配好。包车会早两天交货和收款，但比照原安排多花 ¥36；两边的日期可以一起比。','.ws-carafe .ws-ship-choice','比较两种运输安排');
     if(active.carafeCharter&&status==='transit')return suggested('包车已订，第 '+active.deliveryDay+' 天交货。先看看新的验收安排。','.ws-carafe [data-market-action="DELIVER_MARKET"]','查看新交货安排');
     if(status==='legacy-preparing')return suggested('客户定金已收。到第 '+active.shipDay+' 天再付工厂尾款和运费。','.market-active','看出运安排');
@@ -233,11 +239,6 @@ export function bindAdviser(root, ui, storage, rerender, saveKey = DEAL_SAVE_KEY
     rerender();
     root.querySelector('[data-adviser-picker]')?.focus?.({preventScroll:true});
   }));
-  const price = root.querySelector('#market-unit-price');
-  const note = root.querySelector('.adviser-panel p');
-  if (price && note) price.addEventListener('input', () => {
-    note.textContent = '单价改了，重新询价后咱们再核对成本和交期。';
-  });
   const jump = root.querySelector('[data-adviser-focus]');
   if (!jump) return;
   const key=jump.dataset.adviserFocus;

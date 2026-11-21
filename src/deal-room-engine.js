@@ -1,3 +1,5 @@
+import {repeatContractMilestone,isRepeatCalendarAction,canonicalRepeatCalendar,applyRepeatCalendar} from './deal-room-repeat-calendar.js';
+import {openingContractMilestone,canonicalOpeningCalendar,applyOpeningCalendar} from './deal-room-opening-calendar.js';
 import {LEGACY_EQUIPMENT_ACTION_KEYS,canonicalLegacyEquipmentAction,applyLegacyEquipmentAction} from './deal-room-equipment-legacy.js';
 import {PROMOTION_ACTION_KEYS,canonicalPromotionAction,applyPromotionAction} from './deal-room-promotion.js';
 import {canonicalWorkspaceSleep,applyWorkspaceSleep} from './deal-room-workspace-sleep.js';
@@ -293,6 +295,8 @@ function collectionSeedDraft(basis){
  return {status:'draft',products:items.map(p=>p.id),price:items.reduce((n,p)=>n+p.price,0),cost:items.reduce((n,p)=>n+p.cost,0),orders:[],...(basis.lampVersion?{lampVersion:basis.lampVersion}:{})};
 }
 function apply(state,action){
+  if(isRepeatCalendarAction(action.type))return applyRepeatCalendar(state,action);
+  if(action.type==='DELIVER_OPENING_ORDER_V1'||action.type==='COLLECT_OPENING_ORDER_V1')return applyOpeningCalendar(state,action);
   if(Object.hasOwn(LEGACY_EQUIPMENT_ACTION_KEYS,action.type))return applyLegacyEquipmentAction(state,action,canStartDeal(state));
   if(Object.hasOwn(PROMOTION_ACTION_KEYS,action.type)){
     if(!canStartDeal(state))return state;
@@ -679,6 +683,8 @@ function apply(state,action){
     s.feedback={kind:'accepted',message:q.deposit?`成交。定金 ${q.deposit} 已到账，尾款 ${q.balanceDue} 在第 ${q.paymentDay} 天收齐。`:`成交。第 ${q.deliveryDay} 天交货，第 ${q.paymentDay} 天收款。`};return s;
   }
   if(action.type==='ADVANCE'&&state.phase==='fulfilling'){
+    const dated=openingContractMilestone(state)||repeatContractMilestone(state);
+    if(dated&&(!dated.delivery||state.day!==dated.contract.signedDay))return state;
     const s=copy(state),c=s.contracts.at(-1);
     s.day=c.paymentDay;s.cash+=c.balanceDue-c.operatingCost;c.status='paid';s.phase='paid';
     s.feedback={kind:'paid',message:`${c.clientName.split(' · ')[0]} 的货款已收齐，这单净赚 ${c.netProfit}。`};return s;
@@ -700,6 +706,8 @@ const actionKeys={SIGN_OWN_COLLECTION_FROM_CASE:['type','referrerId','style'],PR
 function canonicalAction(a){
   if(a&&Object.hasOwn(LEGACY_EQUIPMENT_ACTION_KEYS,a.type))return canonicalLegacyEquipmentAction(a);
   if(a&&Object.hasOwn(PROMOTION_ACTION_KEYS,a.type))return canonicalPromotionAction(a);
+  if(a?.type==='DELIVER_OPENING_ORDER_V1'||a?.type==='COLLECT_OPENING_ORDER_V1')return canonicalOpeningCalendar(a);
+  if(isRepeatCalendarAction(a?.type))return canonicalRepeatCalendar(a);
   if(a?.type==='SLEEP_TO_NEXT_DAY')return canonicalWorkspaceSleep(a);
   if(a&&Object.hasOwn(PROPERTY_ACTION_KEYS,a.type))return canonicalPropertyAction(a);
   if(a&&Object.hasOwn(OUTING_ACTION_KEYS,a.type))return canonicalOutingAction(a);

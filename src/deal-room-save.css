@@ -131,7 +131,6 @@
 #deal-room .deal-save-status { margin: 0; color: #ead4aa; }
 #deal-room .deal-save-status:not(:empty) { border-top: 1px solid #4c4235; }
 #deal-room .deal-save-tools :focus-visible { outline: 2px solid #f5d798; outline-offset: 3px; }
-#deal-room .deal-save-auto{margin-inline-start:.6rem;color:#c3bcae;font-size:.8em;font-weight:400}
 #deal-room .deal-save-files > summary{padding:11px clamp(14px,2.2vw,22px);min-height:44px}
 #deal-room .deal-save-file-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-top:1px solid #4c4235}
 #deal-room .deal-save-copies > summary{min-height:44px;padding:11px 0;color:#d7cbb6}

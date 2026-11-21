@@ -87,3 +87,10 @@
    opening fulfillment timeline needs the dark workspace surface here. */
 #deal-room .business:has(>.fulfil-track){background:#201d18;color:var(--ws-type);border-color:var(--ws-rule)}
 #deal-room .business:has(>.fulfil-track) :is(.client-head small,.payer,.fulfil-track span,.muted){color:var(--ws-secondary)}
+
+/* The intro is one composed office scene, not a portrait over another image. */
+#deal-room .ws-original-office .ws-desk:has(.ws-first-intro){aspect-ratio:auto;min-height:0}
+#deal-room .ws-original-office .ws-desk:has(.ws-first-intro) .ws-desk-scene{position:static;display:block;aspect-ratio:4/3;width:100%;height:auto;object-fit:cover}
+#deal-room .ws-original-office .ws-first-intro{position:static;display:block;background:transparent}
+#deal-room .ws-original-office .ws-intro-dialogue{width:auto;margin:.6rem;padding:.65rem .75rem}
+#deal-room .ws-original-office .ws-intro-dialogue [data-workspace-intro="skip"]{background:transparent;border-color:transparent}

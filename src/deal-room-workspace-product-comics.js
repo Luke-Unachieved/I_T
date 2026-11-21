@@ -94,4 +94,6 @@ function storyMarkup(comic,label='看看交货那天'){
  return '<details class="ws-work-story"><summary>'+label+'</summary><figure><img src="'+comic.art+'" alt="'+comic.alt+'" loading="lazy"><figcaption>'+comic.caption+'</figcaption></figure></details>';
 }
 export function workProductComicView(row){return storyMarkup(workProductComicFor(row));}
-export function marketProductComicView(row,status){return storyMarkup(marketProductComicFor(row,status),'看看货是怎么验的');}
+export function marketProductComicView(row,status,{categoryDemo=false}={}){
+ return storyMarkup(marketProductComicFor(row,status),categoryDemo?'托盘验货示意':'验货示意');
+}

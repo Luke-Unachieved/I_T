@@ -113,18 +113,18 @@ export function previewEquipment(state, projectId, shipping, dailyCost) {
 
 // A fixed connecting-vessel calendar makes the actual sailing repeatable on save replay.
 // Locked space always sails to plan. Ordinary bookings learn of transfers on departure.
-export function advanceEquipmentShipping(state, dailyCost) {
+export function advanceEquipmentShipping(state, dailyCost, calendar = false) {
   const a = state.market?.active;
   if (state.phase !== 'market' || state.market.status !== 'preparing' ||
-      a?.kind !== 'equipment' || a.status !== 'preparing' || state.day !== a.signedDay) return state;
+      a?.kind !== 'equipment' || a.status !== 'preparing' || (calendar ? state.day !== a.shipDay : state.day !== a.signedDay)) return state;
   const transfer = a.shipping === 'standard' && a.shipDay % 3 === 0;
   const delay = transfer ? a.slipDays : 0;
   const stationPaid = transfer ? a.stationFee : 0;
-  const expense = (a.shipDay - state.day) * dailyCost;
-  if (state.cash < expense + stationPaid) return state;
+  const expense = (a.shipDay - a.signedDay) * dailyCost;
+  if (state.cash < (calendar ? 0 : expense) + stationPaid) return state;
   const next = structuredClone(state), order = next.market.active;
   next.day = a.shipDay;
-  next.cash -= expense + stationPaid;
+  next.cash -= (calendar ? 0 : expense) + stationPaid;
   order.operatingPaid += expense;
   order.transfer = transfer;
   order.stationPaid = stationPaid;

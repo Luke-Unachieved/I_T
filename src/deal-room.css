@@ -211,3 +211,15 @@
 }
 #deal-room .ws-opening-signed .ws-signed-stages li[aria-current=step]{border-color:#d4b376}
 #deal-room .ws-opening-signed .ws-signed-stages time{font-weight:700;color:var(--ws-type,#ece8de)}
+#deal-room .ws-opening-signed .ws-opening-inspection-dialogue{
+ margin:.65rem 0;padding:.55rem .75rem;border-inline-start:2px solid var(--ws-mark,#d7bd89);
+ color:var(--ws-type,#ece8de);line-height:1.5
+}
+
+#deal-room .ws-opening-comic-stage{margin:.65rem 0}
+#deal-room .ws-opening-comic-stage .ws-opening-comic-voice{
+ margin:.55rem 0;padding:.52rem .72rem;border-inline-start:2px solid var(--ws-mark,#d7bd89);
+ line-height:1.5;color:var(--ws-type,#ece8de);
+}
+#deal-room .ws-opening-comic-stage .ws-opening-comic-voice p{margin:0}
+#deal-room .ws-opening-comic-stage .ws-opening-comic-voice footer{margin:.20rem 0 0;padding:0;color:#d8c8ad;font-size:.78rem}

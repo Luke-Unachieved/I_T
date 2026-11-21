@@ -1,4 +1,7 @@
 import {prospectExtraScenes} from './deal-room-prospect-scenes-extra.js';
+import {marketCalendarDue} from './deal-room-market-calendar.js';
+import {prospectContentById,prospectInbox} from './deal-room-prospects.js';
+import {prospectDisplayText} from './deal-room-prospect-locale.js';
 const extraProducts=Object.freeze({'011':'tray','012':'carafe','013':'salad-bowl','014':'serving-tongs','015':'pepper-mill'});
 // Extra correspondence, not contract terms. Only read on the individual quote
 // after a buyer has agreed to a price, at settlement, or inside a repeat letter.
@@ -50,8 +53,8 @@ export function prospectSceneLine(id,stage,option,productId){
 
 
 const clientStories=Object.freeze({
- "001":{product:"tray",quote:["assets/deal-client-comic-001-quote.webp", "早餐台的签收联", "营养科清点叠放餐盘，采购把签收联和回执放在一起。"],concession:["assets/deal-client-comic-001-concession.webp", "两张单放在一起", "采购在早餐台旁对过两张单，把这次订的餐盘记进归档夹。"]},
- "002":{product:"carafe",quote:["assets/deal-client-comic-002-quote.webp", "码头窗口的回执", "值班领班隔着箱格点好玻璃壶，采购在窗口接过单据。"],concession:["assets/deal-client-comic-002-concession.webp", "长桌收了再对账", "船员餐厅的长桌空下来，采购检查壶把之后合上账本。"]},
+ "001":{product:"tray",quote:["assets/deal-client-comic-001-quote-v2.webp", "早餐台的签收联", "营养科清点叠放餐盘，采购把签收联和回执放在一起。"],concession:["assets/deal-client-comic-001-concession-v2.webp", "两张单放在一起", "伊娃在早餐台旁对过两张单，再把签收联和回执收进夹子。"]},
+ "002":{product:"carafe",quote:["assets/deal-client-comic-002-quote.webp", "码头窗口的回执", "分格纸箱里放着玻璃壶，彼得在码头窗口接过单据。"],concession:["assets/deal-client-comic-002-concession-v2.webp", "长桌收了再对账", "彼得握住淡绿色玻璃壶的把手检查，随后合上桌上的账本。"]},
  "003":{product:"salad-bowl",quote:["assets/deal-client-comic-003-quote.webp", "食堂收货台的两摞碗", "陈师傅在收货台点清沙拉碗，采购接过单据。"],concession:["assets/deal-client-comic-003-concession.webp", "低年级窗口留个空位", "采购把叠好的碗往一起挪，也给取餐窗口留出一点地方。"]},
  '004':{product:'serving-tongs',
   quote:['assets/deal-client-comic-004-quote.webp','夜班交接的两联单','主管把餐夹排开点过，采购把两联单放进归档夹。'],
@@ -64,15 +67,15 @@ const clientStories=Object.freeze({
   concession:['assets/deal-client-comic-006-concession.webp','开门前记下的缺口','下一场宴会还没开门，会展买手先把托盘缺口记了下来。']},
  '007':{product:'carafe',
   quote:['assets/deal-client-comic-007-quote.webp','围裙里的最后一张单','午市收桌后，玛丽索尔的母亲从围裙口袋找出最后一张送货单。'],
-  concession:['assets/deal-client-comic-007-concession.webp','壶还没用完','架上还有水壶，玛丽索尔已经在写下一次补货的来信。']},
+  concession:['assets/deal-client-comic-007-concession.webp','架上还有冷水壶','玛丽索尔在餐厅看手机，几把玻璃壶还摆在架上。']},
  '008':{product:'serving-tongs',quote:['assets/deal-client-comic-008-quote.webp','两家摊各点各的','夜市收摊后，林俊和表姐分别点数各摊的餐夹。'],
-  concession:['assets/deal-client-comic-008-concession.webp','摊账里夹着的报价','林俊把旧报价夹进摊账，表姐趁夜市还不忙问起补货。']},
+  concession:['assets/deal-client-comic-008-concession.webp','夜市摊位上的账本','表姐翻开摊账。两人在摊位上说话，台面上放着一把餐夹。']},
  '009':{product:'serving-tongs',
   quote:['assets/deal-client-comic-009-quote.webp','餐车里找着了','弗蕾娅在餐车副驾找到那张收货单，拿去和会计核对。'],
-  concession:['assets/deal-client-comic-009-concession.webp','还没换外景地','餐车还停在原片场，制片请弗蕾娅先问问供货。']},
+  concession:['assets/deal-client-comic-009-concession.webp','餐车旁的两句话','弗蕾娅在餐车旁看手机，和戴耳麦的同事说话。']},
  '010':{product:'pepper-mill',
-  quote:['assets/deal-client-comic-010-quote.webp','等客人退了房','卢卡斯在早餐间逐箱点货，再把研磨器与单据对上。'],
-  concession:['assets/deal-client-comic-010-concession.webp','采购本边的记号','老板在采购本边画了个记号，让卢卡斯排早餐时先来问。']},
+  quote:['assets/deal-client-comic-010-quote-v2.webp','早餐间清点磨罐','卢卡斯在早餐间拆箱，把一排研磨器摆在桌上核对单据。'],
+  concession:['assets/deal-client-comic-010-concession-v2.webp','采购本上圈了一笔','老板在采购本上圈了一笔，两人在桌边看手机。旁边放着研磨器和一张餐台平面图。']},
  '011':{product:'tray',
   quote:['assets/deal-client-comic-011-quote.webp','传菜窗递出来的单','领班把最后一摞托盘推上架，小馆买手从传菜窗接过签收单。'],
   concession:['assets/deal-client-comic-011-concession.webp','露台也点齐了','露台撤完桌，两边用过的托盘各点一遍，小馆买手合上账本。']},
@@ -344,10 +347,94 @@ const clientStories=Object.freeze({
   quote:["assets/deal-client-comic-098-quote.webp", "试挂看看刮不刮织带", "店员检查螺丝，用织带试了试挂钩，采购收好回执。"],
   concession:["assets/deal-client-comic-098-concession.webp", "柜边立起试挂板", "采购把试挂木板放在边柜里侧，在柜边留了点空位。"]}
 });
-export function prospectComicView(order,status){
- if(status!=='paid'||order?.status!=='paid'||order.kind!=='prospect'||order.prospectRepeat||!Number.isSafeInteger(order.quantity)||order.quantity<=0||!Number.isSafeInteger(order.revenue)||order.revenue<=0||order.delivered!==order.quantity||order.received!==order.revenue)return '';
+const repeatTrayStories=Object.freeze({
+ reorder:['assets/deal-client-comic-001-reorder.webp','采购把补到的餐盘和旧款对了一遍，再把签收联放回原来的夹子。','还是放老地方。新来的这一批跟上次叠在一起，换班的人不用再找。'],
+ 'vip-volume':['assets/deal-client-comic-001-vip-volume.webp','多订的同款餐盘暂放在手推车上，采购按这批的收货单对照旧档。','加的那批先留在推车上。早餐台不挤，缺了再推过去补。']
+});
+function repeatTrayComic(order){
+ if(order.customerId!=='001'||order.productId!=='tray'||order.prospectRepeat!==true||
+    !Number.isSafeInteger(order.prospectPreviousPaidDay)||order.prospectPreviousPaidDay<1||
+    !Number.isSafeInteger(order.signedDay)||order.prospectPreviousPaidDay>order.signedDay||
+    !Object.hasOwn(repeatTrayStories,order.optionId))return '';
+ const [art,alt,reply]=repeatTrayStories[order.optionId];
+ return '<figure class="ws-work-story ws-repeat-story"><img src="'+art+'" alt="'+alt+'" loading="lazy"><figcaption>「'+reply+'」</figcaption></figure>';
+}
+const fullyPaid=(order,status)=>status==='paid'&&order?.status==='paid'&&order.kind==='prospect'&&Number.isSafeInteger(order.quantity)&&order.quantity>0&&Number.isSafeInteger(order.revenue)&&order.revenue>0&&order.delivered===order.quantity&&order.received===order.revenue;
+// A presentation-only check against the signed day's real organic offer. A
+// promotional lead can share a customer ID and a product, but not this scene.
+function isOrganicFirstStoryOrder(state,customerId,productId){
+ const a=state?.market?.active,status=state?.market?.status,today=state?.day;
+ if(state?.phase!=='market'||!a||a.status!==status||a.kind!=='prospect'||a.customerId!==customerId||a.productId!==productId||a.mode!=='trial'||a.prospectRepeat||
+    !['quote','concession'].includes(a.optionId)||!Number.isSafeInteger(today)||!Number.isSafeInteger(a.signedDay)||a.signedDay<1||today<a.signedDay)return false;
+ const letter=prospectInbox({...state,day:a.signedDay,market:{status:'draft'}}).find(r=>r.person.id===a.customerId);
+ return Boolean(letter&&!letter.isRepeat&&!letter.promotion&&letter.product.id===a.productId&&letter.product.name===a.productName&&a.unit===letter.product.unit&&
+  a.buyer===letter.person.displayName+' · '+letter.person.organization&&
+  letter.options.some(o=>o.id===a.optionId&&o.mode===a.mode&&o.quantity===a.quantity));
+}
+export function isLukaTrayStoryOrder(state){return isOrganicFirstStoryOrder(state,'006','tray');}
+export function lukaTrayStoryMoment(state,matched=isLukaTrayStoryOrder(state)){
+ if(!matched)return '';
+ const {active:a,status}=state.market,today=state.day;
+ const due=status==='transit'?marketCalendarDue(state):null;
+ return due?.delivery&&today>=due.day&&a.delivered===0&&a.deposit===0&&a.received===0?'inspection':
+  fullyPaid(a,status)&&[a.deliveryDay,a.paymentDay,a.paidDay].every(Number.isSafeInteger)&&a.deliveryDay>=a.signedDay&&a.paymentDay>=a.deliveryDay&&a.paidDay>=a.paymentDay&&today>=a.paidDay?'paid':'';
+}
+function orderComicFigure(art,title,alt,kind,width,height,lazy=false){
+ return '<figure class="ws-order-comic ws-order-comic-'+kind+'"><img src="'+art+'" alt="'+alt+'" width="'+width+'" height="'+height+'" decoding="async"'+(lazy?' loading="lazy"':'')+'><figcaption>'+title+'</figcaption></figure>';
+}
+function latestEvaFirstSigning(state){
+ const check=a=>a?.type==='SIGN_PROSPECT_LOT_V1'&&a.customerId==='001';
+ let sign=state.history?.findLast(check);
+ for(let i=(state.historyPages?.length??0)-1;i>=0&&!sign;i--)sign=state.historyPages[i].findLast(check);
+ return sign;
+}
+export function evaTrayStoryMoment(state){
+ const a=state?.market?.active,status=state?.market?.status;
+ if(a?.customerId!=='001'||!['transit','paid'].includes(status)||a.deposit!==0||a.paymentDay!==a.deliveryDay)return '';
+ const due=marketCalendarDue(state);
+ const moment=due?.delivery&&state.day===due.day&&a.delivered===0&&a.received===0?'inspection':
+  fullyPaid(a,status)&&Number.isSafeInteger(a.paidDay)&&a.paidDay>=a.paymentDay&&state.day>=a.paidDay&&state.marketHistory?.some(r=>
+   r.customerId==='001'&&r.productId==='tray'&&r.signedDay===a.signedDay&&r.paidDay===a.paidDay&&r.optionId===a.optionId&&
+   r.buyer===a.buyer&&r.source===a.source&&r.quantity===a.quantity&&r.revenue===a.revenue&&fullyPaid(r,'paid'))?'paid':'';
+ if(!moment||!isOrganicFirstStoryOrder(state,'001','tray'))return '';
+ const sign=latestEvaFirstSigning(state);
+ return sign&&sign.optionId===a.optionId&&sign.source===a.source&&sign.unitPrice===a.unitPrice?moment:'';
+}
+export function evaTrayInspectionView(moment){
+ return moment==='inspection'?orderComicFigure('assets/deal-client-comic-001-first-inspection.webp','到货抽检（待签收、待收款）',
+  '医院食堂的伊娃从纸箱取出琥珀色浅托盘，再叠上一只同款托盘检查边沿。','inspection',1440,720):'';
+}
+// Register only the approved, matching grey-tray artwork. The ordinary
+// category demo is not the same model and never becomes the automatic scene.
+const lukaInspectionArt='assets/deal-client-comic-006-inspection.webp';
+export function lukaTrayInspectionView(moment){
+ if(!lukaInspectionArt||!['inspection','paid'].includes(moment))return '';
+ const replay=moment==='paid';
+ const frame=orderComicFigure(lukaInspectionArt,replay?'交货时，卢卡抽查餐盘边沿和叠放。':'到货抽检（待签收、待收款）','卢卡打开送来的纸箱，把同款灰色餐盘叠起来检查边沿。','inspection',1774,887,replay);
+ return moment==='paid'?'<details class="ws-work-story ws-order-comic-replay"><summary>回看验收</summary>'+frame+'</details>':frame;
+}
+function curatedBuyerMatches(order){
+ if(order.customerId!=='001'&&order.customerId!=='006')return true;
+ const person=prospectContentById(order.customerId);
+ const canonical=person.displayName+' · '+person.organization;
+ return order.buyer===canonical||order.buyer===prospectDisplayText(canonical);
+}
+export function prospectComicView(order,status,{lukaMoment='',evaMoment=''}={}){
+ if(!fullyPaid(order,status))return '';
+ if(!curatedBuyerMatches(order))return '';
+ if(order.prospectRepeat)return repeatTrayComic(order);
  const entry=Object.hasOwn(clientStories,order.customerId)?clientStories[order.customerId]:null;
  if(!entry||entry.product!==order.productId||!['quote','concession'].includes(order.optionId)||!Object.hasOwn(entry,order.optionId))return '';
  const [art,title,alt]=entry[order.optionId];
+ if(evaMoment==='paid'&&order.customerId==='001'&&order.productId==='tray'&&order.mode==='trial'){
+  const quote=order.optionId==='quote';
+  const speech=quote?'签收联和回执我都夹好了。营养科来问，我能直接翻到这笔。':'两张单我对过了，就放一个夹子。下次缺多少，我早点来问你。';
+  return orderComicFigure(art,'「'+speech+'」',alt,'paid',quote?1280:1440,quote?854:960);
+ }
+ if(lukaMoment==='paid'&&order.customerId==='006'&&order.productId==='tray'&&order.mode==='trial'){
+  const dialogue=order.optionId==='quote'?'回执发我一份吧。签收单在我这儿，两份正好一起存。':'下一场还要用盘。我先把缺的数记下来，要补货再给你发单。';
+  const sceneAlt=order.optionId==='quote'?'卢卡拿着托盘，在桌边和会计核对单据。':'卢卡把灰色托盘放在旁边，记下下场要用的数量。';
+  return orderComicFigure(art,'「'+dialogue+'」',sceneAlt,'paid',1280,853);
+ }
  return '<details class="ws-work-story"><summary>'+title+'</summary><figure><img src="'+art+'" alt="'+alt+'" loading="lazy"></figure></details>';
 }

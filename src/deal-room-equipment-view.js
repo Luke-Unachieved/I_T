@@ -79,7 +79,7 @@ function quoteView(state, project, shipping) {
 
 // Keep both decisions on the same labeled rows, including on small screens.
 export function equipmentRoutePair(wait,early){
- return '<div class="eq-routes">'+[wait,early].map(r=>'<article><h4>'+r.title+'</h4><dl>'+[['现在另付',money(r.fee)],['到货验收','第 '+r.day+' 天'],['收尾款','第 '+r.pay+' 天']].map(([k,v])=>'<div><dt>'+k+'</dt><dd>'+v+'</dd></div>').join('')+'</dl><button type="button" '+r.action+(r.enabled?'':' disabled')+'>'+r.button+'</button></article>').join('')+'</div>';
+ return '<div class="eq-routes">'+[wait,early].map(r=>'<article><h4>'+r.title+'</h4><dl>'+[['现在另付',money(r.fee)],['到货验收','第 '+r.day+' 天'],['收尾款','第 '+r.pay+' 天']].map(([k,v])=>'<div><dt>'+k+'</dt><dd>'+v+'</dd></div>').join('')+'</dl>'+(r.button?'<button type="button" '+r.action+(r.enabled?'':' disabled')+'>'+r.button+'</button>':'')+'</article>').join('')+'</div>';
 }
 
 function activeView(state, project) {
@@ -87,15 +87,15 @@ function activeView(state, project) {
   const preparing = a.status === 'preparing', transit = a.status === 'transit', paid = a.status === 'paid';
   let action;
   if (preparing) {
-    action = `<p>已按合同备齐 ${a.quantity} ${a.unit}，第 ${a.shipDay} 天装船。</p><button class="primary" data-market-action="SHIP_EQUIPMENT">安排装船</button>`;
+    action = `<p>第 ${a.shipDay} 天装船，整批出运 ${a.quantity} ${a.unit}。</p>${state.day===a.shipDay?'<button class="primary" data-market-action="SHIP_EQUIPMENT_V2">确认装船</button>':''}`;
   } else if (transit) {
-    const choose=a.transfer&&!a.rebookPaid;
+    const choose=a.transfer&&!a.rebookPaid&&state.day===a.shipDay;
     const available=choose&&canRebookEquipment(state,DAY_COST);
-    action=choose?`<section class="eq-decision"><h3>船期变了，怎么安排？</h3><p>场站费 ${money(a.stationPaid)} 已付，两种方案都不退。改订可早 ${a.daysSaved} 天回款，少付 ${money(a.daysSaved*DAY_COST)} 日常开支。</p>${equipmentRoutePair({title:'照现在的船期等',fee:0,day:a.deliveryDay,pay:a.paymentDay,action:'data-market-action="DELIVER_MARKET"',enabled:true,button:'按现在船期验收'},{title:'改订更早的班次',fee:a.rebookFee,day:a.deliveryDay-a.daysSaved,pay:a.paymentDay-a.daysSaved,action:'data-market-action="REBOOK_EQUIPMENT"',enabled:available,button:'确认改订'})}${available?'':'<p>现金不足以改订并等到回款。</p>'}</section>`:`<p>已装船，预计第 ${a.deliveryDay} 天到港。${a.rebookPaid?'改订后的船期已确认。':''}</p><button class="primary" data-market-action="DELIVER_MARKET">到港，按清单整单验收</button>`;
+    action=choose?`<section class="eq-decision"><h3>船期变了，怎么安排？</h3><p>场站费 ${money(a.stationPaid)} 已付，两种方案都不退。改订可早 ${a.daysSaved} 天回款，少付 ${money(a.daysSaved*DAY_COST)} 日常开支。不改订的话，照常过天，等到到港日再验收。</p>${equipmentRoutePair({title:'照现在的船期等',fee:0,day:a.deliveryDay,pay:a.paymentDay,action:'',enabled:false,button:''},{title:'改订更早的班次',fee:a.rebookFee,day:a.deliveryDay-a.daysSaved,pay:a.paymentDay-a.daysSaved,action:'data-market-action="REBOOK_EQUIPMENT"',enabled:available,button:'确认改订'})}${available?'':'<p>现金不足以改订并等到回款。</p>'}</section>`:`<p>已装船，预计第 ${a.deliveryDay} 天到港。${a.rebookPaid?'改订后的船期已确认。':''}</p>${state.day>=a.deliveryDay?'<button class="primary" data-market-action="DELIVER_MARKET_V2">按清单整单验收</button>':''}`;
   } else if (paid) {
     action = '<p class="market-success">货款已收齐，项目已记入工作室账本。</p><button class="primary" data-market-action="CLOSE_MARKET">回工作室</button>';
   } else {
-    action = `<p>已到港并整单验收。第 ${a.paymentDay} 天可收尾款 ${money(a.balanceDue)}。</p><button class="primary" data-market-action="COLLECT_MARKET">到付款日，收齐尾款</button>`;
+    action = `<p>已到港并整单验收。第 ${a.paymentDay} 天可收尾款 ${money(a.balanceDue)}。</p>${state.day>=a.paymentDay?'<button class="primary" data-market-action="COLLECT_MARKET_V2">收齐尾款</button>':''}`;
   }
   return `<section class="market-active equipment-active eq-order"><small>${project.company}，${project.buyer}</small><h3>${project.name}（${a.quantity} ${a.unit}）</h3><p>已验收 ${a.delivered} / ${a.quantity} ${a.unit}。</p>${action}${equipmentComicView(a,a.status)}<details><summary>合同与费用明细</summary>${projectSummary(project, a.status)}
     <ol class="market-track"><li class="done">第 ${a.signedDay} 天<br>签约</li><li class="${preparing?'':'done'}">第 ${a.shipDay} 天<br>装船</li><li class="${preparing||transit?'':'done'}">第 ${a.deliveryDay} 天<br>到港验收</li><li class="${paid?'done':''}">第 ${a.paymentDay} 天<br>收齐尾款</li></ol>

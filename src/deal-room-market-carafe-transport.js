@@ -31,13 +31,20 @@ export function carafeCustomerFollowup(s){
 export function carafeTransportView(s,adviserId){
  const q=carafeTransport(s);if(!q)return '';
  const a=s.market.active;
- const compare=(title,left,right)=>'<tr><th scope="row">'+title+'</th><td>'+left+'</td><td>'+right+'</td></tr>';
  const day=n=>'第 '+n+' 天';
- const board='<table class="ws-route-compare" aria-label="运输方案对比"><thead><tr><th scope="col"><span class="ws-offscreen">对比项目</span></th><th scope="col">跟原车</th><th scope="col">另包一辆</th></tr></thead><tbody>'+
-  compare('交货',day(a.deliveryDay),day(q.delivery))+compare('收尾款',day(a.paymentDay),day(q.payment))+compare('现在加付','¥0','¥96')+
-  '</tbody><tfoot><tr><th scope="row"><span class="ws-offscreen">选择方案</span></th><td><button type="button" data-market-action="DELIVER_MARKET" aria-label="照原安排交货">走原车</button></td>'+
-  '<td><button type="button" data-market-action="CHARTER_CARAFE_V1" aria-label="确认包车 · ¥96"'+(q.affordable?'':' disabled')+'>确认包车</button></td></tr></tfoot></table>';
- return '<section class="ws-ship-choice ws-route-decision"><header class="ws-carafe-call ws-order-decision-head"><div><h3>选运输方案</h3><p>联仓来电话。调度员说，货已配齐，可以随原车发走。</p></div></header>'+board+
-  '<p class="ws-route-note">包车省 ¥60 日常开支，净多花 ¥36。'+(!q.affordable?'手头现金不够包车并等到回款。':'')+'</p>'+
+ const money=n=>'¥'+n.toLocaleString('zh-CN');
+ const route=(title,action,fee,delivery,payment,profit,enabled,detail)=>
+  '<button class="ws-carafe-route" type="button" data-market-action="'+action+'"'+(enabled?'':' disabled')+'>'+
+  '<strong>'+title+'</strong><span class="ws-carafe-route-facts">'+
+  [['现在加付',money(fee)],['交货',day(delivery)],['收尾款',day(payment)],['预计净利',money(profit)]].map(([label,value])=>
+   '<span><span>'+label+'</span><b>'+value+'</b></span>').join('')+
+  '</span><small>'+detail+'</small></button>';
+ return '<section class="ws-ship-choice ws-route-decision"><header class="ws-carafe-call ws-order-decision-head"><div><h3>选运输方案</h3>'+
+  '<p><strong>联仓调度：</strong>冷水壶配齐了，能跟原车走。另叫一辆车能早送两天，车费要现在付。</p>'+
+  '<p><strong>岚岸采购：</strong>按原日子到也行，交班的人会收。要是早两天，培训的两组人都能用上。</p></div></header>'+
+  '<div class="ws-carafe-routes">'+
+  route('走原车','DELIVER_MARKET',0,a.deliveryDay,a.paymentDay,a.netProfit,true,'按原计划交货')+
+  route('确认包车','CHARTER_CARAFE_V1',q.fee,q.delivery,q.payment,a.netProfit-q.fee+q.saved,q.affordable,q.affordable?'先付车费，再安排交货':'手头现金不够包车并等到回款')+
+  '</div><p class="ws-route-note">包车少付 '+money(q.saved)+' 日常开支，净多花 '+money(q.fee-q.saved)+'。</p>'+
   tradeAdviserHint(adviserId,q.affordable?'包车净多花 ¥36，能早两天收款。下一单要是正缺这笔钱，才值得换。':'包车费要现在付，但买家的款没那么快到。先保住手里的周转金。')+'</section>';
 }

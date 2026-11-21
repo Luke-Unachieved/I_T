@@ -103,6 +103,13 @@
 #deal-room .ws-work-story img{display:block;width:100%;height:auto;border-radius:.4rem}
 #deal-room .ws-work-story figcaption{padding:.6rem 0 0;line-height:1.45}
 
+/* A single scene in the normal order reading flow. Keep its two panels
+   intact and reserve a separate disclosure only for replay. */
+#deal-room .ws-order-detail .ws-order-comic{margin:.52rem 0 .75rem;padding:0;max-inline-size:28rem;min-inline-size:0}
+#deal-room .ws-order-detail .ws-order-comic img{display:block;width:100%;height:auto;border-radius:.45rem}
+#deal-room .ws-order-detail .ws-order-comic figcaption{padding:.32rem 0 0;color:#d7c9b3;font-size:.83rem;line-height:1.42}
+#deal-room .ws-order-detail .ws-order-comic-replay>.ws-order-comic{margin:.1rem .7rem .65rem}
+
 /* Transaction desk: use the wider desktop shell without changing phone layout
    or the original order/contact hierarchy. */
 @media(min-width:1024px){
@@ -222,3 +229,6 @@
 #deal-room .ws-opening-inquiry .opening-option-card .sample-option-value{
  min-width:0;margin:0
 }
+
+#deal-room figure.ws-repeat-story{margin:12px 0 0;padding:0;border:0;background:transparent}
+#deal-room .ws-repeat-story figcaption{color:var(--ws-type,#eee8de);font-size:.9rem;margin:0}

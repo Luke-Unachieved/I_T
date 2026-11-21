@@ -1,3 +1,4 @@
+import {marketCalendarDue} from './deal-room-market-calendar.js';
 import {companyRenameView,companyTitleText} from './deal-room-company.js';
 import {orderFooterAdvice} from './deal-room-adviser.js';
 import {previewWorkspaceSleep} from './deal-room-workspace-sleep.js';
@@ -8,6 +9,7 @@ import {prospectInbox} from './deal-room-prospects.js';
 import {equipmentOpportunity} from './deal-room-equipment.js';
 import {neighborhoodRequest} from './deal-room-neighborhood.js';
 import {marketBook} from './deal-room-market.js';
+import {CURATION_PRODUCTS} from './deal-room-engine.js';
 // Workspace pages are a view of the same ongoing day, never economic actions.
 const tabs=Object.freeze([['office','办公室'],['inbox','询盘'],['orders','订单'],['development','发展'],['afterwork','下班']].map(Object.freeze));
 const tabSet=new Set(tabs.map(([id])=>id));
@@ -51,43 +53,59 @@ function itemList(items){
   return '<li><'+tag+(tag==='button'?' type="button" data-workspace-open="'+x.tab+'"'+(ref?' data-workspace-ref="'+esc(ref)+'"':''):'')+'><span><strong>'+esc(x.title)+'</strong>'+(x.detail?'<small>'+esc(x.detail)+'</small>':'')+'</span>'+(tag==='button'?'<span class="ws-arrow" aria-hidden="true">→</span>':'')+'</'+tag+'></li>';
  }).join('')+'</ul>';
 }
-// This intentionally names its scope instead of pretending that every story
-// ledger shares the fields of an ordinary contract. A broader normalized ledger
-// can be injected as {scope,rows:[{product,customer,sales,cost}]}, settled only.
+// Read canonical paid archives only; the active receipt is another copy.
 function ledgerRows(s,ledger){
  const validRow=r=>r&&valid(r.sales)&&valid(r.cost)&&typeof r.product==='string'&&r.product&&typeof r.customer==='string'&&r.customer;
  if(Array.isArray(ledger?.rows))return {scope:ledger.scope||'已结清合同',rows:ledger.rows.filter(r=>(!r.status||r.status==='paid')&&validRow(r))};
- const rows=[];
- for(const c of s.contracts||[])if(c?.status==='paid'){
-  const r={sales:c.revenue,cost:c.cost,product:c.product,customer:c.clientName};if(validRow(r))rows.push(r);
- }
- for(const c of s.marketHistory||[])if(c?.status==='paid'&&valid(c.paidDay)&&c.paidDay<=s.day&&valid(c.quantity)&&c.quantity>0&&c.delivered===c.quantity&&c.received===c.revenue){
-  const r={sales:c.revenue,cost:c.cost,product:c.productName,customer:c.buyer};if(validRow(r))rows.push(r);
- }
- return {scope:'已结清的常规合同和采购台订单；不含其他项目账、未收尾款或生活消费',rows};
+ const rows=[],add=(order,product,customer)=>{
+  const row={sales:order.revenue,cost:order.cost,product,customer};
+  if(validRow(row))rows.push(row);
+ };
+ const paid=order=>order?.status==='paid'&&valid(order.paymentDay)&&order.paymentDay<=s.day;
+ const nameCombo=(ids,lamp)=>(ids??[]).map(id=>id==='mira'&&lamp==='developed'?'三档调光台灯':CURATION_PRODUCTS.find(p=>p.id===id)?.name).filter(Boolean).sort().join('、');
+ for(const c of s.contracts||[])if(c?.status==='paid')add(c,c.product,c.clientName);
+ for(const c of s.marketHistory||[])if(c?.status==='paid'&&valid(c.paidDay)&&c.paidDay<=s.day&&valid(c.quantity)&&c.quantity>0&&c.delivered===c.quantity&&c.received===c.revenue)
+  add(c,c.productName,c.buyer);
+ for(const order of [...s.curationHistory??[],...s.accountHistory??[]])if(paid(order))
+  add(order,nameCombo(order.products,order.lampVersion),order.buyer);
+ for(const order of s.collection?.orders??[])if(paid(order))
+  add(order,nameCombo(s.collection.products,s.collection.lampVersion),order.buyer);
+ return {scope:'已结清的常规订单、选品、连锁和系列采购；组合按整单统计',rows};
+}
+const magnitude=n=>n<0n?-n:n;
+const maxAmount=(amounts)=>amounts.reduce((m,n)=>m>magnitude(n)?m:magnitude(n),0n);
+const percentWidth=(n,max)=>max?Number(magnitude(n)*1000n/max)/10:0;
+const chartMoney=n=>n<0n?'−'+money(-n):money(n);
+function chartBar(label,n,max,tone){
+ return '<li class="ws-chart-metric"><span>'+label+'</span><strong>'+chartMoney(n)+'</strong><span class="ws-chart-track" aria-hidden="true"><i class="'+(n<0n?'loss':tone)+'" style="--chart-width:'+percentWidth(n,max)+'%"></i></span></li>';
 }
 function breakdown(rows,field){
  const groups=new Map();
- for(const r of rows){const k=r[field],v=groups.get(k)||{sales:0n,gross:0n,count:0};v.sales+=BigInt(r.sales);v.gross+=BigInt(r.sales)-BigInt(r.cost);v.count++;groups.set(k,v);}
+ for(const r of rows){const k=prospectDisplayText(r[field]),v=groups.get(k)||{sales:0n,gross:0n,count:0};v.sales+=BigInt(r.sales);v.gross+=BigInt(r.sales)-BigInt(r.cost);v.count++;groups.set(k,v);}
  const sorted=[...groups].sort((a,b)=>a[1].sales===b[1].sales?a[0].localeCompare(b[0],'zh-CN'):a[1].sales>b[1].sales?-1:1);
- return '<ul class="ws-breakdown">'+sorted.map(([k,v])=>'<li><strong>'+esc(k)+'</strong><span>'+v.count+' 单 · 销售额 '+money(v.sales)+' · 毛利 '+money(v.gross)+'</span></li>').join('')+'</ul>';
+ const max=maxAmount(sorted.flatMap(([,v])=>[v.sales,v.gross]));
+ return '<ul class="ws-chart-breakdown">'+sorted.map(([k,v])=>'<li><header><strong>'+esc(k)+'</strong><small>'+v.count+' 单 · 毛利率 '+margin(v.gross,v.sales)+'</small></header><ul>'+
+  chartBar('销售额',v.sales,max,'sales')+chartBar('毛利',v.gross,max,'gross')+'</ul></li>').join('')+'</ul>';
 }
 function margin(gross,sales){
  if(!sales)return '—';
- const negative=gross<0n,magnitude=negative?-gross:gross,tenths=(magnitude*1000n+sales/2n)/sales;
+ const negative=gross<0n,tenths=(magnitude(gross)*1000n+sales/2n)/sales;
  return (negative&&tenths?'-':'')+String(tenths/10n)+'.'+String(tenths%10n)+'%';
 }
-function ledgerView(s,input){
+export function workspaceLedgerView(s,input){
  const {rows,scope}=ledgerRows(s,input);let sales=0n,cost=0n;
  for(const r of rows){sales+=BigInt(r.sales);cost+=BigInt(r.cost);}
- const fact=(label,value)=>'<div><dt>'+label+'</dt><dd>'+esc(value)+'</dd></div>';
- return '<details class="ws-ledger"><summary aria-label="经营账本 · '+rows.length+' 笔已结清">销售账本</summary><p class="ws-muted">统计范围：'+esc(scope)+'。</p>'+
- (rows.length?'<dl class="ws-totals">'+fact('实际销售额',money(sales))+fact('直接成本',money(cost))+fact('销售毛利',money(sales-cost))+fact('毛利率',margin(sales-cost,sales))+'</dl><p class="ws-muted">毛利为销售额减合同直接成本，还没有扣工作室日常开支，不等于手头现金。</p><details><summary>按商品看</summary>'+breakdown(rows,'product')+'</details><details><summary>按客户看</summary>'+breakdown(rows,'customer')+'</details>':'<p>还没有收齐货款的订单。尾款到账后，订单才会记到这里。</p>')+'</details>';
+ const gross=sales-cost,max=maxAmount([sales,cost,gross]);
+ return '<section class="ws-ledger ws-chart-ledger" aria-labelledby="ws-chart-ledger-title"><h2 id="ws-chart-ledger-title" tabindex="-1">销售账本</h2><div class="ws-chart-ledger-body">'+
+ (rows.length?'<figure><figcaption><strong>历史销售</strong><span>毛利率 <b>'+margin(gross,sales)+'</b></span></figcaption><ul>'+
+ chartBar('销售总额',sales,max,'sales')+chartBar('直接成本',cost,max,'cost')+chartBar('销售毛利',gross,max,'gross')+
+ '</ul></figure><details><summary>按商品</summary>'+breakdown(rows,'product')+'</details><details><summary>按客户</summary>'+breakdown(rows,'customer')+'</details><p class="ws-muted">'+esc(scope)+'。毛利未扣日常开支。</p>':
+ '<p class="ws-muted">还没有已收齐的订单。</p>')+'</div></section>';
 }
 /** OFFICE ONLY: put the navigation and any existing partner controls alongside
  * it in the application. Pending/advice records navigate; they cannot sign/pay.
  * Optional model: officeName, improved, weather (verified display text),
- * pending/advice (array of {title,detail?,tab?,ref?}), ledger ({scope,rows}). */
+ * pending/advice (array of {title,detail?,tab?,ref?}). */
 export function workspaceOfficeView(state,model={}){
  if(!state)return '';
  const jobs=Array.isArray(model.pending)?model.pending:defaultPending(state);
@@ -95,18 +113,19 @@ export function workspaceOfficeView(state,model={}){
  const improved=typeof model.improved==='boolean'?model.improved:state.officeImprovement?.id==='window-studio';
  const isLocal=src=>typeof src==='string'&&(/^assets\/deal-[a-z0-9-]+\.webp$/.test(src)||/^data:image\/webp;base64,[A-Za-z0-9+/]+={0,2}$/.test(src));
  const art=isLocal(model.art)?model.art:improved?'assets/deal-office-window-v1.webp':'assets/deal-office-original-desktop.webp';
- const room='<img class="ws-desk-scene" alt="" src="'+esc(art)+'">';
  const weather=['晴','阴','雨','雪'].includes(model.weather)?model.weather:'';
  const office=model.officeName||(improved?'窗边工作室':'起步工作室');
  const who=['liang','fang','tao','xu'].includes(model.adviserId)?model.adviserId:'';
+ const introArt=model.intro==='welcome'&&who?'assets/deal-office-original-'+who+'.webp':null;
+ const room='<img class="ws-desk-scene" alt="" src="'+esc(introArt||art)+'">';
  const portrait=who?'<i aria-hidden="true" class="ws-note-face adviser-'+who+'"></i>':'';
  const note=advice[0],lead=note?.text||note?.detail||({inbox:'先看最早截止的这单。',orders:'先看这笔订单的交付和回款。',development:'先看看有哪些获客渠道。',afterwork:'今天手上的事办完了。'})[note?.tab]||'';
  const row=x=>'<li><button type="button" data-workspace-open="'+(tabSet.has(x.tab)?x.tab:'inbox')+'"'+(safeRef(x.ref)?' data-workspace-ref="'+esc(x.ref)+'"':'')+'><span><strong>'+esc(x.title)+'</strong>'+(x.detail?'<small>'+esc(x.detail)+'</small>':'')+'</span>'+(x.when?'<em>'+esc(x.when)+'</em>':'')+'<b aria-hidden="true">›</b></button></li>';
  const rows=xs=>'<ul class="ws-agenda-rows">'+xs.map(row).join('')+'</ul>';
- return '<section class="ws-office ws-original-office" aria-labelledby="ws-office-title"><div class="ws-tabletop"><header class="ws-desk'+(improved?' ws-desk-window':'')+'" data-weather="'+weather+'">'+room+officeWeatherView(model.officeId,weather)+'<h2 id="ws-office-title" class="ws-offscreen" tabindex="-1">'+esc(office)+(model.weather?' · '+esc(model.weather):'')+'</h2>'+officeIntroView(model.intro,who)+'</header>'+
- '<section class="ws-agenda" aria-label="今日待办"><h3>未完成 <small>'+jobs.length+'</small></h3>'+(jobs.length?rows(jobs.slice(0,2)):'<p>今天没有待办。</p>')+
+ return '<section class="ws-office ws-original-office" aria-labelledby="ws-office-title"><div class="ws-tabletop"><header class="ws-desk'+(improved?' ws-desk-window':'')+'" data-weather="'+weather+'">'+room+(introArt?'':officeWeatherView(model.officeId,weather))+'<h2 id="ws-office-title" class="ws-offscreen" tabindex="-1">'+esc(office)+(model.weather?' · '+esc(model.weather):'')+'</h2>'+officeIntroView(model.intro,who)+'</header>'+
+ '<section class="ws-agenda" aria-label="今日待办"><div class="ws-agenda-top"><h3>未完成 <small>'+jobs.length+'</small></h3></div>'+(jobs.length?rows(jobs.slice(0,2)):'<p>今天没有待办。</p>')+
  (jobs.length>2?'<details><summary>其余 '+(jobs.length-2)+' 件</summary>'+rows(jobs.slice(2))+'</details>':'')+'</section></div>'+
- '<section class="ws-original-note" aria-label="工作建议"><h3>助理建议</h3>'+(note?'<div>'+portrait+'<div><p>'+esc(lead)+'</p>'+itemList([{title:note.title,tab:note.tab,ref:note.ref}])+'</div></div>':'<p>暂无额外建议。</p>')+'</section>'+ledgerView(state,model.ledger)+companyRenameView(model.companyName)+'</section>';
+ '<section class="ws-original-note" aria-label="工作建议"><h3>助理建议</h3>'+(note?'<div>'+portrait+'<div><p>'+esc(lead)+'</p>'+itemList([{title:note.title,tab:note.tab,ref:note.ref}])+'</div></div>':'<p>暂无额外建议。</p>')+'</section>'+companyRenameView(model.companyName)+'</section>';
 }
 export function canEndOrderDay(s){
  // A settled Northline receipt is already in the ledger. Explicitly leaving it only closes the screen.
@@ -115,7 +134,7 @@ export function canEndOrderDay(s){
 }
 export function showWarehouseShortcut(root,tab){
  const button='<button type="button" data-open-warehouse>仓库 <span aria-hidden="true">›</span></button>';
- const group=tab==='orders'&&root.querySelector('.ws-orders-shortcuts');
+ const group=tab==='office'?root.querySelector('.ws-agenda-top'):tab==='orders'?root.querySelector('.ws-orders-shortcuts'):null;
  if(typeof group?.insertAdjacentHTML==='function'){group.insertAdjacentHTML('beforeend',button);return;}
  const shortcut='<div class="wh-shortcut">'+button+'</div>';
  const saveFooter=root.querySelector('.deal-save-tools');
@@ -125,7 +144,7 @@ export function showWarehouseShortcut(root,tab){
 export function showOrdersEnd(root,state,adviserId){
  const advice=orderFooterAdvice(state,adviserId);
  const account=state.phase==='account'&&state.account;
- const due=account?.status==='fulfilling'?account.deliveryDay:account?.status==='receivable'?account.paymentDay:null;
+ const due=account?.status==='fulfilling'?account.deliveryDay:account?.status==='receivable'?account.paymentDay:marketCalendarDue(state)?.day;
  const message=Number.isSafeInteger(due)&&due>state.day?'今天没有到期的订单':'今天的订单已全部完成';
  const done=canEndOrderDay(state)?'<footer class="ws-orders-end"><p>'+message+'</p><button type="button" data-workspace-open="afterwork" data-workspace-ref="orders-end">去下班</button></footer>':'';
  if(!advice&&!done)return;

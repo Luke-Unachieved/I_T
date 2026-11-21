@@ -89,8 +89,8 @@ function receipts(s,active=false,expand=false){
 }
 const openingOrderUnits=Object.freeze({mira:'盏',samir:'只',ines:'条'});
 export function workspaceActiveOrders(s){
- const rows=(s.contracts||[]).filter(x=>x.status==='fulfilling');
- return '<section class="ws-office ws-index ws-orders ws-receipts">'+orderHeading+rows.map(x=>orderLead(x.product+' · '+x.quantity+' '+(openingOrderUnits[x.clientId]??'件'),x.clientName,'待交货',[['签约',x.signedDay],['交货',x.deliveryDay],['回款',x.paymentDay]],'data-workspace-order-detail','查看交货安排')).join('')+receipts(s,true)+'</section>';
+ const rows=(s.contracts||[]).filter(x=>['fulfilling','receivable'].includes(x.status));
+ return '<section class="ws-office ws-index ws-orders ws-receipts">'+orderHeading+rows.map(x=>orderLead(x.product+' · '+x.quantity+' '+(openingOrderUnits[x.clientId]??'件'),x.clientName,x.status==='receivable'?'待收尾款':'待交货',[['签约',x.signedDay],['交货',x.deliveryDay],['回款',x.paymentDay]],'data-workspace-order-detail',x.status==='receivable'?'查看收款安排':'查看交货安排')).join('')+receipts(s,true)+'</section>';
 }
 export function workspaceOrdersIndex(s,{expandReceipts=false}={}){
  const productDesk=marketAvailable(s)||(s.phase==='market'&&s.market?.status==='draft')?'<button class="ws-products-link" type="button" data-workspace-products>商品与项目 <span aria-hidden="true">›</span></button>':'';

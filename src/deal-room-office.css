@@ -368,3 +368,30 @@
 #deal-room .ws-company :is(input,button){min-width:0;min-height:44px;border:1px solid #675944;border-radius:6px;padding:.35rem .6rem;font:inherit}
 #deal-room .ws-company input{color:#f3eadc;background:#242119;font-size:16px}
 #deal-room .ws-company button{color:#231c12;background:#d8bb82}
+
+/* The ledger is its own surface; charts and category disclosures share its rail. */
+#deal-room .ws-office.ws-original-growth .ws-chart-ledger{
+ margin-top:1.15rem;padding:.55rem clamp(.75rem,2.5vw,1.5rem) 0;background:#241f19;
+ border:1px solid #5d503e;border-radius:8px;color:#f1e9de;
+}
+#deal-room .ws-original-growth .ws-chart-ledger summary{min-height:44px;padding:.65rem 0;cursor:pointer}
+#deal-room .ws-original-growth .ws-chart-ledger>h2{margin:.25rem 0 .5rem;font-size:1.2rem;color:#f1e9de}
+#deal-room .ws-original-growth .ws-ledger-back{min-height:44px;padding:.35rem 0;background:none;border:0;color:var(--ws-mark,#d8b977);font:inherit}
+#deal-room .ws-chart-ledger-body{padding:0 0 .7rem}
+#deal-room .ws-chart-ledger-body figure{margin:0}
+#deal-room .ws-chart-ledger-body :is(figcaption,.ws-chart-breakdown header){
+ display:flex;justify-content:space-between;align-items:baseline;gap:.35rem .8rem;flex-wrap:wrap;
+ margin:0;padding:.3rem 0;color:#f1e9de;background:none;border:0;
+}
+#deal-room .ws-chart-ledger-body :is(figcaption span,.ws-chart-breakdown small){color:#d3c9b7}
+#deal-room .ws-chart-ledger-body ul{margin:0;padding:0;list-style:none}
+#deal-room .ws-chart-metric{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.08rem .6rem;padding:.35rem 0}
+#deal-room .ws-chart-metric strong{font-variant-numeric:tabular-nums}
+#deal-room .ws-chart-track{grid-column:1/-1;min-width:0;height:.5rem;border-radius:.3rem;background:#453b2f;overflow:hidden}
+#deal-room .ws-chart-track i{display:block;width:var(--chart-width,0%);height:100%;background:#d8b977}
+#deal-room .ws-chart-track i.cost{background:#ad9d8c}
+#deal-room .ws-chart-track i.gross{background:#acc19a}
+#deal-room .ws-chart-track i.loss{background:#df967d}
+#deal-room .ws-chart-ledger-body>details,#deal-room .ws-chart-breakdown>li{margin:.5rem 0 0;border-top:1px solid #5d503e}
+#deal-room .ws-chart-breakdown strong{overflow-wrap:anywhere}
+#deal-room .ws-chart-ledger-body>.ws-muted{margin:.65rem 0 0;font-size:.78rem}

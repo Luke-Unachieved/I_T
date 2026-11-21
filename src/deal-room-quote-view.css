@@ -382,8 +382,8 @@
 #deal-room > .business.ws-opening-inquiry .opening-quote-chat{
  margin:.65rem 0;padding:.65rem .8rem;background:#2c271f;border-radius:10px 10px 10px 2px;color:#eee4d1;
 }
-#deal-room > .business.ws-opening-inquiry .opening-quote-chat strong{font-size:.79rem;color:#d8bf91}
-#deal-room > .business.ws-opening-inquiry .opening-quote-chat p{margin:.15rem 0 0;line-height:1.55}
+#deal-room > .business.ws-opening-inquiry > .opening-quote-chat p{margin:0;line-height:1.55}
+#deal-room > .business.ws-opening-inquiry > .opening-quote-chat + .sample-stage{margin-block-start:.65rem}
 #deal-room > .business.ws-opening-inquiry .sample-proposal.opening-selection{margin:.48rem 0 .75rem;padding:.48rem 0 0;border-bottom:0}
 #deal-room > .business.ws-opening-inquiry .opening-selection-note{margin:0 0 .4rem}
 #deal-room > .business.ws-opening-inquiry .opening-quote-facts{display:grid;gap:.3rem;margin:0 0 .68rem}
@@ -431,3 +431,262 @@
 #deal-room .ws-opening-inquiry .quote-commitment .opening-ask:not(:disabled){
  background:#59462b;border:1px solid #c6a569;color:#fff1d2;border-radius:10px;
 }
+
+/* Shared inquiry typography and information order for both buyer flows. */
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-speech{
+ margin:.8rem 0 1rem;padding:.72rem .88rem;background:#302922;color:#f3e9da;
+ border:0;border-inline-start:2px solid #ab8856;border-radius:4px 12px 12px 4px;
+ line-height:1.62;overflow-wrap:anywhere;
+}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-speech p{margin:0}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-speech small{display:block;color:#dcc397;margin:.2rem 0 0}
+#deal-room .ws-opening-inquiry .sample-stage:has(.inquiry-choices){
+ display:block;min-height:0;padding:0;margin:.6rem 0 1rem;background:none;border:0;box-shadow:none;overflow:visible;
+}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-choices{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));min-width:0;
+ gap:.65rem;margin:.75rem 0 1rem;padding:0;border:0;background:none;
+}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-choices>legend{
+ padding:0;margin:0 0 .5rem;color:#f4e7d0;font-size:1rem;font-weight:700;
+}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) button.inquiry-option{
+ display:grid;grid-template-columns:minmax(0,1fr);align-content:start;gap:.62rem;
+ min-width:0;min-height:44px;padding:.72rem;margin:0;text-align:start;white-space:normal;
+ background:#26211c;color:#f3e8d6;border:1px solid #635543;border-radius:12px;box-shadow:none;overflow-wrap:anywhere;
+}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) button.inquiry-option[aria-pressed="true"]{
+ background:#392e21;color:#fff0d1;border-color:#c69e61;
+}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-option-facts{
+ display:grid;gap:.3rem;border-top:1px solid #b995604b;padding-top:.5rem;
+}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-option-facts>span{
+ display:grid;gap:.05rem;
+}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-option-facts small{font-size:.76rem;color:#dbcaaf}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-option-facts b{font-size:.86rem;line-height:1.35}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-details{
+ min-width:0;margin:.65rem 0;padding:.55rem 0;border:0;border-top:1px solid #8d78554a;background:none;
+}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-details>summary{color:#e7c992;cursor:pointer}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-details p{margin:.55rem 0;line-height:1.6}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-facts{display:grid;gap:.42rem;margin:.55rem 0}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-facts>div{display:flex;justify-content:space-between;gap:.8rem}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-facts dt{color:#d5c3a7}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-facts dd{margin:0;text-align:end;color:#f6e8d2;font-weight:700}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-decision-facts{padding-block:.65rem;border-top:1px solid #79684988}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-wait{font-size:.87rem;margin:.5rem 0;color:#e1d0b6}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-actions{
+ display:grid;grid-template-columns:1fr 1fr;gap:.6rem;padding-top:.75rem;margin:.75rem 0 0;border-top:1px solid #79684988;
+}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-actions>button{
+ width:100%;min-width:0;min-height:44px;justify-content:center;margin:0;padding:.55rem .5rem;line-height:1.25;border-radius:12px;
+}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-actions>button:disabled{
+ background:#322f2a;color:#c7bcaa;border:1px solid #665d51;opacity:1;
+}
+#deal-room .ws-opening-inquiry .quote-commitment.inquiry-settlement{padding-inline:0;background:none;border:0;box-shadow:none}
+@media(max-width:340px){
+ #deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-choices{grid-template-columns:1fr}
+}
+#deal-room .ws-opening-inquiry .inquiry-product{display:block;margin-top:.12rem}
+
+/* Both panels belong to one sequence, followed immediately by the actual
+   letter. Let the whole strip scale, without cropping either panel on phones. */
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-comic{
+ box-sizing:border-box;margin:.75rem 0 1rem;max-inline-size:42rem;min-inline-size:0;
+ overflow:hidden;border:1px solid #655542;border-radius:12px;background:#302922;
+}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-comic>img{
+ display:block;width:100%;height:auto;max-width:100%;object-fit:contain;aspect-ratio:auto 2 / 1;
+}
+#deal-room :is(.ws-opening-inquiry,.market-quote.prospect-panel) .inquiry-comic .inquiry-speech{
+ margin:0;padding:.65rem .85rem;border:0;border-radius:0;background:transparent;
+}
+
+/* Editable pricing is laid out directly on the page. Buttons are controls,
+   not a series of little cards; color fill is reserved for Send. */
+#deal-room .market-modern .market-trade-sheet.market-editable-quote{
+ padding:0;border:0;border-radius:0;background:none;box-shadow:none;
+}
+#deal-room .market-panel :is(.market-editable-quote,.market-quote.prospect-panel) :is([data-market-quote-form],[data-prospect-form]){
+ margin:.85rem 0 .52rem;padding-top:.5rem;border-top:1px solid #8d78554a;
+}
+#deal-room .market-quote .quote-price-editor{
+ display:grid;min-inline-size:0;gap:.48rem;margin:0 0 .68rem;
+}
+#deal-room .market-quote .quote-price-adjust{
+ display:grid;grid-template-columns:minmax(0,1fr) 44px 44px;gap:.18rem;align-items:center;
+}
+#deal-room .market-quote .quote-price-value{
+ display:flex;flex-wrap:wrap;align-items:baseline;gap:0 .55rem;min-inline-size:0;
+}
+#deal-room .market-quote .quote-price-value>span{color:#cec2af;font-size:.84rem}
+#deal-room .market-quote .quote-price-output{
+ min-inline-size:0;color:#fff0d1;font-size:clamp(1.35rem,5.4vw,1.68rem);
+ font-weight:750;font-variant-numeric:tabular-nums;line-height:1.2;overflow-wrap:anywhere;
+}
+#deal-room .market-quote .quote-price-output small{color:#cbbfa9;font-size:.79rem;font-weight:500}
+#deal-room .market-panel .market-quote .quote-price-editor button.quote-price-step{
+ display:grid;place-items:center;min-width:44px;min-height:44px;padding:0;margin:0;
+ border:0;border-radius:6px;background:none;box-shadow:none;color:#f1d39d;font-size:1.65rem;line-height:1;
+}
+#deal-room .market-panel .market-quote .quote-price-editor button.quote-price-step[aria-disabled="true"]{
+ color:#a29786;cursor:not-allowed
+}
+#deal-room .market-quote .quote-price-editor :is(.quote-price-step,.quote-price-output):focus-visible{
+ outline:2px solid #ffdc8b;outline-offset:1px
+}
+#deal-room .quote-sr-only{
+ position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+ clip-path:inset(50%);white-space:nowrap;border:0;
+}
+#deal-room .market-quote .quote-price-hint{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ margin:.1rem 0;padding:.52rem .64rem;background:#2a241b;border:0;border-radius:7px;
+}
+#deal-room .market-quote .quote-price-hint>div{
+ display:grid;justify-items:center;align-content:start;text-align:center;gap:.16rem;min-width:0;
+ padding-inline:.35rem;
+}
+#deal-room .market-quote .quote-price-hint>div+div{
+ box-shadow:-1px 0 0 #8d78554a;
+}
+#deal-room .market-quote .quote-price-hint dt{color:#d8c8ad;font-size:.78rem}
+#deal-room .market-quote .quote-price-hint dd{
+ margin:0;font-weight:700;color:#f6e6c6;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;
+}
+#deal-room .market-quote .quote-price-metrics{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;margin:.2rem 0 .05rem;
+}
+#deal-room .market-quote .quote-price-metrics>div{min-width:0}
+#deal-room .market-quote .quote-price-metrics dt{font-size:.78rem;color:#cec2af;line-height:1.35}
+#deal-room .market-quote .quote-price-metrics dd{
+ margin:.12rem 0 0;color:#f8eada;font-size:1.12rem;font-weight:700;
+ font-variant-numeric:tabular-nums;line-height:1.3;overflow-wrap:anywhere;
+}
+#deal-room .market-quote .quote-price-basis{margin:0;color:#c7b9a3;font-size:.78rem;line-height:1.45}
+#deal-room .market-panel .market-quote button.quote-price-send{
+ display:grid;grid-template-columns:minmax(0,1fr);justify-content:center;place-items:center;min-height:46px;width:100%;padding:.43rem .65rem;margin:0;border-radius:8px;text-align:center;line-height:1.25;
+}
+#deal-room .market-panel .market-quote .quote-price-send > .quote-price-send-label {
+ display:block;width:100%;text-align:center;justify-self:stretch;align-self:center;
+}
+#deal-room .market-quote.prospect-panel button.quote-price-send:not(:disabled){
+ background:#bd9d65;color:#211910;border:1px solid #d4b57b
+}
+#deal-room .market-quote.prospect-panel .quote-draft-schedule{margin:.52rem 0;padding:0;border:0;font-size:.82rem}
+#deal-room .market-quote.prospect-panel .inquiry-actions{border:0;padding:0;margin-top:.55rem}
+#deal-room .market-modern .market-trade-sheet.market-editable-quote button[data-market-sign]{
+ background:none;border:1px solid #8e774f;color:#ebcf95;box-shadow:none;
+}
+#deal-room .market-modern .market-trade-sheet.market-editable-quote button[data-market-sign]:disabled{
+ border-color:transparent;color:#a89c89;
+}
+#deal-room .market-panel .market-quote.prospect-panel .inquiry-actions>button,
+#deal-room > .business.ws-opening-inquiry .inquiry-actions>button{
+ display:grid;grid-template-columns:minmax(0,1fr);place-items:center;justify-content:center;text-align:center;
+ min-height:46px;border:1px solid #836f51;border-radius:8px;padding:.55rem .45rem;
+ font-weight:650;background:#211d17;color:#edd5ac;opacity:1;box-shadow:none;
+}
+#deal-room .market-panel .market-quote.prospect-panel .inquiry-actions>button.primary:not(:disabled),
+#deal-room > .business.ws-opening-inquiry .inquiry-actions>button.primary:not(:disabled){
+ background:#bd9d65;color:#211910;border-color:#d4b57b;
+}
+#deal-room .market-panel .market-quote.prospect-panel .inquiry-actions>button.primary:disabled,
+#deal-room > .business.ws-opening-inquiry .inquiry-actions>button.primary:disabled{
+ background:#2d2b28;border-color:#625c53;color:#aba499;opacity:1;cursor:not-allowed;
+}
+#deal-room .market-panel .market-quote.prospect-panel .inquiry-actions>button:focus-visible,
+#deal-room > .business.ws-opening-inquiry .inquiry-actions>button:focus-visible{
+ outline:2px solid #ffe2a6;outline-offset:2px;
+}
+
+/* Prospect supply comparisons, with costs and arrival days in shared columns. */
+#deal-room .market-quote.prospect-panel fieldset.prospect-source-list{
+ display:block;min-inline-size:0;border:0;background:none;padding:0;margin:.7rem 0;
+}
+#deal-room .market-quote.prospect-panel .prospect-source-list legend{
+ margin:0 0 .2rem;padding:0;font-size:.95rem;font-weight:700;
+}
+#deal-room .market-quote.prospect-panel .prospect-source-list :is(.prospect-source-line,.prospect-source-columns){
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(60px,.43fr) minmax(64px,.41fr);
+ align-items:baseline;gap:.45rem;text-align:start;min-inline-size:0;
+}
+#deal-room .market-quote.prospect-panel .prospect-source-list :is(.prospect-source-line,.prospect-source-columns)>:nth-child(n+2){
+ text-align:end;min-width:0;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;
+}
+#deal-room .market-quote.prospect-panel .prospect-source-columns{color:#c2b6a4;font-size:.75rem;padding:.1rem 0}
+#deal-room .market-quote.prospect-panel .prospect-source-list .prospect-source-line{min-height:44px;padding:.36rem 0;border-bottom:1px solid #8d78554a}
+#deal-room .market-quote.prospect-panel .prospect-source-list button.prospect-source-line[data-prospect-source]{
+ width:100%;margin:0;border:0;border-bottom:1px solid #8d78554a;border-radius:0;
+ background:none;box-shadow:none;color:inherit;padding:.4rem 0;line-height:1.35;
+}
+#deal-room .market-quote.prospect-panel .prospect-source-list button.prospect-source-line[data-prospect-source][aria-pressed="true"],
+#deal-room .market-quote.prospect-panel .prospect-source-list button.prospect-source-line[data-prospect-source][aria-pressed="true"] strong{
+ color:#f1d39c;background:none;border-color:#8d78554a;box-shadow:none;
+}
+#deal-room .market-quote.prospect-panel .prospect-source-label{display:grid;min-width:0;gap:.1rem}
+#deal-room .market-quote.prospect-panel button.prospect-source-line .prospect-source-label{position:relative;padding-inline-start:1rem}
+#deal-room .market-quote.prospect-panel button.prospect-source-line .prospect-source-label::before{
+ content:"";position:absolute;inline-size:.52rem;block-size:.52rem;inset-inline-start:.08rem;top:.39rem;border-radius:50%;border:1px solid currentColor;
+}
+#deal-room .market-quote.prospect-panel button.prospect-source-line[aria-pressed="true"] .prospect-source-label::before{background:currentColor}
+#deal-room .market-quote.prospect-panel .prospect-source-list .prospect-source-label small{font-size:.76rem;color:#c7baa5;margin:0}
+#deal-room .market-quote.prospect-panel .prospect-source-eta{font-size:.86rem}
+#deal-room .market-quote.prospect-panel :is(.prospect-source-note,.prospect-source-reasons){
+ margin:.35rem 0 0;color:#c7b9a3;font-size:.78rem;line-height:1.45;
+}
+#deal-room .market-quote.prospect-panel .prospect-source-reasons{padding-inline-start:1.05rem}
+@media(max-width:350px){
+ #deal-room .market-quote.prospect-panel .prospect-source-list :is(.prospect-source-line,.prospect-source-columns){gap:.32rem}
+}
+
+/* The original centered stepper, with the mock-up's open layout around it. */
+#deal-room .market-quote .quote-price-editor{gap:.72rem;margin-bottom:.95rem}
+#deal-room .market-quote .quote-price-title{
+ display:flex;justify-content:space-between;align-items:baseline;gap:.5rem;
+}
+#deal-room .market-quote .quote-price-title small{color:#cbbfa9;font-size:.75rem}
+#deal-room .market-quote .quote-price-adjust{
+ grid-template-columns:46px minmax(0,1fr) 46px;gap:.55rem;
+}
+#deal-room .market-quote .quote-price-output{
+ text-align:center;font-size:clamp(1.55rem,7vw,2rem);
+}
+#deal-room .market-panel .market-quote .quote-price-editor button.quote-price-step{
+ border:1px solid #685943;background:#27221b;
+}
+#deal-room .market-quote .quote-price-metrics{padding-block:.25rem .15rem}
+#deal-room .market-quote .quote-price-metrics dd{font-size:1.35rem}
+#deal-room .market-quote.prospect-panel .prospect-source-single{
+ display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:.35rem .6rem;
+ border:0;border-radius:9px;background:#2f281e;padding:.68rem .76rem;
+}
+#deal-room .market-quote.prospect-panel .prospect-source-single>b{text-align:end;font-size:1.12rem}
+#deal-room .market-quote.prospect-panel .prospect-source-single>small{color:#cbbfa9}
+#deal-room .market-quote.prospect-panel .prospect-source-disclosure{
+ margin:.35rem 0 0;padding:0;background:none;border:0;color:#d9be90;
+}
+#deal-room .market-quote.prospect-panel .prospect-source-single>.prospect-source-disclosure{
+ grid-column:2;justify-self:end;margin:0;text-align:end;
+}
+#deal-room .market-quote.prospect-panel .prospect-source-single>.prospect-source-disclosure[open]{
+ grid-column:1/-1;justify-self:stretch;text-align:start;
+}
+#deal-room .market-quote.prospect-panel .prospect-source-disclosure>summary{cursor:pointer}
+#deal-room .market-quote.prospect-panel .prospect-source-disclosure p{
+ margin:.43rem 0 0;font-size:.8rem;line-height:1.5;color:#cbbfa9;
+}
+
+
+#deal-room .market-quote.prospect-panel .prospect-source-blocked-list{
+ display:grid;gap:.55rem;margin-top:.4rem;
+}
+#deal-room .market-quote.prospect-panel .prospect-source-unavailable button.prospect-source-blocked:disabled{
+ display:flex;align-items:center;width:100%;min-height:40px;margin:0;padding:.42rem .65rem;
+ border:1px solid #65605a;border-radius:7px;background:#383633;color:#ded8cf;
+ box-shadow:none;text-align:start;opacity:1;cursor:not-allowed;
+}
+#deal-room .market-quote.prospect-panel .prospect-source-blocked-list p{margin:.27rem .1rem 0}

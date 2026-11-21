@@ -218,3 +218,11 @@
 #deal-room > .business .opening-customer-head>.product{
  grid-column:2;margin:0;justify-self:start;max-width:none;white-space:normal;color:var(--ws-mark)
 }
+
+/* Center standalone action labels, not card rows, route choices, or icon controls.
+   Block-level flex keeps the existing widths and surrounding grid geometry. */
+#deal-room button:is(.primary,.quote-price-send):not(:has(> *)),
+#deal-room .ws-order-detail .ws-order-next button.primary[data-market-action]:not(:has(> *)),
+#deal-room .ws-orders .ws-order-lead > button:not(:has(> *)){
+ display:flex;align-items:center;justify-content:center;text-align:center;white-space:normal;
+}

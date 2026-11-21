@@ -7,9 +7,10 @@ const rows=[
 ];
 export const LEGACY_EQUIPMENT_PROJECTS=Object.freeze(rows.map(([id,name,buyer,units,unit,fame,proof,priceCap,factory,downPct,prep,transit,accept,freight,premium,delay,storage,lag,depositPct,progressPct,inspection],index)=>Object.freeze({id,name,buyer,units,unit,fame,proof,priceCap,factory,downPct,prep,transit,accept,freight,premium,delay,storage,lag,depositPct,progressPct,inspection,index})));
 const SIGN='SIGN_LEGACY_EQUIPMENT_V1',SHIP='SHIP_LEGACY_EQUIPMENT_V1',ACCEPT='ACCEPT_LEGACY_EQUIPMENT_V1',COLLECT='COLLECT_LEGACY_EQUIPMENT_V1',REBOOK='REBOOK_LEGACY_EQUIPMENT_V1';
+const LIVE=Object.freeze({[SHIP]:'SHIP_LEGACY_EQUIPMENT_V2',[ACCEPT]:'ACCEPT_LEGACY_EQUIPMENT_V2',[COLLECT]:'COLLECT_LEGACY_EQUIPMENT_V2'});
 const KIND='legacy-equipment-v1',PREP='legacy-preparing',TRANSIT='legacy-transit',OWED='legacy-receivable';
 const keyset=(...s)=>Object.freeze(s),stageKeys=keyset('type','signedDay','day');
-export const LEGACY_EQUIPMENT_ACTION_KEYS=Object.freeze({[SIGN]:keyset('type','projectId','lots','shipping','price','day'),[SHIP]:stageKeys,[ACCEPT]:stageKeys,[COLLECT]:stageKeys,[REBOOK]:stageKeys});
+export const LEGACY_EQUIPMENT_ACTION_KEYS=Object.freeze({[SIGN]:keyset('type','projectId','lots','shipping','price','day'),[SHIP]:stageKeys,[ACCEPT]:stageKeys,[COLLECT]:stageKeys,[REBOOK]:stageKeys,...Object.fromEntries(Object.values(LIVE).map(type=>[type,stageKeys]))});
 const uint=x=>Number.isSafeInteger(x)&&x>=0,positive=x=>uint(x)&&x>0,project=id=>LEGACY_EQUIPMENT_PROJECTS.find(p=>p.id===id);
 const TIERS=Object.freeze([[1,0,0],[2,1,4],[4,3,8],[8,5,12],[16,8,16]].map(Object.freeze));
 const tier=k=>TIERS.find(t=>t[0]===k),week=d=>Math.floor((d-1)/7),route=x=>['shared','reserved'].includes(x);
@@ -85,7 +86,7 @@ function orderAt(q,stage,rebooked=false){
   received,balanceDue:q.revenue-received,supplierPaid,freightPaid:shipped?q.freight:0,acceptancePaid:accepted?q.acceptanceFee:0,stationPaid,rebookPaid,operatingPaid,operatingCost,cost,spent,
   netProfit:q.price-cost-operatingCost,...(paid?{paidDay:paymentDay,actualProfit:received-spent}:{})};
 }
-function activeAt(s){
+function activeAt(s,calendar){
  const a=s?.market?.active,stage=s?.market?.status;
  if(!clock(s)||s.phase!=='market'||a?.kind!==KIND||![PREP,TRANSIT,OWED].includes(stage)||a.status!==stage)return null;
  const q=terms(project(a.legacyProjectId),a.lots,a.shipping,a.price,a.signedDay);
@@ -93,19 +94,21 @@ function activeAt(s){
  const expected=orderAt(q,stage,a.rebooked);
  if(a.rebooked&&(!expected.transfer||stage===PREP)||!Object.keys(expected).every(k=>expected[k]===a[k]))return null;
  const currentDay=stage===PREP?q.signedDay:stage===TRANSIT?q.shipDay:expected.deliveryDay;
- return s.day===currentDay?{q,active:a,stage}:null;
+ return (calendar?s.day>=currentDay:s.day===currentDay)?{q,active:a,stage}:null;
 }
-function intent(s,verb){
- const now=activeAt(s);if(!now)return null;
+function intent(s,verb,calendar){
+ const now=activeAt(s,calendar);if(!now)return null;
  const {q,active:a,stage}=now;
  let type,to,rebook=a.rebooked,date;
  if(verb==='rebook'){
-  if(stage!==TRANSIT||!a.transfer||a.rebooked)return null;
+  if(stage!==TRANSIT||!a.transfer||a.rebooked||s.day!==q.shipDay)return null;
   type=REBOOK;to=stage;rebook=true;date=s.day;
  }else{if(verb!==undefined)return null;
   [type,to,date]=stage===PREP?[SHIP,TRANSIT,q.shipDay]:stage===TRANSIT?[ACCEPT,OWED,a.deliveryDay]:[COLLECT,'paid',a.paymentDay];
  }
- const n=orderAt(q,to,rebook),out=n.spent-a.spent,income=n.received-a.received,cash=s.cash-out+income;
+ if(calendar&&type!==REBOOK&&s.day!==date)return null;
+ const n=orderAt(q,to,rebook),alreadyPaid=calendar?n.operatingPaid-a.operatingPaid:0;
+ const out=n.spent-a.spent-alreadyPaid,income=n.received-a.received,cash=s.cash-out+income;
  // On arrival supplier costs/running costs must be affordable *before*
  // receiving the progress installment. Same rule for collecting the final tail.
  if(!uint(out)||!uint(income)||s.cash<out||!uint(cash)||date<s.day)return null;
@@ -113,9 +116,10 @@ function intent(s,verb){
   const toAcceptance=q.acceptanceFee+q.stationFee+(n.deliveryDay-s.day)*30;
   if(cash<toAcceptance||cash-toAcceptance+q.progressDue<q.paymentLag*30)return null;
  }
- return {n,cash,date,action:{type,signedDay:q.signedDay,day:s.day}};
+ return {n,cash,date,action:{type:calendar?(LIVE[type]||type):type,signedDay:q.signedDay,day:s.day}};
 }
 export function legacyEquipmentNextAction(s,verb){return intent(s,verb)?.action??null;}
+export function legacyEquipmentCalendarAction(s,verb){return intent(s,verb,true)?.action??null;}
 export function applyLegacyEquipmentAction(s,input,canStart=true){
  const a=canonicalLegacyEquipmentAction(input);if(!a)return s;
  if(a.type===SIGN){
@@ -123,14 +127,15 @@ export function applyLegacyEquipmentAction(s,input,canStart=true){
   const q=terms(project(a.projectId),a.lots,a.shipping,a.price,a.day),order=orderAt(q,PREP);
   const n=structuredClone(s);n.cash=quote.cashAfterSigning;n.market.status=PREP;n.market.active=order;n.feedback={kind:'legacy-equipment-signed',message:order.productName+'整单签约，收客户定金 ¥'+order.deposit+'，付厂方订金 ¥'+order.supplierDown+'。'};return n;
  }
- const plan=intent(s,a.type===REBOOK?'rebook':undefined);
+ const historic=Object.keys(LIVE).find(type=>LIVE[type]===a.type),type=historic||a.type;
+ const plan=intent(s,type===REBOOK?'rebook':undefined,Boolean(historic));
  if(!plan||a.type!==plan.action.type||a.signedDay!==plan.action.signedDay||a.day!==plan.action.day)return s;
  const n=structuredClone(s),o=plan.n;n.day=plan.date;n.cash=plan.cash;n.market.active=o;n.market.status=o.status;
- const message=a.type===SHIP?'已付厂方尾款 ¥'+o.supplierBalance+' 和运费 ¥'+o.freight+'。'+(o.transfer?'接驳船改期；可等新船期，或付费争取早班。':'本批按约出运。'):
-  a.type===REBOOK?'已付改订费 ¥'+o.rebookPaid+'，到货日提前至第 '+o.deliveryDay+' 天；场站费仍需支付。':
-  a.type===ACCEPT?'整单已验收，已付验收费 ¥'+o.acceptanceFee+(o.stationPaid?' 和场站费 ¥'+o.stationPaid:'')+'，收到验收款 ¥'+o.progressDue+'。':
+ const message=type===SHIP?'已付厂方尾款 ¥'+o.supplierBalance+' 和运费 ¥'+o.freight+'。'+(o.transfer?'接驳船改期；可等新船期，或付费争取早班。':'本批按约出运。'):
+  type===REBOOK?'已付改订费 ¥'+o.rebookPaid+'，到货日提前至第 '+o.deliveryDay+' 天；场站费仍需支付。':
+  type===ACCEPT?'整单已验收，已付验收费 ¥'+o.acceptanceFee+(o.stationPaid?' 和场站费 ¥'+o.stationPaid:'')+'，收到验收款 ¥'+o.progressDue+'。':
   '已实收尾款 ¥'+o.tailDue+'；整单收支结清，实际净利 ¥'+o.actualProfit+'。';
- n.feedback={kind:a.type===SHIP?'legacy-equipment-shipped':a.type===REBOOK?'legacy-equipment-rebooked':a.type===ACCEPT?'legacy-equipment-accepted':'market-paid',message};
+ n.feedback={kind:type===SHIP?'legacy-equipment-shipped':type===REBOOK?'legacy-equipment-rebooked':type===ACCEPT?'legacy-equipment-accepted':'market-paid',message};
  if(o.status==='paid')n.marketHistory=[...(n.marketHistory||[]),structuredClone(o)];
  return n;
 }

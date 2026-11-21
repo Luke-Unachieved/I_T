@@ -1,7 +1,7 @@
 import {tradeAdviserHint} from './deal-room-market-adviser-hint.js';
 import {equipmentComicView} from './deal-room-equipment-comics.js';
 import {equipmentRoutePair,equipmentQuoteMilestones,equipmentQuoteDelay} from './deal-room-equipment-view.js';
-import {legacyEquipmentOffers,previewLegacyEquipment,legacyEquipmentNextAction} from './deal-room-equipment-legacy.js';
+import {legacyEquipmentOffers,previewLegacyEquipment,legacyEquipmentCalendarAction} from './deal-room-equipment-legacy.js';
 const e=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=x=>Number.isSafeInteger(x)?'¥'+x.toLocaleString('zh-CN'):'—';
 const fact=(k,v)=>'<div><dt>'+e(k)+'</dt><dd>'+e(v)+'</dd></div>';
@@ -24,12 +24,13 @@ const equipmentStory=Object.freeze({
  },
  'filling-line':{
   request:'「试机用我们自己带的瓶子。空转听不出问题，我想看看真装起来会不会卡。」',
-  shipped:'木箱封好前，工厂把试机用的空瓶放在随箱袋里。收货人一开箱就能找到。',
+  shipped:'木箱封好前，工厂把导轨调整说明放进随箱袋。等货到厂，买方会拿自己的瓶子试机。',
   accepted:'「第一排有一只瓶子歪了。重新对了导轨，第二排全过，验收单已经签好。」',
   paid:'买方发来第一批成品的照片。照片边上还放着试机那只空瓶，贴纸都没有撕。'
  }
 });
 const storyLine=t=>t?'<p class="market-note ws-equipment-story">'+e(t)+'</p>':'';
+const buyerSpeech=(text,name)=>text?'<figure class="market-note ws-equipment-story ws-equipment-buyer-speech"><figcaption>'+e(name)+'</figcaption><blockquote>'+e(text)+'</blockquote></figure>':'';
 function legacyOrderDetails(a,figure,settled=false){
  return '<details class="market-trade-detail ws-equipment-order-facts"><summary>合同与验收明细</summary>'+
   (figure?'<figure>'+figure+'</figure>':'')+'<p>'+e(a.inspection)+'</p><dl class="market-facts">'+
@@ -39,23 +40,23 @@ function legacyOrderDetails(a,figure,settled=false){
 function activeLegacy(s,ui){
  const a=s.market?.active, status=s.market?.status;
  if(a?.kind!=='legacy-equipment-v1'||!Object.hasOwn(statusName,status))return '';
- const story=equipmentStory[a.legacyProjectId],move=legacyEquipmentNextAction(s),rebook=legacyEquipmentNextAction(s,'rebook'),labels={
+ const story=equipmentStory[a.legacyProjectId],move=legacyEquipmentCalendarAction(s),rebook=legacyEquipmentCalendarAction(s,'rebook'),labels={
   'legacy-preparing':'安排装船',
-  'legacy-transit':'验收并收款',
+  'legacy-transit':'验收并收验收款',
   'legacy-receivable':'收尾款'
  };
- if(status==='legacy-transit'&&a.transfer&&!a.rebooked){
+ if(status==='legacy-transit'&&a.transfer&&!a.rebooked&&s.day===a.shipDay){
   const earlyDay=a.deliveryDay-a.daysSaved,earlyPay=a.paymentDay-a.daysSaved,difference=a.rebookFee-a.daysSaved*30;
-  return '<section class="market-active eq-order" aria-label="设备合同履行"><small>设备在途，'+e(a.buyer)+'</small><h3>'+e(a.productName)+'，'+a.physicalQuantity+e(a.physicalUnit)+'</h3><dl class="market-facts">'+fact('已到账',money(a.received))+fact('还没收到',money(a.balanceDue))+'</dl>'+legacyOrderDetails(a,picture(a.legacyProjectId))+'<section class="eq-decision"><h3>船期变了，怎么安排？</h3><p>换船通知：晚 '+a.slipDays+' 天。验收前共付 '+money(a.acceptanceFee+a.stationFee)+'（含场站费 '+money(a.stationFee)+'），验收后收 '+money(a.progressDue)+'。</p><p>改订早 '+a.daysSaved+' 天回款。算上省下的日常开支，总成本'+(difference===0?'不变':(difference>0?'多':'少')+money(Math.abs(difference)))+'。</p>'+
+  return '<section class="market-active eq-order" aria-label="设备合同履行"><small>设备在途，'+e(a.buyer)+'</small><h3>'+e(a.productName)+'，'+a.physicalQuantity+e(a.physicalUnit)+'</h3><dl class="market-facts">'+fact('已到账',money(a.received))+fact('还没收到',money(a.balanceDue))+'</dl>'+legacyOrderDetails(a,picture(a.legacyProjectId))+'<section class="eq-decision"><h3>船期变了，怎么安排？</h3><p>换船通知：晚 '+a.slipDays+' 天。验收前共付 '+money(a.acceptanceFee+a.stationFee)+'（含场站费 '+money(a.stationFee)+'），验收后收 '+money(a.progressDue)+'。</p><p>改订早 '+a.daysSaved+' 天回款。算上省下的日常开支，总成本'+(difference===0?'不变':(difference>0?'多':'少')+money(Math.abs(difference)))+'。不改订的话，照常过天，等到到港日再验收。</p>'+
    tradeAdviserHint(ui.adviserId,rebook?'场站费两边都得付。换的是早几天拿到货和尾款，不是把那笔费用免了。':'手上的钱得先够验收。既然改订后周转不开，别把这一笔也搭进去。')+
-   equipmentRoutePair({title:'照现在的船期等',fee:0,day:a.deliveryDay,pay:a.paymentDay,button:'按现在船期验收',enabled:move,action:'data-legacy-next'},{title:'改订更早的班次',fee:a.rebookFee,day:earlyDay,pay:earlyPay,button:'确认改订',enabled:rebook,action:'data-legacy-rebook'})+'</section></section>';
+   equipmentRoutePair({title:'照现在的船期等',fee:0,day:a.deliveryDay,pay:a.paymentDay,button:'',enabled:false,action:''},{title:'改订更早的班次',fee:a.rebookFee,day:earlyDay,pay:earlyPay,button:'确认改订',enabled:rebook,action:'data-legacy-rebook'})+'</section></section>';
  }
  const route=a.shipping==='shared'?'拼载海运':'直运海舱',preparing=status==='legacy-preparing',transit=status==='legacy-transit',settled=status==='paid';
  const moment=settled?story?.paid:transit?(a.rebooked?'船代把新提单发了过来，旧班次被划掉了。这回别按旧日期通知买方。':story?.shipped):preparing?'工厂收到了首款。助理先把出运要付的钱单独记下来，没算在可挪用的余额里。':(a.transfer&&!a.rebooked?'「晚到那几天，我们把人手挪去做别的了。现在货验完了，我把回执补发给你。」':a.rebooked?'「提前到了，预留的卸货时间用上了。我把验收单发你，财务按新日期排尾款。」':story?.accepted);
  const figure=a.legacyProjectId==='filling-line'&&transit?'<img class="pv-art" alt="" src="assets/deal-original-filling-line-crated.webp">':picture(a.legacyProjectId);
- const next=preparing?'第 '+a.shipDay+' 天装船。届时付工厂余款、运费和这段日费，共 '+money(a.shipmentDue)+'。此时不收买方验收款。':transit?'第 '+a.deliveryDay+' 天验收。先付 '+money(a.acceptanceFee+(a.transfer?a.stationFee:0)+(a.deliveryDay-s.day)*30)+' 交付支出和日费，验收再收 '+money(a.progressDue)+'。':settled?'合同款已收齐。':'第 '+a.paymentDay+' 天收尾款 '+money(a.tailDue)+'。';
- return '<section class="market-active ws-equipment-state eq-order" aria-label="设备合同履行"><small>大型设备合同，'+(preparing?'已订货':statusName[status])+'</small><h3>'+e(a.productName)+'，'+a.physicalQuantity+e(a.physicalUnit)+'</h3><p>'+e(a.buyer)+'，'+route+'，第 '+s.day+' 天</p><dl class="market-facts">'+fact('主账可用现金',money(s.cash))+fact('已收买方款',money(a.received))+fact('已付各项支出',money(a.spent))+fact('尚未收到',money(a.balanceDue))+'</dl><p role="status">'+e(next)+'</p>'+legacyOrderDetails(a,figure,settled)+storyLine(moment)+equipmentComicView(a,status)+(preparing&&!move?tradeAdviserHint(ui.adviserId,'买方的下一笔钱要等验收才到，先把出运这笔凑齐。'):'')+
- (settled?'<button type="button" class="primary" data-market-action="CLOSE_MARKET">回工作室</button>':move?'<button type="button" class="primary" data-legacy-next>'+e(labels[status])+'</button>':'<p>这一步还不能走。请核对日期和手头现金。</p>')+
+ const next=preparing?'第 '+a.shipDay+' 天装船。届时付工厂余款和运费，共 '+money(a.supplierBalance+a.freight)+'。此时不收买方验收款。':transit?'第 '+a.deliveryDay+' 天验收。先付 '+money(a.acceptanceFee+(a.transfer?a.stationFee:0))+' 交付费用，验收再收 '+money(a.progressDue)+'。':settled?'合同款已收齐。':'第 '+a.paymentDay+' 天收尾款 '+money(a.tailDue)+'。';
+ return '<section class="market-active ws-equipment-state eq-order" aria-label="设备合同履行"><small>大型设备合同，'+(preparing?'已订货':statusName[status])+'</small><h3>'+e(a.productName)+'，'+a.physicalQuantity+e(a.physicalUnit)+'</h3><p>'+e(a.buyer)+'，'+route+'，第 '+s.day+' 天</p><dl class="market-facts">'+fact('主账可用现金',money(s.cash))+fact('已收买方款',money(a.received))+fact('已付各项支出',money(a.spent+(settled?0:(s.day-(preparing?a.signedDay:transit?a.shipDay:a.deliveryDay))*30)))+fact('尚未收到',money(a.balanceDue))+'</dl><p role="status">'+e(next)+'</p>'+legacyOrderDetails(a,figure,settled)+(status==='legacy-receivable'?buyerSpeech(moment,'买方验收留言'):storyLine(moment))+equipmentComicView(a,status)+(preparing&&s.day===a.shipDay&&!move?tradeAdviserHint(ui.adviserId,'买方的下一笔钱要等验收才到，先把出运这笔凑齐。'):'')+
+ (settled?'<button type="button" class="primary" data-market-action="CLOSE_MARKET">回工作室</button>':move?'<button type="button" class="primary" data-legacy-next>'+e(labels[status])+'</button>':s.day===(preparing?a.shipDay:transit?a.deliveryDay:a.paymentDay)?'<p>手头现金不足，无法继续这一步。</p>':'')+
  '</section>';
 
 }
@@ -81,7 +82,7 @@ export function legacyEquipmentView(s,ui={}){
  <div id="legacy-${id}-facts" class="market-choice-facts"><p>运费 <strong>${money(r.freight)}</strong></p><small>${note}</small></div></div>`).join('');
  return `<section class="market-quote market-trade-sheet" aria-label="设备合同报价"><button type="button" data-legacy-back>‹ 返回商品与项目</button>
  <div class="market-trade-hero market-sheet">${picture(row.projectId)}<div><small>${e(row.buyer)}</small><h2 tabindex="-1" data-legacy-heading>${e(row.name)}（${row.physicalQuantity} ${e(row.physicalUnit)}）</h2><p>第 ${row.replyBy} 天前回复</p></div></div>
- <section class="market-buyer-brief" aria-label="客户留言"><strong>客户留言</strong>${storyLine(equipmentStory[row.projectId]?.request)}</section>
+ <section class="market-buyer-brief" aria-label="客户留言">${buyerSpeech(equipmentStory[row.projectId]?.request,'客户留言')}</section>
  <div class="market-trade-columns"><section aria-label="船期与运输费用"><fieldset class="market-compare"><legend>怎么订舱</legend>${shipOptions}</fieldset>
  ${equipmentQuoteMilestones(dates.shipDay,dates.plannedDeliveryDay,dates.plannedPaymentDay,{fixed:!shared})}
  ${shared?equipmentQuoteDelay({slipDays:standard.slipDays,stationFee:standard.stationFee,rebookFee:standard.rebookFee,daysSaved:standard.daysSaved,riskProfit:q.worstNet}):''}</section>
@@ -104,6 +105,6 @@ export function bindLegacyEquipment(root,s,ui,rerender,dispatch){
  price?.addEventListener('input',()=>{ui.legacyChecked=null;const button=q('[data-legacy-sign]');if(button)button.disabled=true;});
  q('[data-legacy-form]')?.addEventListener('submit',ev=>{ev.preventDefault();if(!price||!ui.legacyDraft)return;ui.legacyDraft.price=Number(price.value);const c=draft(s,ui);ui.legacyChecked=c?JSON.stringify(c.d):null;rerender();});
  on('[data-legacy-sign]',()=>{const c=draft(s,ui);if(c&&ui.legacyChecked===JSON.stringify(c.d)){const a=previewLegacyEquipment(s,c.d).action;if(a)dispatch(a);}});
- on('[data-legacy-next]',()=>{const a=legacyEquipmentNextAction(s);if(a)dispatch(a);});
- on('[data-legacy-rebook]',()=>{const a=legacyEquipmentNextAction(s,'rebook');if(a)dispatch(a);});
+ on('[data-legacy-next]',()=>{const a=legacyEquipmentCalendarAction(s);if(a)dispatch(a);});
+ on('[data-legacy-rebook]',()=>{const a=legacyEquipmentCalendarAction(s,'rebook');if(a)dispatch(a);});
 }
