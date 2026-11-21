@@ -1,4 +1,4 @@
-import {prepareGameImages} from './deal-room-image-loading.js';
+import {prepareGameImages} from './deal-room-image-loading.js?v=28';
 import {readCompanyName,bindCompanyName,companyNameView,companyTitleText} from './deal-room-company.js';
 import {openingContractMilestone} from './deal-room-opening-calendar.js';
 import {repeatContractMilestone} from './deal-room-repeat-calendar.js';

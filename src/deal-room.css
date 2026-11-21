@@ -230,22 +230,29 @@
  color:var(--ws-secondary,#c3bcae);
 }
 
-/* Keep art slots warm and steady while the browser fetches or decodes. */
+/* This base layer stays visible even if a browser has not painted the img yet.
+   Treat composited/transparent art as image-only so it never masks its scene. */
+#deal-room :is(.ws-desk,.wh-scene-frame,.life-coffee-frame,.balcony-raster-scene,figure):has(> img:is([data-deal-image="loading"],[data-deal-image="failed"],[data-deal-image="revealed"])){
+ background-color:#49392a;
+}
 #deal-room img[data-deal-image="loading"]{
- background-color:#362d23;
- background-image:linear-gradient(112deg,#342b22 14%,#524132 42%,#71573b 50%,#524132 58%,#342b22 86%);
+ background-color:#49392a;
+ background-image:linear-gradient(112deg,#3e3025 14%,#5e4a37 42%,#846547 50%,#5e4a37 58%,#3e3025 86%);
  background-size:250% 100%;
  background-position:100% 50%;
  color:#e9d6b6;
 }
 #deal-room img[data-deal-image="failed"]{
- background-color:#3c3024;
- background-image:linear-gradient(140deg,#4d3b2b,#322820);
+ background-color:#49392a;
+ background-image:linear-gradient(140deg,#534131,#413226);
  color:#f4e4c9;
+}
+#deal-room :is(.ws-note-face,.ws-intro-portrait,.ws-first-face,.adviser-face,.prospect-avatar){
+ background-color:#49392a;
 }
 @keyframes ws-image-wait{to{background-position:0 50%}}
 @keyframes ws-image-in{from{opacity:.52}to{opacity:1}}
 @media(prefers-reduced-motion:no-preference){
- html:not(.reduce-motion) #deal-room img[data-deal-image="loading"]{animation:ws-image-wait 1.65s ease-in-out 2}
+ html:not(.reduce-motion) #deal-room img[data-deal-image="loading"]{animation:ws-image-wait 1.65s ease-in-out infinite}
  html:not(.reduce-motion) #deal-room img[data-deal-image="revealed"]{animation:ws-image-in .25s ease-out both}
 }

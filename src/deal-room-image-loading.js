@@ -48,7 +48,14 @@ function trackImage(img){
   const finish=()=>{
    if(!current())return;
    if(img.complete&&img.naturalWidth===0){fail();return;}
-   set(clock.now()-start>=revealAfterMs?'revealed':null);
+   if(clock.now()-start<revealAfterMs){set(null);return;}
+   set('revealed');
+   // Remove the temporary base layer after the actual fade ends. Keep a
+   // bounded cleanup for reduced motion and tabs that suppress animations.
+   const clear=()=>{if(current()&&img.getAttribute(imageState)==='revealed')set(null);};
+   const onAnimationEnd=event=>{if(event.animationName==='ws-image-in')clear();};
+   img.addEventListener('animationend',onAnimationEnd);
+   globalThis.setTimeout(()=>{img.removeEventListener('animationend',onAnimationEnd);clear();},350);
   };
   // An unsupported decode() or rejected decode for a usable image must not
   // leave it stuck in the loading state or report a broken request.
