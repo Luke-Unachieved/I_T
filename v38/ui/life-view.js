@@ -9,6 +9,7 @@ const choices = {
 };
 
 export function optionDescription(type, id) {
+  if (type === 'difficulty' && id === 'normal') return '初始资金、回款风险和同行竞争均为标准。';
   return choices[type]?.rows.find(item => item.id === id)?.description;
 }
 
@@ -105,12 +106,26 @@ function outingCards(state) {
   }).join('');
 }
 
+const outingScenes = {
+  'flower-market': '花市的小桶漏了水。朋友陪你把花一路捧回家，刚好插满门口的陶罐。',
+  mending: '缝完最后一针，你拎起旧布包试了试。松了好几周的提手终于结实了。',
+  'night-bus': '夜班车沿海湾拐了一个弯。港口的灯在后窗渐渐远去，你把账本留在了包里。',
+};
+
+function outingResult(recent) {
+  if (!recent) return '';
+  const outing = LIFE_CATALOG.outings.find(item => item.id === recent.id);
+  const text = outingScenes[recent.id] ?? recent.text ?? '你给自己留出了一点休息的时间。';
+  return `<article class="outing-note">${media(recent.asset ?? outing?.asset, 'outing-art')}
+    <h3>${esc(recent.label ?? outing?.label ?? '最近一次休息')}</h3><p>${esc(text)}</p>
+    ${outing ? `<p>支出 ${yuan(outing.price)}${Number.isSafeInteger(recent.week) ? ` · 第 ${count(recent.week)} 周` : ''}</p>` : ''}
+    ${recent.restored ? `<p class="positive">精力 +${count(recent.restored)}</p>` : '<p>精力已满。</p>'}</article>`;
+}
+
 export function lifePanel(state) {
   if (!state.life) return '';
-  const recent = state.life.latestOuting;
-  const lookup = latest => LIFE_CATALOG.outings.find(item => item.id === latest.id);
   const energy = `<div class="life-energy"><div><label for="life-energy">精力 ${count(state.energy)} / 100</label><progress id="life-energy" max="100" value="${state.energy}"></progress></div><p>${state.energy < 35 ? '精力偏低，本周报价的中单率略降。出门走走可以恢复。' : '连周经营会消耗精力；旅行或约朋友可以恢复。'}</p></div>`;
-  const last = recent ? `<article class="outing-note">${media(recent.asset ?? lookup(recent)?.asset, 'outing-art')}<h3>${esc(recent.label ?? lookup(recent)?.label ?? '最近一次休息')}</h3><p>${esc(recent.text ?? recent.description ?? lookup(recent)?.description)}</p>${recent.restored ? `<p class="positive">精力 +${count(recent.restored)}</p>` : ''}</article>` : '';
+  const last = outingResult(state.life.latestOuting);
   return `${panel('life-rest', '旅行与好友', '给自己留一点下班时间。', `${energy}${last}<div class="life-grid">${outingCards(state)}</div>`)}
     ${panel('life-property', '房产', `生活资产 ${yuan(lifeAssets(state))}。房产抵押当前增加授信 ${yuan(collateral(state))}。`, `<div class="life-grid">${propertyCards(state)}</div>`)}
     ${panel('life-car', '车行', '买喜欢的车，手头吃紧时也可以卖掉。', `<div class="life-grid">${carCards(state)}</div>`)}`;

@@ -1,12 +1,13 @@
 import { CATEGORIES, PRODUCTS } from '../data/core.js';
 import { CERTIFICATION_BY_ID, FINANCING, MARKET_BY_ID, STAFF_ROLES } from '../data/expansion.js';
-import { expediteFee, factorValue, forecast, lawsuitFee, liquidationValue } from '../engine/game.js';
+import { canExpedite, expediteFee, factorValue, forecast, lawsuitFee, liquidationValue } from '../engine/game.js';
 import { quote } from '../engine/quotes.js';
 import { stockPurchaseQuote } from '../engine/strategy.js';
+import { imageFrame } from './media.js';
 
 const sources = {
-  stock: { name: '现货仓', hint: '启动快，采购时付全款。' },
-  factory: { name: '工厂排产', hint: '采购单价较低，先付 30% 预付款。' },
+  stock: { name: '现货仓', hint: '备货较快，中单时付清采购款。' },
+  factory: { name: '工厂排产', hint: '采购单价较低，中单时先付 30% 采购款。' },
   inventory: { name: '自有库存', hint: '使用仓库的同款货物，按账面成本核算。' },
 };
 
@@ -20,7 +21,8 @@ const receivableStatus = {
   lawsuit: '诉讼中', recovered: '已追回', factored: '已保理', insured: '已获赔',
 };
 
-const activeOrderStates = new Set(['procurement', 'production', 'transit', 'delivered']);
+const deliveryOrderStates = new Set(['procurement', 'production', 'transit']);
+const activeOrderStates = new Set([...deliveryOrderStates, 'delivered']);
 const activeReceivableStates = new Set(['open', 'overdue', 'bad-debt', 'lawsuit']);
 const productIndex = new Map(PRODUCTS.map(product => [product.id, product]));
 const currencyFormatters = new Map();
@@ -53,9 +55,8 @@ function week(value) {
   return Number.isSafeInteger(value) && value > 0 ? `第 ${number(value)} 周` : '—';
 }
 
-function image(path, classes = '') {
-  if (typeof path !== 'string' || !/^assets\/[\w.-]+\.(?:webp|png|jpe?g|svg)$/i.test(path)) return '';
-  return `<img class="${classes}" src="${escapeHtml(path)}" alt="" loading="lazy" decoding="async">`;
+function unitPrice(value, currency, unit) {
+  return `${money(value, currency)}${unit ? ` / ${escapeHtml(unit)}` : ''}`;
 }
 
 function badge(label, variant = '') {
@@ -97,7 +98,8 @@ function eligible(state, inquiry) {
 }
 
 function productCell(name, category, asset) {
-  return `<div class="trade-product">${image(asset, 'product-thumb')}<span><strong>${escapeHtml(name)}</strong>
+  const art = imageFrame(asset, { className: 'product-thumb', fallback: '无图' });
+  return `<div class="trade-product">${art}<span><strong>${escapeHtml(name)}</strong>
     ${category ? `<small>${escapeHtml(category)}</small>` : ''}</span></div>`;
 }
 
@@ -116,12 +118,12 @@ function inquiryTable(rows, state) {
       inquiry.repeat && badge('熟客复购'), inquiry.brandDemand && badge('偏好品牌'), inquiry.localRestock && badge('海外仓补货')].filter(Boolean);
     const quotesAction = alreadyBid ? badge('已报价', 'pending') : `<button type="button" class="button${tour ? ' primary' : ''}"
       data-ui="quote-open" data-id="${escapeHtml(inquiry.id)}" ${tour}>${canQuote && !full ? '算价' : '查看条款'}</button>`;
-    return `<tr role="row">${cell('商品', `${productCell(inquiry.productName, inquiry.category, inquiry.asset)}${flags.length ? `<small class="trade-flags">${flags.join(' ')}</small>` : ''}`)}
+    return `<tr role="row" data-inquiry-id="${escapeHtml(inquiry.id)}">${cell('商品', `${productCell(inquiry.productName, inquiry.category, inquiry.asset)}${flags.length ? `<small class="trade-flags">${flags.join(' ')}</small>` : ''}`)}
       ${cell('买家与信用', `<strong>${escapeHtml(buyer.name)}</strong> ${badge(buyer.credit)}<small>${escapeHtml(buyer.type)}</small>`)}
       ${cell('数量', `${number(inquiry.quantity)} ${escapeHtml(inquiry.unit)}`, 'number')}
-      ${cell('目标单价', money(inquiry.targetPrice, inquiry.currency), 'number')}
+      ${cell('目标单价', unitPrice(inquiry.targetPrice, inquiry.currency, inquiry.unit), 'number')}
       ${cell('交期与有效期', `${week(inquiry.dueWeek)}<small>报价至 ${week(inquiry.expiresWeek)}</small>`)}
-      ${cell('付款条件', `${number(inquiry.depositRate)}% 定金<small>${inquiry.terms ? `账期 ${number(inquiry.terms)} 周` : '交货即结款'}</small>`)}
+      ${cell('付款条件', `${number(inquiry.depositRate)}% 定金<small>${inquiry.terms ? `账期 ${number(inquiry.terms)} 周` : '交货当周应付'}</small>`)}
       ${cell('竞争', `${number(inquiry.rivals.length)} 家<small>${inquiry.rivals.slice(0, 2).map(rival => escapeHtml(rival.name)).join('、')}</small>`)}
       ${cell('操作', quotesAction, 'trade-actions')}</tr>`;
   }));
@@ -136,9 +138,10 @@ function bidTable(state) {
   const headers = ['询盘', '货源', '报价', '中单率', '垫资峰值', '操作'];
   return table('已提交报价', headers, state.bids.map(bid => {
     const inquiry = state.inquiries.find(item => item.id === bid.inquiryId);
-    const label = inquiry ? `${inquiry.productName} · ${inquiry.buyer.name}` : productIndex.get(bid.productId)?.name;
+    const product = productIndex.get(bid.productId);
+    const label = inquiry ? `${inquiry.productName} · ${inquiry.buyer.name}` : product?.name;
     return `<tr role="row">${cell('询盘', `${escapeHtml(label || '待揭晓报价')}${marketName(inquiry ?? bid)}${bid.branded ? badge('自有品牌') : ''}`)}${cell('货源', `${escapeHtml(sources[bid.source]?.name ?? bid.source)}${bid.financing && bid.financing !== 'standard' ? `<small>${escapeHtml(FINANCING[bid.financing]?.label)}</small>` : ''}`)}
-      ${cell('报价', `${money(bid.unitPrice, bid.currency)}<small>总货款 ${money(bid.foreignTotal ?? bid.total, bid.currency)}</small>`, 'number')}
+      ${cell('报价', `${unitPrice(bid.unitPrice, bid.currency, inquiry?.unit ?? product?.unit)}<small>总货款 ${money(bid.foreignTotal ?? bid.total, bid.currency)}</small>`, 'number')}
       ${cell('中单率', percent(bid.probability), 'number')}${cell('垫资峰值', money(bid.workingCapital ?? bid.upfront), 'number')}
       ${cell('操作', button('withdraw-bid', bid.inquiryId, '撤回'), 'trade-actions')}</tr>`;
   }));
@@ -152,7 +155,7 @@ export function inquiriesPage(state, ui) {
       (availability !== 'available' || (canQuote && !submitted.has(inquiry.id) && state.bids.length < 3)));
   return `<div class="trade-stack">
     <section class="panel" data-tour="inquiries"><header class="trade-header"><div>
-      <h2>本周询盘</h2><p class="trade-note">按交期和垫资能力筛选。报价在本周结束时开结果。</p></div>
+      <h2>本周询盘</h2><p class="trade-note">结合交期和可用资金挑选询盘。报价在本周结束时开结果。</p></div>
       ${badge(`已用报价位 ${state.bids.length} / 3`, 'pending')}
     </header>
     <div class="trade-filters">
@@ -166,16 +169,28 @@ export function inquiriesPage(state, ui) {
       </select></label>
     </div>
     ${rows.length ? inquiryTable(rows, state) : empty('没有符合筛选条件的询盘。可选择全部询盘查看本周信息。')}
+    <p class="trade-note">买家信用从 AAA 到 B，等级越高，通常越能按时付款。</p>
     </section>
     ${panel('已提交报价', state.bids.length ? bidTable(state) : empty('本周还没有提交报价。'), '<span class="trade-note">结算前可撤回</span>')}
   </div>`;
 }
 
-function timeline(order) {
-  if (order.status === 'production') return `预计剩 ${number(order.productionLeft)} 周生产`;
-  if (order.status === 'transit') return `预计剩 ${number(order.shippingLeft)} 周到货`;
-  if (order.deliveredWeek) return `${week(order.deliveredWeek)}交货`;
-  return '';
+function fulfillment(order) {
+  if (order.status === 'procurement') {
+    if (order.source === 'inventory') return { label: '库存已预留，待发货' };
+    if (order.costPaid >= order.cost) {
+      return { label: order.source === 'factory' ? '已付款，待排产' : '已付款，待备货', detail: `采购款 ${money(order.costPaid)} 已付清` };
+    }
+    if (order.costPaid > 0) return { label: '已预付，待排产', detail: `已付 ${money(order.costPaid)}，待付 ${money(order.cost - order.costPaid)}` };
+  }
+  if (order.status === 'production') {
+    const work = order.source === 'stock' ? '备货' : '生产';
+    return { label: `${work}中`, detail: `预计还需 ${number(order.productionLeft)} 周${work}` };
+  }
+  const label = orderStatus[order.status] ?? order.status;
+  if (order.status === 'transit') return { label, detail: `预计还需 ${number(order.shippingLeft)} 周到货` };
+  if (order.deliveredWeek) return { label, detail: `${week(order.deliveredWeek)}交货` };
+  return { label };
 }
 
 function orderTable(rows, state, name) {
@@ -184,19 +199,21 @@ function orderTable(rows, state, name) {
     const product = productIndex.get(order.productId);
     const buyer = typeof order.buyer === 'object' ? order.buyer?.name : order.buyer;
     const staff = order.staffId ? state.staff.find(person => person.id === order.staffId) : null;
-    const late = !order.deliveredWeek && state.week > order.dueWeek && activeOrderStates.has(order.status);
+    const pendingDelivery = deliveryOrderStates.has(order.status);
+    const late = pendingDelivery && state.week > order.dueWeek;
+    const { label, detail } = fulfillment(order);
     let actions = '—';
     if (order.expedited) actions = badge('已加急');
-    else if (activeOrderStates.has(order.status) && order.status !== 'delivered' && order.shippingLeft > 0) {
+    else if (canExpedite(state, order)) {
       actions = `${button('expedite', order.id, `加急 · ${money(expediteFee(order))}`)}<small>提前 1 周到货</small>`;
     }
     return `<tr role="row">${cell('订单', `<strong>${escapeHtml(order.productName ?? product?.name ?? '商品订单')}</strong>
-        <small>${escapeHtml(buyer)} · ${number(order.quantity)} ${escapeHtml(product?.unit ?? '件')}</small>
+        <small>${escapeHtml(buyer)} · ${number(order.quantity)} ${escapeHtml(order.unit ?? product?.unit ?? '件')}</small>
         ${marketName(order)}${order.branded ? badge('自有品牌') : ''}${order.warehouseLocal ? badge('海外仓交付') : ''}${staff ? `<small>负责人 ${escapeHtml(staff.name)}</small>` : ''}`)}
-      ${cell('状态', `${badge(orderStatus[order.status] ?? order.status, late ? 'negative' : '')}
-        ${late ? badge(`逾期 ${state.week - order.dueWeek} 周`, 'negative') : ''}<small>${timeline(order)}</small>`)}
-      ${cell('约定交期', week(order.dueWeek))}${cell('预计回款', `${week(order.expectedPayWeek)}${order.currency && order.currency !== 'CNY' ? `<small>合同额 ${money(order.foreignTotal, order.currency)}</small>` : ''}${order.financing && order.financing !== 'standard' ? `<small>${escapeHtml(FINANCING[order.financing]?.label)}</small>` : ''}`)}
-      ${cell('利润与罚款', `${money(order.profit)}${order.penalty ? `<small class="negative">−${money(order.penalty)} 交付罚款</small>` : ''}`, `number${order.profit < 0 ? ' negative' : ''}`)}
+      ${cell('状态', `${badge(label, late ? 'negative' : '')}${late ? badge(`逾期 ${state.week - order.dueWeek} 周`, 'negative') : ''}${detail ? `<small>${detail}</small>` : ''}`)}
+      ${cell('约定交期', `${week(order.dueWeek)}${pendingDelivery && order.deliverWeek ? `<small>预计 ${week(order.deliverWeek)}交货</small>` : ''}`)}
+      ${cell('预计回款', `${week(order.expectedPayWeek)}${order.currency && order.currency !== 'CNY' ? `<small>合同额 ${money(order.foreignTotal, order.currency)}</small>` : ''}${order.financing && order.financing !== 'standard' ? `<small>${escapeHtml(FINANCING[order.financing]?.label)}</small>` : ''}`)}
+      ${cell('利润与罚款', `${money(order.profit)}<small>${pendingDelivery ? '预计利润' : '已入账利润'}</small>${order.penalty ? `<small class="negative">含交付罚款 −${money(order.penalty)}</small>` : ''}`, `number${order.profit < 0 ? ' negative' : ''}`)}
       ${cell('操作', actions, 'trade-actions')}</tr>`;
   }));
 }
@@ -291,37 +308,54 @@ function stockPurchaseForm(state) {
 }
 
 export function ordersPage(state) {
-  const activeOrders = state.orders.filter(order => activeOrderStates.has(order.status));
+  const activeOrders = state.orders.filter(order => deliveryOrderStates.has(order.status));
+  const deliveredOrders = state.orders.filter(order => order.status === 'delivered');
   const pastOrders = state.orders.filter(order => !activeOrderStates.has(order.status));
   const receivables = state.receivables.filter(item => activeReceivableStates.has(item.status));
   const settled = state.receivables.filter(item => !activeReceivableStates.has(item.status));
   return `<div class="trade-stack">
-    ${panel('在执行订单', `${activeOrders.length ? orderTable(activeOrders, state, '在执行订单') : empty('还没有在执行的订单。中标后会在这里跟踪采购、生产和发货。')}
+    ${panel('待交付订单', `${activeOrders.length ? orderTable(activeOrders, state, '待交付订单') : empty('这会儿没有待交付的订单。中单后，可以在这里跟进备货和发货。')}
+      ${deliveredOrders.length ? `<details open><summary>已交货，待结清（${number(deliveredOrders.length)} 笔）</summary>${orderTable(deliveredOrders, state, '已交货，待结清')}</details>` : ''}
       ${pastOrders.length ? `<details><summary>最近已结束订单（${Math.min(pastOrders.length, 12)} 笔）</summary>${orderTable(pastOrders.slice(-12).reverse(), state, '已结束订单')}</details>` : ''}`,
     '<span class="trade-note">生产、发运和交付随周结算推进</span>')}
-    ${panel('应收账款', `${receivables.length ? receivablesTable(receivables, '未结应收账款', state) : empty('暂时没有应收账款。')}
+    ${panel('应收账款', `${receivables.length ? receivablesTable(receivables, '未结应收账款', state) : empty('暂时没有待收货款。交货后，可以在这里查看回款时间。')}
       ${settled.length ? `<details><summary>最近回款（${Math.min(settled.length, 12)} 笔）</summary>${receivablesTable(settled.slice(-12).reverse(), '最近回款', state)}</details>` : ''}`)}
     ${scheduledReceipts(state)}
-    ${panel('库存', `${state.inventory.some(item => item.quantity > 0) ? inventoryTable(state) : empty('仓库暂无待处置库存。')}${stockPurchaseForm(state)}`,
+    ${panel('库存', `${state.inventory.some(item => item.quantity > 0) ? inventoryTable(state) : empty('仓库里还没有库存。')}${stockPurchaseForm(state)}`,
     `<span class="trade-note">库存可用于同款询盘，也可清仓回笼现金${state.ventures?.warehouse > 0 ? '' : '。建成自有仓库后可主动备货'}</span>`)}
   </div>`;
 }
 
 function quoteArtwork(inquiry) {
   const { buyer } = inquiry;
+  const portrait = imageFrame(buyer.portrait, { className: 'buyer-portrait', fallback: '无图' });
+  const product = imageFrame(inquiry.asset, { className: 'quote-product-image', fallback: '商品图片未加载' });
+  const comic = buyer.comic ? imageFrame(buyer.comic, {
+    className: 'buyer-comic', alt: `${buyer.name}的询盘来信漫画`, fallback: '来信漫画未加载', retry: true,
+  }) : '';
   return `<aside class="buyer-art" aria-label="买家与商品">
-    <div class="trade-product">${image(buyer.portrait, 'buyer-portrait')}<span>
-      <strong>${escapeHtml(buyer.name)}</strong> ${badge(buyer.credit)}<small>${escapeHtml(buyer.type)}</small></span></div>
+    <div class="trade-product">${portrait}<span>
+      <strong>${escapeHtml(buyer.name)}</strong>${buyer.credit ? ` ${badge(`信用 ${buyer.credit}`)}` : ''}<small>${escapeHtml(buyer.type)}</small></span></div>
     ${buyer.line ? `<blockquote>${escapeHtml(buyer.line)}</blockquote>` : ''}
-    ${image(inquiry.asset, 'quote-product-image')}
+    ${product}
     <p><strong>${escapeHtml(inquiry.productName)}</strong> · ${number(inquiry.quantity)} ${escapeHtml(inquiry.unit)}</p>
     ${marketName(inquiry)}
-    ${buyer.comic ? `<details><summary>查看来信漫画</summary>${image(buyer.comic, 'buyer-comic')}</details>` : ''}
+    ${comic ? `<details><summary>查看来信漫画</summary>${comic}</details>` : ''}
     <p class="trade-note">约定 ${week(inquiry.dueWeek)}交货，报价有效至 ${week(inquiry.expiresWeek)}。</p>
-    <p class="trade-note">定金 ${number(inquiry.depositRate)}% · 基础账期 ${number(inquiry.terms)} 周 · 最低信誉 ${number(inquiry.minRep)}。</p>
+    <p class="trade-note">定金 ${number(inquiry.depositRate)}% · ${inquiry.terms ? `基本账期 ${number(inquiry.terms)} 周` : '交货当周应付'} · ${inquiry.minRep ? `要求公司信誉 ${number(inquiry.minRep)} 以上` : '无信誉要求'}。</p>
     ${inquiry.cert ? `<p class="trade-note">所需认证：${escapeHtml(CERTIFICATION_BY_ID[inquiry.cert]?.name ?? inquiry.cert)}</p>` : ''}
     <p class="trade-note">${inquiry.rivals.length} 家同行参与${inquiry.rivals.length ? `，包括 ${inquiry.rivals.slice(0, 2).map(rival => `${escapeHtml(rival.name)}（${escapeHtml(rival.style)}）`).join('、')}` : ''}。</p>
   </aside>`;
+}
+
+function quoteCashForecast(lowest, submitted) {
+  if (!Number.isFinite(lowest?.hypothetical)) return '';
+  const shortfall = lowest.hypothetical < 0;
+  const balance = shortfall ? `资金不足，预计还差 ${money(-lowest.hypothetical)}` : `预计仍有 ${money(lowest.hypothetical)}`;
+  const assumption = submitted ? '假设本单和已提交的报价都中单，且后续不再新增报价。' : '假设本单中单，且后续不再新增报价。';
+  return `<p class="quote-risk${shortfall ? ' quote-risk--shortfall negative' : ' quote-risk--normal'}" data-tour="cash-forecast">
+    <strong>若中单 · 未来 12 周最低余额</strong><br>${week(lowest.week)}：${balance}
+    <small>${assumption}${shortfall ? '提交前，请检查剩余授信和到期款。' : ''}</small></p>`;
 }
 
 function quoteNumbers(state, proposal, inquiry) {
@@ -331,7 +365,7 @@ function quoteNumbers(state, proposal, inquiry) {
   const probability = Math.max(0, Math.min(100, Math.round(proposal.probability * 100)));
   const gross = proposal.total - proposal.cost - proposal.shipping;
   const rows = [
-    ['单价', money(proposal.unitPrice, proposal.currency)],
+    ['单价', unitPrice(proposal.unitPrice, proposal.currency, inquiry.unit)],
     ['总货款', money(proposal.foreignTotal ?? proposal.total, proposal.currency)],
     ['采购成本', money(proposal.cost)],
     ['运费', money(proposal.shipping - (proposal.tariff ?? 0))],
@@ -356,9 +390,7 @@ function quoteNumbers(state, proposal, inquiry) {
     ${proposal.unitPrice > inquiry.targetPrice && !proposal.branded ? '<small class="negative">报价超过买家目标价，无法中单。</small>' : ''}
     ${proposal.branded ? `<small>自有品牌 ${number(proposal.brandLevel)} 级 · 由定价与品牌吸引力决定中单率。</small>` : ''}
     </div><dl class="money-list">${rows.map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('')}</dl>
-    ${lowest && Number.isFinite(lowest.hypothetical) ? `<p class="quote-risk${lowest.hypothetical < 0 ? ' negative' : ''}" data-tour="cash-forecast">
-      <strong>若中标 · 未来 12 周最低现金 ${money(lowest.hypothetical)}</strong>（${week(lowest.week)}）
-      ${lowest.hypothetical < 0 ? '<small>预计现金出现缺口，检查授信和到期款后再提交。</small>' : ''}</p>` : ''}
+    ${quoteCashForecast(lowest, state.bids.length)}
     ${inquiry.currency && inquiry.currency !== 'CNY' ? '<p class="trade-note">货款以合同币种结算。毛利、垫资和现金预测按人民币列示，最终回款按到账周汇率折算。</p>' : ''}
     ${proposal.warehouseLocal ? '<p class="trade-note">本地海外仓直接交付，本单省去跨境船期。</p>' : ''}
     ${proposal.factoryLevel ? `<p class="trade-note">已计入 ${number(proposal.factoryLevel)} 级自有工厂的采购和排产优惠。</p>` : ''}</div>`;
@@ -387,17 +419,17 @@ function financingField(inquiry, model) {
 function priceControl(inquiry, { branded, brandUnitPrice, ratio }) {
   const content = branded ? `<label class="brand-price"><span>自有品牌单价（${escapeHtml(inquiry.currency ?? 'CNY')}／${escapeHtml(inquiry.unit)}）</span>
     <input type="number" name="brandUnitPrice" min="1" step="1" required inputmode="numeric" value="${Number.isFinite(brandUnitPrice) && brandUnitPrice > 0 ? brandUnitPrice : ''}" data-ui="quote-input">
-    <small>普通货物参考价 ${money(inquiry.targetPrice, inquiry.currency)}。自有品牌可自主定价。</small></label>` :
+    <small>普通货物参考价 ${unitPrice(inquiry.targetPrice, inquiry.currency, inquiry.unit)}。自有品牌可自主定价。</small></label>` :
     `<label class="price-slider"><span>报价占目标价 <output data-quote-preview="ratio">${number(ratio)}%</output></span>
     <input type="range" name="ratio" min="80" max="105" step="1" value="${ratio}" data-ui="quote-input">
-    <small>目标单价 ${money(inquiry.targetPrice, inquiry.currency)} · 可报 80%–105%</small></label>`;
+    <small>目标单价 ${unitPrice(inquiry.targetPrice, inquiry.currency, inquiry.unit)} · 可报 80%–105%</small></label>`;
   return `<div data-quote-preview="price-control">${content}</div>`;
 }
 
 export function quoteDialog(state, ui) {
   const inquiry = state.inquiries.find(item => item.id === ui.quoteId);
   const close = '<button type="button" class="button" data-ui="close-dialog">关闭</button>';
-  if (!inquiry) return `<header class="trade-header"><h2 id="quote-title">询盘已结束</h2>${close}</header><p>返回询盘查看本周新机会。</p>`;
+  if (!inquiry) return `<header class="trade-header"><h2 id="quote-title" tabindex="-1">询盘已结束</h2>${close}</header><p>返回询盘查看本周新机会。</p>`;
   const model = ui.quote ?? {};
   const ratio = Number.isFinite(Number(model.ratio)) ? Math.max(80, Math.min(105, Math.round(Number(model.ratio)))) : 100;
   const extraTerms = Number(model.extraTerms) || 0;
@@ -411,7 +443,8 @@ export function quoteDialog(state, ui) {
   const proposal = quote(state, inquiry, { ...model, source: selected.source, ratio, extraTerms, branded, brandUnitPrice });
   const alreadyBid = state.bids.some(bid => bid.inquiryId === inquiry.id);
   const disabled = proposal.error || alreadyBid || state.bids.length >= 3;
-  return `<header class="trade-header"><div><h2 id="quote-title">算价与报价</h2><p class="trade-note">${escapeHtml(inquiry.buyer.name)} · ${escapeHtml(inquiry.productName)}</p></div>${close}</header>
+  return `<header class="trade-header"><div><h2 id="quote-title" tabindex="-1">算价与报价</h2><p class="trade-note">${escapeHtml(inquiry.buyer.name)} · ${escapeHtml(inquiry.productName)}</p>
+    ${ui.quoteDraftRestored ? '<small class="trade-note">已恢复这条询盘的未提交报价。</small>' : ''}</div>${close}</header>
     <div class="quote-grid">${quoteArtwork(inquiry)}
       <form class="quote-controls" data-form="quote" data-id="${escapeHtml(inquiry.id)}">
         <fieldset><legend>货源</legend><div class="source-options">${sourcesAvailable.map(({ source, proposal: option }) => {

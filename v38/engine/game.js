@@ -5,7 +5,7 @@ import { collateral, initLife, lifeAction, lifeAssets, lifeWeek } from './life.j
 import { generateInquiries, quote, resolveBid } from './quotes.js';
 import { random } from './rng.js';
 import { finalizeGoal, initAnnualGoal, initStrategy, nationalRank, strategyAction, strategyAssets, strategyMilestones, strategyWeek, valuation } from './strategy.js';
-import { amount, factorValue, OPEN_RECEIVABLE, receivableValue, staffAbility } from './treasury.js';
+import { ACTIVE_ORDER, amount, factorValue, OPEN_RECEIVABLE, orderDates, orderMargin, receivableValue, staffAbility, updateOrderProjection } from './treasury.js';
 
 export { factorValue } from './treasury.js';
 
@@ -15,10 +15,9 @@ const CREDIT = {
   AAA: [0.98, 0.002], AA: [0.95, 0.004], A: [0.91, 0.01],
   BBB: [0.84, 0.025], BB: [0.76, 0.055], B: [0.65, 0.12],
 };
-const ACTIVE_ORDER = new Set(['procurement', 'production', 'transit']);
 const STRONG_CREDIT = new Set(['AAA', 'AA', 'A']);
 
-const emptyFlow = () => ({ inflow: 0, outflow: 0, financing: 0, profit: 0, messages: [] });
+const emptyFlow = () => ({ inflow: 0, outflow: 0, financing: 0, profit: 0, messages: [], cashBreakdown: { inflow: {}, outflow: {} } });
 const emptyYear = (number, records = []) => ({ number, revenue: 0, profit: 0, deliveries: 0, late: 0, records });
 const changeRep = (s, delta) => { s.company.rep = Math.max(0, Math.min(100, s.company.rep + delta)); };
 
@@ -58,6 +57,11 @@ export function creditLimit(s) {
 }
 
 export const expediteFee = (order) => Math.max(250, amount(order.shipping * 0.25));
+export function canExpedite(state, order) {
+  if (!order || !ACTIVE_ORDER.has(order.status) || order.expedited || order.shippingLeft <= 0) return false;
+  const expedited = { ...order, shippingLeft: order.shippingLeft - 1 };
+  return orderDates(expedited, state.week).deliveryWeek < orderDates(order, state.week).deliveryWeek;
+}
 export const liquidationPrice = (item) => Math.max(1, amount(item.unitCost * 0.60));
 export const lawsuitFee = (receivable) => Math.max(200, amount(receivable.amount * 0.05));
 
@@ -85,29 +89,37 @@ function log(s, type, text, flow = s.period) {
   flow.messages.push(text);
 }
 
-function receive(s, flow, value) {
+function recordCash(flow, direction, category, paid) {
+  if (!paid) return;
+  const buckets = flow.cashBreakdown[direction];
+  buckets[category] = (buckets[category] ?? 0) + paid;
+}
+
+function receive(s, flow, value, category = 'other') {
   const paid = amount(value);
   s.cash += paid;
   flow.inflow += paid;
+  recordCash(flow, 'inflow', category, paid);
   return paid;
 }
 
-function spend(s, flow, value) {
+function spend(s, flow, value, category = 'other') {
   const paid = amount(value);
   s.cash -= paid;
   flow.outflow += paid;
+  recordCash(flow, 'outflow', category, paid);
   return paid;
 }
 
 function operations(s, flow) {
   return {
-    receive: (value) => receive(s, flow, value),
+    receive: (value, category) => receive(s, flow, value, category),
     receiveCapital: (value) => {
-      const paid = receive(s, flow, value);
+      const paid = receive(s, flow, value, 'capital');
       flow.financing += paid;
       return paid;
     },
-    spend: (value) => spend(s, flow, value),
+    spend: (value, category) => spend(s, flow, value, category),
     log: (type, message) => log(s, type, message, flow),
     changeRep: (delta) => changeRep(s, delta),
     netAssets: () => netAssets(s),
@@ -151,16 +163,18 @@ function placeOrder(s, flow, pitch, inquiry) {
   const order = {
     ...pitch, id, productId: inquiry.productId, productName: inquiry.productName,
     buyer: { ...inquiry.buyer }, market: inquiry.market, bidId: pitch.id,
-    cost, profit: pitch.total - cost - pitch.shipping - premium,
+    cost,
     status: 'procurement', contractWeek: s.week, productionLeft: pitch.productionWeeks,
     shippingLeft: pitch.shippingWeeks, penalty: 0, extraCost: premium,
     costPaid: fromStock ? cost : pitch.prepayment,
     supplierScheduled: fromStock, freightScheduled: false,
     lateWeeks: 0, deliveredWeek: null, disruptionChecked: false, expedited: false,
   };
+  updateOrderProjection(s, order);
   s.orders.push(order);
-  receive(s, flow, order.deposit);
-  spend(s, flow, order.prepayment + premium);
+  receive(s, flow, order.deposit, 'deposit');
+  spend(s, flow, order.prepayment, 'supplier');
+  spend(s, flow, premium, 'insurance');
   return order;
 }
 
@@ -170,7 +184,7 @@ function closeBids(s, flow, assumeWins) {
     if (!inquiry) continue;
     const result = assumeWins ? { won: true, winner: s.company.name, price: bid.unitPrice } : resolveBid(s, inquiry, bid);
     const order = result.won ? placeOrder(s, flow, bid, inquiry) : null;
-    const record = { bidId: bid.id, inquiryId: inquiry.id, buyer: inquiry.buyer, winner: result.winner, price: result.price, currency: inquiry.currency };
+    const record = { bidId: bid.id, inquiryId: inquiry.id, buyer: inquiry.buyer, winner: result.winner, price: result.price, currency: inquiry.currency, unit: inquiry.unit };
     if (order) {
       flow.won.push({ ...record, orderId: order.id });
       log(s, 'won', `拿到${inquiry.buyer.name}的订单，已收定金 ¥${order.deposit.toLocaleString('zh-CN')}。`, flow);
@@ -197,7 +211,7 @@ function applyPenalty(s, order, flow) {
   if (!order.supplierScheduled) schedulePayable(s, 'supplier', order.cost - order.costPaid, order.id);
   const unitCost = amount(order.cost / order.quantity);
   s.inventory.push({ productId: order.productId, quantity: order.quantity, unitCost });
-  spend(s, flow, order.deposit);
+  spend(s, flow, order.deposit, 'refund');
   order.profit = -(order.extraCost + (order.freightScheduled ? order.shipping : 0));
   flow.profit += order.profit;
   order.status = 'cancelled';
@@ -208,16 +222,14 @@ function applyPenalty(s, order, flow) {
 }
 
 function deliver(s, order, flow) {
-  const bill = Math.max(0, order.total - order.penalty);
+  const { bill, commission, profit } = orderMargin(s, order);
   const balance = bill - order.deposit;
-  if (balance < 0) spend(s, flow, -balance);
+  if (balance < 0) spend(s, flow, -balance, 'refund');
   order.deliveredWeek = s.week;
+  order.deliverWeek = s.week;
   order.expectedPayWeek = s.week + order.terms;
-  order.profit = bill - order.cost - order.shipping - order.extraCost;
-  const responsible = s.staff.find((person) => person.id === order.staffId);
-  const commission = amount(bill * (responsible?.commission ?? 0));
   schedulePayable(s, 'commission', commission, order.id);
-  order.profit -= commission;
+  order.profit = profit;
   order.status = balance > 0 ? 'delivered' : 'settled';
   flow.revenue += bill;
   flow.profit += order.profit;
@@ -270,7 +282,7 @@ function progressOrders(s, flow, projecting) {
     if (!ACTIVE_ORDER.has(order.status) || order.contractWeek === s.week) continue;
     if (applyPenalty(s, order, flow)) continue;
     if (order.status === 'procurement') order.status = order.productionLeft > 0 ? 'production' : 'transit';
-    if (order.status === 'production') {
+    if (order.status === 'production' && order.productionLeft > 0) {
       if (!order.disruptionChecked && order.source === 'factory') {
         order.disruptionChecked = true;
         const risk = Math.max(0.01, 0.13 - staffAbility(s, 'operations', order.staffId) * 0.009 - (order.factoryLevel ?? 0) * 0.026);
@@ -278,7 +290,6 @@ function progressOrders(s, flow, projecting) {
           const delay = 1 + Math.floor(random(s) * 2);
           const fee = Math.max(300, amount(order.cost * 0.06));
           order.productionLeft += delay;
-          order.expectedPayWeek += delay;
           if (!projecting) s.events.push({
             id: nextId(s, 'event'), type: 'factory-delay', title: '工厂排期延误',
             text: `${order.buyer.name}的货要晚 ${delay} 周。付 ¥${fee.toLocaleString('zh-CN')} 可以赶回原排期。`,
@@ -301,7 +312,7 @@ function progressOrders(s, flow, projecting) {
 }
 
 function finishPayment(s, item, flow, value, recovered = false) {
-  const paid = receive(s, flow, value);
+  const paid = receive(s, flow, value, recovered ? 'legalRecovery' : 'customerPayment');
   item.status = recovered ? 'recovered' : 'paid';
   item.paidWeek = s.week;
   item.paidAmount = paid;
@@ -362,7 +373,7 @@ function progressScheduledReceipts(s, flow) {
       pending.push(entry);
       continue;
     }
-    const received = receive(s, flow, entry.amount);
+    const received = receive(s, flow, entry.amount, entry.type === 'insurance' ? 'insuranceRecovery' : 'refundRebate');
     flow.profit += received;
     const order = s.orders.find((candidate) => candidate.id === entry.orderId);
     if (order) order.profit += received;
@@ -383,7 +394,7 @@ function progressScheduledReceipts(s, flow) {
 function payBills(s, flow) {
   for (const item of s.payables) {
     if (item.paid || item.dueWeek > s.week) continue;
-    spend(s, flow, item.amount);
+    spend(s, flow, item.amount, ['supplier', 'freight', 'commission'].includes(item.type) ? item.type : 'other');
     const order = s.orders.find((candidate) => candidate.id === item.orderId);
     if (order && item.type === 'supplier') order.costPaid += item.amount;
     item.paid = true;
@@ -392,13 +403,13 @@ function payBills(s, flow) {
   const rate = Math.max(0, WEEKLY_INTEREST + (tradePolicy(s, 'domestic').interestDelta ?? 0));
   const interest = amount(s.loan * rate * (1 - staffAbility(s, 'finance') * 0.04));
   const payroll = s.staff.reduce((sum, person) => sum + (person.salary ?? 0), 0);
-  flow.profit -= spend(s, flow, FIXED_COST + payroll + interest);
+  flow.profit -= spend(s, flow, FIXED_COST, 'fixed') + spend(s, flow, payroll, 'payroll') + spend(s, flow, interest, 'interest');
 }
 
 function finance(s, flow) {
   const cover = Math.min(-s.cash, Math.max(0, s.creditLine - s.loan));
   if (cover > 0) {
-    s.loan += receive(s, flow, cover);
+    s.loan += receive(s, flow, cover, 'borrowing');
     flow.financing += cover;
     log(s, 'loan', `自动动用授信 ¥${cover.toLocaleString('zh-CN')}。`, flow);
   }
@@ -449,6 +460,7 @@ function closeWeek(state, { assumeWins = false, projecting = false, fast = false
   s.summary = flow;
   s.period = emptyFlow();
   s.week += 1;
+  for (const order of s.orders) updateOrderProjection(s, order);
   s.creditLine = creditLimit(s);
   s.inquiries = s.inquiries.filter((item) => item.expiresWeek >= s.week);
   if (!s.bankrupt) s.inquiries.push(...generateInquiries(s));
@@ -527,11 +539,11 @@ export function act(state, action = {}) {
     case 'expedite': {
       const order = s.orders.find((item) => item.id === identifier && ACTIVE_ORDER.has(item.status));
       if (!order || order.expedited || order.shippingLeft <= 0) return fail('这笔订单无法再次加急。');
+      if (!canExpedite(s, order)) return fail('这批货已是最早可交付的安排。');
       const fee = expediteFee(order);
       if (s.cash < fee) return fail('现金不足以支付加急运费。');
       order.shippingLeft -= 1;
-      order.expectedPayWeek = Math.max(s.week, order.expectedPayWeek - 1);
-      order.extraCost += spend(s, s.period, fee);
+      order.extraCost += spend(s, s.period, fee, 'expedite');
       order.expedited = true;
       break;
     }
@@ -553,7 +565,7 @@ export function act(state, action = {}) {
       if (item.insuranceDueWeek) return fail('这笔坏账已申请保险赔付。');
       const fee = lawsuitFee(item);
       if (s.cash < fee) return fail('现金不足以支付诉讼费。');
-      s.period.profit -= spend(s, s.period, fee);
+      s.period.profit -= spend(s, s.period, fee, 'legal');
       item.status = 'lawsuit';
       item.dueWeek = s.week + 2 + Math.floor(random(s) * 3);
       break;
@@ -562,7 +574,7 @@ export function act(state, action = {}) {
       const item = s.receivables.find((record) => record.id === identifier);
       const proceeds = factorValue(s, item);
       if (!proceeds) return fail('只有未结清的应收可以办理保理。');
-      const received = receive(s, s.period, proceeds);
+      const received = receive(s, s.period, proceeds, 'factoring');
       item.status = 'factored';
       item.paidAmount = received;
       item.paidWeek = s.week;
@@ -585,8 +597,7 @@ export function act(state, action = {}) {
         const order = s.orders.find((item) => item.id === event.orderId);
         if (!order || s.cash < event.fee) return fail('现金不足以赶工。');
         order.productionLeft = Math.max(0, order.productionLeft - event.delay);
-        order.expectedPayWeek = Math.max(s.week, order.expectedPayWeek - event.delay);
-        order.extraCost += spend(s, s.period, event.fee);
+        order.extraCost += spend(s, s.period, event.fee, 'orderFees');
       }
       if (!['factory-delay', 'ipo-celebration'].includes(event.type)) {
         const result = growthEvent(s, event, action.choice, operations(s, s.period));
@@ -602,11 +613,11 @@ export function act(state, action = {}) {
       if (!Number.isSafeInteger(value) || value <= 0) return fail('请输入正整数金额。');
       if (action.type === 'borrow') {
         if (value > s.creditLine - s.loan) return fail('借款超过本周剩余授信。');
-        s.loan += receive(s, s.period, value);
+        s.loan += receive(s, s.period, value, 'borrowing');
         s.period.financing += value;
       } else {
         if (value > s.loan || value > s.cash) return fail('还款不能超过贷款余额或可用现金。');
-        s.loan -= spend(s, s.period, value);
+        s.loan -= spend(s, s.period, value, 'repayment');
       }
       break;
     }
@@ -617,7 +628,7 @@ export function act(state, action = {}) {
       if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > available) return fail('可清仓库存不足。');
       const proceeds = liquidationValue(s, action.productId, quantity);
       const cost = consumeStock(s, action.productId, quantity);
-      s.period.profit += receive(s, s.period, proceeds) - cost;
+      s.period.profit += receive(s, s.period, proceeds, 'inventorySale') - cost;
       break;
     }
     case 'dismiss-summary': s.summary = null; break;
@@ -637,6 +648,7 @@ export function act(state, action = {}) {
       }
     }
   }
+  for (const order of s.orders) updateOrderProjection(s, order);
   strategyMilestones(s, operations(s, s.period));
   return { state: s };
 }

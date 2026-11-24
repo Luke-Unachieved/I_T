@@ -56,6 +56,7 @@ export async function launchBrowser(root, { scenarios = false } = {}) {
       await once(ws, 'open');
       let nextId = 0;
       const pending = new Map();
+      const subscriptions = new Map();
       const errors = [];
       ws.addEventListener('message', event => {
         const message = JSON.parse(event.data);
@@ -67,6 +68,7 @@ export async function launchBrowser(root, { scenarios = false } = {}) {
         }
         if (message.method === 'Runtime.exceptionThrown') errors.push(message.params.exceptionDetails.exception?.description || message.params.exceptionDetails.text);
         if (message.method === 'Log.entryAdded' && message.params.entry.level === 'error') errors.push(message.params.entry.text);
+        for (const listener of subscriptions.get(message.method) ?? []) listener(message.params);
       });
       const send = (method, params = {}) => new Promise((resolve, reject) => {
         const id = ++nextId;
@@ -80,6 +82,11 @@ export async function launchBrowser(root, { scenarios = false } = {}) {
       };
       const page = {
         errors, send, evaluate,
+        on(method, listener) {
+          const listeners = subscriptions.get(method) ?? new Set();
+          subscriptions.set(method, listeners); listeners.add(listener);
+          return () => listeners.delete(listener);
+        },
         async waitFor(expression, timeout = 10_000) {
           const start = Date.now();
           while (Date.now() - start < timeout) {

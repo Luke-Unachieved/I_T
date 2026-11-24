@@ -6,13 +6,53 @@
   <meta name="theme-color" content="#141311">
   <meta name="description" content="每周抢单、采购、发货和催款，把一人工作室做成贸易公司。">
   <title>再开一单就下班 · V38</title>
+  <style>
+    .boot-panel { max-width: 37rem; margin: 12vh auto; padding: 1.5rem; color: #e9e7dc; background: #26211a; border: 1px solid #655948; border-radius: 0.75rem; }
+    .boot-panel button { min-height: 44px; padding: 0.5rem 1rem; color: #1a1610; background: #d6bc8b; border: 0; border-radius: 0.4rem; font: inherit; cursor: pointer; }
+    .boot-panel button[hidden] { display: none; }
+  </style>
   <link rel="stylesheet" href="v38/v38.css">
 </head>
 <body>
   <div id="v38-root" aria-busy="true">
-    <p role="status">正在打开贸易工作室…</p>
+    <main class="boot-panel" aria-label="正在启动游戏">
+      <h1>再开一单就下班</h1>
+      <p role="status" data-boot-status>正在打开贸易工作室…</p>
+      <p data-boot-detail hidden></p>
+      <button type="button" data-boot-retry hidden>重试加载</button>
+    </main>
   </div>
-  <noscript>请开启 JavaScript 后重新打开游戏。</noscript>
-  <script type="module" src="v38/ui/app.js"></script>
+  <noscript>
+    <style>#v38-root { display: none; }</style>
+    <p class="boot-panel">请在浏览器开启 JavaScript 后重新打开游戏。</p>
+  </noscript>
+  <script type="module">
+    const root = document.querySelector('#v38-root');
+    const panel = root.firstElementChild;
+    const status = panel.querySelector('[data-boot-status]');
+    const detail = panel.querySelector('[data-boot-detail]');
+    const retry = panel.querySelector('[data-boot-retry]');
+    retry.addEventListener('click', () => window.location.reload());
+
+    function showRecovery(message, explanation, failed) {
+      if (!panel.isConnected) root.replaceChildren(panel);
+      root.removeAttribute('aria-busy');
+      panel.setAttribute('aria-label', '游戏加载');
+      status.setAttribute('role', failed ? 'alert' : 'status');
+      status.textContent = message;
+      detail.textContent = explanation;
+      detail.hidden = false;
+      retry.hidden = false;
+    }
+
+    const slow = window.setTimeout(() => {
+      if (panel.isConnected) showRecovery('游戏仍在加载。', '网络较慢，可以再等一会儿，或重试。', false);
+    }, 12_000);
+
+    Promise.all([import('./v38/ui/media.js'), import('./v38/ui/app.js')])
+      .then(([media]) => media.wireMedia(document))
+      .catch(() => showRecovery('游戏没能加载。', '请检查网络连接后重试。', true))
+      .finally(() => window.clearTimeout(slow));
+  </script>
 </body>
 </html>

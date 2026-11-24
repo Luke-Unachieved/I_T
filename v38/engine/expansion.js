@@ -1,15 +1,16 @@
-import { ASSISTANTS, RIVAL_COMPANIES } from '../data/core.js';
-import { CERTIFICATIONS, DEFAULT_MACRO, MARKETS, STAFF_ROLES, clientComic, currencyRate } from '../data/expansion.js';
+import { ASSISTANTS, PRODUCT_BY_ID, RIVAL_COMPANIES } from '../data/core.js';
+import { CERTIFICATIONS, DEFAULT_MACRO, MARKETS, STAFF_ROLES, clientComic, currencyRate, tradePolicy } from '../data/expansion.js';
 import { TRADE_EVENTS } from '../data/events.js';
 import { ERAS } from '../data/strategy.js';
 import { random } from './rng.js';
+import { ACTIVE_ORDER, orderDates, orderMargin, updateOrderProjection } from './treasury.js';
 
 const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
 const choose = (state, list) => list[Math.floor(random(state) * list.length)];
 const operations = ['sales', 'operations', 'sales', 'finance'];
 const talentNames = ['秦南栀', '沈嘉树', '罗小岚', '林之行', '梁知微', '许笙', '韩雨禾', '邵成宇', '宁萍', '季可'];
 const skillTags = { sales: ['熟悉中东客户', '擅长谈价', '能做连锁采购'], operations: ['熟悉验货', '会跟海运', '熟悉工厂排期'], finance: ['擅长催收', '熟悉外汇', '会对账'] };
-const activeOrder = order => ['procurement', 'production', 'transit'].includes(order.status);
+const activeOrder = (order) => order && ACTIVE_ORDER.has(order.status);
 const openInvoice = item => ['open', 'overdue'].includes(item.status);
 
 function adviserStaff(adviser, index) {
@@ -102,8 +103,8 @@ export function marketProgress(s) {
   });
 }
 
-function expense(ops, value) {
-  if (value > 0) ops.profit(-ops.spend(value));
+function expense(ops, value, category) {
+  if (value > 0) ops.profit(-ops.spend(value, category));
 }
 
 function exhibit(s, market, weeks) {
@@ -266,7 +267,7 @@ function randomEvent(s, flow, ops, projecting) {
   const { id, text, title, choices, when } = template;
   offerEvent(s, ops, 'trade-event', { code: id, title, text, choices,
     orderId: ['production', 'overseas-transit', 'delivery'].includes(when) ? target.id : null,
-    invoiceId: when === 'invoice' ? target.id : null,
+    invoiceId: ['invoice', 'foreign-invoice'].includes(when) ? target.id : null,
     market: when === 'global' ? target : target.market,
     productId: when === 'stock' ? target.productId : null,
     comic: when === 'delivery' ? clientComic(target.buyer, 'repeat') : null });
@@ -299,12 +300,95 @@ function applyDelay(order, delay) {
   if (!order || !activeOrder(order) || !delay) return;
   if (order.status === 'transit') order.shippingLeft += delay;
   else order.productionLeft += delay;
-  order.expectedPayWeek += delay;
+}
+
+const money = (value) => `¥${value.toLocaleString('zh-CN')}`;
+
+function decisionTarget(s, event) {
+  const invoice = s.receivables.find((item) => item.id === event.invoiceId);
+  const order = s.orders.find((item) => item.id === (event.orderId ?? invoice?.orderId));
+  const stock = s.inventory.find((item) => item.productId === event.productId);
+  const productId = order?.productId ?? stock?.productId ?? event.productId;
+  return { order, invoice, stock, product: PRODUCT_BY_ID[productId] };
+}
+
+function clearanceAmount(s, stock) {
+  const reserved = s.bids.filter((bid) => bid.source === 'inventory' && bid.productId === stock.productId)
+    .reduce((sum, bid) => sum + bid.quantity, 0);
+  return Math.min(Math.max(0, stock.quantity - reserved), Math.ceil(stock.quantity / 3));
+}
+
+function orderDiscount(order, choice) {
+  return Math.min(order.total - order.penalty, Math.round(order.total * (choice.discount ?? 0)));
+}
+
+export function decisionInfo(s, event) {
+  const { order, invoice, stock, product } = decisionTarget(s, event);
+  const context = [];
+  if (order) context.push(`涉及订单：${order.buyer.name} · ${order.productName ?? product?.name ?? order.productId}`);
+  else if (invoice) context.push(`涉及应收：${invoice.buyer.name}`);
+  else if (stock && product) context.push(`涉及库存：${product.name}`);
+  if (activeOrder(order)) {
+    const dates = orderDates(order, s.week);
+    context.push(`当前预计第 ${dates.deliveryWeek} 周交货，第 ${dates.paymentWeek} 周回款。合同要求第 ${order.dueWeek} 周交货。`);
+  } else if (invoice && openInvoice(invoice)) context.push(`目前第 ${invoice.dueWeek} 周到期，账面应收 ${money(invoice.amount)}。`);
+  const choices = event.choices.map((choice) => {
+    const details = [];
+    const impact = {};
+    const rush = event.type === 'factory-delay' && choice.id === 'rush';
+    const acquire = event.type === 'rival-sale' && choice.id === 'acquire';
+    const cost = rush || acquire ? event.fee : (choice.cost ?? 0);
+    if (cost) {
+      impact.cash = -cost;
+      details.push(`立即支出 ${money(cost)}。`);
+    }
+    if (activeOrder(order)) {
+      const plan = { ...order, extraCost: order.extraCost + cost, penalty: order.penalty + orderDiscount(order, choice) };
+      applyDelay(plan, choice.delay);
+      if (rush) plan.productionLeft = Math.max(0, plan.productionLeft - event.delay);
+      const { deliveryWeek, paymentWeek } = orderDates(plan, s.week);
+      Object.assign(impact, { deliveryWeek, paymentWeek, discount: plan.penalty - order.penalty, profit: orderMargin(s, plan).profit });
+      if (deliveryWeek >= order.dueWeek + 4) {
+        impact.cancelWeek = order.dueWeek + 4;
+        details.push(`按此安排最快第 ${deliveryWeek} 周交货，已达到第 ${impact.cancelWeek} 周的取消线，合同会取消且不会收到尾款。`);
+      } else {
+        details.push(`按此安排预计第 ${deliveryWeek} 周交货，第 ${paymentWeek} 周回款。`);
+        if (deliveryWeek > order.dueWeek) details.push('晚于合同交期，每多逾期一周另扣合同额 3%。');
+      }
+      if (impact.discount) details.push(`减少货款 ${money(impact.discount)}。`);
+    } else if (invoice && openInvoice(invoice) && (choice.invoiceDelay || choice.collection)) {
+      impact.paymentWeek = invoice.dueWeek + (choice.invoiceDelay ?? 0);
+      if (choice.invoiceDelay) details.push(`应收改到第 ${impact.paymentWeek} 周到期。`);
+      if (choice.collection) details.push(`回款判定的按时概率上调 ${Math.round(choice.collection * 100)} 个百分点，上限不变。`);
+    }
+    if (choice.rep) {
+      impact.reputation = clamp(s.company.rep + choice.rep, 0, 100) - s.company.rep;
+      if (impact.reputation) details.push(`公司信誉 ${impact.reputation > 0 ? '+' : '−'}${Math.abs(impact.reputation)}。`);
+    }
+    if (choice.policy?.materialDelta) {
+      const { materialDelta, weeks } = choice.policy;
+      const market = event.market ?? 'domestic';
+      const index = (s.macro.materials ?? 100) + tradePolicy(s, market).materialDelta;
+      impact.materialSavingPer10k = (Math.max(40, index) - Math.max(40, index + materialDelta)) * 100;
+      impact.untilWeek = s.week + weeks - 1;
+      details.push(`第 ${s.week} 至 ${impact.untilWeek} 周的新工厂报价，采购成本指数降低 ${-materialDelta} 点。以基准采购价每 ${money(10000)} 计，按当前指数约省 ${money(impact.materialSavingPer10k)}（自有产线另计）。`);
+    }
+    if (event.code === 'supplier-demo' && choice.id === 'pass') details.push('不支出现金，工厂报价按现有条件。');
+    if (stock && choice.clearance) {
+      const quantity = clearanceAmount(s, stock);
+      impact.cash = Math.round(quantity * stock.unitCost * 0.65);
+      details.push(`清理 ${quantity} ${product?.unit ?? '件'}，立即到账 ${money(impact.cash)}。`);
+    }
+    return { ...choice, details, impact };
+  });
+  return { context, choices };
 }
 
 function applyTradeDecision(s, event, choice, ops) {
   if (choice.cost && s.cash < choice.cost) return result('现金不足，仍可选择其他处理方式。');
-  expense(ops, choice.cost);
+  const { order, invoice, stock } = decisionTarget(s, event);
+  if (activeOrder(order) && choice.cost) order.extraCost += ops.spend(choice.cost, 'orderFees');
+  else expense(ops, choice.cost, 'decision');
   if (choice.rep) ops.changeRep(choice.rep);
   if (choice.macro) adjustMacro(s, choice.macro);
   if (choice.policy) {
@@ -312,17 +396,18 @@ function applyTradeDecision(s, event, choice, ops) {
     s.policies.push({ ...effects, market: event.market, untilWeek: s.week + weeks - 1, title: event.title });
   }
   if (choice.exhibit) exhibit(s, choice.exhibit, 4);
-  const order = s.orders.find(item => item.id === event.orderId);
   applyDelay(order, choice.delay);
-  if (choice.discount && order && activeOrder(order)) order.penalty = Math.min(order.total, order.penalty + Math.round(order.total * choice.discount));
+  if (activeOrder(order)) {
+    order.penalty += orderDiscount(order, choice);
+    updateOrderProjection(s, order);
+  }
   if (event.code === 'quality') s.qualityIncidents += 1;
   if (choice.relationship && order) {
     const relation = s.relationships[order.buyer.id];
     if (relation) relation.rep = clamp(relation.rep + choice.relationship, 0, 100);
   }
   if (choice.lead && order) s.leads.push({ buyer: order.buyer, productId: order.productId, market: order.market, untilWeek: s.week + 3 });
-  const invoice = s.receivables.find(item => item.id === event.invoiceId && openInvoice(item));
-  if (invoice) {
+  if (invoice && openInvoice(invoice)) {
     if (choice.invoiceDelay) {
       invoice.dueWeek += choice.invoiceDelay;
       const billed = s.orders.find(item => item.id === invoice.orderId);
@@ -335,17 +420,14 @@ function applyTradeDecision(s, event, choice, ops) {
       item.lockedFx = currencyRate(s, item.currency);
     }
   }
-  const stock = s.inventory.find(item => item.productId === event.productId);
   if (stock && choice.stockLoss) {
     const next = Math.round(stock.unitCost * (1 - choice.stockLoss));
     ops.profit((next - stock.unitCost) * stock.quantity);
     stock.unitCost = next;
   }
   if (stock && choice.clearance) {
-    const reserved = s.bids.filter(bid => bid.source === 'inventory' && bid.productId === stock.productId)
-      .reduce((sum, bid) => sum + bid.quantity, 0);
-    const sales = Math.min(Math.max(0, stock.quantity - reserved), Math.ceil(stock.quantity / 3));
-    ops.profit(ops.receive(Math.round(sales * stock.unitCost * 0.65)) - sales * stock.unitCost);
+    const sales = clearanceAmount(s, stock);
+    ops.profit(ops.receive(Math.round(sales * stock.unitCost * 0.65), 'inventorySale') - sales * stock.unitCost);
     stock.quantity -= sales;
     s.inventory = s.inventory.filter(item => item.quantity > 0);
   }
@@ -372,7 +454,7 @@ export function growthEvent(s, event, id, ops) {
   if (event.type === 'rival-sale' && id === 'acquire') {
     const rival = s.rivals.find(item => item.id === event.rivalId && item.status === 'failed');
     if (!rival || s.cash < event.fee) return result('无法支付收购费用。');
-    expense(ops, event.fee);
+    expense(ops, event.fee, 'decision');
     rival.status = 'acquired';
     const productId = 'tray';
     s.inventory.push({ productId, quantity: rival.scale * 40, unitCost: 19 });

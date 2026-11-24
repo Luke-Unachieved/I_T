@@ -9,4 +9,4 @@
 
 开发分支从 V37 发布提交 `1079cfa` 建立。原有 `src/`、`assets/` 以及两套经典版入口使用的存档键原样保留。GitHub Pages 上线由仓库主人另行决定。
 
-验收记录：[第一期：国内周经营](01-weekly-trade.md)、[第二期：扩张与贸易风险](02-growth.md)、[第三期：长期经营与上市](03-long-run.md)。
+验收记录：[第一期：国内周经营](01-weekly-trade.md)、[第二期：扩张与贸易风险](02-growth.md)、[第三期：长期经营与上市](03-long-run.md)、[玩家试玩缺陷修复](04-playtest-fixes.md)。

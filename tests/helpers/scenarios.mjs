@@ -10,7 +10,8 @@ export async function dismissDecisions(page) {
   for (let attempts = 0; attempts < 20; attempts++) {
     if (!await page.evaluate('Boolean(document.querySelector("dialog[open]"))')) return;
     if (await page.evaluate('Boolean(document.querySelector("dialog[open] [data-action=resolve-event]"))')) {
-      await page.click('dialog[open] [data-action="resolve-event"]:last-child');
+      const choice = await page.evaluate('Array.from(document.querySelectorAll("dialog[open] [data-action=resolve-event]")).at(-1).dataset.choice');
+      await page.click(`dialog[open] [data-action="resolve-event"][data-choice=${JSON.stringify(choice)}]`);
     } else if (await page.evaluate('Boolean(document.querySelector("dialog[open] [data-ui=close-dialog]"))')) {
       await page.click('dialog[open] [data-ui="close-dialog"]');
     } else return;
