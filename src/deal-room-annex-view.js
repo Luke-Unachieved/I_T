@@ -1,4 +1,4 @@
-import {spendingLiquidityView} from './deal-room-spending.js?v=36';
+import {spendingLiquidityView} from './deal-room-spending.js?v=37';
 import {annexPreview,annexSamples} from './deal-room-annex.js';
 import {sampleSvg} from './deal-room-samples.js';
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

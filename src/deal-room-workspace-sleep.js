@@ -1,11 +1,11 @@
 import {roundCalendarDue,creditRoundSleep} from './deal-room-round-receivables.js';
 import {specialtyMilestone,creditSpecialtySleep} from './deal-room-specialty-calendar.js?v=36';
 import {coreCalendarMilestone} from './deal-room-core-calendar.js?v=36';
-import {openingMarketOrders} from './deal-room-opening-market.js?v=36';
+import {openingMarketOrders} from './deal-room-opening-market.js?v=37';
 import {repeatContractMilestone} from './deal-room-repeat-calendar.js';
 import {openingContractMilestone,openingOrders} from './deal-room-opening-calendar.js?v=36';
-import {marketParallelDue,parkedMarketOrders} from './deal-room-market.js?v=36';
-import {prospectInbox} from './deal-room-prospects.js?v=36';
+import {marketParallelDue,parkedMarketOrders} from './deal-room-market.js?v=37';
+import {prospectInbox} from './deal-room-prospects.js?v=37';
 
 export const WORKSPACE_DAY_COST=30;
 export const SLEEP_WARN_ACTION='SLEEP_TO_NEXT_DAY_V3';
@@ -68,6 +68,23 @@ export function applyWorkspaceSleep(s,a){
  return a.type!=='SLEEP_TO_NEXT_DAY'?creditRoundSleep(s,creditSpecialtySleep(s,n,q.cost),q.cost):n;
 }
 
+// Display reminders are intentionally separate from historical replay acknowledgements.
+const coreOrderNames={
+ FULFIL_COLLECTION_REVISION:'新包装订单',FULFIL_STOCK_PROCUREMENT:'库存采购订单',
+ FULFIL_CURATION:'组合采购订单',FULFIL_CASE_GROWTH:'连锁采购订单',
+ FULFIL_COLLECTION:'自有系列订单',ADVANCE_SUPPLY_PLAN:'分批供货订单'
+};
+const specialtyOrderNames={
+ 'shop-trial-settle':'小店试销订单','linen-freight-receive':'桌布订单',
+ 'atelier-restock-deliver':'Élise 的补货单','atelier-restock-collect':'Élise 的补货单'
+};
+const orderReminder=(name,label)=>{
+ if(label==='确认下一批开工')return name+'：下一批还没确认开工。';
+ if(label.includes('桌布签收'))return name+'：还没确认签收和收款。';
+ if(label==='收款并收回陈列灯')return name+'：还没收款，也没收回陈列灯。';
+ const step=label.replace(/^确认(?:本批)?/,'').replace(/^收齐|^收取/,'收');
+ return name+'：还没'+step+'。';
+};
 export function previewLiveWorkspaceSleep(s){
  if(!s||!safe(s.day)||s.day<1||!safe(s.cash)||!safe(s.day+1)||s.bankruptcy)return {valid:false,reason:'现在不能结这一天的账。',pending:[]};
  if(s.phase==='outing-trip'||s.afterWorkOutings?.activeTrip)return {valid:false,reason:'这趟还没结束。',pending:[]};
@@ -91,9 +108,17 @@ export function previewLiveWorkspaceSleep(s){
  if(core&&core.day<=today&&!(s.phase==='fulfilling'&&orders.length))tasks.push(core.label);
  if(specialty&&specialty.dueDay<=today&&specialty.required)tasks.push(specialty.label);
  for(const inquiry of prospectInbox(s,{whileActive:true}))if(inquiry.replyBy===today)inquiries.push(inquiry.person.displayName+'的询盘今天截止');
+ const visibleOrders=[...orders];
+ const visibleInquiries=[...inquiries];
+ const coreName=coreOrderNames[core?.type];
+ if(coreName&&core.day<=today)visibleOrders.push(orderReminder(coreName,core.label));
+ const specialtyName=specialtyOrderNames[specialty?.task];
+ if(specialtyName&&specialty.required&&specialty.dueDay<=today)visibleOrders.push(orderReminder(specialtyName,specialty.label));
+ const reminderGroups=[['订单待办',visibleOrders],['询盘今天截止',visibleInquiries]]
+  .filter(([,items])=>items.length).map(([title,items])=>({title,items:[...new Set(items)]}));
  const openingRemaining=!s.businessRound&&!s.clientProjectActive&&['negotiating','fulfilling','paid'].includes(s.phase)&&openingOrders(s).length<3;
  if(openingRemaining)inquiries.push('还有开局询盘未回复');
  const reason=s.cash<WORKSPACE_DAY_COST?'手头还不够付今天的工作室开支。':'';
  const warningGroups=[['订单待办',orders],['询盘待回复',inquiries],['其他工作待办',tasks]].filter(([,items])=>items.length).map(([title,items])=>({title,items:[...new Set(items)]}));
- return {valid:!reason,reason,warningGroups,pending:warningGroups.flatMap(g=>g.items),cost:WORKSPACE_DAY_COST,nextDay:today+1,checkedDay:today,cashAfter:s.cash-WORKSPACE_DAY_COST};
+ return {valid:!reason,reason,warningGroups,reminderGroups,pending:warningGroups.flatMap(g=>g.items),cost:WORKSPACE_DAY_COST,nextDay:today+1,checkedDay:today,cashAfter:s.cash-WORKSPACE_DAY_COST};
 }

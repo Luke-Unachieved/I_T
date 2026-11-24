@@ -1,5 +1,5 @@
-import {createDealRoom,normalizeDealRoom,reduceDealRoom,previewCashRisk} from './deal-room-engine.js?v=36';
-import {DEAL_SAVE_KEY,DEAL_BACKUP_MAX_BYTES,loadDealSave,saveDealProgress} from './deal-room-save.js?v=36';
+import {createDealRoom,normalizeDealRoom,reduceDealRoom,previewCashRisk} from './deal-room-engine.js?v=37';
+import {DEAL_SAVE_KEY,DEAL_BACKUP_MAX_BYTES,loadDealSave,saveDealProgress} from './deal-room-save.js?v=37';
 
 const allowed=new Set([DEAL_SAVE_KEY,'trade-tycoon:deal-room-offline:v1']);
 const checkpointKey=key=>key+':before-risk:v1';

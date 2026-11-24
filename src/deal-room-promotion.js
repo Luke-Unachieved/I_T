@@ -2,9 +2,9 @@
 // the exact no-stranding reserve are reconstruction rules, not recovered odds.
 import {PROSPECT_CONTENT} from './deal-room-prospect-content.js';
 import {MARKET_PRODUCTS} from './deal-room-market-data.js';
-import {businessOpportunities,openFirstBuyers,openingQuoteProjection,previewOffer,quoteOptions} from './deal-room-engine.js?v=36';
+import {businessOpportunities,openFirstBuyers,openingQuoteProjection,previewOffer,quoteOptions} from './deal-room-engine.js?v=37';
 import {marketCalendarDue} from './deal-room-market-calendar.js';
-import {openingMarketOrders} from './deal-room-opening-market.js?v=36';
+import {openingMarketOrders} from './deal-room-opening-market.js?v=37';
 import {openingFlow} from './deal-room-opening-calendar.js?v=36';
 
 export const PROMOTION_CHANNELS=Object.freeze([
@@ -101,6 +101,12 @@ export function previewPromotion(s,channelId){
   return {valid,reason:valid?'':'先留出下一单周转和等回信期间的日常开支。',channelId:ch.id,name:ch.name,quotedFee:ch.fee,
     day:s.day,replyDay,replyDays:ch.replyDays,possible:ch.possible,reserve,waitBudget,minimum,shortfall,cashAfterBooking:s.cash>=ch.fee?s.cash-ch.fee:null,revision,
     action:valid?{type:'BOOK_PROMOTION_V1',channelId:ch.id,quotedFee:ch.fee,revision,confirmed:true}:null};
+}
+// Browsing and booking remain available; this only controls unsolicited advice.
+export function promotionSuggestionReady(s){
+  if((s?.contracts??[]).filter(promoSettled).length<3)return false;
+  const quote=previewPromotion(s,'district');
+  return quote.valid&&s.cash-quote.minimum>=Math.max(quote.quotedFee,quote.reserve.required);
 }
 export function promotionWaitPreview(s){
   const st=promotionStatus(s),wait=st?.pending;if(!promoReady(s)||!wait||openingFlow(s)||marketLive(s)||s.marketParked?.length||s.contracts.some(c=>c.status!=='paid'))return promoInvalid('没有可以等候的推广回信。');

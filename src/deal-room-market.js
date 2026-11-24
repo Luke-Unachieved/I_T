@@ -3,7 +3,7 @@ import {marketCalendarDue,isSpecialCarafe} from './deal-room-market-calendar.js'
 import {charterCarafe,keepStandardCarafe} from './deal-room-market-carafe-transport.js';
 import {NEIGHBORHOOD_BUYER,neighborhoodRequest} from './deal-room-neighborhood.js';
 import {MARKET_PRODUCTS} from './deal-room-market-data.js';
-import {prospectIdValid,prospectPlan,dismissProspect} from './deal-room-prospects.js?v=36';
+import {prospectIdValid,prospectPlan,dismissProspect} from './deal-room-prospects.js?v=37';
 import {WAREHOUSE_ACTION_KEYS,canonicalWarehouseAction,applyWarehouseAction,previewWarehouseIssue,issueWarehouseStock} from './deal-room-warehouse.js';
 import {EQUIPMENT_PROJECTS,previewEquipment,advanceEquipmentShipping,rebookEquipment} from './deal-room-equipment.js?v=36';
 // One active purchase/sale at a time. The main reducer owns the replay journal.

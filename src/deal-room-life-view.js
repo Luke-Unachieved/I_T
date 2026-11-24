@@ -1,7 +1,7 @@
-import {sleepWarningsView} from './deal-room-sleep-warning-view.js?v=36';
-import {spendingLiquidityView} from './deal-room-spending.js?v=36';
-import {paintedLifeRoomArt} from './deal-room-life-art.js?v=36';
-import {lifeCatalogue,lifeLightLevel,lifePurchasePreview} from './deal-room-life.js?v=36';
+import {sleepWarningsView} from './deal-room-sleep-warning-view.js?v=37';
+import {spendingLiquidityView} from './deal-room-spending.js?v=37';
+import {paintedLifeRoomArt} from './deal-room-life-art.js?v=37';
+import {lifeCatalogue,lifeLightLevel,lifePurchasePreview} from './deal-room-life.js?v=37';
 const money=n=>'¥'+Number(n).toLocaleString('zh-CN');
 // Percent coordinates follow the original image plane; unknown pictures get no precipitation.
 const homeWeatherGlass={
@@ -126,9 +126,9 @@ export function lifeRoomView(state,ui={},model={}){
  const panes=Object.hasOwn(homeWeatherGlass,homeId)?homeWeatherGlass[homeId]:null;
  const exterior=panes?exteriorWeatherSvg(model.weather,...panes):'';
  const q=model.sleep,show=!!ui.sleepOpen&&q?.valid;
- const sheet=show?'<section class="home-sleep-sheet" role="dialog" aria-labelledby="home-sleep-title"><h3 id="home-sleep-title">睡前看一眼</h3>'+
+ const sheet=show?'<section class="home-sleep-sheet" role="dialog" aria-labelledby="home-sleep-title"><h3 id="home-sleep-title">结束今天？</h3>'+
  sleepWarningsView(q)+
- '<p>工作室日常开支 <strong>¥'+homeEscape(q.cost)+'</strong></p><button type="button" class="ws-control ws-control--secondary" data-home-cancel>先不睡</button><button type="button" class="ws-control ws-control--main" data-home-confirm>进入第 '+homeEscape(q.nextDay)+' 天</button></section>':'';
+ '<div class="sleep-cost"><span>今日开支</span><strong>¥'+homeEscape(q.cost)+'</strong></div><div class="sleep-actions"><button type="button" class="ws-control ws-control--secondary" data-home-cancel>先不睡</button><button type="button" class="ws-control ws-control--main" data-home-confirm>进入第 '+homeEscape(q.nextDay)+' 天</button></div></section>':'';
  return '<section class="home-original" aria-label="下班后的家"><header><button data-life-close type="button" aria-label="返回下班">‹ 返回下班</button><p class="home-location">'+homeEscape(model.area||'旧码头 · 工作室')+'</p><h2>'+homeEscape(model.name||'工作室起居角')+'</h2></header>'+firstChair+
  '<figure data-angle="'+angle+'"><img src="'+homeEscape(art)+'" alt="'+['房间全景','工作台近景','窗边近景'][angle]+'">'+exterior+'</figure><nav aria-label="房间视角"><button type="button" data-home-step="-1" aria-label="上一个视角">‹</button><span aria-live="polite">'+(angle+1)+' / 3</span><button type="button" data-home-step="1" aria-label="下一个视角">›</button></nav>'+
  '<div class="home-rest"><div><h3>休息</h3><small>'+(q&&!q.valid?homeEscape(q.reason):'明天是第 '+(Number.isSafeInteger(state.day)?state.day+1:'—')+' 天')+'</small></div>'+

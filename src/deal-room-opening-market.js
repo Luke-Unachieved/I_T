@@ -10,7 +10,7 @@ function sideMarketContext(s){
     s.contracts.filter(c=>c.status!=='paid').length===repeatActiveOrders(s).length)return 'familiar';
  return null;
 }
-import {applyMarketAction,canonicalMarketAction,parkedMarketOrders,canParkMarketOrder} from './deal-room-market.js?v=36';
+import {applyMarketAction,canonicalMarketAction,parkedMarketOrders,canParkMarketOrder} from './deal-room-market.js?v=37';
 const allowed=new Set(['SIGN_PROSPECT_LOT_V1','SIGN_PROSPECT_LOT_V2','DELIVER_MARKET_V2','COLLECT_MARKET_V2','DISMISS_PROSPECT_V1']);
 export function openingMarketProjection(s,orderId=null){
  const context=sideMarketContext(s);if(!context)return null;

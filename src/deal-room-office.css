@@ -395,3 +395,14 @@
 #deal-room .ws-chart-ledger-body>details,#deal-room .ws-chart-breakdown>li{margin:.5rem 0 0;border-top:1px solid #5d503e}
 #deal-room .ws-chart-breakdown strong{overflow-wrap:anywhere}
 #deal-room .ws-chart-ledger-body>.ws-muted{margin:.65rem 0 0;font-size:.78rem}
+
+#deal-room .ws-growth-tip{
+ margin:.8rem 0 0;padding:.7rem 0 0;border-top:1px solid #64563e;
+ color:#e6d9c5;font-size:.87rem;line-height:1.55;
+}
+#deal-room .ws-growth-tip p{margin:0 0 .25rem}
+#deal-room .ws-growth-tip>div{display:flex;flex-wrap:wrap;gap:.4rem 1rem}
+#deal-room .ws-growth-tip button{
+ background:none;box-shadow:none;border:0;padding:0 .2rem;min-height:44px;
+ color:#e5c98f;text-decoration:underline;text-underline-offset:3px;font-size:.86rem;
+}

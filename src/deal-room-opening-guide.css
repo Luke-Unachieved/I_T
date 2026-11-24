@@ -17,7 +17,9 @@
 }
 #deal-room .ws-opening-guide strong {display:inline;color:var(--ws-mark,#cdb88b);font-weight:650}
 #deal-room [data-opening-guide-target] {
- outline:3px solid #79dff2;
+ --ws-guide-accent:#79dff2;
+ position:relative;
+ outline:3px solid var(--ws-guide-accent);
  outline-offset:3px;
 }
 #deal-room[data-opening-guide-context="intro"] .ws-intro-dialogue > :is(strong,p),
@@ -63,4 +65,62 @@
 #deal-room .ws-opening-guide.ws-guide-paused {
  justify-content:flex-end;
  border:0;
+}
+
+/* End-of-day confirmation: one surface, one short list, two aligned actions. */
+#deal-room :is(#workspace-sleep-confirmation,.home-sleep-sheet){
+ padding:18px; border-radius:12px; background:#211e18; border:1px solid #4a4236;
+}
+#deal-room :is(#workspace-sleep-confirmation,.home-sleep-sheet) h3{
+ font-size:1.14rem; line-height:1.3; margin:0 0 .62rem; color:#f3ecdd;
+}
+#deal-room :is(#workspace-sleep-confirmation,.home-sleep-sheet) :is(.sleep-warning-line,.sleep-warning){
+ margin:0 0 .7rem; color:#dfd7c7; font-size:.9rem; line-height:1.55;
+}
+#deal-room .sleep-warning h4{margin:0 0 .2rem;font-size:.9rem}
+#deal-room .sleep-warning ul{padding-inline-start:1.1em;margin:0}
+#deal-room .sleep-cost{
+ display:flex;justify-content:space-between;gap:.8rem;align-items:baseline;
+ border-top:1px solid #494135;padding:.65rem 0 .72rem;color:#d5cbb9;font-size:.9rem;
+}
+#deal-room .sleep-cost strong{color:#f4e9d5;font-variant-numeric:tabular-nums}
+#deal-room .sleep-actions{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+#deal-room .sleep-actions button.ws-control{
+ display:flex;align-items:center;justify-content:center;text-align:center;
+ margin:0;width:100%;min-height:46px;padding:6px;border-radius:9px;font-size:.92rem;line-height:1.25;
+}
+#deal-room .sleep-actions button.ws-control--main{background:#d6b981;color:#241c10;border-color:#d6b981}
+#deal-room .sleep-actions button.ws-control--secondary{background:transparent;color:#e5dac7;border:1px solid #5d503e}
+#deal-room .ws-opening-guide.ws-guide-sleep{
+ margin:0 0 .38rem;padding:0;border:0;justify-content:flex-end;gap:.55rem;
+}
+
+/* A small pointer on the highlighted frame. It is decoration, not a control. */
+#deal-room [data-opening-guide-target]::after{
+ content:"";
+ position:absolute;
+ z-index:2;
+ pointer-events:none;
+ inline-size:14px;
+ block-size:9px;
+ inset-inline-start:calc(50% - 7px);
+ inset-block-end:calc(100% + 4px);
+ background:var(--ws-guide-accent);
+ clip-path:polygon(0 0,100% 0,50% 100%);
+}
+#deal-room .ws-guide-sleep + .sleep-actions{margin-block-start:9px}
+
+#deal-room .sleep-reminder{margin:0 0 .55rem;color:#dfd7c7;font-size:.9rem;line-height:1.5}
+#deal-room .sleep-reminder summary{
+ list-style:none;display:grid;grid-template-columns:minmax(0,1fr) auto;
+ align-items:center;gap:.7rem;min-height:44px;cursor:pointer;
+}
+#deal-room .sleep-reminder summary::-webkit-details-marker{display:none}
+#deal-room .sleep-reminder-toggle{color:#dfc690;font-size:.78rem;white-space:nowrap;text-decoration:underline;text-underline-offset:3px}
+#deal-room .sleep-reminder .sleep-collapse,
+#deal-room .sleep-reminder[open] .sleep-expand{display:none}
+#deal-room .sleep-reminder[open] .sleep-collapse{display:inline}
+#deal-room .sleep-reminder ul{
+ margin:.05rem 0 .65rem;padding-inline-start:1.2em;
+ max-block-size:9rem;overflow:auto;overscroll-behavior:contain;
 }

@@ -1,65 +1,66 @@
-import {cashRiskProjection} from './deal-room-cash-risk.js?v=36';
-import {readRiskCheckpoint,putRiskCheckpoint,rollbackRiskCheckpoint,clearRiskCheckpoint} from './deal-room-risk-checkpoint.js?v=36';
+import {promotionStatus,promotionSuggestionReady} from './deal-room-promotion.js?v=37';
+import {cashRiskProjection} from './deal-room-cash-risk.js?v=37';
+import {readRiskCheckpoint,putRiskCheckpoint,rollbackRiskCheckpoint,clearRiskCheckpoint} from './deal-room-risk-checkpoint.js?v=37';
 import {cashRiskDialog,bankruptcyView} from './deal-room-bankruptcy-view.js?v=36';
 import {SPECIALTY_MILESTONE} from './deal-room-specialty-calendar.js?v=36';
 import {coreCalendarMilestone,coreCalendarActions,removedLiveWaits} from './deal-room-core-calendar.js?v=36';
 import {netProfitAmount} from './deal-room-net-profit.js';
 import {emptyMarketDesk,settledMarketDesk} from './deal-room-market-calendar.js';
-import {inquiryBuyerHeading} from './deal-room-inquiry-layout.js';
+import {inquiryBuyerHeading} from './deal-room-inquiry-layout.js?v=37';
 import {orderReadSummary,orderReadReceipt,orderReadNext,openingOrderUnits} from './deal-room-order-read.js';
-import {createOpeningGuide} from './deal-room-opening-guide.js?v=36';
+import {createOpeningGuide} from './deal-room-opening-guide.js?v=37';
 import {prepareGameImages} from './deal-room-image-loading.js?v=28';
 import {readCompanyName,bindCompanyName,companyNameView,companyTitleText} from './deal-room-company.js';
-import {openingMarketProjection,openingMarketOrders} from './deal-room-opening-market.js?v=36';
-import {prospectInbox} from './deal-room-prospects.js?v=36';
+import {openingMarketProjection,openingMarketOrders} from './deal-room-opening-market.js?v=37';
+import {prospectInbox} from './deal-room-prospects.js?v=37';
 import {createInquiryReads} from './deal-room-inquiry-read.js?v=36';
 import {openingContractMilestone,openingOrders,openingFlow} from './deal-room-opening-calendar.js?v=36';
-import {openingQuoteProjection,familiarBuyers,familiarQuoteProjection} from './deal-room-engine.js?v=36';
+import {openingQuoteProjection,familiarBuyers,familiarQuoteProjection} from './deal-room-engine.js?v=37';
 import {repeatContractMilestone,repeatParallelScope,repeatActiveOrders,isOrdinaryRepeatChoice} from './deal-room-repeat-calendar.js';
-import {openingRepeatComicView} from './deal-room-opening-repeat-comics.js?v=36';
+import {openingRepeatComicView} from './deal-room-opening-repeat-comics.js?v=37';
 import {openingInspectionView} from './deal-room-opening-inspection-view.js?v=36';
 import {openingMiraInesComicView} from './deal-room-mira-ines-comic-stages.js?v=36';
 import {samirOpeningReceiptComic} from './deal-room-samir-receipt-comic.js?v=36';
 import {workProductComicView} from './deal-room-workspace-product-comics.js';
 import {officeIntroMode} from './deal-room-workspace-intro.js';
 import {localizeBuyerDisplay} from './deal-room-prospect-locale.js';
-import {WORKSPACE_DAY_COST,previewLiveWorkspaceSleep as previewWorkspaceSleep} from './deal-room-workspace-sleep.js?v=36';
-import {adviserView,bindAdviser,readAdviserChoice,adviserWorkspaceAdvice,adviserPickerOpen} from './deal-room-adviser.js?v=36';
-import {marketBook,canParkMarketOrder,parkedMarketOrders} from './deal-room-market.js?v=36';
-import {marketView,bindMarket,marketReceiptText,marketAdviserQuote} from './deal-room-market-view.js?v=36';
+import {WORKSPACE_DAY_COST,previewLiveWorkspaceSleep as previewWorkspaceSleep} from './deal-room-workspace-sleep.js?v=37';
+import {adviserView,bindAdviser,readAdviserChoice,adviserWorkspaceAdvice,adviserPickerOpen} from './deal-room-adviser.js?v=37';
+import {marketBook,canParkMarketOrder,parkedMarketOrders} from './deal-room-market.js?v=37';
+import {marketView,bindMarket,marketReceiptText,marketAdviserQuote} from './deal-room-market-view.js?v=37';
 let marketUI={};
-import {warehouseView,bindWarehouse} from './deal-room-warehouse-view.js?v=36';
+import {warehouseView,bindWarehouse} from './deal-room-warehouse-view.js?v=37';
 let warehouseOpen=false,warehouseUI={};
-import {workspaceNavView,workspaceOfficeView,bindWorkspaceNav,showOrdersListAdvice,showWarehouseShortcut} from './deal-room-workspace-nav.js?v=36';
+import {workspaceNavView,workspaceOfficeView,bindWorkspaceNav,showOrdersListAdvice,showWarehouseShortcut} from './deal-room-workspace-nav.js?v=37';
 import {propertyView,bindPropertyView} from './deal-room-property-view.js?v=36';
-import {workspaceWeather,workspaceHubView,bindWorkspaceHub,workspaceTradingRecapAvailable,workspaceCooperationRecapAvailable,workspaceCaseGrowthLink,workspaceAccountExpansionDraft,workspaceSeriesRoutes} from './deal-room-workspace-hub.js?v=36';
+import {workspaceWeather,workspaceHubView,bindWorkspaceHub,workspaceTradingRecapAvailable,workspaceCooperationRecapAvailable,workspaceCaseGrowthLink,workspaceAccountExpansionDraft,workspaceSeriesRoutes} from './deal-room-workspace-hub.js?v=37';
 import {PROPERTY_SCENE_ART,PROPERTY_CATALOGUE_ART,propertySceneArt} from './deal-room-property-art.js';
 import {CAR_ART_BY_ID} from './deal-room-car-art.js';
-import {workspaceOpeningInbox,workspaceActiveOrders,workspaceCurrentMarketOrder,workspaceMarketQueue,workspaceFamiliarInbox,workspaceInboxIndex,workspaceOrdersIndex,workspaceInquiryFromRef} from './deal-room-workspace-index.js?v=36';
+import {workspaceOpeningInbox,workspaceActiveOrders,workspaceCurrentMarketOrder,workspaceMarketQueue,workspaceFamiliarInbox,workspaceInboxIndex,workspaceOrdersIndex,workspaceInquiryFromRef} from './deal-room-workspace-index.js?v=37';
 import {PROPERTY_CATALOG,propertyHoldings} from './deal-room-property.js?v=36';
 import {outingsView,bindOutings,openOutings} from './deal-room-outings-view.js?v=36';
 let workspaceOverride=null,propertyUI=null,outingsOpen=false,outingsUI={},sleepOpen=false,promotionUI={};
-import {openProductReorder} from './deal-room-career-focus.js?v=36';
+import {openProductReorder} from './deal-room-career-focus.js?v=37';
 import {shopTrialView,shopShelfScene} from './deal-room-shop-trial.js?v=36';
 import {exhibitionAvailable} from './deal-room-exhibition.js';
 import {exhibitionView,bindExhibition} from './deal-room-exhibition-view.js';
 let exhibitionOpen=false,exhibitionUI={};
-import {annexView,bindAnnex} from './deal-room-annex-view.js?v=36';
+import {annexView,bindAnnex} from './deal-room-annex-view.js?v=37';
 let annexOpen=false,annexUI={};
 import {officeAvailable} from './deal-room-office.js';
-import {officeImprovementView,bindOfficeImprovement} from './deal-room-office-view.js?v=36';
+import {officeImprovementView,bindOfficeImprovement} from './deal-room-office-view.js?v=37';
 let officeOpen=false,officeUI={};
-import {quoteOptionExplanation,quoteCommitmentView,quoteBuyerBrief,quoteOpeningSelection,openingBuyerLineView,openingQuoteChoicesView} from './deal-room-quote-view.js?v=36';
-import {lifeAvailable} from './deal-room-life.js?v=36';
-import {lifeRoomView,bindLifeRoom,stopLifePlayback} from './deal-room-life-view.js?v=36';
+import {quoteOptionExplanation,quoteCommitmentView,quoteBuyerBrief,quoteOpeningSelection,openingBuyerLineView,openingQuoteChoicesView} from './deal-room-quote-view.js?v=37';
+import {lifeAvailable} from './deal-room-life.js?v=37';
+import {lifeRoomView,bindLifeRoom,stopLifePlayback} from './deal-room-life-view.js?v=37';
 import {stockProcurementView} from './deal-room-stock-view.js?v=36';
 import {revisionView,revisionArt} from './deal-room-revision-view.js';
 import {roundReceivablesActive} from './deal-room-round-receivables.js';
 import {roundCashView,roundProductionView,roundQuoteNote} from './deal-room-round-view.js';
 import {cooperationChapter} from './deal-room-cooperation.js?v=36';
 import {previewStudioAllocation} from './deal-room-allocation.js?v=36';
-import {dealSaveCopies,loadDealSave,saveDealProgress} from './deal-room-save.js?v=36';
-import {dealSaveView,bindDealSaveTools} from './deal-room-save-view.js?v=36';
+import {dealSaveCopies,loadDealSave,saveDealProgress} from './deal-room-save.js?v=37';
+import {dealSaveView,bindDealSaveTools} from './deal-room-save-view.js?v=37';
 import {launchBasis} from './deal-room-launch.js';
 import {launchView} from './deal-room-launch-view.js';
 import {studioProjectView} from './deal-room-studio-project-view.js?v=36';
@@ -73,12 +74,12 @@ import {retailWait,demandView,buyerWaitView} from './deal-room-demand.js';
 import {linenFreightView} from './deal-room-linen-freight.js?v=36';
 import {atelierRestockBasis,atelierRestockView} from './deal-room-atelier-restock.js?v=36';
 import {tradingChapter,tradingChapterVisual} from './deal-room-trading-chapter.js?v=36';
-import {businessHomeView,careerRecapView,projectDeskView,projectDeskPreview} from './deal-room-home.js?v=36';
+import {businessHomeView,careerRecapView,projectDeskView,projectDeskPreview} from './deal-room-home.js?v=37';
 import {buyerContact,collectionBoardView,collectionReceipt} from './deal-room-relationships.js?v=36';
 import {selectedCollectionSeed,collectionView,COLLECTION_STYLES,collectionPitchView,previewCollectionPitch} from './deal-room-collection.js?v=36';
 import {previewAccount,accountView,accountReceipt,accountCoverage} from './deal-room-account.js?v=36';
-import {curationView,curationReceiptView,businessFeedback,playerStatusText,curationDemoModel,toggleCurationProduct} from './deal-room-curation-view.js?v=36';
-import {createDealRoom,currentClient,openFirstBuyers,firstBuyerProjection,quoteOptions,previewOffer,reduceLiveDealRoom,previewCashRisk,bankruptcyStatus,businessOpportunities,normalizeDealRoom,careerOpportunity,previewSupplyPlan,clientProjects,CURATION_PRODUCTS,curationOffers,previewCuration} from './deal-room-engine.js?v=36';
+import {curationView,curationReceiptView,businessFeedback,playerStatusText,curationDemoModel,toggleCurationProduct} from './deal-room-curation-view.js?v=37';
+import {createDealRoom,currentClient,openFirstBuyers,firstBuyerProjection,quoteOptions,previewOffer,reduceLiveDealRoom,previewCashRisk,bankruptcyStatus,businessOpportunities,normalizeDealRoom,careerOpportunity,previewSupplyPlan,clientProjects,CURATION_PRODUCTS,curationOffers,previewCuration} from './deal-room-engine.js?v=37';
 import {sampleSelection,sampleSvg,developedQuoteSample} from './deal-room-samples.js';
 import {supplyDraftView,supplyLotsView,supplyPlaybackFrames} from './deal-room-supply-view.js';
 let personalRoomOpen=false,personalRoomUI={};
@@ -168,6 +169,13 @@ function resumeOpeningDraft(){
  }catch{clearOpeningDraft();}
 }
 let officeIntroSeen=false,lastOfficeSuggestion='';
+const GROWTH_HINT_KEY=SAVE_KEY+':growth-tip-seen';
+let growthHintSeen=false;
+try{growthHintSeen=dealStorage.getItem(GROWTH_HINT_KEY)==='1';}catch{}
+function dismissGrowthHint(){
+ growthHintSeen=true;
+ try{dealStorage.setItem(GROWTH_HINT_KEY,'1');}catch{}
+}
 try{officeIntroSeen=dealStorage.getItem(INTRO_KEY)==='1';}catch{}
 function finishOfficeIntro(){officeIntroSeen=true;try{dealStorage.setItem(INTRO_KEY,'1');}catch{}}
 // A different customer or destination is a new page, not a quote re-render.
@@ -211,7 +219,7 @@ function save(){
  }
 }
 function bindSaveTools(){
- bindDealSaveTools(root,{panel:savePanel,storage:dealStorage,key:SAVE_KEY,getState:()=>state,getExpectedRaw:()=>expectedSaveRaw,render,download:downloadDealText,onReload:()=>{clearTimeout(playbackTimer);location.reload();},onRestored:()=>{clearRiskCheckpoint(dealStorage,SAVE_KEY);openingGuide.reset({fresh:false});inquiryReads.clear();clearOpeningDraft();clearTimeout(playbackTimer);location.reload();},onRestarted:()=>{clearRiskCheckpoint(dealStorage,SAVE_KEY);openingGuide.reset({fresh:true});inquiryReads.clear();clearOpeningDraft();clearTimeout(playbackTimer);for(const key of [INTRO_KEY,SAVE_KEY+':adviser',SAVE_KEY+':focus',SAVE_KEY+':company-name'])try{dealStorage.removeItem(key);}catch{}location.reload();}});
+ bindDealSaveTools(root,{panel:savePanel,storage:dealStorage,key:SAVE_KEY,getState:()=>state,getExpectedRaw:()=>expectedSaveRaw,render,download:downloadDealText,onReload:()=>{clearTimeout(playbackTimer);location.reload();},onRestored:()=>{clearRiskCheckpoint(dealStorage,SAVE_KEY);openingGuide.reset({fresh:false});inquiryReads.clear();clearOpeningDraft();clearTimeout(playbackTimer);location.reload();},onRestarted:()=>{clearRiskCheckpoint(dealStorage,SAVE_KEY);openingGuide.reset({fresh:true});inquiryReads.clear();clearOpeningDraft();clearTimeout(playbackTimer);for(const key of [INTRO_KEY,SAVE_KEY+':adviser',SAVE_KEY+':focus',SAVE_KEY+':company-name',GROWTH_HINT_KEY])try{dealStorage.removeItem(key);}catch{}location.reload();}});
 }
 function downloadDealText(text,name,type){const url=URL.createObjectURL(new Blob([text],{type}));const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);try{a.click();}finally{a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}}
 const root=document.querySelector('#deal-room');
@@ -472,6 +480,7 @@ function renderCurrentPage(){
  }
  if(workspaceOverride==='development'||workspaceOverride==='afterwork'&&!personalRoomOpen){
   const dev=workspaceOverride==='development';
+  if(dev&&!growthHintSeen&&promotionSuggestionReady(state))dismissGrowthHint();
   root.innerHTML=adviserView(state,{place:dev?'发展':'下班',identityOnly:!dev||promotionUI.ledgerDetail},adviserUI)+workspaceHubView(state,workspaceOverride,lifeAvailable(state),sleepOpen,promotionUI,{adviserId:adviserUI.choice})+dealSaveView(savePanel,saveNotice);
   bindWorkspaceHub(root,{promotion:dev?{state,ui:promotionUI,render,dispatch:directAction}:null,onProperty:kind=>{propertyUI={kind};render();},onReferral:(clientId,first)=>{const next=reduceDealRoom(state,{type:first?'START_OPENING_CURATION':'START_CURATION',clientId});if(next===state)return;workspaceOverride=null;curationDraft=null;buyerDemo={open:false,room:'day',brightness:1};state=next;save();render();},onAccountCase:id=>openWorkspaceAccount(reduceDealRoom(state,{type:'START_ACCOUNT',referrerId:id})),onAccountExpansion:()=>openWorkspaceAccount(workspaceAccountExpansionDraft(state)),onSeries:id=>openWorkspaceAccount(workspaceSeriesRoutes(state).find(r=>r.id===id)?.next,true),onTradeRecap:()=>{if(!workspaceTradingRecapAvailable(state))return;tradeRecapReturnTab='development';workspaceOverride=null;openRecap('trade');},onCooperationRecap:()=>{if(!workspaceCooperationRecapAvailable(state))return;tradeRecapReturnTab='development';workspaceOverride=null;openRecap('cooperation');},onCaseGrowth:openWorkspaceCaseGrowth,onProductReorder:factory=>{const opened=openProductReorder(state,factory);if(opened.state===state)return;state=opened.state;selected=opened.selected;workspaceOverride=null;event='arriving';save();render();focusCustomerRoute();},onHome:()=>{personalRoomOpen=true;personalRoomUI={};render();},onOuting:section=>{openOutings(outingsUI,section);outingsOpen=true;render();},onSleep:()=>{sleepOpen=true;render();},onLiquidate:expectedProceeds=>directAction({type:'LIQUIDATE_PERSONAL_ASSETS_V1',checkedDay:state.day,expectedProceeds}),onBankruptcy:()=>{sleepOpen=false;if(directAction({type:'DECLARE_BANKRUPTCY_V1',checkedDay:state.day}))root.querySelector('#bankruptcy-title')?.focus?.();},onSleepCancel:()=>{sleepOpen=false;render();},onSleepConfirm:()=>{sleepOpen=false;if(!directAction({type:'SLEEP_TO_NEXT_DAY',checkedDay:state.day,acknowledgePending:true}))render();}});
   bindSaveTools();return;
@@ -481,10 +490,11 @@ function renderCurrentPage(){
   const intro=officeIntroMode(state,loadedDeal.status,officeIntroSeen,adviserUI.choice,adviserPickerOpen(state,adviserUI)),advice=adviserWorkspaceAdvice(state,adviserUI);
   const adviceKey=adviserUI.choice&&advice[0]?.text?adviserUI.choice+':'+advice[0].text:'';
   const companyName=readCompanyName(dealStorage,SAVE_KEY);
-  root.innerHTML=companyNameView(companyName)+adviserView(state,{place:'办公室',identityOnly:true},adviserUI)+workspaceOfficeView(state,{intro,adviserId:adviserUI.choice,companyName,officeName:office?.name,officeId:office?.id,art:propertySceneArt(office?.id),weather:workspaceWeather(state.day),advice})+dealSaveView(savePanel,saveNotice);
+  root.innerHTML=companyNameView(companyName)+adviserView(state,{place:'办公室',identityOnly:true},adviserUI)+workspaceOfficeView(state,{intro,adviserId:adviserUI.choice,companyName,officeName:office?.name,officeId:office?.id,art:propertySceneArt(office?.id),weather:workspaceWeather(state.day),advice,growthTip:!intro&&!growthHintSeen&&openingGuide.finished()&&promotionStatus(state)?.booked===0&&promotionSuggestionReady(state)})+dealSaveView(savePanel,saveNotice);
   root.querySelectorAll('[data-workspace-intro]').forEach(b=>b.onclick=()=>officeIntroAction(b.dataset.workspaceIntro));
   if(!intro&&adviceKey&&adviceKey!==lastOfficeSuggestion)root.querySelector('.ws-original-note .ws-note-face')?.classList.add('ws-note-react');
   lastOfficeSuggestion=adviceKey;
+  root.querySelector('[data-dismiss-growth-tip]')?.addEventListener('click',()=>{dismissGrowthHint();root.querySelector('.ws-growth-tip')?.remove();});
   bindCompanyName(root,dealStorage,SAVE_KEY,render);
   bindSaveTools();return;
  }

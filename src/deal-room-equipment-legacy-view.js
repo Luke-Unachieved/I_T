@@ -1,8 +1,9 @@
+import {inquiryFacts,quoteDecisionFacts} from './deal-room-inquiry-layout.js?v=37';
 import {netProfitAmount} from './deal-room-net-profit.js';
 import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
 import {tradeAdviserHint} from './deal-room-market-adviser-hint.js';
 import {equipmentComicView} from './deal-room-equipment-comics.js';
-import {equipmentRoutePair,equipmentQuoteMilestones,equipmentQuoteDelay} from './deal-room-equipment-view.js?v=36';
+import {equipmentRoutePair,equipmentQuoteMilestones,equipmentQuoteDelay} from './deal-room-equipment-view.js?v=37';
 import {legacyEquipmentOffers,previewLegacyEquipment,legacyEquipmentCalendarAction} from './deal-room-equipment-legacy.js?v=36';
 const e=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=x=>Number.isSafeInteger(x)?'¥'+x.toLocaleString('zh-CN'):'—';
@@ -79,9 +80,13 @@ export function legacyEquipmentView(s,ui={}){
  const accepted=ui.legacyChecked===JSON.stringify(d),shared=d.shipping==='shared';
  const dates=shared?standard:reserved;
  const shipOptions=[['shared','拼载海运',standard,'中途可能换船'],
- ['reserved','直运海舱',reserved,'多付 '+money(reserved.freight-standard.freight)+'，快 '+(standard.transitDays-reserved.transitDays)+' 天']].map(([id,name,r,note])=>
- `<div class="market-choice"><button type="button" data-legacy-route="${id}" aria-pressed="${d.shipping===id}" aria-describedby="legacy-${id}-facts">${name}</button>
- <div id="legacy-${id}-facts" class="market-choice-facts"><p>运费 <strong>${money(r.freight)}</strong></p><small>${note}</small></div></div>`).join('');
+ ['reserved','直运海舱',reserved,'多付 '+money(reserved.freight-standard.freight)+'，快 '+(standard.transitDays-reserved.transitDays)+' 天']].map(([id,name,r,note])=>{
+ const rDraft=previewLegacyEquipment(s,{...d,shipping:id},2);
+ return `<div class="market-choice"><button type="button" data-legacy-route="${id}" aria-pressed="${d.shipping===id}" aria-describedby="legacy-${id}-facts">${name}</button>
+ <div id="legacy-${id}-facts" class="market-choice-facts">${inquiryFacts([['运费',money(r.freight)],...quoteDecisionFacts(rDraft,{payment:Number.isSafeInteger(rDraft.deposit)?'定金 '+money(rDraft.deposit)+'，验收款及尾款另付':'',
+  delivery:rDraft.plannedDeliveryDay,collection:rDraft.plannedPaymentDay,profit:rDraft.projectedNet,
+  deliveryLabel:'预计到港验收',collectionLabel:'预计收尾款',profitLabel:id==='shared'?'按原船期预计净利':'直运预计净利'})],'market-comparison-facts')}<small>${note}</small></div></div>`;
+ }).join('');
  return `<section class="market-quote market-trade-sheet" aria-label="设备合同报价"><button type="button" data-legacy-back>‹ 返回商品与项目</button>
  <div class="market-trade-hero market-sheet">${picture(row.projectId)}<div><small>${e(row.buyer)}</small><h2 tabindex="-1" data-legacy-heading>${e(row.name)}（${row.physicalQuantity} ${e(row.physicalUnit)}）</h2><p>第 ${row.replyBy} 天前回复</p></div></div>
  <section class="market-buyer-brief" aria-label="客户留言">${buyerSpeech(equipmentStory[row.projectId]?.request,'客户留言')}</section>

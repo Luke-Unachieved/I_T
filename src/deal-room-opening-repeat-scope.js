@@ -1,5 +1,5 @@
 // Ordinary orders from the three original customers; presentation only.
-import {currentClient,quoteOptions} from './deal-room-engine.js?v=36';
+import {currentClient,quoteOptions} from './deal-room-engine.js?v=37';
 import {ordinaryRepeatContract,isOrdinaryRepeatChoice} from './deal-room-repeat-calendar.js';
 import {roundReceivablesActive} from './deal-room-round-receivables.js';
 

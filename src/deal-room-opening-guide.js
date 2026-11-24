@@ -91,8 +91,12 @@ export function createOpeningGuide({storage,key,saveStatus}){
     if(step.friendHint){friendHintSeen=true;try{storage.setItem(friendKey,'seen');}catch{}}
     const bold=doc.createElement('strong');
     bold.textContent='点「'+label(target)+'」';
-    copy.append(bold,doc.createTextNode('：'+step.why));
-    panel.append(copy);
+    if(target.matches('[data-workspace-sleep-confirm]')){
+     panel.classList.add('ws-guide-sleep');
+    }else{
+     copy.append(bold,doc.createTextNode('：'+step.why));
+     panel.append(copy);
+    }
    }else panel.classList.add('ws-guide-paused');
    const close=doc.createElement('button');
    close.type='button';close.className='ws-guide-close';close.textContent='关闭教程';
@@ -106,10 +110,12 @@ export function createOpeningGuide({storage,key,saveStatus}){
    const intro=target.matches?.('[data-workspace-intro="open"]')?target.closest('.ws-intro-dialogue'):null;
    if(intro)root.setAttribute('data-opening-guide-context','intro');
    target.setAttribute('data-opening-guide-target','');
-   const desc=target.getAttribute('aria-describedby');
-   target.setAttribute('aria-describedby',(desc?desc+' ':'')+copy.id);
+   if(copy.parentNode===panel){
+    const desc=target.getAttribute('aria-describedby');
+    target.setAttribute('aria-describedby',(desc?desc+' ':'')+copy.id);
+   }
    const rail=intro?target.parentElement:target.closest('.inquiry-actions, .ws-nav, .inquiry-choices, .ws-agenda, .ws-original-note');
-   (rail||target).before(panel);
+   (target.closest('.sleep-actions')||rail||target).before(panel);
    // Keep the highlighted real control discoverable after each player-driven render.
    const frame=doc.defaultView?.requestAnimationFrame;
    if(frame)frame.call(doc.defaultView,()=>{
@@ -122,7 +128,7 @@ export function createOpeningGuide({storage,key,saveStatus}){
   }
 
  };
- return {update,reset:({fresh=false}={})=>{
+ return {update,finished:()=>preference==='done'||preference==='off',reset:({fresh=false}={})=>{
   auto=fresh;
   // Only a confirmed restart begins a different game. Refreshing the same
   // save preserves its current guide state, and importing a save skips it.

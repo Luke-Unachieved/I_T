@@ -1,9 +1,9 @@
 import {netProfitAmount} from './deal-room-net-profit.js';
 import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
 import {cupPaperProofArt,selectedSample} from './deal-room-samples.js';
-import {previewOffer} from './deal-room-engine.js?v=36';
+import {previewOffer} from './deal-room-engine.js?v=37';
 import {comparePriorUnitPrice} from './deal-room-goods-prices.js';
-import {inquiryOpening,inquirySpeech,inquiryOption,inquiryActions,inquiryDetails,inquiryFacts} from './deal-room-inquiry-layout.js';
+import {inquiryOpening,inquirySpeech,inquiryOption,inquiryActions,inquiryDetails,inquiryFacts} from './deal-room-inquiry-layout.js?v=37';
 import {roundQuoteNote} from './deal-room-round-view.js';
 // Presentation only. PROPOSE remains the canonical historical signing action.
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -67,12 +67,15 @@ export function openingQuoteChoicesView(state,client,options,selected){
     if(!Number.isSafeInteger(q.quantity))return '';
     const active=samir?selectedSample(selected)===v.action:selected===v.quote;
     const unit=samir?'只':id==='mira'?'盏':'条';
-    const m=[['订购量',q.quantity+' '+unit],['交货日期','第 '+q.deliveryDay+' 天'],
+    const m=[
+       q.accepted!==false&&Number.isFinite(q.cost)?['先垫备货款',money(Math.max(0,q.cost-(q.deposit||0)))]:['',''],
        ['付款方式',q.accepted===false?(q.id==='all-now'?'拟全款预付':'待确认'):openingPayment(q)],
+       ['交货日期','第 '+q.deliveryDay+' 天'],
        q.accepted===false?['状态','待客户确认']:[q.netProfit<0?'预计亏损':'预计净利',q.netProfit,'net-profit']];
-    return inquiryOption(v.label,m,{hook:samir?'data-sample':'data-select',value:v.action,active});
+    return inquiryOption(v.label+' · '+q.quantity+' '+unit,m,{hook:samir?'data-sample':'data-select',value:v.action,active});
   }).join('');
-  return '<fieldset class="inquiry-choices"><legend>这批货怎么谈？</legend>'+cards+'</fieldset>';
+  return '<fieldset class="inquiry-choices quote-comparison"><legend>这批货怎么谈？</legend>'+
+    (variants.length>1?'<p class="quote-compare-tip">手头紧，就选垫得少、回款快的。</p>':'')+cards+'</fieldset>';
 }
 function openingContractActions(offer, action){
   return inquiryActions({backHook:'data-workspace-open="inbox"',backLabel:'先不接',signHook:offer.accepted!==false?'data-action':'',signValue:action,canSign:offer.accepted!==false&&offer.valid});

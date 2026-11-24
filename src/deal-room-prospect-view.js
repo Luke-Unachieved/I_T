@@ -2,7 +2,7 @@ import {marketInspectionText} from './deal-room-market-data.js';
 import {marketTiming} from './deal-room-order-cadence.js';
 import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
 import {polishProspectCopy} from './deal-room-prospect-copy-polish.js';
-import {inquiryBuyerHeading,inquiryOpening,inquirySpeech,inquiryOption,inquiryActions,inquiryDetails,inquiryFacts,revealQuoteReply} from './deal-room-inquiry-layout.js';
+import {inquiryBuyerHeading,inquiryOpening,inquirySpeech,inquiryOption,inquiryActions,inquiryDetails,inquiryFacts,quoteDecisionFacts,revealQuoteReply} from './deal-room-inquiry-layout.js?v=37';
 import {bindQuotePriceSteps,quoteAdviserProjection,quoteDraftWarning,quotePriceControls,quotePriceGuide,quotePriceRejected,quoteUnitPriceValid} from './deal-room-quote-price.js';
 import {displayProspectCopy036To045} from './deal-room-prospect-copy-036-045.js';
 import {displayProspectCopy036To045Handover} from './deal-room-prospect-copy-036-045-handover.js';
@@ -21,14 +21,14 @@ import {displayProspectCopy016To025} from './deal-room-prospect-copy-016-025.js'
 import {displayProspectCopy016To025Late} from './deal-room-prospect-copy-016-025-late.js';
 import {displayProspectCopy026To035} from './deal-room-prospect-copy-026-035.js';
 import {displayProspectCopy026To035Followups} from './deal-room-prospect-copy-026-035-followups.js';
-import {evaTrayStoryMoment,lukaTrayStoryMoment,prospectSceneLine,prospectComicView} from './deal-room-prospect-scenes.js?v=36';
-import {lukaRepeatAcceptedLine,lukaRepeatInquiryView,lukaRepeatLetter,lukaRepeatOrder,lukaRepeatOrderSpeech,lukaRepeatPaidView} from './deal-room-luka-repeat-scenes.js?v=36';
-import {evaRepeatAcceptedLine,evaRepeatInquiryView,evaRepeatLetter,evaRepeatOrder,evaRepeatPaidView,evaRepeatSpeech} from './deal-room-eva-repeat-scenes.js?v=36';
+import {evaTrayStoryMoment,lukaTrayStoryMoment,prospectSceneLine,prospectComicView} from './deal-room-prospect-scenes.js?v=37';
+import {lukaRepeatAcceptedLine,lukaRepeatInquiryView,lukaRepeatLetter,lukaRepeatOrder,lukaRepeatOrderSpeech,lukaRepeatPaidView} from './deal-room-luka-repeat-scenes.js?v=37';
+import {evaRepeatAcceptedLine,evaRepeatInquiryView,evaRepeatLetter,evaRepeatOrder,evaRepeatPaidView,evaRepeatSpeech} from './deal-room-eva-repeat-scenes.js?v=37';
 import {PROSPECT_CONTENT,prospectFallbackDialogue} from './deal-room-prospect-content.js';
 import {prospectDisplayText,prospectMarketLabel} from './deal-room-prospect-locale.js';
 import {previewWarehouseIssue,warehouseSummary} from './deal-room-warehouse.js';
-import {prospectInbox,prospectContentById,prospectRelationship} from './deal-room-prospects.js?v=36';
-import {previewMarket as projectMarket} from './deal-room-market.js?v=36';
+import {prospectInbox,prospectContentById,prospectRelationship} from './deal-room-prospects.js?v=37';
+import {previewMarket as projectMarket} from './deal-room-market.js?v=37';
 import {prospectAvatar} from './deal-room-prospect-avatar.js';
 
 const esc = value => String(prospectDisplayText(value) ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -187,9 +187,14 @@ function quote(state,c) {
  const repeatReply=repeat?lukaRepeatAcceptedLine(repeat,o.id):evaRepeat?evaRepeatAcceptedLine(evaRepeat,o.id):'';
  const opening=(row.isRepeat?prospectSceneLine(p.id,'repeat',null,product.id):'')||
   displayProspectCopy(p.id,row.isRepeat?'reorder':'inquiry',row.isRepeat||row.promotion?row.opening:displayOrganicOpening(row));
- const choices='<fieldset class="inquiry-choices"><legend>'+esc(row.isRepeat?'这批货怎么补？':'这批货怎么谈？')+'</legend>'+row.options.map(v=>
-  inquiryOption((repeat||p.id==='001'&&row.isRepeat&&product.id==='tray')&&v.id==='reorder'?'常规补货':optionName(v.id),[['订购量',pack(v.quantity,unit)],['最迟收货',day(state.day+v.deadlineDays)],['付款方式',payment(v,timing(source==='warehouse'?{days:1}:product.sources[source],v,source).lag)],['客户最快再询价',Number.isSafeInteger(v.followupDays)?'收齐货款 '+v.followupDays+' 天后':'']],
-    {hook:'data-prospect-option',value:v.id,active:v.id===o.id})).join('')+'</fieldset>';
+ const choices='<fieldset class="inquiry-choices"><legend>'+esc(row.isRepeat?'这批货怎么补？':'这批货怎么谈？')+'</legend>'+row.options.map(v=>{
+  const candidate=v.id===o.id?c:draftContext(state,{prospectId:p.id,prospectOption:v.id,prospectSource:source});
+  const projection=candidate?.usable.length?candidate.q:null;
+  return inquiryOption((repeat||p.id==='001'&&row.isRepeat&&product.id==='tray')&&v.id==='reorder'?'常规补货':optionName(v.id),
+   [['订购量',pack(v.quantity,unit)],['最迟收货',day(state.day+v.deadlineDays)],
+    ...quoteDecisionFacts(projection,{showStockAdvance:true,payment:projection?payment(v,projection.paymentDay-projection.deliveryDay):''})],
+   {hook:'data-prospect-option',value:v.id,active:v.id===o.id});
+ }).join('')+'</fieldset>';
  const showSettlement=!asked||q.accepted;
  const reason=asked?(quotePriceRejected(q)?'':q.reason):quoteDraftWarning(q,state.cash);
  return '<section class="market-quote prospect-panel inquiry-read" aria-label="客户来信报价"><div class="prospect-quote-top"><button type="button" class="quiet ws-control ws-control--back" data-prospect-back>← 收件箱</button></div>'+
@@ -199,14 +204,10 @@ function quote(state,c) {
  (repeat?lukaRepeatInquiryView(repeat):evaRepeat?evaRepeatInquiryView(evaRepeat):inquiryOpening(prospectDisplayText(opening),{kind:firstLetter(row)?'prospect':'',customerId:p.id,product:product.id}))+
  choices+inquiryDetails('客户要求',
  (row.isRepeat&&old?'<p>上次采购 '+esc(pack(old.quantity,old.unit||unit))+'，成交单价 '+esc(cash(old.unitPrice))+'，'+esc(day(old.paidDay))+'收齐。</p>':'')+
- '<p>'+esc(marketInspectionText(product.inspection))+'</p>',{kind:'prospect-request'})+
+ '<p>'+esc(marketInspectionText(product.inspection))+'</p>',{kind:'prospect-request'})+(Number.isSafeInteger(o.followupDays)?'<small class="prospect-followup-window">客户最快在收齐货款 '+o.followupDays+' 天后再次询价。</small>':'')+
  '<fieldset class="prospect-source-list"><legend>货源</legend>'+sourceOptions(state,c)+'</fieldset>'+
  '<form data-prospect-form>'+quotePriceControls({key:'prospect',unit,price:d.unitPrice,guide,q,sent:asked,canSend:c.usable.length>0})+'</form>'+
  '<div data-prospect-terms>'+response(c,repeatReply)+
- (showSettlement&&(asked||q.paymentDay!==q.deliveryDay)?inquiryFacts([
-  ...(asked?[[q.netProfit<0?'预计亏损':'预计净利',q.netProfit,'net-profit']]:[]),
-  ...(Number.isSafeInteger(q.deliveryDay)?(asked?(q.paymentDay===q.deliveryDay?[['交货并收款',day(q.deliveryDay)]]:[['交货日期',day(q.deliveryDay)],['收款',day(q.paymentDay)]]):q.paymentDay!==q.deliveryDay?[['预计收款',day(q.paymentDay)]]:[]):[])
- ],asked?'inquiry-decision-facts':'quote-draft-schedule'):'')+
  (reason?'<p class="market-warning" role="status"'+(asked&&!q.accepted?' tabindex="-1" data-prospect-reply':'')+'>'+esc(reason)+'</p>':'')+
  (showSettlement?inquiryDetails('收支明细',inquiryFacts([['总货款',cash(q.revenue)],['定金',q.deposit>0?cash(q.deposit):''],['尾款',q.deposit>0?cash(q.balanceDue):''],[source==='warehouse'?'库存成本（已付）':'采购货款',cash(q.goodsCost)],['运费',q.freight>0?cash(q.freight):''],['回款前日常开支',q.operatingCost>0?cash(q.operatingCost):''],['所需周转金',cash(q.cashRequired)],['签约后可用现金',cash(q.cashAfterSigning)],['收齐货款后预计可用现金',cash(q.cashAfterPayment)]])):'')+
  '</div>'+inquiryActions({backHook:'data-prospect-dismiss',signHook:'data-prospect-sign',canSign:asked&&q.accepted&&q.valid})+

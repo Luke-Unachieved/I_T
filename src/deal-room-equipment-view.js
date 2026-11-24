@@ -1,7 +1,8 @@
+import {inquiryFacts,quoteDecisionFacts} from './deal-room-inquiry-layout.js?v=37';
 import {netProfitAmount} from './deal-room-net-profit.js';
 import {equipmentComicView} from './deal-room-equipment-comics.js';
 import {EQUIPMENT_PROJECTS,EQUIPMENT_SIGN_V2,equipmentOpportunity,previewEquipment,canRebookEquipment} from './deal-room-equipment.js?v=36';
-import {DAY_COST} from './deal-room-market.js?v=36';
+import {DAY_COST} from './deal-room-market.js?v=37';
 
 const artwork = {
   'cold-chain': ['assets/deal-project-cold-chain.webp','assets/deal-buyer-zhou-lan.webp'],
@@ -63,7 +64,9 @@ function quoteView(state, project, shipping) {
  const choices=[['standard','常规舱'],['locked','锁舱']].map(([choice,label])=>{
    const r=previewEquipment(state,project.id,choice,DAY_COST,2);
    return `<div class="market-choice"><button type="button" data-equipment-shipping="${choice}" aria-pressed="${choice===shipping}" aria-describedby="equipment-${choice}-facts">${label}</button>
-   <div id="equipment-${choice}-facts" class="market-choice-facts"><p>运费 <strong>${money(r.freight)}</strong></p><small>${choice==='standard'?'中途可能换船':'加付运费，锁定原船期'}</small></div></div>`;
+   <div id="equipment-${choice}-facts" class="market-choice-facts"> ${inquiryFacts([['运费',money(r.freight)],...quoteDecisionFacts(r,{payment:'预付款 '+money(r.deposit)+'，验收后收尾款',
+   deliveryLabel:'预计到港验收',collectionLabel:'预计收尾款',profitLabel:choice==='standard'?'按原船期预计净利':'锁舱预计净利'})],'market-comparison-facts')}
+   <small>${choice==='standard'?'中途可能换船':'锁定原船期'}</small></div></div>`;
  }).join('');
  return `<section class="market-quote equipment-quote market-trade-sheet" aria-label="设备合同报价"><button type="button" class="quiet" data-equipment-back>‹ 返回商品与项目</button>
    ${projectSummary(project,'draft',true)}

@@ -1,4 +1,4 @@
-import {reduceDealRoom,quoteOptions,businessOpportunities} from './deal-room-engine.js?v=36';
+import {reduceDealRoom,quoteOptions,businessOpportunities} from './deal-room-engine.js?v=37';
 import {hasLampDevelopmentCase,acceptedLampSample} from './deal-room-development.js?v=36';
 import {accountCoverage,canExpandAccount,accountCollectionBasis} from './deal-room-account.js?v=36';
 import {caseGrowthOffers} from './deal-room-case-growth.js?v=36';

@@ -1,22 +1,22 @@
 import {SPECIALTY_MILESTONE,canonicalSpecialtyMilestone,applySpecialtyMilestone,specialtyMilestone} from './deal-room-specialty-calendar.js?v=36';
 import {coreCalendarActions,coreCalendarTarget,removedLiveWaits} from './deal-room-core-calendar.js?v=36';
 import {familiarTimingV1} from './deal-room-order-cadence.js';
-import {canonicalOpeningMarketAction,reduceOpeningMarket,graduateOpeningMarket,openingMarketReserveDays,openingMarketOrders} from './deal-room-opening-market.js?v=36';
+import {canonicalOpeningMarketAction,reduceOpeningMarket,graduateOpeningMarket,openingMarketReserveDays,openingMarketOrders} from './deal-room-opening-market.js?v=37';
 import {repeatContractMilestone,isRepeatCalendarAction,canonicalRepeatCalendar,applyRepeatCalendar,isOrdinaryRepeatChoice,repeatActiveOrders,repeatParallelScope,repeatReserveDays} from './deal-room-repeat-calendar.js';
 import {openingContractMilestone,canonicalOpeningCalendar,applyOpeningCalendar,openingFlow,openingOrders,openingReserveDays,OPENING_TERMS_V2,MIRA_FIRST_TRIAL_TERMS} from './deal-room-opening-calendar.js?v=36';
 import {LEGACY_EQUIPMENT_ACTION_KEYS,canonicalLegacyEquipmentAction,applyLegacyEquipmentAction} from './deal-room-equipment-legacy.js?v=36';
-import {PROMOTION_ACTION_KEYS,canonicalPromotionAction,applyPromotionAction} from './deal-room-promotion.js?v=36';
-import {canonicalWorkspaceSleep,applyWorkspaceSleep,previewLiveWorkspaceSleep} from './deal-room-workspace-sleep.js?v=36';
+import {PROMOTION_ACTION_KEYS,canonicalPromotionAction,applyPromotionAction} from './deal-room-promotion.js?v=37';
+import {canonicalWorkspaceSleep,applyWorkspaceSleep,previewLiveWorkspaceSleep} from './deal-room-workspace-sleep.js?v=37';
 import {PROPERTY_ACTION_KEYS,isPropertyActionV2,canonicalPropertyAction,applyPropertyAction,propertyHoldings,PROPERTY_CATALOG,propertyTradeInAllowance} from './deal-room-property.js?v=36';
 import {OUTING_ACTION_KEYS,canonicalOutingAction,applyOutingAction} from './deal-room-outings.js?v=36';
-import {MARKET_ACTION_KEYS,canonicalMarketAction,applyMarketAction} from './deal-room-market.js?v=36';
+import {MARKET_ACTION_KEYS,canonicalMarketAction,applyMarketAction} from './deal-room-market.js?v=37';
 import {LINEN_FREIGHT_ACTIONS,canonicalLinenFreight,applyLinenFreight} from './deal-room-linen-freight.js?v=36';
 import {ATELIER_RESTOCK_ACTIONS,canonicalAtelierRestock,applyAtelierRestock} from './deal-room-atelier-restock.js?v=36';
 import {SHOP_TRIAL_ACTIONS,canonicalShopTrialAction,applyShopTrialAction} from './deal-room-shop-trial.js?v=36';
 import {EXHIBITION_ACTION_KEYS,canonicalExhibitionAction,applyExhibitionAction} from './deal-room-exhibition.js';
 import {ANNEX_ACTION_KEYS,canonicalAnnexAction,applyAnnexAction} from './deal-room-annex.js';
 import {canonicalOfficeAction,applyOfficeAction,OFFICE_ACTION_KEYS} from './deal-room-office.js';
-import {canonicalLifeAction,applyLifeAction,LIFE_ACTION_KEYS} from './deal-room-life.js?v=36';
+import {canonicalLifeAction,applyLifeAction,LIFE_ACTION_KEYS} from './deal-room-life.js?v=37';
 import {stockProcurementOpportunity,previewStockProcurement,previewStudioProjectFromStock} from './deal-room-stock-procurement.js?v=36';
 import {revisionOpportunity,previewRevisionOrder} from './deal-room-collection-revision.js';
 import {roundReceivablesActive,roundReceivableSummary,previewRoundSigning,advanceRoundTime,canonicalRoundCalendarAction,applyRoundCalendarAction} from './deal-room-round-receivables.js';
@@ -28,7 +28,7 @@ import {caseGrowthOffers,previewCaseGrowth,caseGrowthDemand,previewCaseCalloff,c
 import {SAMPLE_FACTORIES,developmentOffer,hasLampDevelopmentCase,acceptedLampSample,secondDevelopmentOffer,SECOND_SUPPLIER_ACTIONS,canonicalSecondSupplierAction,applySecondSupplierAction} from './deal-room-development.js?v=36';
 import {retailDemand,retailWait,retailPause} from './deal-room-demand.js';
 import {collectionSeedChoices,collectionQuote,COLLECTION_STYLES,collectionPitchOffers,previewCollectionPitch} from './deal-room-collection.js?v=36';
-import {cashRiskProjection} from './deal-room-cash-risk.js?v=36';
+import {cashRiskProjection} from './deal-room-cash-risk.js?v=37';
 import {previewAccount,canExpandAccount,accountCollectionBasis,accountRevisionBasis,accountExpansionBases} from './deal-room-account.js?v=36';
 /** Isolated modern trade experiment. All amounts are fictional settled RMB integers.
  * Design assumptions, not real export quotations: 30/day office cost; freight,

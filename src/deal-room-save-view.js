@@ -1,5 +1,5 @@
-import {NEW_DEAL_START_CASH} from './deal-room-engine.js?v=36';
-import {encodeDealBackup,loadDealSave,restoreDealBackup,restartDealProgress,DEAL_SAVE_KEY,DEAL_BACKUP_MAX_BYTES} from './deal-room-save.js?v=36';
+import {NEW_DEAL_START_CASH} from './deal-room-engine.js?v=37';
+import {encodeDealBackup,loadDealSave,restoreDealBackup,restartDealProgress,DEAL_SAVE_KEY,DEAL_BACKUP_MAX_BYTES} from './deal-room-save.js?v=37';
 import {saveFileEntry,bindSaveBackupFile} from './deal-room-save-file.js';
 const escapeSave=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function dealSaveView(panel,saveNotice='进度自动保存'){

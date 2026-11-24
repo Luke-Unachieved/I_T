@@ -1,5 +1,5 @@
 import {sampleSvg} from './deal-room-samples.js';
-import {spendingLiquidityView} from './deal-room-spending.js?v=36';
+import {spendingLiquidityView} from './deal-room-spending.js?v=37';
 import {officePreview,officeCompletedWork,OFFICE_IMPROVEMENT} from './deal-room-office.js';
 const money=n=>'¥'+n.toLocaleString('en-US');
 const names={mira:'米拉的台灯',samir:'萨米尔的保温杯',ines:'伊内斯的桌布'};

@@ -1,8 +1,8 @@
 import {netProfitAmount} from './deal-room-net-profit.js';
-import {DAY_COST} from './deal-room-market.js?v=36';
+import {DAY_COST} from './deal-room-market.js?v=37';
 import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
-import {CURATION_PRODUCTS} from './deal-room-engine.js?v=36';
-import {quoteCommitmentView} from './deal-room-quote-view.js?v=36';
+import {CURATION_PRODUCTS} from './deal-room-engine.js?v=37';
+import {quoteCommitmentView} from './deal-room-quote-view.js?v=37';
 import {sampleSvg} from './deal-room-samples.js';
 const money=n=>`¥${Number(n||0).toLocaleString('zh-CN')}`;
 const speaker=brief=>brief.giftAllowed?'Élise':'Adrian';

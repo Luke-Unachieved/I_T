@@ -2,8 +2,8 @@ import {netProfitAmount} from './deal-room-net-profit.js';
 import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
 import {openingContractMilestone} from './deal-room-opening-calendar.js?v=36';
 import {repeatContractMilestone} from './deal-room-repeat-calendar.js';
-import {openingMarketOrders,openingMarketProjection} from './deal-room-opening-market.js?v=36';
-import {openFirstBuyers,familiarBuyers,openingQuoteProjection,familiarQuoteProjection,quoteOptions,previewOffer,reduceLiveDealRoom,CURATION_PRODUCTS} from './deal-room-engine.js?v=36';
+import {openingMarketOrders,openingMarketProjection} from './deal-room-opening-market.js?v=37';
+import {openFirstBuyers,familiarBuyers,openingQuoteProjection,familiarQuoteProjection,quoteOptions,previewOffer,reduceLiveDealRoom,CURATION_PRODUCTS} from './deal-room-engine.js?v=37';
 import {SAMPLE_FACTORIES} from './deal-room-development.js?v=36';
 import {marketCalendarDue} from './deal-room-market-calendar.js';
 import {coreCalendarMilestone} from './deal-room-core-calendar.js?v=36';
@@ -12,15 +12,15 @@ import {roundReceivableSummary} from './deal-room-round-receivables.js';
 import {legacyEquipmentCalendarAction,legacyEquipmentCashSchedule} from './deal-room-equipment-legacy.js?v=36';
 import {carafeTransport} from './deal-room-market-carafe-transport.js';
 import {prospectDisplayText} from './deal-room-prospect-locale.js';
-import {DEAL_SAVE_KEY} from './deal-room-save.js?v=36';
-import {marketBook,marketAvailable,canParkMarketOrder,parkedMarketOrders,previewMarket} from './deal-room-market.js?v=36';
+import {DEAL_SAVE_KEY} from './deal-room-save.js?v=37';
+import {marketBook,marketAvailable,canParkMarketOrder,parkedMarketOrders,previewMarket} from './deal-room-market.js?v=37';
 import {neighborhoodRequest} from './deal-room-neighborhood.js';
-import {prospectInbox} from './deal-room-prospects.js?v=36';
-import {previewPromotion,promotionStatus} from './deal-room-promotion.js?v=36';
+import {prospectInbox} from './deal-room-prospects.js?v=37';
+import {previewPromotion,promotionStatus,promotionSuggestionReady} from './deal-room-promotion.js?v=37';
 import {warehouseAvailable,warehouseSummary} from './deal-room-warehouse.js';
 import {previewAccount} from './deal-room-account.js?v=36';
 import {advanceEquipmentShipping,equipmentOpportunity} from './deal-room-equipment.js?v=36';
-import {WORKSPACE_DAY_COST} from './deal-room-workspace-sleep.js?v=36';
+import {WORKSPACE_DAY_COST} from './deal-room-workspace-sleep.js?v=37';
 
 // Advisory text is projected from the current view. Navigating from a note only focuses a
 // visible control. Trading actions and the replayed business save stay under player control.
@@ -262,6 +262,7 @@ function warehouseNote(s){
 function developmentNote(s){
  const pending=promotionStatus(s)?.pending;
  if(pending)return {text:`这次推广已经付了 ${money(pending.fee)}。第 ${pending.replyDay} 天到「询盘」看看有没有买家来问。`};
+ if(!promotionSuggestionReady(s))return {text:'还不急着花钱推广，先看看手头的询盘。'};
  const promo=previewPromotion(s,'district');
  if(promo.valid)return suggested(`${promo.name}要付 ${money(promo.quotedFee)}。如果今天投，第 ${promo.replyDay} 天到「询盘」看看有没有感兴趣的买家来信。`,'[data-hub-promotion] > summary','比较推广版位');
  return null;

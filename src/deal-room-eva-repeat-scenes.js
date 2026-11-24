@@ -1,6 +1,6 @@
 import {comicDialogueBlock} from './deal-room-opening-dialogue.js';
-import {inquirySpeech} from './deal-room-inquiry-layout.js';
-import {organicTrayRepeatLetter,organicTrayRepeatOrder} from './deal-room-tray-repeat-proof.js?v=36';
+import {inquirySpeech} from './deal-room-inquiry-layout.js?v=37';
+import {organicTrayRepeatLetter,organicTrayRepeatOrder} from './deal-room-tray-repeat-proof.js?v=37';
 
 export const evaRepeatLetter=(state,row)=>organicTrayRepeatLetter(state,row,'001');
 export const evaRepeatOrder=state=>organicTrayRepeatOrder(state,'001');

@@ -1,5 +1,5 @@
-import {applyMarketAction} from './deal-room-market.js?v=36';
-import {openingMarketProjection} from './deal-room-opening-market.js?v=36';
+import {applyMarketAction} from './deal-room-market.js?v=37';
+import {openingMarketProjection} from './deal-room-opening-market.js?v=37';
 import {applyOpeningCalendar} from './deal-room-opening-calendar.js?v=36';
 import {applyRepeatCalendar} from './deal-room-repeat-calendar.js';
 import {applyRoundCalendarAction} from './deal-room-round-receivables.js';

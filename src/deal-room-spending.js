@@ -1,4 +1,4 @@
-import {businessOpportunities} from './deal-room-engine.js?v=36';
+import {businessOpportunities} from './deal-room-engine.js?v=37';
 /** Display-only. Evaluate the same ready, affordable repeat quotes as the next
  * customer screen; never change a purchase, journal, balance or contract. */
 export function spendingLiquidity(state,price){

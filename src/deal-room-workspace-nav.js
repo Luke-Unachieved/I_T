@@ -1,16 +1,16 @@
 import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
-import {openingMarketOrders,openingMarketProjection} from './deal-room-opening-market.js?v=36';
-import {parkedMarketOrders} from './deal-room-market.js?v=36';
+import {openingMarketOrders,openingMarketProjection} from './deal-room-opening-market.js?v=37';
+import {parkedMarketOrders} from './deal-room-market.js?v=37';
 import {companyRenameView,companyTitleText} from './deal-room-company.js';
-import {orderFooterAdvice} from './deal-room-adviser.js?v=36';
+import {orderFooterAdvice} from './deal-room-adviser.js?v=37';
 import {officeWeatherView} from './deal-room-workspace-office-weather.js';
 import {officeIntroView} from './deal-room-workspace-intro.js';
 import {prospectDisplayText} from './deal-room-prospect-locale.js';
-import {prospectInbox} from './deal-room-prospects.js?v=36';
+import {prospectInbox} from './deal-room-prospects.js?v=37';
 import {equipmentOpportunity} from './deal-room-equipment.js?v=36';
 import {neighborhoodRequest} from './deal-room-neighborhood.js';
-import {marketBook} from './deal-room-market.js?v=36';
-import {CURATION_PRODUCTS} from './deal-room-engine.js?v=36';
+import {marketBook} from './deal-room-market.js?v=37';
+import {CURATION_PRODUCTS} from './deal-room-engine.js?v=37';
 // Workspace pages are a view of the same ongoing day, never economic actions.
 const tabs=Object.freeze([['office','办公室'],['inbox','询盘'],['orders','订单'],['development','发展'],['afterwork','下班']].map(Object.freeze));
 const tabSet=new Set(tabs.map(([id])=>id));
@@ -130,7 +130,7 @@ export function workspaceOfficeView(state,model={}){
  return '<section class="ws-office ws-original-office" aria-labelledby="ws-office-title"><div class="ws-tabletop"><header class="ws-desk'+(improved?' ws-desk-window':'')+'" data-weather="'+weather+'">'+room+(introArt?'':officeWeatherView(model.officeId,weather))+'<h2 id="ws-office-title" class="ws-offscreen" tabindex="-1">'+esc(office)+(model.weather?' · '+esc(model.weather):'')+'</h2>'+officeIntroView(model.intro,who)+'</header>'+
  '<section class="ws-agenda" aria-label="今日待办"><div class="ws-agenda-top"><h3>未完成 <small>'+jobs.length+'</small></h3></div>'+(jobs.length?rows(jobs.slice(0,2)):'<p>今天没有待办。</p>')+
  (jobs.length>2?'<details><summary>其余 '+(jobs.length-2)+' 件</summary>'+rows(jobs.slice(2))+'</details>':'')+'</section></div>'+
- (note?'<section class="ws-original-note" aria-label="工作建议"><h3>助理建议</h3><div>'+portrait+'<div><p>'+esc(who?openingDialogueQuote(lead):lead)+'</p>'+itemList([{title:note.title,tab:note.tab,ref:note.ref}])+'</div></div></section>':'')+companyRenameView(model.companyName)+'</section>';
+ (note?'<section class="ws-original-note" aria-label="工作建议"><h3>助理建议</h3><div>'+portrait+'<div><p>'+esc(who?openingDialogueQuote(lead):lead)+'</p>'+itemList([{title:note.title,tab:note.tab,ref:note.ref}])+'</div></div></section>':'')+ (model.growthTip?'<aside class="ws-growth-tip" aria-label="推广"><p>想找新客户，可以去「发展」看看有哪些推广渠道。</p><div><button type="button" data-workspace-open="development">去发展</button><button type="button" data-dismiss-growth-tip>知道了</button></div></aside>':'')+companyRenameView(model.companyName)+'</section>';
 }
 export function showWarehouseShortcut(root,tab){
  const button='<button type="button" data-open-warehouse>仓库 <span aria-hidden="true">›</span></button>';

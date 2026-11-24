@@ -28,6 +28,21 @@ export function inquiryOpening(line,{kind,customerId,product}={}){
 }
 
 export const inquiryFacts = (facts, kind='') => '<dl class="inquiry-facts'+(kind?' '+kind:'')+'">'+facts.filter(([,value])=>value!==''&&value!=null).map(([label,value,kind])=>'<div><dt>'+esc(label)+'</dt><dd>'+(kind==='net-profit'?netProfitAmount(value):esc(value))+'</dd></div>').join('')+'</dl>';
+// A comparison is projected from the same draft the corresponding control will open.
+const quoteMoney = value => '¥'+value.toLocaleString('zh-CN');
+const quoteDay = value => '第 '+value+' 天';
+export function quoteDecisionFacts(q,{payment='',delivery=q?.deliveryDay,collection=q?.paymentDay,profit=q?.netProfit,
+ showStockAdvance=false,deliveryLabel='预计交货',collectionLabel='预计收款',profitLabel=profit<0?'预计亏损':'预计净利'}={}){
+ if(!q || q.accepted===false || ![q.cashRequired,delivery,collection,profit].every(Number.isSafeInteger))
+  return [['状态','当前条件无法报价']];
+ const payable=q.cashPayable??q.cost;
+ return [
+  showStockAdvance&&[payable,q.deposit].every(Number.isSafeInteger)?['先垫备货款',quoteMoney(Math.max(0,payable-q.deposit))]:['最低周转金',quoteMoney(q.cashRequired)],
+  ['付款方式',payment],
+  ...(delivery===collection&&deliveryLabel==='预计交货'?[['预计交货并收款',quoteDay(delivery)]]:[[deliveryLabel,quoteDay(delivery)],[collectionLabel,quoteDay(collection)]]),
+  [profitLabel,profit,'net-profit']
+ ];
+}
 // A native button may only contain phrasing content. Keep facts in spans here.
 export const inquiryOption = (title,facts,{hook,value,active=false}={}) =>
  '<button type="button" class="inquiry-option" '+hook+'="'+esc(value)+'" aria-pressed="'+active+'"><strong>'+esc(title)+'</strong><span class="inquiry-option-facts">'+facts.filter(([,value])=>value!==''&&value!=null).map(([label,value,kind])=>'<span><small>'+esc(label)+'</small><b>'+(kind==='net-profit'?netProfitAmount(value):esc(value))+'</b></span>').join('')+'</span></button>';

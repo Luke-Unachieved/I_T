@@ -2,31 +2,32 @@ import {netProfitAmount} from './deal-room-net-profit.js';
 import {marketTiming} from './deal-room-order-cadence.js';
 import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
 import {orderReadSummary,orderReadReceipt,orderReadNext} from './deal-room-order-read.js';
-import {canParkMarketOrder,parkedMarketOrders} from './deal-room-market.js?v=36';
+import {canParkMarketOrder,parkedMarketOrders} from './deal-room-market.js?v=37';
 import {marketCalendarDue} from './deal-room-market-calendar.js';
-import {revealQuoteReply} from './deal-room-inquiry-layout.js';
+import {revealQuoteReply,inquiryFacts,quoteDecisionFacts} from './deal-room-inquiry-layout.js?v=37';
 import {bindQuotePriceSteps,quoteAdviserProjection,quoteDraftWarning,quotePriceControls,quotePriceGuide,quotePriceRejected,quoteUnitPriceValid} from './deal-room-quote-price.js';
 import {marketProductComicView} from './deal-room-workspace-product-comics.js';
 import {prospectDisplayText} from './deal-room-prospect-locale.js';
-import {evaTrayInspectionView,evaTrayStoryMoment,isLukaTrayStoryOrder,lukaTrayInspectionView,lukaTrayStoryMoment} from './deal-room-prospect-scenes.js?v=36';
-import {lukaRepeatInspectionView,lukaRepeatOrder} from './deal-room-luka-repeat-scenes.js?v=36';
-import {evaRepeatInspectionView,evaRepeatOrder} from './deal-room-eva-repeat-scenes.js?v=36';
+import {evaTrayInspectionView,evaTrayStoryMoment,isLukaTrayStoryOrder,lukaTrayInspectionView,lukaTrayStoryMoment} from './deal-room-prospect-scenes.js?v=37';
+import {lukaRepeatInspectionView,lukaRepeatOrder} from './deal-room-luka-repeat-scenes.js?v=37';
+import {evaRepeatInspectionView,evaRepeatOrder} from './deal-room-eva-repeat-scenes.js?v=37';
 import {carafeTransportView,carafeCustomerFollowup,carafeComicFrame} from './deal-room-market-carafe-transport.js';
-import {legacyEquipmentInvite,legacyEquipmentView,bindLegacyEquipment} from './deal-room-equipment-legacy-view.js?v=36';
+import {legacyEquipmentInvite,legacyEquipmentView,bindLegacyEquipment} from './deal-room-equipment-legacy-view.js?v=37';
 import {previewWarehouseIssue,warehouseSummary} from './deal-room-warehouse.js';
-import {prospectInboxView,bindProspectInbox,prospectAdviserQuote,prospectReceiptContact} from './deal-room-prospect-view.js?v=36';
-import {equipmentInvite,equipmentView,bindEquipment,equipmentReceiptCosts} from './deal-room-equipment-view.js?v=36';
+import {prospectInboxView,bindProspectInbox,prospectAdviserQuote,prospectReceiptContact} from './deal-room-prospect-view.js?v=37';
+import {equipmentInvite,equipmentView,bindEquipment,equipmentReceiptCosts} from './deal-room-equipment-view.js?v=37';
 import {neighborhoodInvite,neighborhoodQuote,neighborhoodContact,neighborhoodOrderLine} from './deal-room-neighborhood-view.js';
 import {neighborhoodRequest} from './deal-room-neighborhood.js';
 import {marketPlate} from './deal-room-market-art.js';
 import {MARKET_PRODUCTS,marketInspectionText} from './deal-room-market-data.js';
-import {DAY_COST,previewMarket as projectMarket,marketBook} from './deal-room-market.js?v=36';
+import {DAY_COST,previewMarket as projectMarket,marketBook} from './deal-room-market.js?v=37';
 import {previewEquipment} from './deal-room-equipment.js?v=36';
 const esc=s=>String(prospectDisplayText(s)??'').replaceAll(' · ','，').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>Number.isSafeInteger(n)?`¥${n.toLocaleString('zh-CN')}`:'—';
 const modeName=m=>m==='neighborhood'?'门店联采':m==='project'?'设备项目':m==='bulk'?'铺货':'试单';
 const sourceName=s=>s==='warehouse'?'自有仓库':s==='factory'?'工厂排产':'现货联仓';
 const previewMarket=(s,d)=>projectMarket(s,d,{cadence:true});
+const marketQuotePayment=(o,q)=>q.paymentDay===q.deliveryDay?(o.depositPercent?'定金 '+o.depositPercent+'%，交货当天收尾款':'交货当天付清'):(o.depositPercent?'定金 '+o.depositPercent+'%，验收后收尾款':'验收后付清');
 const sourceSpec=(p,s)=>s==='warehouse'?{...p.sources.stock,name:'自有仓库',minQuantity:1,days:1}:p.sources[s];
 const fact=(label,value)=>`<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`;
 const netFact=(label,value)=>`<div><dt>${esc(label)}</dt><dd>${netProfitAmount(value)}</dd></div>`;
@@ -140,12 +141,18 @@ function quoteView(state,ui,d){
  const response=!quoted?'':`<div class="market-response" role="status" tabindex="-1" data-market-quote-reply><p>${esc(catalogQuoteReply({q,priceRejected,quotePrice:d.unitPrice,unit:p.unit,buyer,stores:request?.stores}))}</p></div>`;
  const sources=['stock','factory',...(d.source==='warehouse'||previewWarehouseIssue(state,p.id,o.quantity).valid?['warehouse']:[])];
  const warehouseStock=sources.includes('warehouse')?warehouseSummary(state).items.find(row=>row.productId===p.id):null;
- const finance=fact('合同货款',money(q.revenue))+fact('至少需要周转金',money(q.cashRequired));
+ const finance=fact('合同货款',money(q.revenue));
  return `<section class="market-quote market-trade-sheet market-editable-quote" aria-label="商品报价">
   <div class="market-sheet market-trade-hero">${marketPlate(p)}<div><small>${esc(label)}</small><h2 tabindex="-1" data-market-heading>${esc(p.name)}</h2>${request?'':`<p>${esc(p.brief)}</p>`}</div></div>
   ${request?neighborhoodQuote(request.stores,{...o,payLag:Number.isSafeInteger(q.paymentDay-q.deliveryDay)?q.paymentDay-q.deliveryDay:marketTiming(supplier,o,{mode:d.mode,source:d.source,cadence:true}).lag},p.unit):''}
   <div class="market-trade-columns"><section class="market-trade-choices" aria-label="采购方案">
-   ${request?'':`<fieldset class="market-compare"><legend>采购数量</legend>${['trial','bulk'].map(m=>`<div class="market-choice"><button type="button" data-market-mode="${m}" aria-pressed="${d.mode===m}" aria-describedby="market-mode-${m}">${modeName(m)}</button><div id="market-mode-${m}" class="market-choice-facts"><p><strong>${p.offers[m].quantity} ${esc(p.unit)}</strong></p><small>${p.offers[m].deadlineDays} 天内收到</small><small>${m==='trial'?'交货付清':'签约付三成定金，验收后收余款'}</small></div></div>`).join('')}</fieldset>`}
+   ${request?'':`<fieldset class="market-compare"><legend>采购数量</legend>${['trial','bulk'].map(m=>{
+    const offer=p.offers[m], candidate=m===d.mode?q:previewMarket(state,draftOf({...ui,mode:m,unitPrice:undefined},state));
+    return `<div class="market-choice"><button type="button" data-market-mode="${m}" aria-pressed="${d.mode===m}" aria-describedby="market-mode-${m}">${modeName(m)}</button><div id="market-mode-${m}" class="market-choice-facts">${inquiryFacts([
+     ['订购量',offer.quantity+' '+p.unit],['最迟收货','第 '+(state.day+offer.deadlineDays)+' 天'],
+     ...quoteDecisionFacts(candidate,{showStockAdvance:true,payment:marketQuotePayment(offer,candidate)})
+    ],'market-comparison-facts')}</div></div>`;
+   }).join('')}</fieldset>`}
    <fieldset class="market-compare"><legend>选货源</legend>${sources.map(s=>{const v=sourceSpec(p,s),terms=marketTiming(v,o,{mode:d.mode,source:s,cadence:true});return `<div class="market-choice"><button type="button" data-market-source="${s}" aria-pressed="${d.source===s}" aria-describedby="market-source-${s}">${sourceName(s)}</button>
    <div id="market-source-${s}" class="market-choice-facts"><p><strong>${terms.delivery} 天可交货</strong></p>
    ${s==='warehouse'?`<small>可用 ${warehouseStock?.onHand??0} ${esc(p.unit)}</small>${warehouseStock?.inTransit?'<small>另有 '+warehouseStock.inTransit+' '+esc(p.unit)+' 在途</small>':''}<small>只付配送费</small>`:`<small>${money(v.unitCost)}/${esc(p.unit)}</small><small>${v.minQuantity} ${esc(p.unit)}起订</small>`}</div></div>`;}).join('')}</fieldset>
@@ -155,9 +162,9 @@ function quoteView(state,ui,d){
    <form data-market-quote-form>${quotePriceControls({key:'market',unit:p.unit,price:d.unitPrice,guide:quotePriceGuide(q,30),q,sent:quoted})}</form>
    <div data-market-terms>
    ${response}
-   ${showSettlement?`${quoted?`<dl class="market-facts market-trade-totals">${finance}${netFact(q.netProfit<0?'预计亏损':'预计净利',q.netProfit)}</dl>`:''}
-   ${Number.isSafeInteger(q.deliveryDay)?`<p class="market-trade-dates"><span><strong>第 ${q.deliveryDay} 天</strong>${q.paymentDay===q.deliveryDay?'交货并收款':'交货'}</span>${q.paymentDay===q.deliveryDay?'':`<span><strong>第 ${q.paymentDay} 天</strong>收款</span>`}</p>`:''}
-   <details class="market-trade-detail"><summary>采购、收款与费用明细</summary><dl class="market-facts">${quoted?'':finance}${fact(d.source==='warehouse'?'库存成本（已付）':'采购货款',money(q.goodsCost))}${q.freight>0?fact('运输费用',money(q.freight)):''}${q.deposit>0?fact('买方定金',money(q.deposit))+fact(q.paymentDay===q.deliveryDay?'验收当日收尾款':'到期收尾款',money(q.balanceDue)):''}${q.operatingCost>0?fact('回款前日常开支',money(q.operatingCost)):''}${fact('签约后现金',money(q.cashAfterSigning))}${fact('最终剩余现金',money(q.cashAfterPayment))}</dl></details>`:''}
+   ${showSettlement?`${request?inquiryFacts(quoteDecisionFacts(q,{payment:marketQuotePayment(o,q)}),'market-comparison-facts'):''}
+   ${quoted?`<dl class="market-facts market-trade-totals">${fact('合同货款',money(q.revenue))}</dl>`:''}
+   <details class="market-trade-detail"><summary>采购、收款与费用明细</summary><dl class="market-facts">${quoted?'':finance}${request?'':fact('最低周转金',money(q.cashRequired))}${fact(d.source==='warehouse'?'库存成本（已付）':'采购货款',money(q.goodsCost))}${q.freight>0?fact('运输费用',money(q.freight)):''}${q.deposit>0?fact('买方定金',money(q.deposit))+fact(q.paymentDay===q.deliveryDay?'验收当日收尾款':'到期收尾款',money(q.balanceDue)):''}${q.operatingCost>0?fact('回款前日常开支',money(q.operatingCost)):''}${fact('签约后现金',money(q.cashAfterSigning))}${fact('最终剩余现金',money(q.cashAfterPayment))}</dl></details>`:''}
    ${reason?`<p class="market-warning" role="status">${esc(reason)}</p>`:''}
   </div><button type="button" class="primary" data-market-sign ${q.valid&&quoted?'':'disabled'}>确认签约</button>
   </section></div></section>`;

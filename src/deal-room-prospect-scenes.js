@@ -1,7 +1,7 @@
 import {comicDialogueBlock} from './deal-room-opening-dialogue.js';
 import {prospectExtraScenes} from './deal-room-prospect-scenes-extra.js';
 import {marketCalendarDue} from './deal-room-market-calendar.js';
-import {prospectContentById,prospectInbox} from './deal-room-prospects.js?v=36';
+import {prospectContentById,prospectInbox} from './deal-room-prospects.js?v=37';
 import {prospectDisplayText} from './deal-room-prospect-locale.js';
 const extraProducts=Object.freeze({'011':'tray','012':'carafe','013':'salad-bowl','014':'serving-tongs','015':'pepper-mill'});
 // Extra correspondence, not contract terms. Only read on the individual quote
