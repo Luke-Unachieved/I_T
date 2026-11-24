@@ -1,14 +1,8 @@
-import {roundCalendarDue} from './deal-room-round-receivables.js';
-import {coreCalendarMilestone} from './deal-room-core-calendar.js';
-import {specialtyMilestone} from './deal-room-specialty-calendar.js';
 import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
 import {openingMarketOrders,openingMarketProjection} from './deal-room-opening-market.js';
-import {openingContractMilestone} from './deal-room-opening-calendar.js';
-import {repeatContractMilestone} from './deal-room-repeat-calendar.js';
-import {marketParallelDue,parkedMarketOrders} from './deal-room-market.js';
+import {parkedMarketOrders} from './deal-room-market.js';
 import {companyRenameView,companyTitleText} from './deal-room-company.js';
-import {orderFooterAdvice} from './deal-room-adviser.js';
-import {previewLiveWorkspaceSleep as previewWorkspaceSleep} from './deal-room-workspace-sleep.js';
+import {orderFooterAdvice} from './deal-room-adviser.js?v=34';
 import {officeWeatherView} from './deal-room-workspace-office-weather.js';
 import {officeIntroView} from './deal-room-workspace-intro.js';
 import {prospectDisplayText} from './deal-room-prospect-locale.js';
@@ -130,18 +124,13 @@ export function workspaceOfficeView(state,model={}){
  const introArt=model.intro==='welcome'&&who?'assets/deal-office-original-'+who+'.webp':null;
  const room='<img class="ws-desk-scene" alt="" src="'+esc(introArt||art)+'">';
  const portrait=who?'<i aria-hidden="true" class="ws-note-face adviser-'+who+'"></i>':'';
- const note=advice[0],lead=note?.text||note?.detail||({inbox:'先看最早截止的这单。',orders:'先看这笔订单的交付和回款。',development:'先看看有哪些获客渠道。',afterwork:'今天手上的事办完了。'})[note?.tab]||'';
+ const note=advice[0],lead=note?.text||note?.detail||({inbox:'先看最早截止的这单。',orders:'先看这笔订单的交付和回款。',development:'先看看有哪些获客渠道。'})[note?.tab]||'';
  const row=x=>'<li><button type="button" data-workspace-open="'+(tabSet.has(x.tab)?x.tab:'inbox')+'"'+(safeRef(x.ref)?' data-workspace-ref="'+esc(x.ref)+'"':'')+'><span><strong>'+esc(x.title)+'</strong>'+(x.detail?'<small>'+esc(x.detail)+'</small>':'')+'</span>'+(x.when?'<em>'+esc(x.when)+'</em>':'')+'<b aria-hidden="true">›</b></button></li>';
  const rows=xs=>'<ul class="ws-agenda-rows">'+xs.map(row).join('')+'</ul>';
  return '<section class="ws-office ws-original-office" aria-labelledby="ws-office-title"><div class="ws-tabletop"><header class="ws-desk'+(improved?' ws-desk-window':'')+'" data-weather="'+weather+'">'+room+(introArt?'':officeWeatherView(model.officeId,weather))+'<h2 id="ws-office-title" class="ws-offscreen" tabindex="-1">'+esc(office)+(model.weather?' · '+esc(model.weather):'')+'</h2>'+officeIntroView(model.intro,who)+'</header>'+
  '<section class="ws-agenda" aria-label="今日待办"><div class="ws-agenda-top"><h3>未完成 <small>'+jobs.length+'</small></h3></div>'+(jobs.length?rows(jobs.slice(0,2)):'<p>今天没有待办。</p>')+
  (jobs.length>2?'<details><summary>其余 '+(jobs.length-2)+' 件</summary>'+rows(jobs.slice(2))+'</details>':'')+'</section></div>'+
  (note?'<section class="ws-original-note" aria-label="工作建议"><h3>助理建议</h3><div>'+portrait+'<div><p>'+esc(who?openingDialogueQuote(lead):lead)+'</p>'+itemList([{title:note.title,tab:note.tab,ref:note.ref}])+'</div></div></section>':'')+companyRenameView(model.companyName)+'</section>';
-}
-export function canEndOrderDay(s){
- // A settled Northline receipt is already in the ledger. Explicitly leaving it only closes the screen.
- const next=s.phase==='account'&&s.account?.status==='paid'?{...s,phase:'review'}:s;
- return previewWorkspaceSleep(next).valid;
 }
 export function showWarehouseShortcut(root,tab){
  const button='<button type="button" data-open-warehouse>仓库 <span aria-hidden="true">›</span></button>';
@@ -152,18 +141,10 @@ export function showWarehouseShortcut(root,tab){
  if(typeof saveFooter?.insertAdjacentHTML==='function')saveFooter.insertAdjacentHTML('beforebegin',shortcut);
  else root.insertAdjacentHTML('beforeend',shortcut);
 }
-export function showOrdersEnd(root,state,adviserId){
- // Only a list owns generic advice. Individual orders render any useful
- // advice next to the specific action (e.g. an equipment freight decision).
- const advice=root.querySelector('[data-workspace-order-list]')?orderFooterAdvice(state,adviserId):'';
- const account=state.phase==='account'&&state.account;
- const due=Math.min(...[openingContractMilestone(state)?.day,repeatContractMilestone(state)?.day,account?.status==='fulfilling'?account.deliveryDay:account?.status==='receivable'?account.paymentDay:null,marketParallelDue(state)?.day,coreCalendarMilestone(state)?.day,specialtyMilestone(state)?.day,roundCalendarDue(state)?.day].filter(Number.isSafeInteger));
- const message=Number.isSafeInteger(due)&&due>state.day?'今天没有到期的订单':'今天的订单已全部完成';
- const done=canEndOrderDay(state)?'<footer class="ws-orders-end"><p>'+message+'</p><button type="button" data-workspace-open="afterwork" data-workspace-ref="orders-end">去下班</button></footer>':'';
- if(!advice&&!done)return;
- const insertionPoint=root.querySelector('footer:has(> #motion)')||root.querySelector('.deal-save-tools');
- if(typeof insertionPoint?.insertAdjacentHTML==='function')insertionPoint.insertAdjacentHTML('beforebegin',advice+done);
- else root.insertAdjacentHTML('beforeend',advice+done);
+export function showOrdersListAdvice(root,state,adviserId){
+ const list=root.querySelector('[data-workspace-order-list]');
+ const advice=list?orderFooterAdvice(state,adviserId):'';
+ if(advice)list.insertAdjacentHTML('beforeend',advice);
 }
 export function bindWorkspaceNav(root,onNavigate){
  if(typeof onNavigate!=='function')return;

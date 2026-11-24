@@ -9,49 +9,41 @@ const walkthroughDone=s=>firstOrder(s)?.status==='paid'&&everSlept(s);
 const validHours=s=>['negotiating','fulfilling','paid'].includes(s?.phase)&&!s.businessRound&&!s.clientProjectActive;
 export function guideStep(view,s,has){
  if(view.picker||view.nested)return null;
- const hasOrder=view.tab==='orders';
- const orders=(s.contracts||[]).filter(opening);
- const first=orders[0];
+ const first=firstOrder(s);
  const date=c=>c.status==='receivable'?c.paymentDay:c.deliveryDay;
- const due=orders.filter(c=>['fulfilling','receivable'].includes(c.status)&&date(c)<=s.day)
+ const due=(s.contracts||[]).filter(c=>opening(c)&&['fulfilling','receivable'].includes(c.status)&&date(c)<=s.day)
   .sort((a,b)=>date(a)-date(b))[0];
- const slept=everSlept(s);
  const fix=(sel,why)=>has(sel)?{sel,why}:null;
- const open=tab=>has('[data-workspace-open="'+tab+'"]')?'[data-workspace-open="'+tab+'"]':'[data-workspace-tab="'+tab+'"]';
+ const open=tab=>fix('[data-workspace-open="'+tab+'"]',tab==='inbox'?'看客户需要什么、哪天交货。':'核对交货日和回款日。')||
+  fix('[data-workspace-tab="'+tab+'"]',tab==='inbox'?'看客户需要什么、哪天交货。':'核对交货日和回款日。');
  if(walkthroughDone(s))return {complete:true};
  if(!validHours(s))return null;
  if(view.tab==='afterwork'){
-  if(slept&&!due&&isSleep((s.history||[]).at(-1)?.type)&&!has('[data-workspace-sleep-confirm]'))
-   return fix('[data-workspace-tab="office"]','，看看今天的待办。');
-  return fix('[data-workspace-sleep-confirm]','，推进一天并扣上面写的开支。')||
-   fix('[data-workspace-sleep]','，先看开支，这一步还不会过天。')||
-   (due&&fix('[data-workspace-continue]','，办完今天到期的订单才能休息。'));
+  if(due)return fix('[data-workspace-continue]','先处理今天到期的订单。')||open('orders');
+  if(!first)return fix('[data-workspace-tab="inbox"]','回询盘挑一封客户来信。');
+  return fix('[data-workspace-sleep-confirm]','确认今天的开支，进入下一天。')||
+   fix('[data-workspace-sleep]','先查看开支；这一步还不会过天。');
  }
  if(!first){
-  if(view.tab==='office')return fix(has('[data-workspace-intro="open"]')?'[data-workspace-intro="open"]':open('inbox'),'，看看客户要多少、哪天要货。');
-  if(view.tab==='inbox'){
-   return fix('[data-first-buyer]','或其他来信，先看需求和交货日期。')||
-    fix('.opening-ask[data-action="PROPOSE"]:not(:disabled)','，请客户确认条件，不会签约或扣钱。')||
-    fix('[data-action="PROPOSE"]:not(:disabled)','前先核对交货和回款日期。签了就要垫备货款。')||
-    fix('.inquiry-choices button[aria-pressed="false"]:not(:disabled)','，换个方案比较数量、交期和回款。');
+  if(view.tab==='office')return fix('[data-workspace-intro="open"]','打开询盘，看客户的需求和交期。')||open('inbox');
+  if(view.tab==='inbox')return fix('[data-first-buyer]','打开一封来信，先看需求和交期。')||
+   fix('.opening-ask[data-action="PROPOSE"]:not(:disabled)','把方案发给客户确认，还不会签约或扣款。')||
+   fix('[data-action="PROPOSE"]:not(:disabled)','接受条款并签约；签约后要垫付备货款。')||
+   fix('.inquiry-choices button[aria-pressed="false"]:not(:disabled)','比较另一种报价的数量、交期和回款。');
+  return open('inbox');
+ }
+ if(view.tab==='orders'){
+  const order=view.detail??due??first;
+  if(has(ONE))return fix(ONE,order.status==='receivable'?'把到期尾款记入账本。':
+    order.deliveryDay===order.paymentDay?'交货，货款今天一并到账。':'先确认交货，到了回款日再收尾款。');
+  if(due||!view.detail&&!everSlept(s)){
+   const pick=due||first;
+   return fix('[data-workspace-order-detail="'+pick.clientId+'"]',due?'这笔订单今天有待办，打开处理。':'打开刚签的订单，看看哪天交货、哪天回款。')||
+    (due&&view.detail?open('orders'):null);
   }
  }
- if(hasOrder){
-  const order=view.detail??due??first;
-  if(has(ONE))return fix(ONE,order?.status==='receivable'
-   ?'，把到期尾款记入账本。'
-   :order?.deliveryDay===order?.paymentDay
-    ?'，交货当天就能收到货款。'
-    :'，先记交货，尾款到日子再收。');
-  const pick=due||(!slept&&!view.detail?first:null);
-  if(pick)return fix('[data-workspace-order-detail="'+pick.clientId+'"]',due?(due.status==='receivable'?'，这笔尾款今天到期。':'，这笔货今天到期。'):'，看交货日和回款日。')||
-   (due&&view.detail?fix('[data-workspace-open="orders"]','，找今天到期的那一单。'):null);
-  if(!slept)return fix('.ws-orders-end [data-workspace-open="afterwork"]','，准备收工；想接单也可以继续看询盘。')||
-   (view.detail&&fix('[data-workspace-tab="afterwork"]','，先看看今天的工作室开支。'))||
-   fix('[data-opening-next-day]','只过一天，订单仍按约定日期处理。');
- }
- if(view.tab==='office'&&(due||!slept))return fix(open('orders'),due?'，先办今天到期的订单。':'，先看哪天交货、哪天回款。');
- return null;
+ if(due||view.tab!=='orders'&&!everSlept(s))return open('orders');
+ return fix('[data-workspace-tab="afterwork"]','去下班页；在那儿休息才能推进日期。');
 }
 
 export function createOpeningGuide({storage,key,saveStatus}){
@@ -77,37 +69,42 @@ export function createOpeningGuide({storage,key,saveStatus}){
   const on=preference==='running'||!preference&&auto;
   const step=on?guideStep(view,state,selector=>!!pick(selector)):null;
   if(step?.complete)set('done');
-  if(step?.sel){
+  if(step?.sel||on&&preference==='running'&&!step?.complete){
    if(!preference)set('running');
-   const target=pick(step.sel);
-   if(!target)return;
+   const target=step?.sel?pick(step.sel):null;
    const panel=doc.createElement('aside');
    panel.className='ws-opening-guide';panel.setAttribute('aria-label','新手指引');
    const copy=doc.createElement('p');copy.id='ws-opening-guide-copy';
-   const bold=doc.createElement('strong');
-   bold.textContent='点「'+label(target)+'」';
-   copy.append(bold,doc.createTextNode(step.why));
-   const intro=target.matches?.('[data-workspace-intro="open"]')?target.closest('.ws-intro-dialogue'):null;
-   const nativeSkip=intro?.querySelector('[data-workspace-intro="skip"]');
-   // Reuse the existing office control; other steps get only a tutorial dismissal.
-   panel.append(copy);
-   const close=nativeSkip||doc.createElement('button');
-   const original=nativeSkip?.onclick;
+   if(target){
+    const bold=doc.createElement('strong');
+    bold.textContent='点「'+label(target)+'」';
+    copy.append(bold,doc.createTextNode('：'+step.why));
+    panel.append(copy);
+   }else panel.classList.add('ws-guide-paused');
+   const close=doc.createElement('button');
    close.type='button';close.className='ws-guide-close';close.textContent='关闭教程';
-   close.onclick=function(event){
+   close.onclick=()=>{
     set('off');
-    if(nativeSkip)return original?.call(this,event);
     remove(root);
-    if(target.isConnected)target.focus?.({preventScroll:true});
+    if(target?.isConnected)target.focus?.({preventScroll:true});
    };
    panel.append(close);
-   root.setAttribute?.('data-opening-guide-context',intro?'intro':view.tab);
+   if(!target){root.prepend(panel);return;}
+   const intro=target.matches?.('[data-workspace-intro="open"]')?target.closest('.ws-intro-dialogue'):null;
+   if(intro)root.setAttribute('data-opening-guide-context','intro');
    target.setAttribute('data-opening-guide-target','');
    const desc=target.getAttribute('aria-describedby');
    target.setAttribute('aria-describedby',(desc?desc+' ':'')+copy.id);
-   // Keep the real grid children intact; a guide is not an action or a cell.
    const rail=intro?target.parentElement:target.closest('.inquiry-actions, .ws-nav, .inquiry-choices, .ws-agenda, .ws-original-note');
-   if(rail)rail.before(panel);else target.before(panel);
+   (rail||target).before(panel);
+   // Keep the highlighted real control discoverable after each player-driven render.
+   const frame=doc.defaultView?.requestAnimationFrame;
+   if(frame)frame.call(doc.defaultView,()=>{
+    if(!target.isConnected||!target.hasAttribute('data-opening-guide-target'))return;
+    const a=panel.getBoundingClientRect(),b=target.getBoundingClientRect();
+    const top=Math.min(a.top,b.top),bottom=Math.max(a.bottom,b.bottom),height=doc.defaultView.innerHeight;
+    if(top<6||bottom>height-6)target.scrollIntoView?.({block:'center',behavior:'instant'});
+   });
    return;
   }
 

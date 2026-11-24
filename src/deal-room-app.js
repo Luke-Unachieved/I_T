@@ -7,7 +7,7 @@ import {netProfitAmount} from './deal-room-net-profit.js';
 import {emptyMarketDesk,settledMarketDesk} from './deal-room-market-calendar.js';
 import {inquiryBuyerHeading} from './deal-room-inquiry-layout.js';
 import {orderReadSummary,orderReadReceipt,orderReadNext,openingOrderUnits} from './deal-room-order-read.js';
-import {createOpeningGuide} from './deal-room-opening-guide.js';
+import {createOpeningGuide} from './deal-room-opening-guide.js?v=34';
 import {prepareGameImages} from './deal-room-image-loading.js?v=28';
 import {readCompanyName,bindCompanyName,companyNameView,companyTitleText} from './deal-room-company.js';
 import {openingMarketProjection,openingMarketOrders} from './deal-room-opening-market.js';
@@ -23,18 +23,18 @@ import {workProductComicView} from './deal-room-workspace-product-comics.js';
 import {officeIntroMode} from './deal-room-workspace-intro.js';
 import {localizeBuyerDisplay} from './deal-room-prospect-locale.js';
 import {WORKSPACE_DAY_COST,previewLiveWorkspaceSleep as previewWorkspaceSleep} from './deal-room-workspace-sleep.js';
-import {adviserView,bindAdviser,readAdviserChoice,adviserWorkspaceAdvice,adviserPickerOpen} from './deal-room-adviser.js';
+import {adviserView,bindAdviser,readAdviserChoice,adviserWorkspaceAdvice,adviserPickerOpen} from './deal-room-adviser.js?v=34';
 import {marketBook,canParkMarketOrder,parkedMarketOrders} from './deal-room-market.js';
-import {marketView,bindMarket,marketReceiptText,marketAdviserQuote} from './deal-room-market-view.js';
+import {marketView,bindMarket,marketReceiptText,marketAdviserQuote} from './deal-room-market-view.js?v=34';
 let marketUI={};
 import {warehouseView,bindWarehouse} from './deal-room-warehouse-view.js';
 let warehouseOpen=false,warehouseUI={};
-import {workspaceNavView,workspaceOfficeView,bindWorkspaceNav,showOrdersEnd,canEndOrderDay,showWarehouseShortcut} from './deal-room-workspace-nav.js';
+import {workspaceNavView,workspaceOfficeView,bindWorkspaceNav,showOrdersListAdvice,showWarehouseShortcut} from './deal-room-workspace-nav.js?v=34';
 import {propertyView,bindPropertyView} from './deal-room-property-view.js';
-import {workspaceWeather,workspaceHubView,bindWorkspaceHub,workspaceTradingRecapAvailable,workspaceCooperationRecapAvailable,workspaceCaseGrowthLink,workspaceAccountExpansionDraft,workspaceSeriesRoutes} from './deal-room-workspace-hub.js';
+import {workspaceWeather,workspaceHubView,bindWorkspaceHub,workspaceTradingRecapAvailable,workspaceCooperationRecapAvailable,workspaceCaseGrowthLink,workspaceAccountExpansionDraft,workspaceSeriesRoutes} from './deal-room-workspace-hub.js?v=34';
 import {PROPERTY_SCENE_ART,PROPERTY_CATALOGUE_ART,propertySceneArt} from './deal-room-property-art.js';
 import {CAR_ART_BY_ID} from './deal-room-car-art.js';
-import {workspaceOpeningInbox,workspaceActiveOrders,openingNextWorkday,workspaceCurrentMarketOrder,workspaceMarketQueue,workspaceFamiliarInbox,workspaceInboxIndex,workspaceOrdersIndex,workspaceInquiryFromRef} from './deal-room-workspace-index.js';
+import {workspaceOpeningInbox,workspaceActiveOrders,workspaceCurrentMarketOrder,workspaceMarketQueue,workspaceFamiliarInbox,workspaceInboxIndex,workspaceOrdersIndex,workspaceInquiryFromRef} from './deal-room-workspace-index.js?v=34';
 import {PROPERTY_CATALOG,propertyHoldings} from './deal-room-property.js';
 import {outingsView,bindOutings,openOutings} from './deal-room-outings-view.js?v=33';
 let workspaceOverride=null,propertyUI=null,outingsOpen=false,outingsUI={},sleepOpen=false,promotionUI={};
@@ -72,11 +72,11 @@ import {retailWait,demandView,buyerWaitView} from './deal-room-demand.js';
 import {linenFreightView} from './deal-room-linen-freight.js';
 import {atelierRestockBasis,atelierRestockView} from './deal-room-atelier-restock.js';
 import {tradingChapter,tradingChapterVisual} from './deal-room-trading-chapter.js';
-import {businessHomeView,careerRecapView,projectDeskView,projectDeskPreview} from './deal-room-home.js';
+import {businessHomeView,careerRecapView,projectDeskView,projectDeskPreview} from './deal-room-home.js?v=34';
 import {buyerContact,collectionBoardView,collectionReceipt} from './deal-room-relationships.js';
 import {selectedCollectionSeed,collectionView,COLLECTION_STYLES,collectionPitchView,previewCollectionPitch} from './deal-room-collection.js';
 import {previewAccount,accountView,accountReceipt,accountCoverage} from './deal-room-account.js';
-import {curationView,curationReceiptView,businessFeedback,playerStatusText,curationDemoModel,toggleCurationProduct} from './deal-room-curation-view.js';
+import {curationView,curationReceiptView,businessFeedback,playerStatusText,curationDemoModel,toggleCurationProduct} from './deal-room-curation-view.js?v=34';
 import {createDealRoom,currentClient,openFirstBuyers,firstBuyerProjection,quoteOptions,previewOffer,reduceLiveDealRoom,previewCashRisk,bankruptcyStatus,businessOpportunities,normalizeDealRoom,careerOpportunity,previewSupplyPlan,clientProjects,CURATION_PRODUCTS,curationOffers,previewCuration} from './deal-room-engine.js';
 import {sampleSelection,sampleSvg,developedQuoteSample} from './deal-room-samples.js';
 import {supplyDraftView,supplyLotsView,supplyPlaybackFrames} from './deal-room-supply-view.js';
@@ -274,9 +274,10 @@ function workspaceNavigate(tab,ref){
   const next=reduceDealRoom(state,{type:'BACK_FROM_CLIENTS'});
   if(next!==state){state=next;save();}
  }
- if(tab==='afterwork'&&ref==='orders-end'){
-  if(tabsNow()!=='orders'||!canEndOrderDay(state))return;
-  if(state.phase==='account'&&state.account?.status==='paid'){state=reduceDealRoom(state,{type:'CLOSE_ACCOUNT'});save();}
+ // The global tab can leave a paid receipt without advancing the day.
+ if(tab==='afterwork'&&state.phase==='account'&&state.account?.status==='paid'){
+  const next=reduceDealRoom(state,{type:'CLOSE_ACCOUNT'});
+  if(next!==state){state=next;save();}
  }
  // Leaving a finished receipt or empty draft for another workspace area should
  // also exit the procurement desk. Preserve receipt history; never close an
@@ -356,7 +357,7 @@ function render(){
    showWarehouseShortcut(root,tab);
    root.querySelector('[data-open-warehouse]')?.addEventListener?.('click',()=>{warehouseOpen=true;render();root.querySelector('#wh-title')?.focus?.();});
   }
-  if(!nested&&tab==='orders'&&!root.querySelector('[data-first-opening-order-detail]'))showOrdersEnd(root,state,adviserUI.choice);
+  if(!nested&&tab==='orders')showOrdersListAdvice(root,state,adviserUI.choice);
   bindWorkspaceNav(root,workspaceNavigate);
  }
  bindAdviser(root,adviserUI,dealStorage,render,SAVE_KEY,workspaceNavigate);
@@ -414,13 +415,10 @@ function renderCurrentPage(){
    const projected={...state,phase:order.status==='paid'?'paid':'fulfilling',contracts:familiar?[...state.contracts.filter(c=>c!==order),order]:[order]};
    const comic=familiar?openingRepeatComicView(projected,order.optionId):openingMiraInesComicView(projected)||samirOpeningReceiptComic(projected)||openingInspectionView(projected);
    const read=orderReadSummary({...order,status:order.status==='fulfilling'?'transit':order.status,buyer:order.clientName,unit:openingOrderUnits[order.clientId]});
-   root.innerHTML=adviserView(state,{place:'订单',identityOnly:true},adviserUI)+`<section class="business ws-opening-signed ws-carafe ws-order-detail"${familiar?'':' data-first-opening-order-detail'}><button type="button" class="ws-control ws-control--back" data-workspace-open="orders">← 订单列表</button>${read}
-   ${comic}${orderReadNext(due?(state.day>=due.day?`<button type="button" class="primary ws-control ws-control--main" data-opening-specific-milestone>${due.delivery?(due.sameDay?'确认交货并收款':'确认交货'):(order.deposit?'收取尾款':'收取货款')}</button>`:`<p class="ws-order-detail-note">第 ${due.day} 天${due.delivery?'交货':'收款'}。</p><button type="button" data-workspace-open="inbox">去收件箱</button>`):orderReadReceipt(order.received??order.revenue,order.netProfit))}${openingNextWorkday(state)}</section>`+dealSaveView(savePanel,saveNotice);
+   root.innerHTML=adviserView(state,{place:'订单',identityOnly:true},adviserUI)+`<section class="business ws-opening-signed ws-carafe ws-order-detail"><button type="button" class="ws-control ws-control--back" data-workspace-open="orders">← 订单列表</button>${read}
+   ${comic}${orderReadNext(due?(state.day>=due.day?`<button type="button" class="primary ws-control ws-control--main" data-opening-specific-milestone>${due.delivery?(due.sameDay?'确认交货并收款':'确认交货'):(order.deposit?'收取尾款':'收取货款')}</button>`:`<p class="ws-order-detail-note">第 ${due.day} 天${due.delivery?'交货':'收款'}。</p><button type="button" data-workspace-open="inbox">去收件箱</button>`):orderReadReceipt(order.received??order.revenue,order.netProfit))}</section>`+dealSaveView(savePanel,saveNotice);
    root.querySelector('[data-opening-specific-milestone]')?.addEventListener('click',()=>directAction({type:familiar?(due.delivery?'DELIVER_REPEAT_ORDER_V1':'COLLECT_REPEAT_ORDER_V1'):(due.delivery?'DELIVER_OPENING_ORDER_V1':'COLLECT_OPENING_ORDER_V1'),clientId:order.clientId,checkedDay:state.day}));
   }
-  root.querySelector('[data-opening-next-day]')?.addEventListener('click',()=>{
-   const q=previewWorkspaceSleep(state);if(q.valid&&!q.pending.length)directAction({type:'SLEEP_TO_NEXT_DAY',checkedDay:q.checkedDay,acknowledgePending:false});
-  });
   bindSaveTools();return;
  }
  if(!warehouseOpen&&workspaceOverride==='orders'&&!workspaceOrderDetail&&state.phase==='fulfilling'&&(!state.businessRound||repeatContractMilestone(state))){
@@ -497,7 +495,7 @@ function renderCurrentPage(){
  }
  if(state.phase==='market'){
   const quote=marketAdviserQuote(state,marketUI),back=workspaceMailDesk;
-  root.innerHTML=adviserView(state,{place:'采购台',quote,back,view:state.market.status==='draft'&&(marketUI.prospectId||quote)?'inquiry':null},adviserUI)+marketView(state,{...marketUI,back,adviserId:adviserUI.choice})+dealSaveView(savePanel,saveNotice);
+  root.innerHTML=adviserView(state,state.market.status==='draft'&&marketUI.legacyDraft&&!marketUI.prospectId?{place:'采购台',identityOnly:true}:{place:'采购台',quote,back,view:state.market.status==='draft'&&(marketUI.prospectId||quote)?'inquiry':null},adviserUI)+marketView(state,{...marketUI,back,adviserId:adviserUI.choice})+dealSaveView(savePanel,saveNotice);
   const dispatchMarket=action=>{
    const next=reduceDealRoom(state,action);if(next===state)return;
    state=next;workspaceMarketOrderList=false;
@@ -635,11 +633,6 @@ function renderCurrentPage(){
   if(state.officeImprovement){if(!root.querySelector('#open-office-annex'))place?.insertAdjacentHTML('beforeend',`<p class="office-entry"><button id="open-office-annex">${state.officeAnnex?'去样品会客室':'想要一间样品会客室 · 先参观'}</button></p>`);root.querySelector('#open-office-annex')?.addEventListener('click',()=>{annexOpen=true;annexUI={};render();root.querySelector('[data-annex-close]')?.focus();});}
   root.querySelector('#open-office-improvement')?.addEventListener('click',()=>{officeOpen=true;officeUI={};render();root.querySelector('[data-office-close]')?.focus();});
  }
- if(home&&lifeAvailable(state)&&!showCareerRecap){
-  const place=root.querySelector('.business');
-  if(!root.querySelector('#open-personal-life'))place?.insertAdjacentHTML('beforeend','<p class="personal-life-entry"><button id="open-personal-life">下班回家</button></p>');
-  root.querySelector('#open-personal-life')?.addEventListener('click',()=>{personalRoomOpen=true;personalRoomUI={};render();root.querySelector('[data-life-close]')?.focus();});
- }
  if(playback){
   const f=playback.frames[playback.index],plan=state.supplyPlan;
   [...root.children].forEach(el=>el.inert=true);
@@ -724,7 +717,6 @@ function renderCurrentPage(){
   if(directAction({type,clientId:due.clientId,checkedDay:state.day}))root.querySelector('.business h2')?.focus?.({preventScroll:true});
  });
  const milestone=coreCalendarMilestone(state);
- const hasNightLink=()=>Boolean(root.querySelector('[data-workspace-open="afterwork"]'))||tabsNow()==='orders'&&canEndOrderDay(state);
  // Reuse the actual contract action, not an alternate clock. Before the due
  // date the same position tells the player which night to progress to.
  for(const button of root.querySelectorAll('[data-action]')){
@@ -737,12 +729,12 @@ function renderCurrentPage(){
   if(milestone?.type!==type){button.remove();continue;}
   if(state.day<milestone.day){
    const note=document.createElement('p');note.className='brief';note.textContent='第 '+milestone.day+' 天可以'+milestone.label+'。';
-   const leave=document.createElement('button');leave.type='button';leave.dataset.workspaceOpen='afterwork';leave.textContent='去下班';if(hasNightLink())button.replaceWith(note);else button.replaceWith(note,leave);
+   button.replaceWith(note);
   }else button.textContent=milestone.label;
  }
  if(milestone?.type==='RECEIVE_OWN_COLLECTION_V1'&&!root.querySelector('[data-action="RECEIVE_OWN_COLLECTION_V1"]')){
   const target=root.querySelector('.business');
-  if(target)target.insertAdjacentHTML('beforeend',state.day>=milestone.day?'<button class="primary" type="button" data-action="RECEIVE_OWN_COLLECTION_V1">'+milestone.label+'</button>':'<p class="brief">第 '+milestone.day+' 天到样。</p>'+(hasNightLink()?'':'<button type="button" data-workspace-open="afterwork">去下班</button>'));
+  if(target)target.insertAdjacentHTML('beforeend',state.day>=milestone.day?'<button class="primary" type="button" data-action="RECEIVE_OWN_COLLECTION_V1">'+milestone.label+'</button>':'<p class="brief">第 '+milestone.day+' 天到样。</p>');
  }
  root.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>{const previousState=state;let type=b.dataset.action;if(type==='OPEN_STOCK_PROCUREMENT'&&state.phase==='studio-project')state=reduceDealRoom(state,{type:'KEEP_STUDIO_PROJECT'});if(type==='SIGN_CASE_GROWTH'&&growthDraft.products.length===1)type=growthLampModel==='developed'&&growthDraft.products[0]==='mira'&&growthDraft.agreement==='private'?'SIGN_APPROVED_CASE_LAMP':'SIGN_CASE_CALLOFF';if(type==='WAIT_CASE_GROWTH'&&growthDraft.products.length===1)type='WAIT_CASE_CALLOFF';state=reduceDealRoom(state,['SIGN_STUDIO_ALLOCATION','WAIT_STUDIO_ALLOCATION'].includes(type)?{type,allocation:studioAllocation}:type==='RESTORE_GROUP_SPEC'?{type,briefId:b.dataset.briefId}:type==='SIGN_FIRST_CATALOGUE_ORDER'?{type,referrerId:state.caseGrowth.referrerId,lampVersion:seriesLamp}:type==='SIGN_CATALOGUE_ORDER'?{type,lampVersion:seriesLamp}:type==='APPROVE_CASE_LAMP'?{type,model:proposalModel}:type==='SIGN_APPROVED_CASE_LAMP'?{type,terms:growthDraft.terms}:['WAIT_CASE_GROWTH','WAIT_CASE_CALLOFF'].includes(type)?{type,products:growthDraft.products}:['SIGN_CASE_GROWTH','SIGN_CASE_CALLOFF'].includes(type)?{type,...growthDraft}:type==='COMMISSION_SAMPLE'?{type,factory:factoryChoice}:type==='SIGN_COLLECTION_PITCH'?{type,optionId:collectionPitchOption}:type==='SIGN_COLLECTION'?(seedPreview?{type:'SIGN_OWN_COLLECTION_FROM_CASE',referrerId:seedPreview.referrerId,style:collectionDraft.style}:{type,model:collectionDraft.model,style:collectionDraft.style}):type==='SIGN_ACCOUNT'?{type,optionId:accountOption}:type==='PROPOSE'?(openingDraftState?{type:'SIGN_OPENING_QUOTE_V2',clientId:client.id,optionId:selected}:repeatDraft?{type:'SIGN_FAMILIAR_QUOTE_V3',clientId:client.id,optionId:selected}:familiarDraftState&&client?.id==='mira'&&['developed-lamp','second-developed-lamp'].includes(selected)?{type:'SIGN_FAMILIAR_SAMPLE_V1',clientId:client.id,optionId:selected}:{type,optionId:selected}):type==='SIGN_SHOP_TRIAL'?{type,terms:shopTerms}:type==='SIGN_STOCK_PROCUREMENT'?{type,factoryMode:stockMode}:type==='START_SUPPLY_PLAN'?{type,...supplyDraft}:type==='SIGN_CURATION'?(curationDraft.lampVersion==='developed'?{type:'SIGN_CURATION_SAMPLE_V2',products:curationDraft.products,quantity:curationDraft.quantity,packaging:curationDraft.packaging,lampVersion:'developed'}:{type:'SIGN_CURATION_V2',products:curationDraft.products,quantity:curationDraft.quantity,packaging:curationDraft.packaging}):{type});if(type==='CLOSE_ACCOUNT'&&state!==previousState){save();workspaceNavigate('office');return;}if(state!==previousState&&state.phase==='review'&&workspaceOverride==='orders'){workspaceOverride=null;workspaceOrderDetail=false;workspaceOpeningOrder=null;}if(state!==previousState&&['SIGN_SHOP_TRIAL','SETTLE_SHOP_TRIAL'].includes(type))shopSceneMoment=type==='SIGN_SHOP_TRIAL'?'send':'settle';if(type==='PROPOSE'&&state!==previousState){clearOpeningDraft();openingInboxOpen=false;viewedFamiliarBuyer=null;if(state.feedback?.kind==='counter'&&workspaceOverride==='inbox'&&openFirstBuyers(state).length){viewedFirstBuyer=client?.id??null;}else{viewedFirstBuyer=null;}if(state.feedback?.kind==='accepted'&&state.phase==='fulfilling'){workspaceOverride='orders';workspaceOrderDetail=true;workspaceOpeningOrder=client?.id??null;}}if(type==='NEXT_CLIENT'&&state!==previousState){if(state.phase==='portfolio'){workspaceOverride=null;workspaceOrderDetail=false;workspaceOpeningOrder=null;}if(openFirstBuyers(state).length){const officeEntry=root.dataset?.workspaceEntry==='office';workspaceOverride=officeEntry?'inbox':null;viewedFirstBuyer=officeEntry?currentClient(state)?.id||null:null;}else if(!previousState.businessRound&&!previousState.clientProjectActive&&previousState.phase==='paid'&&state.phase==='complete'){workspaceOverride='office';workspaceOrderDetail=false;viewedFirstBuyer=null;}}if(type==='APPROVE_CASE_LAMP'&&state.caseLampApprovals?.[state.caseGrowth.referrerId]){proposalOpen=false;growthLampModel='developed';growthDraft.products=['mira'];}if(type==='CLOSE_CASE_GROWTH'){growthDraft=null;seriesMode=false;}if(type==='BACK_FROM_CURATION')curationDraft=null;if(['BACK_FROM_COLLECTION','START_COLLECTION'].includes(type))delete collectionDraft.sourceId;if(type==='START_SUPPLY_PLAN'&&state.phase==='planning-fulfillment')supplyDraft=null;save();if(type==='FULFIL_SUPPLY_PLAN'&&state.feedback?.kind==='supply-complete'&&!document.documentElement.classList.contains('reduce-motion')&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){playback={frames:supplyPlaybackFrames(state.supplyPlan),index:0};clearTimeout(playbackTimer);playbackTimer=setTimeout(nextPlaybackFrame,1200);}event=['FULFIL_CASE_GROWTH','FULFIL_CURATION','FULFIL_ACCOUNT_EXPANSION','FULFIL_ACCOUNT','FULFIL_COLLECTION'].includes(type)?'shop-received':type==='PROPOSE'?(state.phase==='fulfilling'?'signing':'replying'):['ADVANCE','FULFIL_SUPPLY_PLAN'].includes(type)?'receiving':'arriving';if(state===previousState)event='';else if(state.feedback?.kind==='round-delivered')event='delivering';else if(/-signed$/.test(state.feedback?.kind||''))event='signing';else if(/-paid$/.test(state.feedback?.kind||''))event='receiving';render();if(type==='NEXT_CLIENT'&&state!==previousState){focusCustomerRoute();return;}const target=root.querySelector(state.feedback?.kind==='counter'?'.business [data-prospect-reply], .business .counter':'.business h2');if(target&&!playback){target.setAttribute('tabindex','-1');target.focus({preventScroll:true});target.scrollIntoView({block:'nearest',behavior:'auto'});}});
  root.querySelector('#motion').onclick=()=>{document.documentElement.classList.toggle('reduce-motion');try{localStorage.setItem(SAVE_KEY+':reduced-motion',document.documentElement.classList.contains('reduce-motion')?'1':'0');}catch{}render();root.querySelector('#motion')?.focus({preventScroll:true});};

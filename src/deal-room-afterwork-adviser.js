@@ -11,10 +11,6 @@ const reminder=Object.freeze({
  car:{label:'去看看车',text:'最近做成的单子赚了些钱。留够下一单的周转，手头还够买辆代步车。有空可以先去车行看看。'},
  home:{label:'去看看房',text:'留足生意上的周转，手头还有些余钱。要是想换个住处，有空可以去看看房。'}
 });
-const notices={
- expires:'有询盘今天截止。「睡到明天」里会列出这些来信。',
- rest:'如果今天做完了，「睡到明天」里可以看到今天的工作室开支。'
-};
 function hasSettledProfit(state){
  let profit=0;
  for(const order of [
@@ -31,18 +27,21 @@ function hasSettledProfit(state){
 export function afterworkAdvice(state,sleep,{sleepOpen=false}={}){
  const q=sleep??previewWorkspaceSleep(state);
  if(sleepOpen||!q.valid)return null;
- if(q.pending.length)return {text:notices.expires};
- const normal={text:notices.rest};
+ if(q.pending.length){
+  const names=q.pending.map(line=>line.match(/^(.*?)的询盘今天截止$/)?.[1]).filter(Boolean);
+  const today=names.length===q.pending.length?names.slice(0,2).join('、')+(names.length>2?'等 '+names.length+' 位买家的':'的')+'询盘今天截止':q.pending[0];
+  return {text:`${today}。还想谈的话，今天先去「询盘」回复。`};
+ }
  const kind=lookDays[state.day%14];
  if(!kind||!['review','complete'].includes(state.phase)||state.clientProjectActive||state.afterWorkOutings?.activeTrip||
-    state.contracts?.some(order=>order.status!=='paid')||parkedMarketOrders(state).length||!hasSettledProfit(state))return normal;
+    state.contracts?.some(order=>order.status!=='paid')||parkedMarketOrders(state).length||!hasSettledProfit(state))return null;
  const h=propertyHoldings(state);
- if(!h||h.owned.some(own=>own.id!=='home-starter'&&PROPERTY_CATALOG.some(asset=>asset.id===own.id&&asset.kind===kind)))return normal;
+ if(!h||h.owned.some(own=>own.id!=='home-starter'&&PROPERTY_CATALOG.some(asset=>asset.id===own.id&&asset.kind===kind)))return null;
  const price=PROPERTY_CATALOG.filter(asset=>asset.kind===kind&&Number.isSafeInteger(asset.price)&&asset.price>0).sort((a,b)=>a.price-b.price)[0];
  const reserve=promotionReserve(state);
- if(!price||!Number.isSafeInteger(reserve?.required)||reserve.required<=0)return normal;
+ if(!price||!Number.isSafeInteger(reserve?.required)||reserve.required<=0)return null;
  const purchase=propertyPreview(state,price.id);
- if(!purchase.valid||purchase.cashAfter<reserve.required+q.cost)return normal;
+ if(!purchase.valid||purchase.cashAfter<reserve.required+q.cost)return null;
  return {...reminder[kind],kind};
 }
 

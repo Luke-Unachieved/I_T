@@ -12,7 +12,7 @@ import {evaTrayInspectionView,evaTrayStoryMoment,isLukaTrayStoryOrder,lukaTrayIn
 import {lukaRepeatInspectionView,lukaRepeatOrder} from './deal-room-luka-repeat-scenes.js';
 import {evaRepeatInspectionView,evaRepeatOrder} from './deal-room-eva-repeat-scenes.js';
 import {carafeTransportView,carafeCustomerFollowup,carafeComicFrame} from './deal-room-market-carafe-transport.js';
-import {legacyEquipmentInvite,legacyEquipmentView,bindLegacyEquipment} from './deal-room-equipment-legacy-view.js';
+import {legacyEquipmentInvite,legacyEquipmentView,bindLegacyEquipment} from './deal-room-equipment-legacy-view.js?v=34';
 import {previewWarehouseIssue,warehouseSummary} from './deal-room-warehouse.js';
 import {prospectInboxView,bindProspectInbox,prospectAdviserQuote,prospectReceiptContact} from './deal-room-prospect-view.js';
 import {equipmentInvite,equipmentView,bindEquipment,equipmentReceiptCosts} from './deal-room-equipment-view.js';

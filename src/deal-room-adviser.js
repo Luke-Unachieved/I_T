@@ -3,19 +3,24 @@ import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
 import {openingContractMilestone} from './deal-room-opening-calendar.js';
 import {repeatContractMilestone} from './deal-room-repeat-calendar.js';
 import {openingMarketOrders,openingMarketProjection} from './deal-room-opening-market.js';
-import {openFirstBuyers,familiarBuyers} from './deal-room-engine.js';
+import {openFirstBuyers,familiarBuyers,CURATION_PRODUCTS} from './deal-room-engine.js';
+import {SAMPLE_FACTORIES} from './deal-room-development.js';
 import {marketCalendarDue} from './deal-room-market-calendar.js';
-import {previewLiveWorkspaceSleep as previewWorkspaceSleep} from './deal-room-workspace-sleep.js';
+import {coreCalendarMilestone} from './deal-room-core-calendar.js';
+import {specialtyMilestone} from './deal-room-specialty-calendar.js';
+import {roundReceivableSummary} from './deal-room-round-receivables.js';
+import {legacyEquipmentCalendarAction,legacyEquipmentCashSchedule} from './deal-room-equipment-legacy.js';
 import {carafeTransport} from './deal-room-market-carafe-transport.js';
 import {prospectDisplayText} from './deal-room-prospect-locale.js';
 import {DEAL_SAVE_KEY} from './deal-room-save.js';
 import {marketBook,marketAvailable,canParkMarketOrder,parkedMarketOrders} from './deal-room-market.js';
 import {neighborhoodRequest} from './deal-room-neighborhood.js';
 import {prospectInbox} from './deal-room-prospects.js';
-import {previewPromotion} from './deal-room-promotion.js';
+import {previewPromotion,promotionStatus} from './deal-room-promotion.js';
 import {warehouseAvailable,warehouseSummary} from './deal-room-warehouse.js';
 import {previewAccount} from './deal-room-account.js';
-import {equipmentOpportunity} from './deal-room-equipment.js';
+import {advanceEquipmentShipping,equipmentOpportunity} from './deal-room-equipment.js';
+import {WORKSPACE_DAY_COST} from './deal-room-workspace-sleep.js';
 
 // Advisory text is projected from the current view. Navigating from a note only focuses a
 // visible control. Trading actions and the replayed business save stay under player control.
@@ -38,193 +43,219 @@ export function readAdviserChoice(storage, saveKey = DEAL_SAVE_KEY) {
 function suggested(text, target, label) { return {text, target, label}; }
 
 function quoteNote(quote, state, target) {
-  const {quantity, minQuantity, deliveryDay, deadlineDay, cashRequired} = quote;
-  const desk=target==='.market-quote',source=desk?'quote-source':target,price=desk?'quote-price':target,facts=desk?'quote-costs':target;
-  if (quantity < minQuantity) return suggested('这批还没到起订量。现货或换个数量，都可以再算一算。', source, '查看货源和数量');
-  if (deliveryDay > deadlineDay) return suggested('这个货源赶不上交期，换一家或许有办法。', source, '查看货源和交期');
-  if (cashRequired > state.cash) return suggested(`开工前还差 ${money(cashRequired - state.cash)}，没到账的尾款还不能用来付这笔货款。`, facts, '核对报价');
-  if (quote.reason && !quote.valid) return suggested(quote.reason, price, '查看报价');
-  if (quote.accepted === false) return suggested('对方没接受这份条件。要是还想谈，报价可以改。', price, '查看买方要求');
-  if (quote.netProfit < 0) return suggested(`按这份报价要亏 ${money(-quote.netProfit)}。确认前还能调整条件。`, facts, '核对成本');
-  if (quote.kind === 'equipment') return suggested('除了采购款，这单还有运费和验收费。船期也列在下面，方便一起算。', desk?'equipment-route':target, '查看设备条款');
-  return suggested(desk?'先看看要垫多少、哪天能收回来。手上还有别的单，就把两边要付的钱一起算。':'这几份的垫款和回款日不一样，手头留的钱也会有差别。', price, '查看报价');
+  const {quantity,minQuantity,deliveryDay,deadlineDay,cashRequired,netProfit}=quote;
+  const desk=target==='.market-quote',source=desk?'quote-source':target,facts=desk?'quote-costs':target;
+  if(Number.isSafeInteger(quantity)&&Number.isSafeInteger(minQuantity)&&quantity<minQuantity)
+    return suggested(`这单只要 ${quantity}，这家至少做 ${minQuantity}。先换个起订量合适的货源。`,source,'查看货源和数量');
+  if(Number.isSafeInteger(deliveryDay)&&Number.isSafeInteger(deadlineDay)&&deliveryDay>deadlineDay)
+    return suggested(`这家第 ${deliveryDay} 天才能交货，客户最晚第 ${deadlineDay} 天要货。先换货源，不急着签。`,source,'查看货源和交期');
+  if(Number.isSafeInteger(cashRequired)&&cashRequired>state.cash)
+    return suggested(`签这单还差 ${money(cashRequired-state.cash)}。先换成垫款少的方案；不够就先不签。`,facts,'核对报价');
+  // Numbered buyers already have their own advice beside the actual refusal.
+  if(quote.accepted===false&&quote.kind==='prospect'&&/未接受|没有接受/.test(quote.reason??''))return null;
+  if(quote.accepted===false&&/价格|单价/.test(quote.reason??''))
+    return suggested('对方没接受这口价。想继续谈，就调低单价再发一次，先别签。',desk?'quote-price':target,'查看报价');
+  if(Number.isSafeInteger(netProfit)&&netProfit<0)
+    return suggested(`按现在的条件，这单要亏 ${money(-netProfit)}。可以先换方案，不必急着签。`,facts,'核对成本');
+  if(quote.kind==='equipment'&&quote.shipping==='standard'&&Number.isSafeInteger(quote.stationFee)&&quote.stationFee>0)
+    return suggested(`要比普通舱和锁舱，记得把换船时可能多付的 ${money(quote.stationFee)} 场站费算进去。`,'equipment-route','查看设备条款');
+  return null;
 }
-
 function inboxNote(state, atDesk) {
   const project = equipmentOpportunity(state);
   const request = neighborhoodRequest(marketBook(state).receipts);
   const openDesk = '[data-action="OPEN_MARKET"]';
-  if (project) return suggested(`${project.buyer}有一封${project.name}询价，信里有订舱和验收条款。`, atDesk ? '[data-equipment-open]' : openDesk, '查看设备来信');
+  if(project)return suggested(`「商品与项目」里有${project.buyer}的${project.name}询价。想做这单，先比较普通舱和锁舱要付的钱。`,atDesk?'[data-equipment-open]':openDesk,'查看设备来信');
   if (request) {
     if (!state.neighborhoodRegistered) return suggested('四邻百货在找门店供货方。林妍的联采登记在「商品与项目」里。', atDesk ? '[data-market-action="REGISTER_NEIGHBORHOOD"]' : openDesk, '查看联采登记');
-    return suggested(`林妍把 ${request.stores} 家店的清单发来了，各店要多少都写在上面。`, atDesk ? '[data-neighborhood-product]' : openDesk, '查看联采清单');
+    return suggested(`林妍这次问的是 ${request.stores} 家店。到「商品与项目」打开联采清单，再按总量挑货源。`,atDesk?'[data-neighborhood-product]':openDesk,'查看联采清单');
   }
   return null;
 }
 
 const openingNames={mira:'米拉',samir:'萨米尔',ines:'伊内斯'};
-export function adviserNextMilestone(s){
- const story=[openingContractMilestone(s),repeatContractMilestone(s)].filter(Boolean)
-  .map(d=>({...d,buyer:openingNames[d.clientId]}));
+function assortment(o){
+ return o?.productName||o?.product||o?.productNames?.join('、')||o?.products?.map(id=>id==='mira'&&o.lampVersion==='developed'?'三档调光台灯':CURATION_PRODUCTS.find(p=>p.id===id)?.name).filter(Boolean).join('、');
+}
+function specialtyIdentity(s,m){
+ if(m.task==='first-sample-collect'||m.task==='second-sample'){
+  const d=m.task==='first-sample-collect'?s.productDevelopment:s.secondSupplier,f=SAMPLE_FACTORIES[d?.factory];
+  if(f)return {buyer:f.name,product:f.title+'样品'};
+ }
+ if(m.task==='linen-freight-receive')return {buyer:'里斯本展陈方',product:'棉麻桌布'};
+ if(m.task==='shop-trial-settle')return {buyer:'街角小店',product:'三档调光台灯'};
+ if(m.task.startsWith('atelier-restock-'))return {buyer:'Atelier',product:assortment(s.atelierRestock)};
+ return {};
+}
+function adviserMilestones(s){
+ const clients=Object.keys(openingNames);
+ const known=clients.flatMap(id=>[openingContractMilestone(s,id),repeatContractMilestone(s,id)]).filter(Boolean);
+ const round=roundReceivableSummary(s);
+ if(round.active&&['fulfilling','portfolio','negotiating'].includes(s.phase)){
+  for(const c of round.rows.filter(c=>['fulfilling','receivable'].includes(c.status))){
+   const delivery=c.status==='fulfilling';known.push({day:delivery?c.deliveryDay:c.paymentDay,delivery,sameDay:delivery&&c.deliveryDay===c.paymentDay,clientId:c.clientId,
+    queue:true,contract:s.contracts.find(r=>r.roundReceivable&&r.businessRound===s.businessRound&&r.clientId===c.clientId)});
+  }
+ }
+ const seen=new Set();
+ const story=known.filter(d=>d.contract&&!seen.has(d.contract)&&seen.add(d.contract))
+  .map(d=>({...d,buyer:openingNames[d.clientId],product:assortment(d.contract)}));
  const active=s.phase==='market'?s.market?.active:null;
  const market=[active,...parkedMarketOrders(s),...openingMarketOrders(s)].filter(Boolean).map(o=>{
   const d=marketCalendarDue({phase:'market',market:{status:o.status,active:o}});
-  return d&&{...d,contract:o,buyer:prospectDisplayText(o.buyer)};
+  return d&&{...d,sameDay:d.delivery&&o.deliveryDay===o.paymentDay,contract:o,buyer:prospectDisplayText(o.buyer),product:assortment(o),
+   strict:d.legacy||d.equipment&&d.stage==='ship',blocked:d.day===s.day&&(d.legacy?!legacyEquipmentCalendarAction(s):d.equipment&&d.stage==='ship'&&advanceEquipmentShipping(s,WORKSPACE_DAY_COST,true)===s)};
  });
  const account=s.phase==='account'&&s.account;
  const delivery=account?.status==='fulfilling';
  const dated=account&&['fulfilling','receivable'].includes(account.status)
-  ?{delivery,day:delivery?account.deliveryDay:account.paymentDay,contract:account}:null;
- return [...story,...market,dated].filter(d=>Number.isSafeInteger(d?.day)&&d.day>0).sort((a,b)=>a.day-b.day)[0]||null;
+  ?{delivery,day:delivery?account.deliveryDay:account.paymentDay,contract:account,buyer:account.buyer,product:assortment(account),strict:true}:null;
+ const core=coreCalendarMilestone(s),specialty=specialtyMilestone(s);
+ const holder=core?.stage|| (s.phase==='planning-fulfillment'?s.supplyPlan:null);
+ const nextSupply=s.phase==='planning-fulfillment'?s.supplyPlan?.events?.[s.supplyPlan.eventIndex]:null;
+ const task=core?{...core,buyer:holder?.buyer||holder?.clientName,product:assortment(holder),strict:true,blocked:Number.isSafeInteger(nextSupply?.cost)&&nextSupply.cost>s.cash}:
+  specialty?.required?{...specialty,...specialtyIdentity(s,specialty),strict:true}:null;
+ return [...story,...market,dated,task].filter(d=>Number.isSafeInteger(d?.day)&&d.day>0)
+  .sort((a,b)=>a.day-b.day||(a.queue&&b.queue?Number(a.delivery)-Number(b.delivery):0));
+}
+export const adviserNextMilestone=s=>adviserMilestones(s)[0]||null;
+const actionableToday=(s,rows=adviserMilestones(s))=>rows.filter(d=>!d.blocked&&(d.strict?d.day===s.day:d.day<=s.day));
+function milestoneAction(d){
+ if(d.label)return d.label;
+ if(d.legacy)return d.stage==='ship'?'安排装船':d.delivery?'验收并收验收款':'收尾款';
+ if(d.equipment)return d.stage==='ship'?'确认装船':d.delivery?'按清单整单验收':'收齐尾款';
+ return d.sameDay?'确认交货并收款':d.delivery?'确认交货':d.contract?.deposit>0?'收取尾款':'收取货款';
+}
+function milestoneSubject(d){
+ const buyer=prospectDisplayText(d.buyer||'');
+ return buyer&&d.product?buyer+'的'+d.product:buyer?buyer+'这单':d.product||'';
+}
+function todayLine(rows,day,{inOrders=false}={}){
+ if(!rows.length)return '';
+ const summary=rows.map(d=>{
+  const subject=milestoneSubject(d)||'这项',when=d.day===day?'今天':'已经到期，今天';
+  if(d.stage==='ship')return subject+when+'要装船';
+  if(d.legacy&&d.delivery)return subject+when+'能验收，办完就能收验收款';
+  if(d.equipment&&d.delivery)return subject+when+'能按清单验收';
+  if(d.sameDay||d.label==='确认交货并收款')return subject+when+'交货时就能收钱';
+  if(d.delivery||d.label==='确认交货')return subject+when+'能交货';
+  const label=milestoneAction(d);
+  if(/^(收取|收齐|收)(尾款|货款)$/.test(label)){
+   const cash=d.contract?.balanceDue,word=label.endsWith('尾款')?'尾款':'货款';
+   return subject+'的'+word+when+'能收'+(Number.isSafeInteger(cash)&&cash>0?' '+money(cash):'');
+  }
+  return subject+when+'可以'+label;
+ }).join('；');
+ return summary+'。'+(inOrders?'打开对应的订单就能办。':'到「订单」打开对应的单子。');
 }
 function milestoneLine(d,day){
- const action=d.stage==='ship'?'确认装船':d.sameDay?'确认交货并收款':d.delivery?'确认交货':d.equipment||d.contract?.deposit>0?'收取尾款':'收取货款';
- const subject=d.buyer?d.buyer+'这单':'这笔订单';
- if(d.day<=day)return subject+(d.day===day?'今天要':'已经到期，记得去订单里')+action+'。';
- const event=d.stage==='ship'?'装船':d.sameDay?'交货并收款':d.delivery?'交货':d.equipment||d.contract?.deposit>0?'收尾款':'收货款';
- return subject+'第 '+d.day+' 天'+event+'。';
+ const subject=milestoneSubject(d);
+ if(d.day>day)return (subject?subject+'，':'')+'第 '+d.day+' 天再到「订单」'+milestoneAction(d)+'。';
+ return todayLine([d],day);
 }
-function nextLetter(rows){
- return [...rows].sort((a,b)=>(a.replyBy??Infinity)-(b.replyBy??Infinity))[0]||null;
+const nextLetter=rows=>[...rows].sort((a,b)=>(a.replyBy??Infinity)-(b.replyBy??Infinity))[0]||null;
+const buyerName=row=>row?.person?.displayName||openingNames[row?.id]||row?.name?.split(' · ')[0]||'';
+const productName=row=>typeof row?.product==='string'?row.product:row?.product?.name;
+function letterLine(row,day,place='询盘'){
+ const who=buyerName(row),what=productName(row),open=place==='询盘'?'打开':'到「询盘」打开';
+ if(!who)return '';
+ if(Number.isSafeInteger(row.replyBy))return `${who}的询盘${row.replyBy===day?'今天':'第 '+row.replyBy+' 天'}截止，${open}这封${what?'，先看'+what+'要哪天到':''}。`;
+ return `${open}${who}的来信${what?'，先看'+what+'要多少、哪天交货':'，先看数量和交货日'}。`;
 }
 function workspaceNote(s,person){
  const nav=(text,label,tab,ref)=>({text,label,tab,ref});
- const due=adviserNextMilestone(s), sleep=previewWorkspaceSleep(s);
- if(due&&due.day<=s.day)return nav(milestoneLine(due,s.day),'去订单','orders');
+ const dates=adviserMilestones(s),today=actionableToday(s,dates),waiting=dates.find(d=>d.day>s.day);
+ if(today.length)return {text:todayLine(today,s.day)};
  const opening=openFirstBuyers(s),familiar=familiarBuyers(s),projection=openingMarketProjection(s,0);
  const canOpen=marketAvailable(s)||canParkMarketOrder(s)||s.phase==='market'&&['draft','paid'].includes(s.market?.status);
  const ordinary=projection?prospectInbox(projection):canOpen?prospectInbox(s,{whileActive:canParkMarketOrder(s)}):[];
- const letter=nextLetter(ordinary);
- const before=due?milestoneLine(due,s.day)+' ':'';
- if(letter&&letter.replyBy===s.day)return nav(before+letter.person.displayName+'的询盘今天截止，有空可以先回这封。','去收件箱','inbox');
- if(opening.length||familiar.length||letter)return nav(due?before+'还有来信没回，等货时也可以接着谈。':
-  opening.length&&!s.contracts?.length?person.first:'收件箱有来信，先看看数量和交货日期。','去收件箱','inbox');
- if(previewPromotion(s,'district').valid)return nav(before+'要是想找新客户，可以先看这次推广要花多少钱。','去推广获客','development','promotion');
- if(sleep.valid)return nav(before+'今天没有到期的订单。想收工的话，明天继续。','去下班','afterwork');
- if(due)return nav(before.trim(),'去订单','orders');
- return null;
+ const letter=nextLetter([...opening,...familiar,...ordinary]);
+ if(letter){
+  const who=buyerName(letter),text=who&&opening.length&&!s.contracts?.length
+   ?`到「询盘」打开${who}的来信。${person.first}`:letterLine(letter,s.day,'办公室');
+  if(text)return nav(text,'去收件箱','inbox');
+ }
+ if(s.phase==='paid'&&s.openingParallel&&s.contracts.filter(c=>openingNames[c.clientId]&&!c.businessRound&&!c.projectId&&c.status==='paid').length===3)
+  return {text:'三位客户的首单都收齐了。到「订单」点「回工作室，看看新机会」。'};
+ if(waiting)return {text:milestoneLine(waiting,s.day)};
+ return null; // no generic rest instruction or assistant end-day button
 }
 export function adviserInboxAdvice(s,rows){
- const due=adviserNextMilestone(s);
- if(due&&due.day<=s.day)return milestoneLine(due,s.day)+(rows.length?' 手上的单子办完，再回来看来信。':'');
+ const dates=adviserMilestones(s),today=actionableToday(s,dates),waiting=dates.find(d=>d.day>s.day);
+ if(today.length)return todayLine(today,s.day);
  const letter=nextLetter(rows);
- if(letter&&Number.isSafeInteger(letter.replyBy))return letter.person.displayName+'的来信第 '+letter.replyBy+' 天截止。先看数量，再看看来不来得及交货。';
- if(!rows.length)return due?milestoneLine(due,s.day):'';
- if(due)return milestoneLine(due,s.day)+' 要接新单，先看看两笔生意的备货款会不会撞到一起。';
- return '报价之前，咱们先算算要垫多少。客户愿意先付定金，这单就少占一点周转钱。';
+ return letter?letterLine(letter,s.day):waiting?milestoneLine(waiting,s.day):'';
 }
 export function adviserWorkspaceAdvice(s,ui={}){
  const person=ADVISERS.find(x=>x.id===ui.choice), note=person?workspaceNote(s,person):null;
- return note?.tab?[{title:note.label,tab:note.tab,text:note.text,ref:note.ref}]:[];
+ return note?[{title:note.label,tab:note.tab,text:note.text,ref:note.ref}]:[];
 }
 function accountNote(s,option){
  const a=s.account;
- if(a.status==='draft'){
-  const q=previewAccount(s,a.expansion?'remaining':option||'pilot');
-  if(q&&!q.valid&&q.requiredCash>s.cash)return suggested('算上回款前的开支，还差 '+money(q.requiredCash-s.cash)+'，目前还签不了。','.account-order-section .offer','核对款项');
-  return a.expansion?suggested('前三家已经结清。剩下三家用哪些货、要垫多少，单子上是分开列的。','.account-order-specs','核对两批商品'):
-   suggested('这次只谈眼前这一批。定金、垫款和尾款日都列在单子上了。','.account-order-section','查看款项');
- }
- if(a.status==='paid')return {text:a.expansion?'尾款收齐了，六家店都收到货了。':'货款收齐了。要不要给另外三家店供货，回办公室再决定。'};
- const delivered=a.status==='receivable', due=delivered?a.paymentDay:a.deliveryDay;
- if(!['receivable','fulfilling'].includes(a.status)||!Number.isSafeInteger(due))return null;
- if(s.day===due)return delivered?suggested('今天到收款日，这单还有 '+money(a.balanceDue)+' 尾款待收。','[data-action="COLLECT_ACCOUNT_V1"]','核对尾款'):
-  suggested('这批货今天到交货日。门店签收以后，就剩尾款了。','[data-action="DELIVER_ACCOUNT_V1"]','查看交货安排');
- return {text:delivered?'货已交了，第 '+due+' 天收尾款。':'第 '+due+' 天交货，现在还不用确认。'};
+ if(a.status!=='draft')return null;
+ const q=previewAccount(s,a.expansion?'remaining':option||'pilot');
+ return q&&!q.valid&&q.requiredCash>s.cash?suggested(`签这批还差 ${money(q.requiredCash-s.cash)}。其他门店没收齐的钱不要算进来。`,'.account-order-section .offer','核对款项'):null;
 }
 export function orderFooterAdvice(s,adviserId){
  const person=ADVISERS.find(p=>p.id===adviserId);
- if(!person)return '';
- let text;
- if(s.phase==='account'&&s.account){
-  const a=s.account;
-  if(a.status==='fulfilling')text=s.day===a.deliveryDay?'确认门店签收后，就可以等尾款了。':'还没到交货日，这单暂时不用处理。';
-  if(a.status==='receivable')text=s.day===a.paymentDay?'这次只收尾款，签约时的定金已经到账。':'货已经送到了，尾款会在约定的收款日到期。';
-  if(a.status==='paid'&&!a.expansion)text='另外三家店的订单不用现在接，明天再决定也行。';
- }else if((s.contracts||[]).some(o=>o.status==='fulfilling'))text='还有货待交，订单上能看到哪一笔先到期。';
- else if(['review','complete'].includes(s.phase))text='要对账的话，从「最近回款」能查到每笔实收。';
+ const text=person&&todayLine(actionableToday(s),s.day,{inOrders:true});
  if(!text)return '';
  return `<aside class="ws-order-tip" aria-label="${escape(person.name)}"><i class="adviser-face adviser-${person.id}" aria-hidden="true"></i><p>${escape(openingDialogueQuote(text))}</p></aside>`;
 }
 function warehouseNote(s){
  const w=warehouseSummary(s);
- if(!w.valid)return {text:'这次没读到仓位，这张表暂时不能用来备货。'};
- if(w.inTransitBoxes)return suggested('还有 '+w.inTransitBoxes+' 箱在路上，最早第 '+w.nextArrivalDay+' 天到，这批到仓后才能算现货。','[data-wh-rack] > summary','查看仓位');
- if(w.onHandBoxes)return suggested('已入仓 '+w.onHandBoxes+' 箱，是几款商品合在一起的数量。每款的余量都在仓位里。','[data-wh-rack] > summary','查看仓位');
- if(warehouseAvailable(s))return suggested('仓库还空着。想提前备货的话，备货页能看到会占多少周转金。','[data-wh-order] > summary','看看备货条件');
- return {text:'仓库还空着，手头订单结清后就能考虑提前备货了。'};
+ if(!w.valid)return null;
+ if(w.inTransitBoxes&&Number.isSafeInteger(w.nextArrivalDay))return {text:`最早第 ${w.nextArrivalDay} 天才有一批到仓。现在要用库存发货，只能选已经入仓的货。`};
+ if(w.onHandBoxes&&warehouseAvailable(s))return {text:'要用现货发单，在报价的货源里选「自有仓库」。下单前先对一下同款还有多少件。'};
+ return null;
 }
 function developmentNote(s){
+ const pending=promotionStatus(s)?.pending;
+ if(pending)return {text:`这期推广第 ${pending.replyDay} 天回信，到时去「询盘」看，不用再付一次。`};
  const promo=previewPromotion(s,'district');
- if(promo.valid)return suggested('想找新客户的话，版位和费用可以先比一比，查看不花钱。','[data-hub-promotion] > summary','比较推广版位');
- return suggested('除了推广，也可以留意合作客户的引荐，看看买手最近在找什么。','.ws-leads > summary','查看客户机会');
+ if(promo.valid)return suggested(`想多接一封来信，可以先看「推广获客」。街区商报要 ${money(promo.quotedFee)}，第 ${promo.replyDay} 天回信，回信不是订单。`,'[data-hub-promotion] > summary','比较推广版位');
+ return null;
 }
-function currentNote(state, context, person) {
-  // An open inquiry can belong to another buyer while the journal is waiting
-  // for shipment or payment. Never infer this screen's outcome from that phase.
+function marketOrderNote(state){
+ const active=state.market?.active,due=marketCalendarDue(state);
+ if(!due||!active||carafeTransport(state))return null;
+ const decision=due.delivery&&active.transfer&&!active.rebooked&&!active.rebookPaid&&state.day===active.shipDay;
+ if(decision)return null; // the route panel already has its own advice
+ const label=milestoneAction({...due,contract:active,sameDay:due.delivery&&active.deliveryDay===active.paymentDay});
+ if(state.day<due.day)return {text:`第 ${due.day} 天再回这笔订单，点「${label}」。`};
+ if(due.legacy&&!legacyEquipmentCalendarAction(state)){
+  const payable=legacyEquipmentCashSchedule(state).find(row=>row.day===state.day)?.expense;
+  const what=due.stage==='ship'?'工厂余款和运费':'验收费用';
+  return Number.isSafeInteger(payable)&&payable>state.cash?{text:`这一步要先付${what} ${money(payable)}，手头还差 ${money(payable-state.cash)}。买方的验收款要验完才会到账。`}:null;
+ }
+ if(due.equipment&&!due.legacy&&due.stage==='ship'){
+  if(state.day!==due.day)return null;
+  if(advanceEquipmentShipping(state,WORKSPACE_DAY_COST,true)===state)return active.stationFee>state.cash?{text:`装船要先付 ${money(active.stationFee)} 场站费，手头还差 ${money(active.stationFee-state.cash)}，现在不能装船。`}:null;
+ }
+ const amount=!due.delivery&&due.stage!=='ship'&&Number.isSafeInteger(active.balanceDue)&&active.balanceDue>0?'，这次应收 '+money(active.balanceDue):'';
+ return {text:`这笔已到${due.stage==='ship'?'装船':due.delivery?'交货':'收款'}日，点「${label}」${amount}。`};
+}
+function currentNote(state,context,person){
+  // The mail being read can differ from the contract that is currently in the journal.
   if(context.view==='inquiry')return context.quote?quoteNote(context.quote,state,context.place==='采购台'?'.market-quote':'.business'):null;
   if(context.place==='发展')return developmentNote(state);
   if(context.place==='自有仓库')return warehouseNote(state);
-  if(context.place==='订单列表') {
-    if(context.orderList==='market')return suggested('手头这笔订单可以打开核对交期和款项。','[data-workspace-current-market-order]','找到订单详情');
-    if(context.orderList==='opening')return suggested('交货和回款各是哪一天，这里都有记录。','[data-workspace-order-detail]','查看交货安排');
-    return suggested('想接下一单？可以去看看还有哪些商品和项目。','[data-workspace-products]','去商品与项目');
+  if(context.place==='办公室')return workspaceNote(state,person);
+  if(context.place==='采购台'&&state.phase==='market'){
+    if(state.market.status==='draft')return context.quote?quoteNote(context.quote,state,'.market-quote'):inboxNote(state,true);
+    return marketOrderNote(state);
   }
-  if(context.place==='业务'&&state.phase==='account'&&state.account){const note=accountNote(state,context.accountOption);if(note)return note;}
-
-  if(context.place==='办公室'){const actionable=workspaceNote(state,person);if(actionable)return actionable;}
-  if (context.place === '下班'||context.place === '住处') {
-    const home=context.place==='住处',q=previewWorkspaceSleep(state);
-    if(!q.valid)return null; // The sleep panel already supplies the blocking reason and any action.
-    const text=q.pending.length?'有询盘今天截止。「睡到明天」里会列出这些来信。':'如果今天做完了，「睡到明天」里可以看到今天的工作室开支。';
-    return suggested(text,home?'[data-home-sleep]':'[data-workspace-sleep]','看看睡前安排');
+  if(context.place==='业务'&&state.phase==='account'&&state.account)return accountNote(state,context.accountOption);
+  if(context.place==='业务'||context.place==='展陈配送'){
+   const specialty=specialtyMilestone(state),due=coreCalendarMilestone(state)||specialty?.required&&specialty;
+   const e=state.phase==='planning-fulfillment'?state.supplyPlan?.events?.[state.supplyPlan.eventIndex]:null;
+   if(due&&state.day===due.day&&Number.isSafeInteger(e?.cost)&&e.cost>state.cash)
+    return {text:`下一批开工要先付 ${money(e.cost)}，手头还差 ${money(e.cost-state.cash)}。`};
+   return due?{text:state.day<due.day?`第 ${due.day} 天再回来${due.label}。`:state.day===due.day?`今天在这页${due.label}。`:''}:null;
   }
-  if (context.place === '生活') return {text:'先看看价，买不买由你。'};
-  if (context.place === '工作室布置') return {text:'先比较两种布置。没点购买，不会扣钱。'};
-  if (context.place === '展览') return {text:'想换个摆法，先挑要摆出来的样品。'};
-  if (context.place === '侧间') return {text:'侧间里的东西都还在，想换个摆法也行。'};
-  if (context.place === '收工') return {text:'收到的货款都记到账本上了。'};
-  if (state.phase === 'market') {
-    const {status, active} = state.market;
-    if (status === 'draft') {
-      if (context.quote) return quoteNote(context.quote, state, '.market-quote');
-      return inboxNote(state,true) || suggested('报价前可以把货源和交期一起比，看看哪种跟买方要的更合适。', '#market-search', '去采购台找货');
-    }
-    if (!active) return {text:'手头的合同还可以在采购台核对。'};
-    const due=marketCalendarDue(state);
-    if(due&&!due.equipment){
-      if(state.day<due.day)return {text:'第 '+due.day+' 天'+(due.delivery?'交货':'收尾款')+'，现在不用处理。'};
-      return suggested(due.delivery?'这笔货可以交付了。':'这笔尾款已到期。',due.delivery?'[data-market-action="DELIVER_MARKET_V2"]':'[data-market-action="COLLECT_MARKET_V2"]',due.delivery?'查看交货安排':'查看应收尾款');
-    }
-    if(carafeTransport(state))return suggested('联仓的车已配好。包车会早两天交货和收款，但比照原安排多花 ¥36；两边的日期可以一起比。','.ws-carafe .ws-ship-choice','比较两种运输安排');
-    if(active.carafeCharter&&status==='transit')return suggested('包车已订，第 '+active.deliveryDay+' 天交货，新的验收安排也已记在订单里。','.ws-carafe [data-market-action="DELIVER_MARKET"]','查看新交货安排');
-    if(status==='legacy-preparing')return suggested('客户定金已收。到第 '+active.shipDay+' 天再付工厂尾款和运费。','.market-active','看出运安排');
-    if(status==='legacy-transit')return suggested('第 '+active.deliveryDay+' 天交接，届时还有验收费；验完会收到中间一笔款。','.market-active','看验收安排');
-    if(status==='legacy-receivable')return suggested('中间一笔已到账。尾款 '+money(active.balanceDue)+'，等第 '+active.paymentDay+' 天收。','.market-active','看尾款');
-    if (status === 'preparing') return suggested(`货已订好。第 ${active.shipDay} 天整批出运，出运清单已经列好了。`, '.market-active', '查看出运安排');
-    if (status === 'transit') return suggested(`这批${active.productName}约在第 ${active.deliveryDay} 天交付，验收要用的清单在合同里。`, '.market-active', '查看交货安排');
-    if (status === 'receivable') return suggested(`货已验收，${money(active.balanceDue)} 尾款约在第 ${active.paymentDay} 天收。届时再入账。`, '[data-market-action="COLLECT_MARKET"]', '查看应收尾款');
-    if(status==='paid'&&active.kind==='prospect')return {text:`这笔 ${money(active.received)} 已收齐，账本上也记好了。`};
-    if (status === 'paid') {
-      const back=context.back==='orders'?'返回订单':'返回收件箱';
-      return suggested(`这笔 ${money(active.received)} 已收齐，可以${back}了。`, '[data-market-action="CLOSE_MARKET"]', back);
-    }
-  }
-  if (state.phase === 'negotiating') {
-    if (context.quote && (state.history.length || !context.quote.valid)) return quoteNote(context.quote, state, '.business');
-    return suggested(person.first, '.business', '去看询盘');
-  }
-  if (state.phase === 'fulfilling') return suggested('这单签了。交货日和收款日都在订单上。', '.business','查看合同');
-  if (state.phase === 'paid') return suggested('这笔货款收齐了，交货日期和净利都记在收据上了。', '.receipt','看收款记录');
-  if (state.phase === 'portfolio') {
-    const overdue = state.contracts.filter(c => c.status === 'receivable').sort((a,b) => a.paymentDay-b.paymentDay)[0];
-    if (overdue) return suggested(`还有一笔 ${money(overdue.balanceDue)} 尾款，约在第 ${overdue.paymentDay} 天收。`, '.business','查看应收安排');
-    return suggested('想接返单的话，这里能看到哪些客户有补货需求。', '.business','查看客户需求');
-  }
-  if (['review','complete'].includes(state.phase) && context.place === '工作室') return inboxNote(state,false) || suggested('手里这轮合同已经结清。可以看看采购台的新货，再决定接哪单。', '[data-action="OPEN_MARKET"]', '去找下一单');
-  return suggested('要对数量或收款日，打开手头这张单。', '.business h2', '看看手头的单子');
+  if(['review','complete'].includes(state.phase)&&context.place==='工作室')return inboxNote(state,false);
+  return null;
 }
-
 function equipmentCosts(q) {
   if (q?.kind !== 'equipment') return '';
   const rows = [['合同货款',q.revenue],['采购货款',q.goodsCost],['运费',q.freight],['验收费用',q.acceptanceFee],['日常开支',q.operatingCost]];
@@ -259,7 +290,7 @@ const adviserTargets=Object.freeze({
  'equipment-route':['[data-equipment-shipping][aria-pressed="true"]','[data-legacy-route][aria-pressed="true"]','.market-quote']
 });
 export function bindAdviser(root, ui, storage, rerender, saveKey = DEAL_SAVE_KEY, navigate) {
-  root.querySelector('[data-adviser-tab]')?.addEventListener('click',event=>{const k=event.currentTarget.dataset.adviserTab;if(['inbox','orders','development','afterwork'].includes(k)){const ref=event.currentTarget.dataset.adviserRef;ref==='promotion'?navigate?.(k,ref):navigate?.(k);}});
+  root.querySelector('[data-adviser-tab]')?.addEventListener('click',event=>{const k=event.currentTarget.dataset.adviserTab;if(['inbox','orders','development'].includes(k)){const ref=event.currentTarget.dataset.adviserRef;ref==='promotion'?navigate?.(k,ref):navigate?.(k);}});
   root.querySelector('[data-adviser-picker]')?.addEventListener('click', () => {
     ui.choosing = !root.querySelector('.adviser-options');
     rerender();

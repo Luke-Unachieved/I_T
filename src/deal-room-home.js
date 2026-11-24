@@ -58,7 +58,7 @@ export function homeLifeView(state){
  const names=[['chair','阅读角'],['coffee','自己的咖啡'],['books','手工书册'],['record','唱片机'],['records','周末唱片'],['readinglamp','调光阅读角'],['balcony','自己的阳台']].filter(([id])=>ids.has(id)).map(([,name])=>name);
  const spent=Number.isSafeInteger(state.personalLife?.spent)?state.personalLife.spent:0;
  const lampInvite=!ids.has('readinglamp')&&lifeReadingLampBasis(state);
- return `<section class="home-life" aria-label="赚钱以后的生活"><h3>工作室与住处</h3><div class="home-life-links"><button id="open-office-improvement">${state.officeImprovement?'去窗边工作室':'布置窗边工作室'}</button>${state.officeImprovement?`<button id="open-office-annex">${state.officeAnnex?'去样品会客室':'先参观样品会客室'}</button>`:''}<button id="open-personal-life">${names.length?'回家':'去看看喜欢的物件'}</button></div>
+ return `<section class="home-life" aria-label="赚钱以后的生活"><h3>工作室与住处</h3><div class="home-life-links"><button id="open-office-improvement">${state.officeImprovement?'去窗边工作室':'布置窗边工作室'}</button>${state.officeImprovement?`<button id="open-office-annex">${state.officeAnnex?'去样品会客室':'先参观样品会客室'}</button>`:''}</div>
  ${names.length||spent||lampInvite?`<details><summary>家里的物件</summary>${names.length?`<p>${names.join(' · ')}</p>`:''}${spent?`<p>已经为家里添置 ${money(spent)}</p>`:''}${lampInvite?(ids.has('chair')?'<p>米拉的调光灯订单已结清。你也可以另订一盏同款，摆在阅读椅旁。</p>':'<p>米拉的调光灯订单已结清。家里有了阅读椅，也可以另订一盏同款。</p>'):''}</details>`:''}</section>`;
 }
 function realizedBusinessNet(state){

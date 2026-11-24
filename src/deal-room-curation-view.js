@@ -160,5 +160,5 @@ export function playerStatusText(text){
 export function curationReceiptView(state){
  const c=state.curation;
  if(state.feedback?.kind!=='curation-paid'||c?.status!=='paid'||![c.balanceDue,c.netProfit,state.cash,c.quantity].every(Number.isFinite))return '';
- return `<section class="curation-receipt" aria-label="这笔合作的回款"><small>这一单做成了</small><h3>${esc(c.buyer)} 已收齐这组产品</h3><p>${c.products.length} 款产品，各 ${c.quantity} 件，已经摆进客户的店里。</p><dl><div><dt>尾款到账</dt><dd>${money(c.balanceDue)}</dd></div><div><dt>${c.netProfit<0?'本单亏损':'这次净赚'}</dt><dd>${netProfitAmount(c.netProfit)}</dd></div><div><dt>手头现在有</dt><dd>${money(state.cash)}</dd></div></dl><small>货款已收齐。可以看看下一份合作，也可以下班回家。</small></section>`;
+ return `<section class="curation-receipt" aria-label="这笔合作的回款"><small>这一单做成了</small><h3>${esc(c.buyer)} 已收齐这组产品</h3><p>${c.products.length} 款产品，各 ${c.quantity} 件，已经摆进客户的店里。</p><dl><div><dt>尾款到账</dt><dd>${money(c.balanceDue)}</dd></div><div><dt>${c.netProfit<0?'本单亏损':'这次净赚'}</dt><dd>${netProfitAmount(c.netProfit)}</dd></div><div><dt>手头现在有</dt><dd>${money(state.cash)}</dd></div></dl></section>`;
 }

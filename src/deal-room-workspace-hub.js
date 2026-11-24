@@ -1,7 +1,7 @@
 import {cashRescueView} from './deal-room-bankruptcy-view.js';
 import {previewBankruptcy,previewLiquidation} from './deal-room-engine.js';
 import {careerProjects,openProductReorder} from './deal-room-career-focus.js';
-import {workspaceLedgerView} from './deal-room-workspace-nav.js';
+import {workspaceLedgerView} from './deal-room-workspace-nav.js?v=34';
 import {bindPropertyEntries} from './deal-room-property-view.js';
 import {propertyHoldings,PROPERTY_CATALOG} from './deal-room-property.js';
 import {openingCurationOffers,curationOffers,reduceDealRoom} from './deal-room-engine.js';
@@ -9,7 +9,7 @@ import {propertySceneArt} from './deal-room-property-art.js';
 import {promotionView,bindPromotion} from './deal-room-promotion-view.js';
 import {promotionStatus} from './deal-room-promotion.js';
 import {previewLiveWorkspaceSleep as previewWorkspaceSleep} from './deal-room-workspace-sleep.js';
-import {afterworkAdviserView} from './deal-room-afterwork-adviser.js';
+import {afterworkAdviserView} from './deal-room-afterwork-adviser.js?v=34';
 import {cooperationChapter} from './deal-room-cooperation.js';
 import {tradingChapter} from './deal-room-trading-chapter.js';
 import {prospectDisplayText} from './deal-room-prospect-locale.js';

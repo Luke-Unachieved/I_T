@@ -1,9 +1,8 @@
 import {netProfitAmount} from './deal-room-net-profit.js';
 import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
-import {adviserInboxAdvice} from './deal-room-adviser.js';
+import {adviserInboxAdvice} from './deal-room-adviser.js?v=34';
 import {orderReadListStatus} from './deal-room-order-read.js';
 import {repeatParallelScope,repeatActiveOrders} from './deal-room-repeat-calendar.js';
-import {previewLiveWorkspaceSleep as previewWorkspaceSleep} from './deal-room-workspace-sleep.js';
 import {prospectDisplayText} from './deal-room-prospect-locale.js';
 import {prospectInbox,prospectIdValid} from './deal-room-prospects.js';
 import {marketAvailable,marketBook,parkedMarketOrders,canParkMarketOrder} from './deal-room-market.js';
@@ -103,17 +102,11 @@ function receipts(s,active=false,expand=false){
  if(!rows.length)return active?'':'<p class="ws-receipt-empty">还没有已收齐的订单。</p><button class="ws-summary-link" type="button" data-workspace-open="inbox">去询盘</button>';
  return '<details class="ws-receipt-archive"'+(expand?' open':'')+'><summary>最近回款</summary>'+rows.map(x=>'<details><summary>'+receiptImage(x)+'<span><strong>'+ixEsc(x.name)+'</strong><small>'+ixEsc(x.buyer)+'</small></span><span class="ws-receipt-cash"><b>'+ixMoney(x.cash)+'</b><small>第 '+ixEsc(x.day)+' 天收齐</small></span></summary>'+(x.combo?'<p>'+[ixEsc(x.combo),ixEsc(x.terms),'本单净利 '+netProfitAmount(x.netProfit)].filter(Boolean).join('。')+'。</p>':'')+(Number.isSafeInteger(x.signedDay)||Number.isSafeInteger(x.deliveryDay)?orderTrack([['签约',x.signedDay],['交货',x.deliveryDay],['收齐',x.day]]):'')+'</details>').join('')+'<footer class="ws-profit-line"><span aria-label="'+ixEsc(scope)+'的累计净利">累计净利　<strong>'+netProfitAmount(net)+'</strong></span></footer></details><nav class="ws-orders-shortcuts" aria-label="工作室快捷入口"><button type="button" data-workspace-open="office">回办公室 <span aria-hidden="true">›</span></button></nav>';
 }
-export function openingNextWorkday(s){
- if(!(s.openingParallel&&openingOrders(s).some(c=>c.status==='fulfilling'||c.status==='receivable'))&&!(repeatParallelScope(s)&&(repeatActiveOrders(s).length||openingMarketOrders(s).length)))return '';
- const q=previewWorkspaceSleep(s);
- if(!q.valid||q.pending.length)return '';
- return '<p class="ws-muted">今天没有到期的订单。</p><button class="ws-summary-link ws-control ws-control--main" type="button" data-opening-next-day>结束今天，进入第 '+q.nextDay+' 天</button>';
-}
 export function workspaceActiveOrders(s){
  const rows=(s.contracts||[]).filter(x=>['fulfilling','receivable'].includes(x.status));
  const promoRows=openingMarketOrders(s).map(o=>orderLead(o.productName,o.buyer,orderReadListStatus(o,o.status,s.day).label,[['签约',o.signedDay],['交货',o.deliveryDay],['回款',o.paymentDay]],
   'data-opening-market-order="'+(o===s.openingMarket?.market?.active?'current':ixEsc(o.queueId))+'"','查看订单详情')).join('');
- return '<section class="ws-office ws-index ws-orders ws-receipts" data-workspace-order-list>'+orderHeading+rows.map(x=>orderLead(x.product,x.clientName,orderReadListStatus(x,x.status,s.day).label,[['签约',x.signedDay],['交货',x.deliveryDay],['回款',x.paymentDay]],'data-workspace-order-detail="'+ixEsc(x.clientId)+'"','查看订单详情')).join('')+promoRows+(s.openingParallel&&openingOrders(s).length===3&&!rows.length?'<button class="primary" type="button" data-finish-opening>回工作室，看看新机会</button>':'')+(openFirstBuyers(s).length||familiarBuyers(s).length?'<button type="button" class="ws-summary-link" data-workspace-open="inbox">去收件箱看其他询盘</button>':'')+(repeatParallelScope(s)&&s.phase==='paid'&&!repeatActiveOrders(s).length?'<button class="primary" type="button" data-finish-familiar>继续看熟客询盘</button>':'')+openingNextWorkday(s)+receipts(s,true)+'</section>';
+ return '<section class="ws-office ws-index ws-orders ws-receipts" data-workspace-order-list>'+orderHeading+rows.map(x=>orderLead(x.product,x.clientName,orderReadListStatus(x,x.status,s.day).label,[['签约',x.signedDay],['交货',x.deliveryDay],['回款',x.paymentDay]],'data-workspace-order-detail="'+ixEsc(x.clientId)+'"','查看订单详情')).join('')+promoRows+(s.openingParallel&&openingOrders(s).length===3&&!rows.length?'<button class="primary" type="button" data-finish-opening>回工作室，看看新机会</button>':'')+(openFirstBuyers(s).length||familiarBuyers(s).length?'<button type="button" class="ws-summary-link" data-workspace-open="inbox">去收件箱看其他询盘</button>':'')+(repeatParallelScope(s)&&s.phase==='paid'&&!repeatActiveOrders(s).length?'<button class="primary" type="button" data-finish-familiar>继续看熟客询盘</button>':'')+receipts(s,true)+'</section>';
 }
 export function workspaceOrdersIndex(s,{expandReceipts=false}={}){
  const productDesk=marketAvailable(s)||(s.phase==='market'&&s.market?.status==='draft')?'<button class="ws-products-link" type="button" data-workspace-products>商品与项目 <span aria-hidden="true">›</span></button>':'';

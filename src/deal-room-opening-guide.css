@@ -16,12 +16,12 @@
  line-height:1.45;
 }
 #deal-room .ws-opening-guide strong {display:inline;color:var(--ws-mark,#cdb88b);font-weight:650}
-#deal-room [data-opening-guide-target]:not(:focus-visible) {
- outline:1px solid var(--ws-mark,#cdb88b);
- outline-offset:1px;
+#deal-room [data-opening-guide-target] {
+ outline:2px solid var(--ws-mark,#cdb88b);
+ outline-offset:2px;
 }
 #deal-room[data-opening-guide-context="intro"] .ws-intro-dialogue > :is(strong,p),
-#deal-room[data-opening-guide-context="afterwork"] .adviser-message {display:none}
+#deal-room[data-opening-guide-context="intro"] [data-workspace-intro="skip"] {display:none}
 #deal-room[data-opening-guide-context="intro"] .ws-intro-dialogue {
  border:0;
  border-radius:0;
@@ -58,4 +58,9 @@
 #deal-room .ws-opening-guide button.ws-guide-close[class]:focus-visible {
  outline:2px solid var(--ws-mark,#cdb88b);
  outline-offset:2px;
+}
+
+#deal-room .ws-opening-guide.ws-guide-paused {
+ justify-content:flex-end;
+ border:0;
 }
