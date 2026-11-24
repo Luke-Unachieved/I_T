@@ -1,5 +1,5 @@
 import {netProfitAmount} from './deal-room-net-profit.js';
-import {SAMPLE_FACTORIES} from './deal-room-development.js';
+import {SAMPLE_FACTORIES} from './deal-room-development.js?v=36';
 // A trading outcome independent of brand ownership. Sources are canonical paid contracts,
 // not button clicks, current cash, a licence or an abstract experience counter.
 const productLabel={mira:'便携台灯',samir:'保温杯',ines:'棉麻桌布'};

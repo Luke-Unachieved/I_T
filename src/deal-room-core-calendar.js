@@ -1,4 +1,4 @@
-import {openingContractMilestone} from './deal-room-opening-calendar.js';
+import {openingContractMilestone} from './deal-room-opening-calendar.js?v=36';
 import {repeatContractMilestone} from './deal-room-repeat-calendar.js';
 // View and replay share the same contractual milestone lookup. This module only
 // reads original agreed dates; it never moves the clock or posts money.

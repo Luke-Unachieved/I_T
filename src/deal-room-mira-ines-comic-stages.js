@@ -1,5 +1,5 @@
 import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
-import {openingContractMilestone,OPENING_TERMS_V2} from './deal-room-opening-calendar.js';
+import {openingContractMilestone,OPENING_TERMS_V2,MIRA_FIRST_TRIAL_TERMS} from './deal-room-opening-calendar.js?v=36';
 
 const scenes = {
   trialPaid: {
@@ -76,7 +76,7 @@ export function openingMiraInesComicStage(state){
  const model=format[c.clientId], timing=Object.hasOwn(model,c.optionId)&&model[c.optionId];
  if(!Array.isArray(timing)||c.product!==model.product||!day(c.signedDay)||!day(c.deliveryDay)||!day(c.paymentDay))return null;
  const [quantity,legacyPrep,legacyLag]=timing;
- const [prep,lag]=c.openingTermsVersion===2?OPENING_TERMS_V2[c.optionId]:[legacyPrep,legacyLag];
+ const [prep,lag]=c.openingTermsVersion===3&&c.clientId==='mira'&&c.optionId==='trial'?MIRA_FIRST_TRIAL_TERMS:c.openingTermsVersion===2?OPENING_TERMS_V2[c.optionId]:[legacyPrep,legacyLag];
  if(c.quantity!==quantity||c.deliveryDay!==c.signedDay+prep||c.paymentDay!==c.deliveryDay+lag)return null;
  let stage, scene;
  if(state.phase==='paid'&&c.status==='paid'&&state.day>=c.paymentDay){

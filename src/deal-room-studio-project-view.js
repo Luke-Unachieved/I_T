@@ -1,10 +1,10 @@
 import {netProfitAmount} from './deal-room-net-profit.js';
 import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
-import {acceptedLampSample} from './deal-room-development.js';
+import {acceptedLampSample} from './deal-room-development.js?v=36';
 import {groupStudioPurchaseEligibility} from './deal-room-group-use-eligibility.js';
-import {stockProcurementInvite,stockStudioOption} from './deal-room-stock-view.js';
-import {allocationView} from './deal-room-allocation-view.js';
-import {studioProjectEligibility,studioProjectReview,previewStudioProjectOrder,groupProjectChange} from './deal-room-studio-project.js';
+import {stockProcurementInvite,stockStudioOption} from './deal-room-stock-view.js?v=36';
+import {allocationView} from './deal-room-allocation-view.js?v=36';
+import {studioProjectEligibility,studioProjectReview,previewStudioProjectOrder,groupProjectChange} from './deal-room-studio-project.js?v=36';
 import {sampleSvg} from './deal-room-samples.js';
 const cash=n=>`¥${Number(n||0).toLocaleString('zh-CN')}`;
 const briefs={'reading-drink':{name:'阅读与饮水',products:['mira','samir']},reading:{name:'阅读一角',products:['mira','ines']},hosting:{name:'待客茶席',products:['samir','ines']},bedside:{name:'客房晚间床头',products:['mira','samir']},welcome:{name:'迎宾茶台',products:['samir','ines']}};

@@ -1,8 +1,9 @@
 // A view-only coach for the first order; never dispatches a game action.
+import {outingSummary} from './deal-room-outings.js?v=36';
 const ONE='[data-opening-specific-milestone], [data-opening-milestone]';
-const label=x=>((x.matches?.('[data-first-buyer], [data-workspace-continue]')?x.querySelector('strong')?.textContent:null)||x.textContent).trim().replace(/^←\s*|\s*[›→]$/g,'');
+const label=x=>((x.matches?.('[data-first-buyer], [data-workspace-continue], [data-workspace-open]')?x.querySelector('strong')?.textContent:null)||x.textContent).trim().replace(/^←\s*|\s*[›→]$/g,'');
 const opening=o=>o&&['mira','samir','ines'].includes(o.clientId)&&!o.businessRound&&!o.projectId;
-const isSleep=t=>['SLEEP_TO_NEXT_DAY','SLEEP_TO_NEXT_DAY_V2'].includes(t);
+const isSleep=t=>['SLEEP_TO_NEXT_DAY','SLEEP_TO_NEXT_DAY_V2','SLEEP_TO_NEXT_DAY_V3'].includes(t);
 const everSlept=s=>(s.history||[]).some(a=>isSleep(a.type));
 const firstOrder=s=>(s.contracts||[]).find(opening);
 const walkthroughDone=s=>firstOrder(s)?.status==='paid'&&everSlept(s);
@@ -16,13 +17,23 @@ export function guideStep(view,s,has){
  const fix=(sel,why)=>has(sel)?{sel,why}:null;
  const open=tab=>fix('[data-workspace-open="'+tab+'"]',tab==='inbox'?'看客户需要什么、哪天交货。':'核对交货日和回款日。')||
   fix('[data-workspace-tab="'+tab+'"]',tab==='inbox'?'看客户需要什么、哪天交货。':'核对交货日和回款日。');
- if(walkthroughDone(s))return {complete:true};
+ if(walkthroughDone(s)){
+  // One last handoff from the first paid order to the actual inbox.
+  if(view.tab==='inbox')return {complete:true};
+  return fix('[data-workspace-tab="inbox"]','去看下一封客户来信，有合适的可以接着谈。')||
+   fix('[data-workspace-open="inbox"]','去看下一封客户来信，有合适的可以接着谈。');
+ }
  if(!validHours(s))return null;
  if(view.tab==='afterwork'){
   if(due)return fix('[data-workspace-continue]','先处理今天到期的订单。')||open('orders');
   if(!first)return fix('[data-workspace-tab="inbox"]','回询盘挑一封客户来信。');
-  return fix('[data-workspace-sleep-confirm]','确认今天的开支，进入下一天。')||
-   fix('[data-workspace-sleep]','先查看开支；这一步还不会过天。');
+  const confirm=fix('[data-workspace-sleep-confirm]','确认今天的开支，进入下一天。');
+  if(confirm)return confirm;
+  const sleep=fix('[data-workspace-sleep]','先查看开支；这一步还不会过天。');
+  if(sleep&&s.version===2&&s.day===1&&!view.friendHintSeen&&
+    has('[data-workspace-outing="friends"]')&&outingSummary(s).friendsAvailable)
+   return {...sleep,why:sleep.why+' 想放松一下，也可以先约朋友，选免费的活动。',friendHint:true};
+  return sleep;
  }
  if(!first){
   if(view.tab==='office')return fix('[data-workspace-intro="open"]','打开询盘，看客户的需求和交期。')||open('inbox');
@@ -48,8 +59,9 @@ export function guideStep(view,s,has){
 
 export function createOpeningGuide({storage,key,saveStatus}){
  const prefKey=key+':opening-walkthrough-v1';
- let preference='';
- try{preference=storage.getItem(prefKey)||'';}catch{}
+ const friendKey=prefKey+':first-evening-friends';
+ let preference='',friendHintSeen=false;
+ try{preference=storage.getItem(prefKey)||'';friendHintSeen=storage.getItem(friendKey)==='seen';}catch{}
  let auto=saveStatus==='empty';
  const set=v=>{preference=v;try{storage.setItem(prefKey,v);}catch{}};
  const remove=root=>{
@@ -67,7 +79,7 @@ export function createOpeningGuide({storage,key,saveStatus}){
   remove(root);
   const doc=root.ownerDocument,pick=selector=>[...root.querySelectorAll(selector)].find(x=>!x.disabled&&x.getAttribute('aria-disabled')!=='true'&&!x.closest('[hidden], [inert]')&&x.getClientRects().length>0);
   const on=preference==='running'||!preference&&auto;
-  const step=on?guideStep(view,state,selector=>!!pick(selector)):null;
+  const step=on?guideStep({...view,friendHintSeen},state,selector=>!!pick(selector)):null;
   if(step?.complete)set('done');
   if(step?.sel||on&&preference==='running'&&!step?.complete){
    if(!preference)set('running');
@@ -76,6 +88,7 @@ export function createOpeningGuide({storage,key,saveStatus}){
    panel.className='ws-opening-guide';panel.setAttribute('aria-label','新手指引');
    const copy=doc.createElement('p');copy.id='ws-opening-guide-copy';
    if(target){
+    if(step.friendHint){friendHintSeen=true;try{storage.setItem(friendKey,'seen');}catch{}}
     const bold=doc.createElement('strong');
     bold.textContent='点「'+label(target)+'」';
     copy.append(bold,doc.createTextNode('：'+step.why));
@@ -114,5 +127,6 @@ export function createOpeningGuide({storage,key,saveStatus}){
   // Only a confirmed restart begins a different game. Refreshing the same
   // save preserves its current guide state, and importing a save skips it.
   set(fresh?'':'off');
+  if(fresh){friendHintSeen=false;try{storage.removeItem(friendKey);}catch{}}
  }};
 }

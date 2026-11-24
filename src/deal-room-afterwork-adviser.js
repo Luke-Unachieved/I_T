@@ -1,7 +1,7 @@
-import {propertyHoldings, propertyPreview, PROPERTY_CATALOG} from './deal-room-property.js';
-import {promotionReserve} from './deal-room-promotion.js';
-import {parkedMarketOrders} from './deal-room-market.js';
-import {previewLiveWorkspaceSleep as previewWorkspaceSleep} from './deal-room-workspace-sleep.js';
+import {propertyHoldings, propertyPreview, PROPERTY_CATALOG} from './deal-room-property.js?v=36';
+import {promotionReserve} from './deal-room-promotion.js?v=36';
+import {parkedMarketOrders} from './deal-room-market.js?v=36';
+import {previewLiveWorkspaceSleep as previewWorkspaceSleep} from './deal-room-workspace-sleep.js?v=36';
 import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
 
 const adviserNames=Object.freeze({fang:'方文斌',liang:'梁佳音',tao:'陶乐',xu:'许明珊'});
@@ -29,7 +29,8 @@ export function afterworkAdvice(state,sleep,{sleepOpen=false}={}){
  if(sleepOpen||!q.valid)return null;
  if(q.pending.length){
   const names=q.pending.map(line=>line.match(/^(.*?)的询盘今天截止$/)?.[1]).filter(Boolean);
-  const today=names.length===q.pending.length?names.slice(0,2).join('、')+(names.length>2?'等 '+names.length+' 位买家的':'的')+'询盘今天截止':q.pending[0];
+  if(!names.length)return {text:'还有工作没处理。要留到明天，可以照常休息。'};
+ const today=names.slice(0,2).join('、')+(names.length>2?'等 '+names.length+' 位买家的':'的')+'询盘今天截止';
   return {text:`${today}。还想谈的话，今天先去「询盘」回复。`};
  }
  const kind=lookDays[state.day%14];

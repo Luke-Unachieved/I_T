@@ -3,12 +3,12 @@ import {marketCalendarDue,isSpecialCarafe} from './deal-room-market-calendar.js'
 import {charterCarafe,keepStandardCarafe} from './deal-room-market-carafe-transport.js';
 import {NEIGHBORHOOD_BUYER,neighborhoodRequest} from './deal-room-neighborhood.js';
 import {MARKET_PRODUCTS} from './deal-room-market-data.js';
-import {prospectIdValid,prospectPlan,dismissProspect} from './deal-room-prospects.js';
+import {prospectIdValid,prospectPlan,dismissProspect} from './deal-room-prospects.js?v=36';
 import {WAREHOUSE_ACTION_KEYS,canonicalWarehouseAction,applyWarehouseAction,previewWarehouseIssue,issueWarehouseStock} from './deal-room-warehouse.js';
-import {EQUIPMENT_PROJECTS,previewEquipment,advanceEquipmentShipping,rebookEquipment} from './deal-room-equipment.js';
+import {EQUIPMENT_PROJECTS,previewEquipment,advanceEquipmentShipping,rebookEquipment} from './deal-room-equipment.js?v=36';
 // One active purchase/sale at a time. The main reducer owns the replay journal.
 export const DAY_COST=30;
-export const MARKET_ACTION_KEYS=Object.freeze({...WAREHOUSE_ACTION_KEYS,SWITCH_MARKET_ORDER_V1:['type','orderId'],CHARTER_CARAFE_V1:['type'],CHOOSE_CARAFE_STANDARD_V1:['type'],SIGN_EQUIPMENT:['type','projectId','shipping'],SIGN_EQUIPMENT_V2:['type','projectId','shipping'],SHIP_EQUIPMENT:['type'],SHIP_EQUIPMENT_V2:['type'],REBOOK_EQUIPMENT:['type'],OPEN_MARKET:['type'],CLOSE_MARKET:['type'],REGISTER_NEIGHBORHOOD:['type'],DISMISS_PROSPECT_V1:['type','customerId','checkedDay'],SIGN_PROSPECT_VIP_LOT_V1:['type','customerId','source','unitPrice','previousPaidDay'],SIGN_PROSPECT_VIP_LOT_V2:['type','customerId','source','unitPrice','previousPaidDay'],SIGN_PROSPECT_LOT_V1:['type','customerId','optionId','source','unitPrice'],SIGN_PROSPECT_LOT_V2:['type','customerId','optionId','source','unitPrice'],SIGN_MARKET:['type','productId','mode','source','unitPrice'],SIGN_MARKET_V2:['type','productId','mode','source','unitPrice'],DELIVER_MARKET:['type'],COLLECT_MARKET:['type'],DELIVER_MARKET_V2:['type'],COLLECT_MARKET_V2:['type']});
+export const MARKET_ACTION_KEYS=Object.freeze({...WAREHOUSE_ACTION_KEYS,SWITCH_MARKET_ORDER_V1:['type','orderId'],CHARTER_CARAFE_V1:['type'],CHOOSE_CARAFE_STANDARD_V1:['type'],SIGN_EQUIPMENT:['type','projectId','shipping'],SIGN_EQUIPMENT_V2:['type','projectId','shipping'],SHIP_EQUIPMENT:['type'],SHIP_EQUIPMENT_V2:['type'],SHIP_EQUIPMENT_V3:['type'],REBOOK_EQUIPMENT:['type'],OPEN_MARKET:['type'],CLOSE_MARKET:['type'],REGISTER_NEIGHBORHOOD:['type'],DISMISS_PROSPECT_V1:['type','customerId','checkedDay'],SIGN_PROSPECT_VIP_LOT_V1:['type','customerId','source','unitPrice','previousPaidDay'],SIGN_PROSPECT_VIP_LOT_V2:['type','customerId','source','unitPrice','previousPaidDay'],SIGN_PROSPECT_LOT_V1:['type','customerId','optionId','source','unitPrice'],SIGN_PROSPECT_LOT_V2:['type','customerId','optionId','source','unitPrice'],SIGN_MARKET:['type','productId','mode','source','unitPrice'],SIGN_MARKET_V2:['type','productId','mode','source','unitPrice'],DELIVER_MARKET:['type'],COLLECT_MARKET:['type'],DELIVER_MARKET_V2:['type'],COLLECT_MARKET_V2:['type']});
 export const parkedMarketOrders=s=>Array.isArray(s?.marketParked)?s.marketParked:[];
 export function canParkMarketOrder(s){
  const a=s?.market?.active;
@@ -125,7 +125,7 @@ export function applyMarketAction(s,action,canStart=true){
  }
  if(a.type==='CHARTER_CARAFE_V1')return charterCarafe(s);
  if(a.type==='CHOOSE_CARAFE_STANDARD_V1')return keepStandardCarafe(s);
- if(a.type==='SHIP_EQUIPMENT'||a.type==='SHIP_EQUIPMENT_V2')return advanceEquipmentShipping(s,DAY_COST,a.type==='SHIP_EQUIPMENT_V2');
+ if(['SHIP_EQUIPMENT','SHIP_EQUIPMENT_V2','SHIP_EQUIPMENT_V3'].includes(a.type))return advanceEquipmentShipping(s,DAY_COST,a.type!=='SHIP_EQUIPMENT',a.type==='SHIP_EQUIPMENT_V3');
  if(a.type==='REBOOK_EQUIPMENT')return rebookEquipment(s,DAY_COST);
  if(a.type==='CLOSE_MARKET'&&['draft','paid'].includes(s.market.status)&&!parkedMarketOrders(s).length){
   const n=structuredClone(s);n.phase=n.market.returnPhase==='complete'?'complete':'review';return n;

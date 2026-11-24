@@ -21,14 +21,14 @@ import {displayProspectCopy016To025} from './deal-room-prospect-copy-016-025.js'
 import {displayProspectCopy016To025Late} from './deal-room-prospect-copy-016-025-late.js';
 import {displayProspectCopy026To035} from './deal-room-prospect-copy-026-035.js';
 import {displayProspectCopy026To035Followups} from './deal-room-prospect-copy-026-035-followups.js';
-import {evaTrayStoryMoment,lukaTrayStoryMoment,prospectSceneLine,prospectComicView} from './deal-room-prospect-scenes.js';
-import {lukaRepeatAcceptedLine,lukaRepeatInquiryView,lukaRepeatLetter,lukaRepeatOrder,lukaRepeatOrderSpeech,lukaRepeatPaidView} from './deal-room-luka-repeat-scenes.js';
-import {evaRepeatAcceptedLine,evaRepeatInquiryView,evaRepeatLetter,evaRepeatOrder,evaRepeatPaidView,evaRepeatSpeech} from './deal-room-eva-repeat-scenes.js';
+import {evaTrayStoryMoment,lukaTrayStoryMoment,prospectSceneLine,prospectComicView} from './deal-room-prospect-scenes.js?v=36';
+import {lukaRepeatAcceptedLine,lukaRepeatInquiryView,lukaRepeatLetter,lukaRepeatOrder,lukaRepeatOrderSpeech,lukaRepeatPaidView} from './deal-room-luka-repeat-scenes.js?v=36';
+import {evaRepeatAcceptedLine,evaRepeatInquiryView,evaRepeatLetter,evaRepeatOrder,evaRepeatPaidView,evaRepeatSpeech} from './deal-room-eva-repeat-scenes.js?v=36';
 import {PROSPECT_CONTENT,prospectFallbackDialogue} from './deal-room-prospect-content.js';
 import {prospectDisplayText,prospectMarketLabel} from './deal-room-prospect-locale.js';
 import {previewWarehouseIssue,warehouseSummary} from './deal-room-warehouse.js';
-import {prospectInbox,prospectContentById,prospectRelationship} from './deal-room-prospects.js';
-import {previewMarket as projectMarket} from './deal-room-market.js';
+import {prospectInbox,prospectContentById,prospectRelationship} from './deal-room-prospects.js?v=36';
+import {previewMarket as projectMarket} from './deal-room-market.js?v=36';
 import {prospectAvatar} from './deal-room-prospect-avatar.js';
 
 const esc = value => String(prospectDisplayText(value) ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

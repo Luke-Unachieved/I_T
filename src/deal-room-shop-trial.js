@@ -1,5 +1,5 @@
 import {netProfitAmount} from './deal-room-net-profit.js';
-import {specialtyMilestoneView} from './deal-room-specialty-calendar.js';
+import {specialtyMilestoneView} from './deal-room-specialty-calendar.js?v=36';
 /** One explicit, fixed-outcome purchase/display agreement. No random sales,
  * retroactive price change, new inventory or automatic background clock. */
 export const SHOP_TRIAL_ACTIONS=Object.freeze({OPEN_SHOP_TRIAL:['type'],CLOSE_SHOP_TRIAL:['type'],SIGN_SHOP_TRIAL:['type','terms'],SETTLE_SHOP_TRIAL:['type']});
@@ -10,13 +10,13 @@ export function previewShopTrial(s,terms='regular'){
  const sold=terms==='regular'?8:12,returned=12-sold,unitPrice=terms==='regular'?75:60,revenue=sold*unitPrice,operatingCost=120,soldCost=sold*45,remainingAfter=b.remaining-sold;
  return {valid:s.cash>=operatingCost&&s.history.length<=4091,reason:s.cash<operatingCost?'还需留出这4天的工作室开支 ¥120。':s.history.length>4091?'本份经营记录已满，先保留进度。':'',terms,sent:12,sold,returned,unitPrice,revenue,operatingCost,soldCost,netProfit:revenue-soldCost-operatingCost,cashChange:revenue-operatingCost,cashAfterSigning:s.cash,cashAfterPayment:s.cash+revenue-operatingCost,settlementDay:s.day+4,remainingAfter,shortForForty:Math.max(0,40-remainingAfter)};
 }
-export function applyShopTrialAction(s,a,{calendar=false}={}){
+export function applyShopTrialAction(s,a,{calendar=false,allowLate=false}={}){
  if(!canonicalShopTrialAction(a))return s;
  if(a.type==='OPEN_SHOP_TRIAL'&&['review','complete'].includes(s.phase)&&(!s.shopTrial?shopTrialAvailable(s):true)){const n=structuredClone(s);n.shopTrial??={status:'draft'};n.phase='shop-trial';return n;}
  if(s.phase!=='shop-trial'||!s.shopTrial)return s;
  if(a.type==='CLOSE_SHOP_TRIAL'&&s.shopTrial.status!=='display'){const n=structuredClone(s);if(n.shopTrial.status==='draft')delete n.shopTrial;n.phase='review';return n;}
  if(a.type==='SIGN_SHOP_TRIAL'){const q=previewShopTrial(s,a.terms);if(!q.valid)return s;const n=structuredClone(s);n.stockProcurement.remaining-=12;n.stockProcurement.inventoryCost=n.stockProcurement.remaining*45;n.shopTrial={...q,status:'display',signedDay:s.day,outside:12};n.feedback={kind:'shop-trial-signed',message:'12盏灯已送到小店，按约定陈列4天后收款、收回留样。'};return n;}
- if(a.type==='SETTLE_SHOP_TRIAL'&&s.shopTrial.status==='display'){if(calendar&&s.day!==s.shopTrial.settlementDay)return s;const n=structuredClone(s),p=n.shopTrial;if(!calendar)n.day=p.settlementDay;n.cash+=calendar?p.revenue:p.cashChange;n.stockProcurement.remaining+=p.returned;n.stockProcurement.inventoryCost=n.stockProcurement.remaining*45;p.status='paid';p.outside=0;n.feedback={kind:'shop-trial-paid',message:`小店已付 ¥${p.revenue}，${p.returned?`${p.returned}盏陈列灯完好退回。`:'12盏全部留下。'}`};return n;}
+ if(a.type==='SETTLE_SHOP_TRIAL'&&s.shopTrial.status==='display'){if(calendar&&(allowLate?s.day<s.shopTrial.settlementDay:s.day!==s.shopTrial.settlementDay))return s;const n=structuredClone(s),p=n.shopTrial;if(!calendar)n.day=p.settlementDay;n.cash+=calendar?p.revenue:p.cashChange;n.stockProcurement.remaining+=p.returned;n.stockProcurement.inventoryCost=n.stockProcurement.remaining*45;p.status='paid';p.outside=0;n.feedback={kind:'shop-trial-paid',message:`小店已付 ¥${p.revenue}，${p.returned?`${p.returned}盏陈列灯完好退回。`:'12盏全部留下。'}`};return n;}
  return s;
 }
 export function shopTrialAccounting(s){const p=s.shopTrial;return {realizedProfit:p?.status==='paid'?p.netProfit:0,cashChange:p?.status==='paid'?p.cashChange:0,outsideInventoryCost:p?.status==='display'?540:0};}

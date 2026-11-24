@@ -100,7 +100,7 @@ export function accountView(state,selected){
  if(a.status==='paid')return `<h3>${storeLabel}采购已结清</h3>${accountAmountList([amount('已收货款',a.revenue),amount('本单净利',a.netProfit,true)])}${details(specs+dates)}<button class="account-return" data-action="CLOSE_ACCOUNT">回办公室</button><button type="button" class="account-return" data-workspace-open="orders" data-workspace-ref="account-payments">查看回款</button>${accountDeliveryScene(state.day,a)}`;
  if(['fulfilling','receivable'].includes(a.status)){
   const shipped=a.status==='receivable',due=shipped?a.paymentDay:a.deliveryDay;
-  const next=state.day===due?orderCTA(shipped?'COLLECT_ACCOUNT_V1':'DELIVER_ACCOUNT_V1',shipped?'收取尾款':'确认交货'):
+  const next=state.day>=due?orderCTA((shipped?'COLLECT_ACCOUNT_':'DELIVER_ACCOUNT_')+(state.day===due?'V1':'V2'),shipped?'收取尾款':'确认交货'):
    `<p>第 ${due} 天${shipped?'收尾款':'交货'}。</p>`;
   const lead=`<section class="account-order-next" aria-label="下一步">${shipped?`<p>待收尾款 <strong>${cash(a.balanceDue)}</strong></p>`:''}${next}</section>`;
   return `<h3>${storeLabel}采购${shipped?'已交付':'已签'}</h3>${lead}${details(specs+accountSection('款项',accountAmountList([amount('定金已到账',a.deposit),amount('待收尾款',a.balanceDue),amount('合同总额',a.revenue)]))+dates)}${accountDeliveryScene(state.day,a)}`;

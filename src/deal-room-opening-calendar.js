@@ -11,6 +11,7 @@ export const openingReserveDays = s=>Math.max(0,...openingOrders(s).filter(live)
 export const OPENING_TERMS_V2=Object.freeze({
  trial:[2,0],rollout:[3,2],ready:[2,0],branded:[3,2],'branded-opening':[3,2],promise:[3,2],small:[2,0],season:[3,3],'all-now':[3,0],
 });
+export const MIRA_FIRST_TRIAL_TERMS=Object.freeze([1,0]);
 export function openingContractMilestone(s,clientId){
  if(s?.openingParallel&&openingFlow(s)){
   const c=openingOrders(s).filter(c=>live(c)&&(!clientId||c.clientId===clientId))

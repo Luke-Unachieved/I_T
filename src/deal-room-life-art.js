@@ -1,4 +1,4 @@
-import {lifeReadingLampBasis,lifeLightLevel} from './deal-room-life.js';
+import {lifeReadingLampBasis,lifeLightLevel} from './deal-room-life.js?v=36';
 /** Painted room layers; ownership, preview, position and use remain real UI state. */
 export function paintedLifeRoomArt(state,ui={}){
  const ids=['chair','coffee','record'],owns=id=>state.personalLife?.purchases?.some(p=>p.itemId===id),trial=id=>ui.preview===id&&!owns(id);

@@ -1,7 +1,7 @@
-import {reduceDealRoom,quoteOptions,businessOpportunities} from './deal-room-engine.js';
-import {hasLampDevelopmentCase,acceptedLampSample} from './deal-room-development.js';
-import {accountCoverage,canExpandAccount,accountCollectionBasis} from './deal-room-account.js';
-import {caseGrowthOffers} from './deal-room-case-growth.js';
+import {reduceDealRoom,quoteOptions,businessOpportunities} from './deal-room-engine.js?v=36';
+import {hasLampDevelopmentCase,acceptedLampSample} from './deal-room-development.js?v=36';
+import {accountCoverage,canExpandAccount,accountCollectionBasis} from './deal-room-account.js?v=36';
+import {caseGrowthOffers} from './deal-room-case-growth.js?v=36';
 
 /** Read-only signposts for existing projects, not promotions, rewards or new gates. */
 export function careerProjects(state){

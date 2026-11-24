@@ -1,5 +1,5 @@
 import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
-import {OPENING_TERMS_V2} from './deal-room-opening-calendar.js';
+import {OPENING_TERMS_V2} from './deal-room-opening-calendar.js?v=36';
 export function samirOpeningReceiptComic(state){
  const c=state?.contracts?.at(-1);
  if(state?.phase!=='paid'||state.businessRound||state.clientProjectActive||c?.status!=='paid'||c.businessRound||c.projectId||

@@ -1,4 +1,4 @@
-import {PROPERTY_CATALOG,propertyHoldings,propertyPreview} from './deal-room-property.js';
+import {PROPERTY_CATALOG,propertyHoldings,propertyPreview,propertyActionBlock} from './deal-room-property.js?v=36';
 
 const pvEsc=s=>String(s??'').replace(/[&<>"']/g,k=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[k]));
 const pvCash=n=>Number.isSafeInteger(n)&&n>=0?'¥'+n.toLocaleString('zh-CN'):'—';
@@ -7,7 +7,6 @@ const pvTerms=Object.freeze({
   home:{title:'房产',back:'返回下班',place:'offwork',peek:'看房',use:'搬到这里住',using:'现在住在这里',keep:'保留名下的房子'},
   car:{title:'车行',back:'返回下班',place:'offwork',peek:'看车',use:'换开这辆',using:'现在开的车',keep:'保留名下的车'}
 });
-const pvCanAct=s=>['review','complete'].includes(s?.phase);
 const pvTerm = k=>typeof k==='string' && Object.hasOwn(pvTerms,k)?pvTerms[k]:null;
 const pvTitle=(k,h)=>k==='car'&&h?.owned.some(r=>PROPERTY_CATALOG.some(x=>x.kind==='car'&&x.id===r.id))?'车库':pvTerm(k)?.title;
 const pvItem=(k,id)=>PROPERTY_CATALOG.find(x=>x.kind===k&&x.id===id);
@@ -33,7 +32,7 @@ export function bindPropertyEntries(root,open){
   root.querySelectorAll('[data-property-enter]').forEach(b=>b.addEventListener('click',()=>{const k=b.dataset.propertyEnter;if(pvTerm(k))open(k);}));
 }
 const pvTradeables=(item,h)=>item.kind==='office'?[]:(h?.owned||[]).filter(r=>r.id!==item.id && r.id!=='home-starter' && pvItem(item.kind,r.id));
-function pvSignature(q,s){return JSON.stringify([q.item?.id,q.tradeInId,s.cash,s.fame??0,q.price,q.creditUsed,q.cashDue,q.cashAfter,q.fameGain]);}
+function pvSignature(q,s){return JSON.stringify([q.item?.id,q.tradeInId,s.day,s.cash,s.fame??0,q.price,q.creditUsed,q.cashDue,q.cashAfter,q.fameGain]);}
 function pvTitlebar(title,sub,back,attr){
   return '<header class="pv-heading"><div><p class="pv-kicker">'+pvEsc(sub)+'</p><h2 tabindex="-1" data-pv-heading>'+pvEsc(title)+'</h2></div>'+pvBtn(attr,back,'pv-back')+'</header>';
 }
@@ -72,8 +71,8 @@ function pvMoneyFacts(s,q){
 function pvDetail(s,k,item,h,ui,art){
   const t=pvTerm(k),owned=h?.owned.find(r=>r.id===item.id);
   const q=propertyPreview(s,item.id,ui.tradeInId??null);
-  const allowed=pvCanAct(s);
-  const unavailable='<p class="pv-status" role="status">请先处理手上的订单，回工作室后再办理。</p>';
+  const blocked=propertyActionBlock(s),allowed=!blocked;
+  const unavailable='<p class="pv-status" role="status">'+pvEsc(blocked)+'</p>';
   const confirm=allowed&&q.valid&&ui.confirmation===pvSignature(q,s);
   let out=pvTitlebar(item.name,confirm?'最后核对':pvTitle(k,h),'返回'+pvTitle(k,h),'data-pv-list')+pvArt(art,item.id);
   if(!h) return out+'<p role="status">账目暂时无法核对。</p>';
@@ -125,21 +124,26 @@ export function bindPropertyView(root,state,ui,{render,dispatch,onBack,getState=
     ui.tradeInId=id||null;delete ui.confirmation;show('[data-pv-trade]');});
   on('[data-pv-review]','click',()=>{
     const s=stateNow(),q=propertyPreview(s,ui.assetId,ui.tradeInId??null);
-    if(!pvCanAct(s)||!q.valid||q.item?.kind!==k)return;
+    if(propertyActionBlock(s)||!q.valid||q.item?.kind!==k)return;
     ui.confirmation=pvSignature(q,s);show();});
   on('[data-pv-cancel]','click',()=>{delete ui.confirmation;show('[data-pv-review]');});
   on('[data-pv-confirm]','click',()=>{
     if(committed)return;
     const s=stateNow(),q=propertyPreview(s,ui.assetId,ui.tradeInId??null);
-    if(!pvCanAct(s)||!q.valid||q.item?.kind!==k||ui.confirmation!==pvSignature(q,s)){
+    if(propertyActionBlock(s)||!q.valid||q.item?.kind!==k||ui.confirmation!==pvSignature(q,s)){
       delete ui.confirmation;show();return;
     }
-    const action=q.tradeInId?{type:'TRADE_IN_PROPERTY',assetId:q.item.id,tradeInId:q.tradeInId}:{type:'BUY_PROPERTY',assetId:q.item.id};
-    committed=true;reset();dispatch(action);});
+    const action={type:q.tradeInId?'TRADE_IN_PROPERTY_V2':'BUY_PROPERTY_V2',assetId:q.item.id,
+      ...(q.tradeInId?{tradeInId:q.tradeInId}:{}),checkedDay:s.day,quotedCost:q.cashDue,confirmed:true};
+    committed=true;
+    // The host may ask for a separate cash-risk confirmation. On cancellation
+    // the same final quote remains retryable, but any committed purchase is one-shot.
+    if(dispatch(action)===false){committed=false;return;}
+    reset();});
   on('[data-pv-switch]','click',()=>{
     if(committed)return;
     const s=stateNow(),h=propertyHoldings(s),id=ui.assetId;
-    if(!pvCanAct(s))return;
+    if(propertyActionBlock(s))return;
     if(!pvItem(k,id)||!h?.owned.some(r=>r.id===id)||h.active[k]===id)return;
-    committed=true;reset();dispatch({type:'SWITCH_PROPERTY',assetId:id});});
+    committed=true;if(dispatch({type:'SWITCH_PROPERTY_V2',assetId:id,checkedDay:s.day})===false){committed=false;return;}reset();});
 }

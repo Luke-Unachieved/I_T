@@ -1,8 +1,8 @@
-import {accountCollectionBasis,canExpandAccount,paidSeriesStoreOrders} from './deal-room-account.js';
-import {catalogueVersions} from './deal-room-design-catalogue.js';
+import {accountCollectionBasis,canExpandAccount,paidSeriesStoreOrders} from './deal-room-account.js?v=36';
+import {catalogueVersions} from './deal-room-design-catalogue.js?v=36';
 import {launchBasis,launchReview} from './deal-room-launch.js';
-import {caseGrowthOffers} from './deal-room-case-growth.js';
-import {studioProjectEligibility} from './deal-room-studio-project.js';
+import {caseGrowthOffers} from './deal-room-case-growth.js?v=36';
+import {studioProjectEligibility} from './deal-room-studio-project.js?v=36';
 
 /** Derived chapter signpost for canonical engine state, not a save validator,
  * score, new order, reward or assertion that the whole game is complete.

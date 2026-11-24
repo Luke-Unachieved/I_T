@@ -1,5 +1,5 @@
 import {netProfitAmount} from './deal-room-net-profit.js';
-import {previewStudioAllocation} from './deal-room-allocation.js';
+import {previewStudioAllocation} from './deal-room-allocation.js?v=36';
 import {groupStudioPurchaseEligibility} from './deal-room-group-use-eligibility.js';
 import {sampleSvg} from './deal-room-samples.js';
 const cash=n=>`¥${Number(n||0).toLocaleString('zh-CN')}`;

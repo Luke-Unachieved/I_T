@@ -1,5 +1,5 @@
-import {createDealRoom,normalizeDealRoom,reduceDealRoom,previewCashRisk} from './deal-room-engine.js';
-import {DEAL_SAVE_KEY,DEAL_BACKUP_MAX_BYTES,loadDealSave,saveDealProgress} from './deal-room-save.js';
+import {createDealRoom,normalizeDealRoom,reduceDealRoom,previewCashRisk} from './deal-room-engine.js?v=36';
+import {DEAL_SAVE_KEY,DEAL_BACKUP_MAX_BYTES,loadDealSave,saveDealProgress} from './deal-room-save.js?v=36';
 
 const allowed=new Set([DEAL_SAVE_KEY,'trade-tycoon:deal-room-offline:v1']);
 const checkpointKey=key=>key+':before-risk:v1';
@@ -60,7 +60,7 @@ export function putRiskCheckpoint(storage,key=DEAL_SAVE_KEY,previousState,option
   const state=normalizeDealRoom(previousState);
   const previous=loadDealSave(storage,key);
   if(!previous.ok||previous.raw!==options.expectedRaw)return fail('changed','当前进度已变化，请重新操作。');
-  if(previous.state?!same(state,previous.state):!same(state,createDealRoom()))return fail('changed','当前进度已变化，请重新操作。');
+  if(previous.state?!same(state,previous.state):!same(state,createDealRoom(state.version)))return fail('changed','当前进度已变化，请重新操作。');
   const raw=JSON.stringify({version:1,state});
   if(raw.length>DEAL_BACKUP_MAX_BYTES||enc.encode(raw).byteLength>DEAL_BACKUP_MAX_BYTES)return fail('too-large','没能保留回退记录。');
   verifiedWrite(storage,checkpointKey(key),raw);
@@ -96,7 +96,7 @@ export function replayRiskCheckpoint(currentState,isRisky,isCausative=defaultCau
  try{
   const current=normalizeDealRoom(currentState),journal=actions(current);
   if(journal.length>400)return null;
-  let before=createDealRoom(),checkpoint=null;
+  let before=createDealRoom(current.version),checkpoint=null;
   for(const entry of journal){
    const after=reduceDealRoom(before,entry);
    if(after===before)return null;

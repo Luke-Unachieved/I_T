@@ -1,6 +1,6 @@
 /** Optional personal consumption. The core reducer owns action journaling.
  * No business buffs, automatic maintenance fees, refunds, time skips or storage. */
-import {workspaceProgressCue} from './deal-room-workspace-sleep.js';
+import {workspaceProgressCue} from './deal-room-workspace-sleep.js?v=36';
 
 export const LIFE_ACTION_KEYS = Object.freeze({PLANT_BALCONY:['type','itemId','plant'],HARVEST_BALCONY:['type','itemId'],BREW_BALCONY_TEA:['type','itemId'],BUY_LIFE_ITEM:['type','itemId'],ARRANGE_LIFE_ITEM:['type','itemId','position'],READ_LIFE_BOOK:['type','itemId','page'],SELECT_LIFE_RECORD:['type','itemId','track']});
 export const LIFE_ITEMS = Object.freeze([

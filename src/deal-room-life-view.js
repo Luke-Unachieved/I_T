@@ -1,6 +1,7 @@
-import {spendingLiquidityView} from './deal-room-spending.js';
-import {paintedLifeRoomArt} from './deal-room-life-art.js';
-import {lifeCatalogue,lifeLightLevel,lifePurchasePreview} from './deal-room-life.js';
+import {sleepWarningsView} from './deal-room-sleep-warning-view.js?v=36';
+import {spendingLiquidityView} from './deal-room-spending.js?v=36';
+import {paintedLifeRoomArt} from './deal-room-life-art.js?v=36';
+import {lifeCatalogue,lifeLightLevel,lifePurchasePreview} from './deal-room-life.js?v=36';
 const money=n=>'¥'+Number(n).toLocaleString('zh-CN');
 // Percent coordinates follow the original image plane; unknown pictures get no precipitation.
 const homeWeatherGlass={
@@ -56,14 +57,18 @@ const LIFE_PAGES=[
  {title:'第三章 · 回家的路',text:'回程没有赶上那班车。她在河边坐下来，看远处的灯一盏盏亮起。原来晚一点，也会遇见不同的风景。'}
 ];
 const RECORD_TRACKS={
- evening:{title:'晚间一面',description:'熟悉的第一张，轻轻陪你坐一会儿。',step:.65,type:'sine',notes:[261.63,329.63,392,329.63,293.66,349.23,440,349.23,261.63,329.63,392,523.25,440,392,329.63,261.63]},
- rain:{title:'雨后散步',description:'慢一点的拍子，留出呼吸和停顿。',step:.9,type:'sine',notes:[293.66,369.99,440,554.37,493.88,440,369.99,329.63,293.66,440,493.88,554.37,587.33,554.37,440,369.99,329.63,369.99,440,329.63,293.66,246.94,293.66,293.66]},
- dance:{title:'街角小舞步',description:'短促轻快的音符，脚尖也想跟着动一动。',step:.38,type:'triangle',notes:[261.63,392,329.63,392,523.25,440,392,329.63,293.66,440,349.23,440,587.33,523.25,440,349.23,329.63,493.88,392,493.88,659.25,587.33,523.25,392,349.23,440,523.25,440,392,329.63,293.66,261.63]}
+ evening:{title:'晚间一面',description:'熟悉的第一张，轻轻陪你坐一会儿。',clip:4.1,src:'assets/deal-record-evening.mp3'},
+ rain:{title:'雨后散步',description:'慢一点的拍子，留出呼吸和停顿。',clip:5.6,src:'assets/deal-record-rain.mp3'},
+ dance:{title:'街角小舞步',description:'短促轻快的音符，脚尖也想跟着动一动。',clip:2.4,src:'assets/deal-record-dance.mp3'}
 };
 function soundVolume(value){return Number.isFinite(Number(value))?Math.max(0,Math.min(100,Math.round(Number(value)))):55;}
+function recordStatus(status,volume,preview,title){
+ if(status==='playing')return volume===0?'播放中（已静音）':(preview?'试听中：':'播放中：')+title;
+ return ({loading:'正在加载唱片…',paused:'已暂停',error:'播放失败，请重试。',ended:'试听结束'})[status]||'未播放';
+}
 function listeningView(state,ui,preview=false){
- const owned=state.personalLife?.purchases?.some(p=>p.itemId==='records'),key=preview?(ui.recordPreview||'rain'):(owned?state.personalLife.recordTrack||'evening':'evening'),track=RECORD_TRACKS[key]||RECORD_TRACKS.evening;
- return `<section tabindex="-1" class="life-ritual life-listening home-comic-ritual" aria-label="${preview?'周末唱片试听':'我的唱片时间'}"><figure class="home-record-frame" aria-label="唱片机特写"></figure><div class="life-ritual-copy"><small>${preview?'先听一小段，再决定带不带回家':'今晚的唱片'}</small><h3>${track.title}</h3><p>${track.description}</p></div>${owned||preview?`<div class="life-record-choices" role="group" aria-label="选择唱片">${Object.entries(RECORD_TRACKS).filter(([id])=>!preview||id!=='evening').map(([id,t])=>`<button data-life-track="${id}" aria-pressed="${id===key}">${t.title}</button>`).join('')}</div>`:''}<div class="life-ritual-controls"><button data-life-sound aria-pressed="${!!ui.soundOn}">${ui.soundOn?'关掉声音':preview?'试听这一面':'听听这张唱片'}</button>${preview?'':'<button data-life-end>收起唱片</button>'}</div><label class="life-volume">唱片音量 <input data-life-volume type="range" min="0" max="100" step="5" value="${soundVolume(ui.volume)}" aria-label="唱片音量"><output data-life-volume-value>${soundVolume(ui.volume)}%</output></label><p data-life-volume-status role="status">${ui.soundError?'这次没能播放，先安静地坐一会儿。':ui.soundOn?(soundVolume(ui.volume)===0?'唱片在转，当前静音。':preview?'正在试听一小段。':'正在听：'+track.title):'唱针抬起，屋里安静下来。'}</p></section>`;
+ const owned=state.personalLife?.purchases?.some(p=>p.itemId==='records'),key=preview?(ui.recordPreview||'rain'):(owned?state.personalLife.recordTrack||'evening':'evening'),track=RECORD_TRACKS[key]||RECORD_TRACKS.evening,status=ui.soundState||'idle';
+ return `<section tabindex="-1" class="life-ritual life-listening home-comic-ritual" aria-label="${preview?'周末唱片试听':'我的唱片时间'}"><figure class="home-record-frame" aria-label="唱片机特写"></figure><div class="life-ritual-copy"><small>${preview?'先听一小段，再决定带不带回家':'今晚的唱片'}</small><h3>${track.title}</h3><p>${track.description}</p></div>${owned||preview?`<div class="life-record-choices" role="group" aria-label="选择唱片">${Object.entries(RECORD_TRACKS).filter(([id])=>!preview||id!=='evening').map(([id,t])=>`<button data-life-track="${id}" aria-pressed="${id===key}">${t.title}</button>`).join('')}</div>`:''}<div class="life-ritual-controls"><button data-life-sound aria-pressed="${status==='playing'}">${status==='playing'||status==='loading'?'暂停':status==='paused'?'继续播放':status==='error'?'重试播放':preview?'试听这一面':'播放唱片'}</button>${preview?'':'<button data-life-end>收起唱片</button>'}</div><label class="life-volume">唱片音量 <input data-life-volume type="range" min="0" max="100" step="5" value="${soundVolume(ui.volume)}" aria-label="唱片音量"><output data-life-volume-value>${soundVolume(ui.volume)}%</output></label><p data-life-volume-status role="status">${recordStatus(status,soundVolume(ui.volume),preview,track.title)}</p></section>`;
 }
 export function nextCoffeeStage(stage){return ({beans:'ground',ground:'ready',ready:'enjoyed'})[stage]||null;}
 export function coffeeRitualView(ui={}){
@@ -77,7 +82,7 @@ export function coffeeRitualView(ui={}){
 }
 export function readingCompanionsView(state,ui){
  const owns=id=>state.personalLife?.purchases?.some(p=>p.itemId===id);
- const coffee=owns('coffee'),ready=coffee&&ui.coffeeStage==='enjoyed',music=owns('record')&&ui.soundOn;
+ const coffee=owns('coffee'),ready=coffee&&ui.coffeeStage==='enjoyed',music=owns('record')&&ui.soundState==='playing';
  const flowers=state.personalLife?.balconyGarden?.flowers;if(!coffee&&!music&&!flowers)return '';
  return `<aside class="life-reading-companions" aria-label="陪我读书的小物件">${flowers?driedPosy:''}${ready?`<img class="life-reading-cup" src="${ui.coffee==='short'?'assets/deal-life-prop-cup-short.webp':'assets/deal-life-prop-cup-long.webp'}" alt="${ui.coffee==='short'?'浓咖啡':'长杯咖啡'}就在书旁">`:''}<div>${flowers?'<p>上次从阳台剪下的花，就摆在书旁。</p>':''}${ready?'<p>书翻到这里，咖啡也在手边了。</p>':coffee?'<button data-life-reading-coffee>给这一页配杯咖啡</button>':''}${music?'<small>唱片还在轻轻转，不急着翻到下一页。</small>':''}</div></aside>`;
 }
@@ -108,7 +113,7 @@ function furnitureView(state,ui={}){
  const active=catalogue.find(i=>i.id===ui.using&&owned(i.id)),arrival=catalogue.find(i=>i.id===ui.arrival&&owned(i.id));
  const welcome=arrival?({balcony:'窗外多了一处可以坐下的地方。苗和小铲子都在木槽旁。',readinglamp:'木边几摆在椅旁，自己的那盏灯也装好了。',records:'周末唱片摆好了。挑一面，听听今晚的声音。',books:'书册送到了。把书签夹好，今晚从第一篇读起。',chair:'阅读角安顿好了。坐下来，翻开今晚的第一章。',coffee:'咖啡机到家了。第一杯，按自己的口味来。',record:'唱片有了自己的位置。今晚，试着慢一点。'}[arrival.id]):active?({balcony:'推开门，看看自己种下的东西。',readinglamp:'手边就是开关，选个舒服的亮度。',records:'上次选的唱片还在这里，随时可以换一面。',books:'书签还夹在上次那一篇，接着读吧。',chair:'靠好一点，今天不看订单。',coffee:'热气升起来了。这杯留给自己。',record:'唱针落下，给自己留一段空闲。'}[active.id]):'窗外天色暗下来。什么也不买，也可以在这里坐一会儿。';
  const deep=!!(active&&active.id!=='balcony'||choice?.id==='records');
- return `<section class="life-panel home-comic" tabindex="-1" data-life-mode="${deep?'activity':'room'}" aria-label="下班后的家"><header><div><small>家具与收藏</small><h2>${arrival?'送到了':choice&&!owned(choice.id)?(choice.id==='records'?'试听周末双面唱片':choice.id==='balcony'?'预览小阳台':'摆进屋里看看'):active?active.name:'屋里这一角'}</h2></div><div>${ui.soundOn&&ui.preview!=='records'&&!['record','records'].includes(ui.using)?'<button data-life-mute>关掉声音</button>':''}<button data-home-furniture-done>收起家具</button></div></header><div class="home-comic-frame" tabindex="-1"><span class="home-panel-label">${arrival?'到家':choice&&!owned(choice.id)?'试摆':active?'使用中':'环顾房间'}</span>${lifeRoomArt(state,ui)}</div><div class="life-welcome ${arrival?'life-delivery':''}" role="status"><p>${choice&&!owned(choice.id)&&!arrival?choice.detail:welcome}</p>${state.personalLife?.balconyGarden?.flowers&&!ui.using&&!ui.preview?driedPosy:''}${arrival?`<button data-life-use="${arrival.id}">${arrival.verb}</button>`:''}</div>${ui.using!=='books'&&(owned('books')||ui.preview==='books')?`<div class="life-book-shelf"><img class="life-book-cover" src="assets/deal-life-prop-book.webp" alt="">《沿街走走》${owned('books')?`<button data-life-use="books">接着读 · 第 ${(state.personalLife.readingPage||0)+1} 篇</button>`:' · 翻看封面，尚未购买'}</div>`:''}${lifeRitual(state,ui)}${choice&&!owned(choice.id)?`<aside class="life-purchase"><h3>${choice.id==='balcony'?'改造预览':choice.id==='records'?'带回家':'试摆'}：${choice.name}</h3><p>花费 ${money(choice.price)} · ${q.cashAfter<0?'还差 '+money(-q.cashAfter):'买完还剩 '+money(q.cashAfter)}</p>${q.valid?spendingLiquidityView(state,choice.price):''}<small>从手头现金支付，只付这一次，之后使用免费。${choice.id==='balcony'?'预览':choice.id==='records'?'试听':'试摆'}不会扣钱。</small>${q.reason?'<p>'+homeEscape(q.reason)+'</p>':''}<div>${q.valid?('<button data-life-buy="'+choice.id+'" >'+(choice.id==='balcony'?'确认改造这处阳台':'买下，留给自己')+'</button>'):lifeProgressButton(q.nextStep)}<button data-life-cancel>${q.valid?'先不买':'收起预览'}</button></div></aside>`:''}<div class="life-actions">${catalogue.map(i=>owned(i.id)?`<div><strong>${i.name}</strong><button data-life-use="${i.id}" aria-pressed="${ui.using===i.id}">${ui.using===i.id?(i.id==='balcony'?'回到屋里':'放下，休息一会儿'):i.verb}</button>${['books','records','readinglamp','balcony'].includes(i.id)?'':`<button data-life-place="${i.id}">${i.id==='chair'?(state.personalLife.positions[i.id]==='inside'?'摆回窗边':'换个位置'):(state.personalLife.positions[i.id]==='inside'?'放回桌面':'移到搁架')}</button>`}</div>`:`<button data-life-preview="${i.id}">${i.name}<small>${money(i.price)} · ${i.id==='balcony'?'先看改造后的阳台':i.id==='records'?'先听听再选':'先摆进家里看看'}</small></button>`).join('')}</div><footer>手头 ${money(state.cash)} · 已为生活花了 ${money(state.personalLife?.spent||0)}。</footer></section>`;
+ return `<section class="life-panel home-comic" tabindex="-1" data-life-mode="${deep?'activity':'room'}" aria-label="下班后的家"><header><div><small>家具与收藏</small><h2>${arrival?'送到了':choice&&!owned(choice.id)?(choice.id==='records'?'试听周末双面唱片':choice.id==='balcony'?'预览小阳台':'摆进屋里看看'):active?active.name:'屋里这一角'}</h2></div><div>${['playing','loading','paused'].includes(ui.soundState)&&ui.preview!=='records'&&!['record','records'].includes(ui.using)?'<button data-life-mute>关掉声音</button>':''}<button data-home-furniture-done>收起家具</button></div></header><div class="home-comic-frame" tabindex="-1"><span class="home-panel-label">${arrival?'到家':choice&&!owned(choice.id)?'试摆':active?'使用中':'环顾房间'}</span>${lifeRoomArt(state,ui)}</div><div class="life-welcome ${arrival?'life-delivery':''}" role="status"><p>${choice&&!owned(choice.id)&&!arrival?choice.detail:welcome}</p>${state.personalLife?.balconyGarden?.flowers&&!ui.using&&!ui.preview?driedPosy:''}${arrival?`<button data-life-use="${arrival.id}">${arrival.verb}</button>`:''}</div>${ui.using!=='books'&&(owned('books')||ui.preview==='books')?`<div class="life-book-shelf"><img class="life-book-cover" src="assets/deal-life-prop-book.webp" alt="">《沿街走走》${owned('books')?`<button data-life-use="books">接着读 · 第 ${(state.personalLife.readingPage||0)+1} 篇</button>`:' · 翻看封面，尚未购买'}</div>`:''}${lifeRitual(state,ui)}${choice&&!owned(choice.id)?`<aside class="life-purchase"><h3>${choice.id==='balcony'?'改造预览':choice.id==='records'?'带回家':'试摆'}：${choice.name}</h3><p>花费 ${money(choice.price)} · ${q.cashAfter<0?'还差 '+money(-q.cashAfter):'买完还剩 '+money(q.cashAfter)}</p>${q.valid?spendingLiquidityView(state,choice.price):''}<small>从手头现金支付，只付这一次，之后使用免费。${choice.id==='balcony'?'预览':choice.id==='records'?'试听':'试摆'}不会扣钱。</small>${q.reason?'<p>'+homeEscape(q.reason)+'</p>':''}<div>${q.valid?('<button data-life-buy="'+choice.id+'" >'+(choice.id==='balcony'?'确认改造这处阳台':'买下，留给自己')+'</button>'):lifeProgressButton(q.nextStep)}<button data-life-cancel>${q.valid?'先不买':'收起预览'}</button></div></aside>`:''}<div class="life-actions">${catalogue.map(i=>owned(i.id)?`<div><strong>${i.name}</strong><button data-life-use="${i.id}" aria-pressed="${ui.using===i.id}">${ui.using===i.id?(i.id==='balcony'?'回到屋里':'放下，休息一会儿'):i.verb}</button>${['books','records','readinglamp','balcony'].includes(i.id)?'':`<button data-life-place="${i.id}">${i.id==='chair'?(state.personalLife.positions[i.id]==='inside'?'摆回窗边':'换个位置'):(state.personalLife.positions[i.id]==='inside'?'放回桌面':'移到搁架')}</button>`}</div>`:`<button data-life-preview="${i.id}">${i.name}<small>${money(i.price)} · ${i.id==='balcony'?'先看改造后的阳台':i.id==='records'?'先听听再选':'先摆进家里看看'}</small></button>`).join('')}</div><footer>手头 ${money(state.cash)} · 已为生活花了 ${money(state.personalLife?.spent||0)}。</footer></section>`;
 }
 const homeEscape=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const lifeProgressButton=q=>q&&['orders','inbox'].includes(q.tab)?'<button type="button" data-workspace-continue data-workspace-open="'+q.tab+'">'+homeEscape(q.label)+'</button>':'';
@@ -122,7 +127,7 @@ export function lifeRoomView(state,ui={},model={}){
  const exterior=panes?exteriorWeatherSvg(model.weather,...panes):'';
  const q=model.sleep,show=!!ui.sleepOpen&&q?.valid;
  const sheet=show?'<section class="home-sleep-sheet" role="dialog" aria-labelledby="home-sleep-title"><h3 id="home-sleep-title">睡前看一眼</h3>'+
- (q.pending?.length?'<ul>'+q.pending.map(x=>'<li>'+homeEscape(x)+'</li>').join('')+'</ul>':'')+
+ sleepWarningsView(q)+
  '<p>工作室日常开支 <strong>¥'+homeEscape(q.cost)+'</strong></p><button type="button" class="ws-control ws-control--secondary" data-home-cancel>先不睡</button><button type="button" class="ws-control ws-control--main" data-home-confirm>进入第 '+homeEscape(q.nextDay)+' 天</button></section>':'';
  return '<section class="home-original" aria-label="下班后的家"><header><button data-life-close type="button" aria-label="返回下班">‹ 返回下班</button><p class="home-location">'+homeEscape(model.area||'旧码头 · 工作室')+'</p><h2>'+homeEscape(model.name||'工作室起居角')+'</h2></header>'+firstChair+
  '<figure data-angle="'+angle+'"><img src="'+homeEscape(art)+'" alt="'+['房间全景','工作台近景','窗边近景'][angle]+'">'+exterior+'</figure><nav aria-label="房间视角"><button type="button" data-home-step="-1" aria-label="上一个视角">‹</button><span aria-live="polite">'+(angle+1)+' / 3</span><button type="button" data-home-step="1" aria-label="下一个视角">›</button></nav>'+
@@ -130,25 +135,46 @@ export function lifeRoomView(state,ui={},model={}){
  (q&&!q.valid?lifeProgressButton(q.nextStep):'<button type="button" data-home-sleep>睡到明天</button>')+'</div>'+sheet+
  '<details class="home-furniture"'+(ui.furnitureOpen||ui.using||ui.preview||ui.arrival?' open':'')+'><summary>家具与收藏</summary>'+furnitureView(state,{...ui,weather:model.weather})+'</details></section>';
 }
-// Original authored phrases, locally synthesized only after the sound button.
-// Selection may persist, but playback never auto-resumes; no requests or recordings.
-let lifeSound=null;
-function stopLifeSound(){if(lifeSound){clearTimeout(lifeSound.timer);lifeSound.context.close().catch(()=>{});lifeSound=null;}}
-async function startLifeSound(win,key='evening',preview=false,onEnded=()=>{},volume=55){
- stopLifeSound();const Audio=win.AudioContext||win.webkitAudioContext;if(!Audio)return false;
- try{
-  const context=new Audio();lifeSound={context,timer:null};await context.resume();if(lifeSound?.context!==context)return null;const master=context.createGain();master.gain.value=soundVolume(volume)/1000;master.connect(context.destination);
-  lifeSound.master=master;
-  const track=RECORD_TRACKS[key]||RECORD_TRACKS.evening,notes=preview?track.notes.slice(0,6):track.notes,duration=track.type==='triangle'?.28:1.5;
-  const phrase=()=>{if(!lifeSound||lifeSound.context!==context)return;const now=context.currentTime;
-   for(const [n,frequency] of notes.entries()){
-    const osc=context.createOscillator(),gain=context.createGain(),t=now+n*track.step;osc.type=track.type;osc.frequency.value=frequency;gain.gain.setValueAtTime(0,t);gain.gain.linearRampToValueAtTime(.65,t+.04);gain.gain.exponentialRampToValueAtTime(.001,t+duration);osc.connect(gain);gain.connect(master);osc.start(t);osc.stop(t+duration+.05);
-   }
-   lifeSound.timer=setTimeout(preview?()=>{if(lifeSound?.context===context){stopLifeSound();onEnded();}}:phrase,(notes.length*track.step+duration+.05)*1000);
-  };phrase();return true;
- }catch{stopLifeSound();return false;}
+// Original offline audio; invoke play only from the explicit record control.
+let lifeSound=null,removeLifeVisibility=null;
+function stopLifeSound(){
+ const sound=lifeSound;lifeSound=null;
+ if(!sound)return;
+ sound.audio.pause();
+ sound.audio.removeAttribute('src');
+ sound.audio.load?.();
 }
-let removeLifeVisibility=null;
+export function stopLifePlayback(){stopLifeSound();removeLifeVisibility?.();removeLifeVisibility=null;}
+function setLifeVolume(audio,value){
+ const volume=soundVolume(value);
+ audio.volume=volume/100;
+ audio.muted=volume===0;
+}
+function startLifeSound(doc,key,preview,update,volume){
+ const old=lifeSound;
+ if(old&&(old.key!==key||old.preview!==preview))stopLifeSound();
+ if(!lifeSound){
+  const audio=doc.createElement('audio'),sound={audio,key,preview};
+  lifeSound=sound;
+  audio.preload='none';audio.loop=!preview;
+  audio.src=RECORD_TRACKS[key].src;
+  const current=()=>lifeSound===sound;
+  const finish=status=>{if(current()){stopLifeSound();update(status);}};
+  audio.addEventListener('playing',()=>{if(current()&&!audio.paused)update('playing');});
+  audio.addEventListener('waiting',()=>{if(current()&&!audio.paused)update('loading');});
+  audio.addEventListener('pause',()=>{if(current()&&audio.paused&&!audio.ended)update('paused');});
+  audio.addEventListener('error',()=>finish('error'));
+  audio.addEventListener('ended',()=>finish(preview?'ended':'idle'));
+  audio.addEventListener('timeupdate',()=>{if(preview&&audio.currentTime>=RECORD_TRACKS[key].clip)finish('ended');});
+ }
+ const sound=lifeSound;
+ try{
+  setLifeVolume(sound.audio,volume);
+  update('loading');
+  const p=sound.audio.play();
+  if(p?.catch)p.catch(error=>{if(lifeSound===sound&&error?.name!=='AbortError'){stopLifeSound();update('error');}});
+ }catch{if(lifeSound===sound){stopLifeSound();update('error');}}
+}
 export function bindLifeRoom(root,{getState,getUI,setUI:renderUI,dispatch,close,onSleepConfirm}){
  // Capture at render time, not at click time: an async sound result must not
  // steal focus back after the player has moved to another control.
@@ -168,22 +194,22 @@ export function bindLifeRoom(root,{getState,getUI,setUI:renderUI,dispatch,close,
  };
  const reveal=(selector,block='nearest')=>{const el=root.querySelector(selector);el?.focus?.({preventScroll:true});el?.scrollIntoView?.({block});};
  const focusControl=selector=>root.querySelector(selector)?.focus?.({preventScroll:true});
- const end=()=>{const id=getUI().using;stopLifeSound();setUI({...getUI(),using:'',arrival:'',soundOn:false,soundError:false});focusControl(`[data-life-use="${id}"]`);};
- const use=id=>{const ending=getUI().using===id,wasPreview=getUI().preview==='records';if(wasPreview||ending&&['record','records'].includes(id))stopLifeSound();setUI({...getUI(),preview:'',using:ending?'':id,balconyTea:false,coffeeStage:id==='coffee'?'beans':getUI().coffeeStage,arrival:'',soundOn:wasPreview||ending&&['record','records'].includes(id)?false:!!getUI().soundOn,soundError:false});if(!ending){if(id==='balcony')reveal('.home-comic-frame','start');else reveal('.life-ritual');}};
+ const end=()=>{const id=getUI().using;stopLifeSound();setUI({...getUI(),using:'',arrival:'',soundState:'idle'});focusControl(`[data-life-use="${id}"]`);};
+ const use=id=>{const ending=getUI().using===id,stop=getUI().preview==='records'||ending&&['record','records'].includes(id);if(stop)stopLifeSound();setUI({...getUI(),preview:'',using:ending?'':id,balconyTea:false,coffeeStage:id==='coffee'?'beans':getUI().coffeeStage,arrival:'',soundState:stop?'idle':getUI().soundState});if(!ending){if(id==='balcony')reveal('.home-comic-frame','start');else reveal('.life-ritual');}};
  if(removeLifeVisibility)removeLifeVisibility();
- const doc=root.ownerDocument,hidden=()=>{if(doc.hidden&&lifeSound){stopLifeSound();setUI({...getUI(),soundOn:false});}};
+ const doc=root.ownerDocument,hidden=()=>{if(doc.hidden&&lifeSound){stopLifeSound();setUI({...getUI(),soundState:'idle'});}};
  doc.addEventListener('visibilitychange',hidden);removeLifeVisibility=()=>doc.removeEventListener('visibilitychange',hidden);
  for(const b of root.querySelectorAll('[data-home-step]'))b.onclick=()=>{const d=Number(b.dataset.homeStep);if(d===1||d===-1)setUI({...getUI(),angle:((getUI().angle||0)+d+3)%3});};
  root.querySelector('[data-home-sleep]')?.addEventListener('click',()=>{setUI({...getUI(),sleepOpen:true});root.querySelector('[data-home-cancel]')?.focus?.();});
  root.querySelector('[data-home-cancel]')?.addEventListener('click',()=>{setUI({...getUI(),sleepOpen:false});root.querySelector('[data-home-sleep]')?.focus?.();});
  root.querySelector('[data-home-confirm]')?.addEventListener('click',()=>{stopLifeSound();onSleepConfirm?.();});
- root.querySelector('[data-home-furniture-done]')?.addEventListener('click',()=>{stopLifeSound();setUI({...getUI(),preview:'',using:'',arrival:'',soundOn:false,furnitureOpen:false});});
+ root.querySelector('[data-home-furniture-done]')?.addEventListener('click',()=>{stopLifeSound();setUI({...getUI(),preview:'',using:'',arrival:'',soundState:'idle',furnitureOpen:false});});
  root.querySelector('[data-life-close]')?.addEventListener('click',()=>{stopLifeSound();removeLifeVisibility?.();removeLifeVisibility=null;close();});
- const previewItem=id=>{stopLifeSound();setUI({...getUI(),preview:id,using:'',arrival:'',soundOn:false});reveal(id==='records'?'.life-listening':'.home-comic');};
+ const previewItem=id=>{stopLifeSound();setUI({...getUI(),preview:id,using:'',arrival:'',soundState:'idle'});reveal(id==='records'?'.life-listening':'.home-comic');};
  root.querySelector('[data-home-first-chair]')?.addEventListener('click',()=>{if(lifePurchasePreview(getState(),'chair').valid)previewItem('chair');});
  for(const e of root.querySelectorAll('[data-life-preview]'))e.onclick=()=>previewItem(e.dataset.lifePreview);
- root.querySelector('[data-life-cancel]')?.addEventListener('click',()=>{const id=getUI().preview;stopLifeSound();setUI({...getUI(),preview:'',soundOn:false});focusControl(`[data-life-preview="${id}"]`);});
- for(const e of root.querySelectorAll('[data-life-buy]'))e.onclick=()=>{const id=e.dataset.lifeBuy;if(!lifePurchasePreview(getState(),id).valid)return;stopLifeSound();dispatch({type:'BUY_LIFE_ITEM',itemId:id});if(getState().personalLife?.purchases?.some(p=>p.itemId===id)){setUI({...getUI(),preview:'',arrival:id,soundOn:false});reveal(`[data-life-use="${id}"]`);}};
+ root.querySelector('[data-life-cancel]')?.addEventListener('click',()=>{const id=getUI().preview;stopLifeSound();setUI({...getUI(),preview:'',soundState:'idle'});focusControl(`[data-life-preview="${id}"]`);});
+ for(const e of root.querySelectorAll('[data-life-buy]'))e.onclick=()=>{const id=e.dataset.lifeBuy;if(!lifePurchasePreview(getState(),id).valid)return;stopLifeSound();dispatch({type:'BUY_LIFE_ITEM',itemId:id});if(getState().personalLife?.purchases?.some(p=>p.itemId===id)){setUI({...getUI(),preview:'',arrival:id,soundState:'idle'});reveal(`[data-life-use="${id}"]`);}};
  const gardenAction=(type,extra={})=>{if(getUI().using!=='balcony')return;const before=getState();dispatch({type,itemId:'balcony',...extra});if(getState()===before)return;setUI({...getUI(),balconyTea:type==='BREW_BALCONY_TEA'});reveal('.balcony-ritual');};
  for(const b of root.querySelectorAll('[data-balcony-plant]'))b.onclick=()=>gardenAction('PLANT_BALCONY',{plant:b.dataset.balconyPlant});
  root.querySelector('[data-balcony-harvest]')?.addEventListener('click',()=>gardenAction('HARVEST_BALCONY'));
@@ -215,8 +241,23 @@ export function bindLifeRoom(root,{getState,getUI,setUI:renderUI,dispatch,close,
   setUI({...ui,using:ui.coffeeReturn,coffeeReturn:'',arrival:''});reveal('.life-ritual');
  });
  root.querySelector('[data-life-end]')?.addEventListener('click',end);
- root.querySelector('[data-life-mute]')?.addEventListener('click',()=>{stopLifeSound();setUI({...getUI(),soundOn:false});});
- for(const e of root.querySelectorAll('[data-life-track]'))e.onclick=()=>{const track=e.dataset.lifeTrack;if(!Object.hasOwn(RECORD_TRACKS,track))return;stopLifeSound();if(getUI().preview==='records'){setUI({...getUI(),recordPreview:track,soundOn:false,soundError:false});}else{dispatch({type:'SELECT_LIFE_RECORD',itemId:'records',track});setUI({...getUI(),soundOn:false,soundError:false});}focusControl(`[data-life-track="${track}"]`);};
- root.querySelector('[data-life-volume]')?.addEventListener('input',event=>{const volume=soundVolume(event.currentTarget.value),ui=getUI();if(lifeSound?.master)lifeSound.master.gain.value=volume/1000;ui.volume=volume;const output=root.querySelector('[data-life-volume-value]');if(output)output.textContent=volume+'%';const status=root.querySelector('[data-life-volume-status]');if(status&&ui.soundOn)status.textContent=volume===0?'唱片在转，当前静音。':ui.preview==='records'?'正在试听一小段。':'正在听：'+(RECORD_TRACKS[getState().personalLife?.recordTrack||'evening']||RECORD_TRACKS.evening).title;});
- root.querySelector('[data-life-sound]')?.addEventListener('click',async event=>{event.currentTarget.disabled=true;if(getUI().soundOn){stopLifeSound();setUI({...getUI(),soundOn:false});return;}const preview=getUI().preview==='records',key=preview?(getUI().recordPreview||'rain'):(getState().personalLife?.recordTrack||'evening');const ok=await startLifeSound(doc.defaultView,key,preview,()=>{if(getUI().preview==='records')setUI({...getUI(),soundOn:false});},soundVolume(getUI().volume));if(ok===null)return;if(!['record','records'].includes(getUI().using)&&getUI().preview!=='records'){stopLifeSound();return;}setUI({...getUI(),soundOn:ok,soundError:!ok});});
+ root.querySelector('[data-life-mute]')?.addEventListener('click',()=>{stopLifeSound();setUI({...getUI(),soundState:'idle'});});
+ for(const e of root.querySelectorAll('[data-life-track]'))e.onclick=()=>{const track=e.dataset.lifeTrack;if(!Object.hasOwn(RECORD_TRACKS,track))return;stopLifeSound();if(getUI().preview==='records'){setUI({...getUI(),recordPreview:track,soundState:'idle'});}else{dispatch({type:'SELECT_LIFE_RECORD',itemId:'records',track});setUI({...getUI(),soundState:'idle'});}focusControl(`[data-life-track="${track}"]`);};
+ root.querySelector('[data-life-volume]')?.addEventListener('input',event=>{
+  const volume=soundVolume(event.currentTarget.value),ui=getUI();
+  if(lifeSound)setLifeVolume(lifeSound.audio,volume);
+  ui.volume=volume;
+  const output=root.querySelector('[data-life-volume-value]');if(output)output.textContent=volume+'%';
+  const status=root.querySelector('[data-life-volume-status]'),title=root.querySelector('.life-listening h3')?.textContent;
+  if(status&&title)status.textContent=recordStatus(ui.soundState,volume,ui.preview==='records',title);
+ });
+ root.querySelector('[data-life-sound]')?.addEventListener('click',()=>{
+  const ui=getUI(),preview=ui.preview==='records';
+  if(['playing','loading'].includes(ui.soundState)&&lifeSound){lifeSound.audio.pause();setUI({...getUI(),soundState:'paused'});return;}
+  const selected=preview?(ui.recordPreview||'rain'):(getState().personalLife?.recordTrack||'evening');
+  const key=Object.hasOwn(RECORD_TRACKS,selected)?selected:'evening';
+  startLifeSound(doc,key,preview,soundState=>{
+   if(root.querySelector('.life-panel'))setUI({...getUI(),soundState});
+  },soundVolume(ui.volume));
+ });
 }

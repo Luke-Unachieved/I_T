@@ -1,6 +1,6 @@
 // Separate replay-stable three-payment tenders. V1 keeps the original dates
 // and V2 changes only the signing cadence, not the weekly tender rules.
-import {EQUIPMENT_MAX_DAYS} from './deal-room-equipment.js';
+import {EQUIPMENT_MAX_DAYS} from './deal-room-equipment.js?v=36';
 const rows=[
  ['excavator','履带式挖掘机','青屿工程设备租赁社',2,'台',32,5,84000,62000,45,15,12,3400,4400,1950,8,2500,22,18,57,'按合同清点两台主机及附件，核对交付记录。'],
  ['ultrasound','医院超声诊断设备组','海棠医疗设备采购处',3,'套',48,8,149000,109500,60,23,17,6800,5900,3100,12,4600,42,12,43,'按合同核对三套设备、装箱清单和到货交接记录。'],
@@ -11,9 +11,10 @@ const SIGN='SIGN_LEGACY_EQUIPMENT_V1',SHIP='SHIP_LEGACY_EQUIPMENT_V1',ACCEPT='AC
 export const LEGACY_EQUIPMENT_SIGN_V2='SIGN_LEGACY_EQUIPMENT_V2';
 const signTypes=new Set([SIGN,LEGACY_EQUIPMENT_SIGN_V2]);
 const LIVE=Object.freeze({[SHIP]:'SHIP_LEGACY_EQUIPMENT_V2',[ACCEPT]:'ACCEPT_LEGACY_EQUIPMENT_V2',[COLLECT]:'COLLECT_LEGACY_EQUIPMENT_V2'});
+const LATE=Object.freeze(Object.fromEntries(Object.entries(LIVE).map(([old,current])=>[old,current.replace(/_V2$/,'_V3')])));
 const KIND='legacy-equipment-v1',PREP='legacy-preparing',TRANSIT='legacy-transit',OWED='legacy-receivable';
 const keyset=(...s)=>Object.freeze(s),stageKeys=keyset('type','signedDay','day'),signKeys=keyset('type','projectId','lots','shipping','price','day');
-export const LEGACY_EQUIPMENT_ACTION_KEYS=Object.freeze({[SIGN]:signKeys,[LEGACY_EQUIPMENT_SIGN_V2]:signKeys,[SHIP]:stageKeys,[ACCEPT]:stageKeys,[COLLECT]:stageKeys,[REBOOK]:stageKeys,...Object.fromEntries(Object.values(LIVE).map(type=>[type,stageKeys]))});
+export const LEGACY_EQUIPMENT_ACTION_KEYS=Object.freeze({[SIGN]:signKeys,[LEGACY_EQUIPMENT_SIGN_V2]:signKeys,[SHIP]:stageKeys,[ACCEPT]:stageKeys,[COLLECT]:stageKeys,[REBOOK]:stageKeys,...Object.fromEntries([...Object.values(LIVE),...Object.values(LATE)].map(type=>[type,stageKeys]))});
 const uint=x=>Number.isSafeInteger(x)&&x>=0,positive=x=>uint(x)&&x>0,project=id=>LEGACY_EQUIPMENT_PROJECTS.find(p=>p.id===id);
 const TIERS=Object.freeze([[1,0,0],[2,1,4],[4,3,8],[8,5,12],[16,8,16]].map(Object.freeze));
 const legacyCadenceV2=Object.freeze({
@@ -122,7 +123,7 @@ export function legacyEquipmentCashSchedule(state){
   before=after;return {day,expense,income};
  });
 }
-function intent(s,verb,calendar){
+function intent(s,verb,calendar,allowLate=false){
  const now=activeAt(s,calendar);if(!now)return null;
  const {q,active:a,stage}=now;
  if(a.equipmentTermsVersion===2&&!calendar&&verb!=='rebook')return null;
@@ -133,7 +134,8 @@ function intent(s,verb,calendar){
  }else{if(verb!==undefined)return null;
   [type,to,date]=stage===PREP?[SHIP,TRANSIT,q.shipDay]:stage===TRANSIT?[ACCEPT,OWED,a.deliveryDay]:[COLLECT,'paid',a.paymentDay];
  }
- if(calendar&&type!==REBOOK&&s.day!==date)return null;
+ if(calendar&&type!==REBOOK&&(allowLate?s.day<date:s.day!==date))return null;
+ if(calendar&&allowLate&&type!==REBOOK)date=s.day;
  const n=orderAt(q,to,rebook),alreadyPaid=calendar?n.operatingPaid-a.operatingPaid:0;
  const out=n.spent-a.spent-alreadyPaid,income=n.received-a.received,cash=s.cash-out+income;
  // On arrival supplier costs/running costs must be affordable *before*
@@ -143,10 +145,10 @@ function intent(s,verb,calendar){
   const toAcceptance=q.acceptanceFee+q.stationFee+(n.deliveryDay-s.day)*30;
   if(cash<toAcceptance||cash-toAcceptance+q.progressDue<q.paymentLag*30)return null;
  }
- return {n,cash,date,action:{type:calendar?(LIVE[type]||type):type,signedDay:q.signedDay,day:s.day}};
+ return {n,cash,date,action:{type:calendar?((allowLate?LATE[type]:LIVE[type])||type):type,signedDay:q.signedDay,day:s.day}};
 }
 export function legacyEquipmentNextAction(s,verb){return intent(s,verb)?.action??null;}
-export function legacyEquipmentCalendarAction(s,verb){return intent(s,verb,true)?.action??null;}
+export function legacyEquipmentCalendarAction(s,verb){return (intent(s,verb,true)??intent(s,verb,true,true))?.action??null;}
 export function applyLegacyEquipmentAction(s,input,canStart=true){
  const a=canonicalLegacyEquipmentAction(input);if(!a)return s;
  if(signTypes.has(a.type)){
@@ -155,8 +157,8 @@ export function applyLegacyEquipmentAction(s,input,canStart=true){
   const q=terms(project(a.projectId),a.lots,a.shipping,a.price,a.day,version),order=orderAt(q,PREP);
   const n=structuredClone(s);n.cash=quote.cashAfterSigning;n.market.status=PREP;n.market.active=order;n.feedback={kind:'legacy-equipment-signed',message:order.productName+'整单签约，收客户定金 ¥'+order.deposit+'，付厂方订金 ¥'+order.supplierDown+'。'};return n;
  }
- const historic=Object.keys(LIVE).find(type=>LIVE[type]===a.type),type=historic||a.type;
- const plan=intent(s,type===REBOOK?'rebook':undefined,Boolean(historic));
+ const late=Object.keys(LATE).find(type=>LATE[type]===a.type),historic=Object.keys(LIVE).find(type=>LIVE[type]===a.type),type=late||historic||a.type;
+ const plan=intent(s,type===REBOOK?'rebook':undefined,Boolean(historic||late),Boolean(late));
  if(!plan||a.type!==plan.action.type||a.signedDay!==plan.action.signedDay||a.day!==plan.action.day)return s;
  const n=structuredClone(s),o=plan.n;n.day=plan.date;n.cash=plan.cash;n.market.active=o;n.market.status=o.status;
  const message=type===SHIP?'已付厂方尾款 ¥'+o.supplierBalance+' 和运费 ¥'+o.freight+'。'+(o.transfer?'接驳船改期；可等新船期，或付费争取早班。':'本批按约出运。'):

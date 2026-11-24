@@ -21,12 +21,12 @@ export function bankruptcyView(status,canReturn,message){
  <p role="status">${message}</p></section>`;
 }
 const escape=text=>String(text).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export function cashRescueView(insolvency,liquidation){
+export function cashRescueView(insolvency,liquidation,collectible=0){
  const owned=liquidation?.assets??[],hasHome=owned.some(a=>a.kind==='home');
  const assetTitle=owned.length>1?'变卖房车':hasHome?'变卖住房':'变卖车辆';
  const settlement=owned.length?`<details class="cash-rescue-sale"><summary>${assetTitle} · 可收回 ${amount(liquidation.proceeds)}</summary><ul>${owned.map(a=>`<li>${escape(a.name)} · ${amount(a.proceeds)}</li>`).join('')}</ul><p>变卖后手头有 ${amount(liquidation.cashAfter)}。住处将搬到${escape(liquidation.starterHomeName)}。${liquidation.cashAfter<insolvency.dailyCost?'这仍不够支付今天的开支。':''}</p><p>变卖不会推进日期。</p><button class="ws-control ws-control--main" type="button" data-bankruptcy-liquidate="${liquidation.proceeds}">确认${assetTitle}</button></details>`:'';
  return `<section class="ws-hub-card ws-hub-night cash-risk-rescue" aria-label="工作室开支">
  <p>手头只剩 ${amount(insolvency.cash)}，今天的工作室开支还差 ${amount(insolvency.shortfall)}。</p>
- ${settlement}<p>暂不结账，今天还可以继续处理生意。</p>
+ ${collectible>0?`<p>还有 ${amount(collectible)} 货款可以收取。先去订单收款，不会推进日期。</p><button type="button" class="ws-control ws-control--main" data-workspace-open="orders">去订单收款</button>`:'<p>暂不结账，今天还可以继续处理生意。</p>'}${settlement}
  <button type="button" class="ws-control ws-control--secondary" data-workspace-bankruptcy>结账并结束游戏</button></section>`;
 }

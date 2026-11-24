@@ -1,5 +1,5 @@
 import {netProfitAmount} from './deal-room-net-profit.js';
-import {specialtyMilestoneView} from './deal-room-specialty-calendar.js';
+import {specialtyMilestoneView} from './deal-room-specialty-calendar.js?v=36';
 // A delivered lamp case is practical supplier experience; no unrelated repeat-order grind.
 import {retailDemand} from './deal-room-demand.js';
 export function hasLampDevelopmentCase(state){return (state.curationHistory||[]).some(c=>c.status==='paid'&&c.products?.includes('mira'));}

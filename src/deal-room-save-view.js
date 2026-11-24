@@ -1,4 +1,5 @@
-import {encodeDealBackup,loadDealSave,restoreDealBackup,restartDealProgress,DEAL_SAVE_KEY,DEAL_BACKUP_MAX_BYTES} from './deal-room-save.js';
+import {NEW_DEAL_START_CASH} from './deal-room-engine.js?v=36';
+import {encodeDealBackup,loadDealSave,restoreDealBackup,restartDealProgress,DEAL_SAVE_KEY,DEAL_BACKUP_MAX_BYTES} from './deal-room-save.js?v=36';
 import {saveFileEntry,bindSaveBackupFile} from './deal-room-save-file.js';
 const escapeSave=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function dealSaveView(panel,saveNotice='进度自动保存'){
@@ -7,7 +8,7 @@ export function dealSaveView(panel,saveNotice='进度自动保存'){
  ${warning?'':'<p class="deal-save-head">进度会自动保存在这个浏览器里。</p>'}
  ${panel.conflict?`<section class="deal-save-conflict" aria-label="存档冲突"><p role="alert">另一个页面保存了新进度，这一页的改动还没保存。</p><button type="button" id="deal-save-reload">载入已保存的进度</button>${panel.reloadConfirm?'<p>载入后会丢掉这一页没保存的改动。要留住它们，先下载备份。</p><div class="deal-save-actions"><button type="button" id="deal-save-reload-confirm">放弃本页改动，载入存档</button><button type="button" id="deal-save-reload-cancel">暂不重新加载</button></div>':''}</section>`:''}
  <section class="deal-save-section deal-save-restart" aria-label="重新开始游戏">
- ${panel.restart?`<p>从第 1 天重新开始，启动资金 ¥5,000。${panel.restart.summary?'当前进度会留作重开前备份。':''}${panel.restart.summary&&panel.restart.hasPrior?' 之前的重开备份会被替换。':''}</p><div class="deal-save-actions"><button type="button" id="deal-save-restart-cancel">取消</button><button type="button" id="deal-save-restart-confirm">确认重新开始</button></div>`:'<button type="button" id="deal-save-restart">重新开始</button>'}
+ ${panel.restart?`<p>从第 1 天重新开始，启动资金 ¥${NEW_DEAL_START_CASH.toLocaleString('zh-CN')}。${panel.restart.summary?'当前进度会留作重开前备份。':''}${panel.restart.summary&&panel.restart.hasPrior?' 之前的重开备份会被替换。':''}</p><div class="deal-save-actions"><button type="button" id="deal-save-restart-cancel">取消</button><button type="button" id="deal-save-restart-confirm">确认重新开始</button></div>`:'<button type="button" id="deal-save-restart">重新开始</button>'}
  </section>
  <details class="deal-save-files" ${panel.filesOpen||panel.preview?'open':''}><summary>存档文件</summary><div class="deal-save-file-grid">
  <section class="deal-save-section deal-save-export" aria-labelledby="deal-save-export-title">

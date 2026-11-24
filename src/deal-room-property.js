@@ -87,16 +87,33 @@ export function propertyPreview(state,id,tradeInId=null) {
   return {...q,valid:true};
 }
 
+// The catalogue is available during running orders, not while travelling or
+// after a terminal game. Market/order phase never blocks managing assets.
+export function propertyActionBlock(state){
+  if(!propRecord(state)||typeof state.phase!=='string'||!state.phase)return '当前无法办理资产变更。';
+  if(state.bankruptcy)return '游戏已经结束，不能再变更资产。';
+  if(state.phase==='outing-trip'||state.afterWorkOutings?.activeTrip)return '旅程结束后才能办理资产变更。';
+  return '';
+}
+const confirmedFields=['checkedDay','quotedCost','confirmed'];
 export const PROPERTY_ACTION_KEYS=Object.freeze({
   BUY_PROPERTY:Object.freeze(['type','assetId']),
   TRADE_IN_PROPERTY:Object.freeze(['type','assetId','tradeInId']),
-  SWITCH_PROPERTY:Object.freeze(['type','assetId'])
+  SWITCH_PROPERTY:Object.freeze(['type','assetId']),
+  BUY_PROPERTY_V2:Object.freeze(['type','assetId',...confirmedFields]),
+  TRADE_IN_PROPERTY_V2:Object.freeze(['type','assetId','tradeInId',...confirmedFields]),
+  SWITCH_PROPERTY_V2:Object.freeze(['type','assetId','checkedDay'])
 });
+export const isPropertyActionV2=type=>type==='BUY_PROPERTY_V2'||type==='TRADE_IN_PROPERTY_V2'||type==='SWITCH_PROPERTY_V2';
+const propertySwitch=type=>type==='SWITCH_PROPERTY'||type==='SWITCH_PROPERTY_V2';
 export function canonicalPropertyAction(action){
   if(!propRecord(action) || typeof action.type!=='string' || !propHas(PROPERTY_ACTION_KEYS,action.type)) return null;
   const ks=PROPERTY_ACTION_KEYS[action.type];
   if(!propFields(action,ks)||!propItem(action.assetId)) return null;
-  if(action.type==='TRADE_IN_PROPERTY' && (!propItem(action.tradeInId)||action.tradeInId===action.assetId))return null;
+  if((action.type==='TRADE_IN_PROPERTY'||action.type==='TRADE_IN_PROPERTY_V2')&&
+    (!propItem(action.tradeInId)||action.tradeInId===action.assetId))return null;
+  if(isPropertyActionV2(action.type)&&(!propMoney(action.checkedDay)||action.checkedDay<1||
+    !propertySwitch(action.type)&&(!propMoney(action.quotedCost)||action.confirmed!==true)))return null;
   return Object.fromEntries(ks.map(k=>[k,action[k]]));
 }
 
@@ -104,16 +121,18 @@ export function canonicalPropertyAction(action){
 export function applyPropertyAction(state,action){
   const a=canonicalPropertyAction(action);
   if(!a)return state;
+  const live=isPropertyActionV2(a.type);
+  if(live&&(propertyActionBlock(state)||state.day!==a.checkedDay))return state;
   const h=propertyHoldings(state);
   if(!h)return state;
   const item=propItem(a.assetId);
-  if(a.type==='SWITCH_PROPERTY'){
+  if(propertySwitch(a.type)){
     if(!h.owned.some(r=>r.id===item.id) || h.active[item.kind]===item.id)return state;
     h.active[item.kind]=item.id;
     return {...state,propertyAssets:h};
   }
   const q=propertyPreview(state,item.id,a.tradeInId??null);
-  if(!q.valid)return state;
+  if(!q.valid||live&&q.cashDue!==a.quotedCost)return state;
   if(q.tradeInId!==null)h.owned=h.owned.filter(r=>r.id!==q.tradeInId);
   const receipt={id:item.id,day:state.day,paid:q.cashDue};
   h.owned.push(receipt);

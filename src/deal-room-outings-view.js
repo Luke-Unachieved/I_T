@@ -2,7 +2,7 @@ import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
 import {travelEpilogue} from './deal-room-outings-travel-extra.js';
 import {outingSceneArt} from './deal-room-outings-art.js';
 import {OUTING_COMPANIONS,OUTING_TRIPS,outingTrip,friendEvent,friendOutingEcho} from './deal-room-outings-content.js';
-import {outingSummary,outingMoment,availableFriendEvents,previewOutingTrip,previewFriendOuting} from './deal-room-outings.js';
+import {outingSummary,outingMoment,availableFriendEvents,previewOutingTrip,previewFriendOuting} from './deal-room-outings.js?v=36';
 const e=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>Number.isSafeInteger(n)?'¥'+n.toLocaleString('zh-CN'):'—';
 const price=n=>n===0?'免费':money(n);
@@ -130,8 +130,10 @@ function tripPreview(s,v,t,assets){
   (q.valid?button('trip-review',null,'核对行程','class="oo-main"'):`<p class="oo-alert" role="status">${e(q.reason)}</p>`)+'</article>';
 }
 const pageSize=5;
+const friendChoices=(ev,b)=>b.freeFriendsOnly?ev.choices.filter(x=>x.cost===0):ev.choices;
+const friendEvents=(id,b)=>availableFriendEvents(id,b.mementos).filter(ev=>friendChoices(ev,b).length);
 function friendList(v,b){
- const who=friendBy(v.friendId),all=who?availableFriendEvents(who.id,b.mementos):[],pages=Math.ceil(all.length/pageSize),page=Number.isSafeInteger(v.page)?Math.max(0,Math.min(v.page,pages-1)):0;
+ const who=friendBy(v.friendId),all=who?friendEvents(who.id,b):[],pages=Math.ceil(all.length/pageSize),page=Number.isSafeInteger(v.page)?Math.max(0,Math.min(v.page,pages-1)):0;
  // Particular-friend scenes go first rather than making a player scan all common events.
  const completed=new Set(b.mementos.filter(x=>x.kind==='friend'&&x.companionId===v.friendId).map(x=>x.placeId));
  const order=ev=>ev.requires&&!completed.has(ev.id)?0:ev.companionId&&!completed.has(ev.id)?1:ev.companionId?2:3;
@@ -140,13 +142,13 @@ function friendList(v,b){
   ev.choices.length&&ev.choices.every(c=>c.cost===0)?'免费':
   ev.choices.some(c=>c.cost===0)?'有免费选项':'';
 
- return back('← 下班时间','menu')+title('下班 / 约朋友','找位朋友出门')+people(v.friendId,'friends')+(!who?'':`<h3>和${e(who.name)}一起</h3><div class="oo-list">${ranked.slice(page*pageSize,(page+1)*pageSize).map(ev=>{const sub=subtitle(ev);return button('event',ev.id,`<strong>${e(ev.name)}</strong>${sub?`<span>${e(sub)}</span>`:''}`);}).join('')}</div><div class="oo-pages">${button('prev',null,'上一页',page?'':'disabled')}<span>${page+1} / ${pages}</span>${button('next',null,'下一页',page+1<pages?'':'disabled')}</div>`);
+ return back('← 下班时间','menu')+title('下班 / 约朋友','找位朋友出门',b.freeFriendsOnly?'先约个不花钱的活动，备货和回款不受影响。':'')+people(v.friendId,'friends')+(!who?'':`<h3>和${e(who.name)}一起</h3><div class="oo-list">${ranked.slice(page*pageSize,(page+1)*pageSize).map(ev=>{const sub=subtitle(ev);return button('event',ev.id,`<strong>${e(ev.name)}</strong>${sub?`<span>${e(sub)}</span>`:''}`);}).join('')}</div><div class="oo-pages">${button('prev',null,'上一页',page?'':'disabled')}<span>${page+1} / ${pages}</span>${button('next',null,'下一页',page+1<pages?'':'disabled')}</div>`);
 }
 function friendPreview(v,ev,assets,book){
  const id=v.friendId,echo=friendOutingEcho(ev.id,id,book.mementos),line=echo||ev.companionLines?.[id];
  return back('‹ 其他活动','friends-back')+'<article class="oo-story"><header class="oo-story-title"><h2>'+e(ev.name)+'</h2></header>'+
  comicFrame(ev,assets,echo)+friendSpeech(id,line)+
- '<section class="oo-branches"><h3>你想怎么做？</h3><div>'+ev.choices.map(o=>button('friend-choice',o.id,'<strong>'+e(o.label)+'</strong><span>'+price(o.cost)+'</span><i aria-hidden="true">›</i>')).join('')+'</div></section></article>';
+ '<section class="oo-branches"><h3>你想怎么做？</h3><div>'+ev.choices.map(o=>button('friend-choice',o.id,'<strong>'+e(o.label)+'</strong><span>'+price(o.cost)+(book.freeFriendsOnly&&o.cost>0?' · 开场订单收齐后可选':'')+'</span><i aria-hidden="true">›</i>',book.freeFriendsOnly&&o.cost>0?'disabled':'')).join('')+'</div></section></article>';
 }
 function currentQuote(s,v){
  if(v.confirm?.kind==='trip')return previewOutingTrip(s,{tripId:v.tripId,companionId:v.companionId??null});
@@ -171,14 +173,14 @@ function activeTrip(s,b,assets){
 export function outingsView(s,ui={},assets={}){
  const v=ui.outings??fresh(),b=outingSummary(s);
  if(b.valid&&s.phase==='outing-trip'&&b.activeTrip)return activeTrip(s,b,assets);
- if(!b.valid||!b.available)return panel(s,back('← 返回下班','close')+title('下班','稍后再出门',b.reason));
+ if(!b.valid||!b.available&&(!b.friendsAvailable||['trips','trip'].includes(v.screen)))return panel(s,back('← 返回下班','close')+title('下班','稍后再出门',b.reason));
  if(v.screen==='confirm')return panel(s,confirmView(s,v));
  if(v.screen==='receipt'&&b.last?.kind==='friend')return panel(s,'<header class="oo-story-title oo-receipt-title"><small>今天的记忆</small><h2>'+e(outingMoment(b.last)?.name??'约朋友')+'</h2></header>'+momentView(b.last,assets)+'<div class="oo-story-exits">'+button('friends-back',null,'再看看其他活动')+button('menu',null,'返回出门菜单')+'</div>');
  if(v.screen==='trips')return panel(s,tripList());
  const t=outingTrip(v.tripId);
  if(v.screen==='trip'&&t)return panel(s,tripPreview(s,v,t,assets));
  const ev=friendEvent(v.eventId);
- if(v.screen==='event'&&ev&&friendBy(v.friendId)&&availableFriendEvents(v.friendId,b.mementos).some(x=>x.id===ev.id))return panel(s,friendPreview(v,ev,assets,b));
+ if(v.screen==='event'&&ev&&friendBy(v.friendId)&&friendEvents(v.friendId,b).some(x=>x.id===ev.id))return panel(s,friendPreview(v,ev,assets,b));
  if(v.screen==='friends')return panel(s,friendList(v,b));
  return panel(s,menu(b,assets));
 }
@@ -197,18 +199,23 @@ export function bindOutings(root,s,ui,rerender,dispatch,close){
    if(k==='return'){openOutings(ui,'menu');dispatch({type:'RETURN_OUTING_TRIP',tripId:b.activeTrip.tripId,revision:b.revision});}return;
   }
   if(k==='close'){openOutings(ui);close?.();return;}
-  if(!b.available)return;
+  if(!b.available&&!b.friendsAvailable)return;
   const show=screen=>{v.confirm=null;v.screen=screen;rerender();};
   if(sections.includes(k)){openOutings(ui,k);rerender();return;}
   if(k==='trip'&&v.screen==='trips'&&outingTrip(id)){v.tripId=id;v.companionId=null;show('trip');return;}
   if(k==='companion'&&v.screen==='trip'&&(id==='solo'||friendBy(id))){v.companionId=id==='solo'?null:id;show('trip');return;}
   if(k==='friend'&&v.screen==='friends'&&friendBy(id)){v.friendId=id;v.page=0;show('friends');return;}
-  if((k==='prev'||k==='next')&&v.screen==='friends'&&friendBy(v.friendId)){const max=Math.max(0,Math.ceil(availableFriendEvents(v.friendId,b.mementos).length/pageSize)-1);v.page=Math.min(max,Math.max(0,(v.page||0)+(k==='next'?1:-1)));show('friends');return;}
-  if(k==='event'&&v.screen==='friends'&&availableFriendEvents(v.friendId,b.mementos).some(x=>x.id===id)){v.eventId=id;show('event');return;}
+  if((k==='prev'||k==='next')&&v.screen==='friends'&&friendBy(v.friendId)){const max=Math.max(0,Math.ceil(friendEvents(v.friendId,b).length/pageSize)-1);v.page=Math.min(max,Math.max(0,(v.page||0)+(k==='next'?1:-1)));show('friends');return;}
+  if(k==='event'&&v.screen==='friends'&&friendEvents(v.friendId,b).some(x=>x.id===id)){v.eventId=id;show('event');return;}
   if(k==='friends-back'){show('friends');return;}
   if(k==='cancel'&&v.screen==='confirm'){show(v.confirm?.kind==='friend'?'event':'trip');return;}
   if((k==='trip-review'&&v.screen==='trip')||(k==='friend-choice'&&v.screen==='event')){
-   const kind=k==='trip-review'?'trip':'friend';if(kind==='friend')v.choiceId=id;
+   const kind=k==='trip-review'?'trip':'friend';
+   if(kind==='friend'){
+    const ev=friendEvent(v.eventId);
+    if(!ev||!friendEvents(v.friendId,b).includes(ev)||!friendChoices(ev,b).some(x=>x.id===id))return;
+    v.choiceId=id;
+   }else if(!b.available)return;
    v.confirm={kind};const q=currentQuote(s,v);v.confirm={kind,revision:q?.revision,cost:q?.cost,cashAfter:q?.cashAfter,action:q?.action};v.screen='confirm';rerender();return;
   }
   if(k==='confirm'&&v.screen==='confirm'){

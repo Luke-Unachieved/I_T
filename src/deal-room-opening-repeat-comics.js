@@ -1,5 +1,5 @@
 import {comicDialogueBlock} from './deal-room-opening-dialogue.js';
-import {openingRepeatComicScope} from './deal-room-opening-repeat-scope.js';
+import {openingRepeatComicScope} from './deal-room-opening-repeat-scope.js?v=36';
 
 const story = {
  mira:{

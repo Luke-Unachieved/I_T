@@ -1,35 +1,35 @@
-import {SPECIALTY_MILESTONE,canonicalSpecialtyMilestone,applySpecialtyMilestone} from './deal-room-specialty-calendar.js';
-import {coreCalendarActions,coreCalendarTarget,removedLiveWaits} from './deal-room-core-calendar.js';
+import {SPECIALTY_MILESTONE,canonicalSpecialtyMilestone,applySpecialtyMilestone,specialtyMilestone} from './deal-room-specialty-calendar.js?v=36';
+import {coreCalendarActions,coreCalendarTarget,removedLiveWaits} from './deal-room-core-calendar.js?v=36';
 import {familiarTimingV1} from './deal-room-order-cadence.js';
-import {canonicalOpeningMarketAction,reduceOpeningMarket,graduateOpeningMarket,openingMarketReserveDays,openingMarketOrders} from './deal-room-opening-market.js';
+import {canonicalOpeningMarketAction,reduceOpeningMarket,graduateOpeningMarket,openingMarketReserveDays,openingMarketOrders} from './deal-room-opening-market.js?v=36';
 import {repeatContractMilestone,isRepeatCalendarAction,canonicalRepeatCalendar,applyRepeatCalendar,isOrdinaryRepeatChoice,repeatActiveOrders,repeatParallelScope,repeatReserveDays} from './deal-room-repeat-calendar.js';
-import {openingContractMilestone,canonicalOpeningCalendar,applyOpeningCalendar,openingFlow,openingOrders,openingReserveDays,OPENING_TERMS_V2} from './deal-room-opening-calendar.js';
-import {LEGACY_EQUIPMENT_ACTION_KEYS,canonicalLegacyEquipmentAction,applyLegacyEquipmentAction} from './deal-room-equipment-legacy.js';
-import {PROMOTION_ACTION_KEYS,canonicalPromotionAction,applyPromotionAction} from './deal-room-promotion.js';
-import {canonicalWorkspaceSleep,applyWorkspaceSleep,previewLiveWorkspaceSleep} from './deal-room-workspace-sleep.js';
-import {PROPERTY_ACTION_KEYS,canonicalPropertyAction,applyPropertyAction,propertyHoldings,PROPERTY_CATALOG,propertyTradeInAllowance} from './deal-room-property.js';
-import {OUTING_ACTION_KEYS,canonicalOutingAction,applyOutingAction} from './deal-room-outings.js';
-import {MARKET_ACTION_KEYS,canonicalMarketAction,applyMarketAction} from './deal-room-market.js';
-import {LINEN_FREIGHT_ACTIONS,canonicalLinenFreight,applyLinenFreight} from './deal-room-linen-freight.js';
-import {ATELIER_RESTOCK_ACTIONS,canonicalAtelierRestock,applyAtelierRestock} from './deal-room-atelier-restock.js';
-import {SHOP_TRIAL_ACTIONS,canonicalShopTrialAction,applyShopTrialAction} from './deal-room-shop-trial.js';
+import {openingContractMilestone,canonicalOpeningCalendar,applyOpeningCalendar,openingFlow,openingOrders,openingReserveDays,OPENING_TERMS_V2,MIRA_FIRST_TRIAL_TERMS} from './deal-room-opening-calendar.js?v=36';
+import {LEGACY_EQUIPMENT_ACTION_KEYS,canonicalLegacyEquipmentAction,applyLegacyEquipmentAction} from './deal-room-equipment-legacy.js?v=36';
+import {PROMOTION_ACTION_KEYS,canonicalPromotionAction,applyPromotionAction} from './deal-room-promotion.js?v=36';
+import {canonicalWorkspaceSleep,applyWorkspaceSleep,previewLiveWorkspaceSleep} from './deal-room-workspace-sleep.js?v=36';
+import {PROPERTY_ACTION_KEYS,isPropertyActionV2,canonicalPropertyAction,applyPropertyAction,propertyHoldings,PROPERTY_CATALOG,propertyTradeInAllowance} from './deal-room-property.js?v=36';
+import {OUTING_ACTION_KEYS,canonicalOutingAction,applyOutingAction} from './deal-room-outings.js?v=36';
+import {MARKET_ACTION_KEYS,canonicalMarketAction,applyMarketAction} from './deal-room-market.js?v=36';
+import {LINEN_FREIGHT_ACTIONS,canonicalLinenFreight,applyLinenFreight} from './deal-room-linen-freight.js?v=36';
+import {ATELIER_RESTOCK_ACTIONS,canonicalAtelierRestock,applyAtelierRestock} from './deal-room-atelier-restock.js?v=36';
+import {SHOP_TRIAL_ACTIONS,canonicalShopTrialAction,applyShopTrialAction} from './deal-room-shop-trial.js?v=36';
 import {EXHIBITION_ACTION_KEYS,canonicalExhibitionAction,applyExhibitionAction} from './deal-room-exhibition.js';
 import {ANNEX_ACTION_KEYS,canonicalAnnexAction,applyAnnexAction} from './deal-room-annex.js';
 import {canonicalOfficeAction,applyOfficeAction,OFFICE_ACTION_KEYS} from './deal-room-office.js';
-import {canonicalLifeAction,applyLifeAction,LIFE_ACTION_KEYS} from './deal-room-life.js';
-import {stockProcurementOpportunity,previewStockProcurement,previewStudioProjectFromStock} from './deal-room-stock-procurement.js';
+import {canonicalLifeAction,applyLifeAction,LIFE_ACTION_KEYS} from './deal-room-life.js?v=36';
+import {stockProcurementOpportunity,previewStockProcurement,previewStudioProjectFromStock} from './deal-room-stock-procurement.js?v=36';
 import {revisionOpportunity,previewRevisionOrder} from './deal-room-collection-revision.js';
 import {roundReceivablesActive,roundReceivableSummary,previewRoundSigning,advanceRoundTime,canonicalRoundCalendarAction,applyRoundCalendarAction} from './deal-room-round-receivables.js';
-import {previewStudioAllocation} from './deal-room-allocation.js';
+import {previewStudioAllocation} from './deal-room-allocation.js?v=36';
 import {launchBasis,launchReview} from './deal-room-launch.js';
-import {studioProjectEligibility,studioProjectReview,previewStudioProjectOrder,groupProjectChange} from './deal-room-studio-project.js';
-import {previewCatalogueOrder,previewFirstCatalogueOrder} from './deal-room-catalogue-order.js';
-import {caseGrowthOffers,previewCaseGrowth,caseGrowthDemand,previewCaseCalloff,canCalloffCase,canProposeCaseLamp,previewApprovedCaseLamp} from './deal-room-case-growth.js';
-import {SAMPLE_FACTORIES,developmentOffer,hasLampDevelopmentCase,acceptedLampSample,secondDevelopmentOffer,SECOND_SUPPLIER_ACTIONS,canonicalSecondSupplierAction,applySecondSupplierAction} from './deal-room-development.js';
+import {studioProjectEligibility,studioProjectReview,previewStudioProjectOrder,groupProjectChange} from './deal-room-studio-project.js?v=36';
+import {previewCatalogueOrder,previewFirstCatalogueOrder} from './deal-room-catalogue-order.js?v=36';
+import {caseGrowthOffers,previewCaseGrowth,caseGrowthDemand,previewCaseCalloff,canCalloffCase,canProposeCaseLamp,previewApprovedCaseLamp} from './deal-room-case-growth.js?v=36';
+import {SAMPLE_FACTORIES,developmentOffer,hasLampDevelopmentCase,acceptedLampSample,secondDevelopmentOffer,SECOND_SUPPLIER_ACTIONS,canonicalSecondSupplierAction,applySecondSupplierAction} from './deal-room-development.js?v=36';
 import {retailDemand,retailWait,retailPause} from './deal-room-demand.js';
-import {collectionSeedChoices,collectionQuote,COLLECTION_STYLES,collectionPitchOffers,previewCollectionPitch} from './deal-room-collection.js';
-import {cashRiskProjection} from './deal-room-cash-risk.js';
-import {previewAccount,canExpandAccount,accountCollectionBasis,accountRevisionBasis,accountExpansionBases} from './deal-room-account.js';
+import {collectionSeedChoices,collectionQuote,COLLECTION_STYLES,collectionPitchOffers,previewCollectionPitch} from './deal-room-collection.js?v=36';
+import {cashRiskProjection} from './deal-room-cash-risk.js?v=36';
+import {previewAccount,canExpandAccount,accountCollectionBasis,accountRevisionBasis,accountExpansionBases} from './deal-room-account.js?v=36';
 /** Isolated modern trade experiment. All amounts are fictional settled RMB integers.
  * Design assumptions, not real export quotations: 30/day office cost; freight,
  * inspection and conversion included in cost. No random acceptance or old saves.
@@ -233,7 +233,10 @@ export function familiarQuoteProjection(state,id,version=2){
  const client=familiarBuyers(state).find(c=>c.id===id);
  return client?{...state,phase:'negotiating',clientIndex:client.index,repeatQuoteV2:true,...(version===3?{repeatCadencePreview:true}:{})}:null;
 }
-export function createDealRoom(){return {version:1,day:1,cash:5000,clientIndex:0,phase:'negotiating',contracts:[],feedback:{kind:'welcome',message:'先看看客户要把这批货用在哪里。'},history:[]};}
+// Browser-started games opt into v2. V1 stays replayable from its original
+// opening balance; exported backup envelope versions are independent.
+export const NEW_DEAL_START_CASH=6500;
+export function createDealRoom(version=1){return {version,day:1,cash:version===2?NEW_DEAL_START_CASH:5000,clientIndex:0,phase:'negotiating',contracts:[],feedback:{kind:'welcome',message:'先看看客户要把这批货用在哪里。'},history:[]};}
 export function currentClient(state){
   if(['complete','portfolio','review','curating','curation-fulfillment','account','collection','collection-revision','development','case-growth','atelier-restock','linen-freight'].includes(state.phase))return null;
   const c=CLIENTS[state.clientIndex]; if(!c)return null;
@@ -270,15 +273,16 @@ export function quoteOptions(state,modern=false){
   }
   if(!modern)return options;
   return options.map(o=>{
-   const [deliveryDays,payLag]=OPENING_TERMS_V2[o.id];
+   const [deliveryDays,payLag]=state.openingFirstTrialV3&&o.id==='trial'?MIRA_FIRST_TRIAL_TERMS:OPENING_TERMS_V2[o.id];
    const paymentText=o.id==='promise'&&!o.accepted?'定制要 '+deliveryDays+' 天，赶不上开业。可以改现货，或改做常规补货。':
     (o.id==='all-now'&&!o.accepted?o.reason:deliveryDays+' 天交货，'+(payLag?'交货后 '+payLag+' 天结清。':'货到付清。'));
    return {...o,deliveryDays,payLag,exchange:paymentText,...(o.id==='promise'&&!o.accepted?{reason:paymentText}:{}),title:o.title.replace('留 4 天账期','留 2 天账期')};
   });
 }
-export function openingQuoteProjection(state,id){
+const miraFirstTrialV3=(state,id)=>state.version===2&&state.day===1&&id==='mira';
+export function openingQuoteProjection(state,id,firstTrial=miraFirstTrialV3(state,id)){
  if(!openFirstBuyers(state).some(c=>c.id===id))return null;
- return {...firstBuyerProjection(state,id),openingQuoteV2:true};
+ return {...firstBuyerProjection(state,id),openingQuoteV2:true,...(firstTrial?{openingFirstTrialV3:true}:{})};
 }
 function projectScheduleNote(state,o,paymentDay){
  const remaining=clientProjects(state).filter(p=>!p.completed&&p.id!==o.projectId),open=remaining.filter(p=>p.openForProject);
@@ -366,6 +370,7 @@ function collectionSeedDraft(basis){
 }
 const LEGACY_TIME_OR_MODE_CHANGES=new Set(['ADVANCE','WAIT_FOR_BUYER','WAIT_FOR_RETAIL','PAUSE_FOR_BUYER','ENABLE_ROUND_RECEIVABLES','START_SUPPLY_PLAN']);
 function apply(state,action,calendar=false){
+  const overdue=calendar==='overdue';
   if(bankruptcyStatus(state))return state;
   if(action.type===LIQUIDATE_ACTION){
     const q=previewLiquidation(state);
@@ -384,18 +389,20 @@ function apply(state,action,calendar=false){
     return {...state,bankruptcy,feedback:{kind:'bankrupt',message:'手头的钱不够支付今天的工作室开支，经营结束。'}};
   }
   if(action.type==='ROUND_CALENDAR_V1')return applyRoundCalendarAction(state,action);
-  if(action.type===SPECIALTY_MILESTONE)return applySpecialtyMilestone(state,action);
-  if(action.type==='CORE_CALENDAR_V1'){
+  if([SPECIALTY_MILESTONE,'SPECIALTY_MILESTONE_V2'].includes(action.type))return applySpecialtyMilestone(state,action);
+  if(action.type==='CORE_CALENDAR_V1'||action.type==='CORE_CALENDAR_V2'){
+    const late=action.type==='CORE_CALENDAR_V2';
     const inner=action.action,task=coreCalendarTarget(state,inner.type);
     const hire=inner.type==='SIGN_OWN_COLLECTION_FROM_CASE'||inner.type==='SIGN_COLLECTION'&&inner.model==='own';
-    if(!hire&&(!task||state.day!==task.day))return state;
+    if(late?(hire||!task||state.day!==action.checkedDay||state.day<=task.day):
+            (!hire&&(!task||state.day!==task.day)))return state;
     if(task?.mark){
       const n=copy(state),current=coreCalendarTarget(n,inner.type);
       current.stage.calendarDelivered=true;
       n.feedback={kind:'calendar-delivered',message:'这批货已交付，按约定日期再收款。'};
       return n;
     }
-    return apply(state,inner,true);
+    return apply(state,inner,late?'overdue':true);
   }
   if(calendar&&action.type==='RECEIVE_OWN_COLLECTION_V1'&&state.phase==='collection'&&state.collection?.status==='sampling'){
     const s=copy(state);s.collection.status='sample';s.feedback={kind:'collection-sample',message:'自己的系列样品做好了，可以拿给买手看。'};return s;
@@ -410,11 +417,12 @@ function apply(state,action,calendar=false){
     const next=applyPromotionAction(state,action);
     return next===state?state:{...next,history:[...state.history]};
   }
-  if(['SLEEP_TO_NEXT_DAY','SLEEP_TO_NEXT_DAY_V2'].includes(action.type))return applyWorkspaceSleep(state,action);
+  if(['SLEEP_TO_NEXT_DAY','SLEEP_TO_NEXT_DAY_V2','SLEEP_TO_NEXT_DAY_V3'].includes(action.type))return applyWorkspaceSleep(state,action);
   if(Object.hasOwn(OUTING_ACTION_KEYS,action.type))return applyOutingAction(state,action,canStartDeal(state));
   if(state.phase==='outing-trip')return state;
   if(Object.hasOwn(PROPERTY_ACTION_KEYS,action.type)){
-    if(!['review','complete'].includes(state.phase)||!canStartDeal(state))return state;
+    // Retain the original phase rule for old entries when replaying exported saves.
+    if(!canStartDeal(state)||(!isPropertyActionV2(action.type)&&!['review','complete'].includes(state.phase)))return state;
     const next=applyPropertyAction(state,action);
     return next===state?state:{...next,history:[...state.history]};
   }
@@ -426,14 +434,16 @@ function apply(state,action,calendar=false){
     if(!b)return state;const projected={...state,collection:collectionSeedDraft(b)},n=apply(projected,{type:'SIGN_COLLECTION',model:'own',style:action.style},calendar);
     if(n===projected)return state;n.collection.seedCase={referrerId:b.referrerId,paymentDay:b.day};return n;
   }
-  if(action.type==='SIGN_OPENING_QUOTE_V2'){
-    const projected=openingQuoteProjection(state,action.clientId);
+  if(['SIGN_OPENING_QUOTE_V2','SIGN_OPENING_QUOTE_V3'].includes(action.type)){
+    const firstTrial=action.type==='SIGN_OPENING_QUOTE_V3';
+    if(firstTrial&&(!miraFirstTrialV3(state,action.clientId)||action.optionId!=='trial'))return state;
+    const projected=openingQuoteProjection(state,action.clientId,firstTrial);
     if(!projected)return state;
     const next=apply(projected,{type:'PROPOSE',optionId:action.optionId});
     if(next===projected)return state;
-    delete next.openingQuoteV2;
+    delete next.openingQuoteV2;delete next.openingFirstTrialV3;
     if(next.feedback.kind==='counter')return {...state,history:[...state.history],feedback:next.feedback};
-    next.contracts.at(-1).openingTermsVersion=2;next.openingParallel=true;next.openingOrderChosen=true;
+    next.contracts.at(-1).openingTermsVersion=firstTrial?3:2;next.openingParallel=true;next.openingOrderChosen=true;
     return next;
   }
   if(action.type==='SIGN_FAMILIAR_SAMPLE_V1'){
@@ -512,7 +522,7 @@ function apply(state,action,calendar=false){
       const s=copy(state);Object.assign(s.stockProcurement,q,{status:'production',signedDay:s.day,stockUsed:0});s.cash=q.cashAfterSigning;s.feedback={kind:'stock-signed',message:'已按选定报价支付制作款；只向客户承诺12盏，其余批次由工作室承担。'};return s;
     }
     if(action.type==='FULFIL_STOCK_PROCUREMENT'&&p.status==='production'){
-      const s=copy(state);s.cash+=p.revenue-(calendar?0:p.operatingCost);s.day=p.deliveryDay;Object.assign(s.stockProcurement,{status:'paid',delivered:12,received:p.revenue});s.feedback={kind:'stock-paid',message:'12盏已交付并收款。余货是工作室库存成本，不是收入或利润。'};return s;
+      const s=copy(state);s.cash+=p.revenue-(calendar?0:p.operatingCost);if(!overdue)s.day=p.deliveryDay;Object.assign(s.stockProcurement,{status:'paid',delivered:12,received:p.revenue});s.feedback={kind:'stock-paid',message:'12盏已交付并收款。余货是工作室库存成本，不是收入或利润。'};return s;
     }
     return state;
   }
@@ -531,12 +541,12 @@ function apply(state,action,calendar=false){
     const r=state.collectionRevision;
     if(action.type==='CLOSE_COLLECTION_REVISION'&&!['sampling','production'].includes(r.status)){const s=copy(state);s.phase='review';s.feedback={kind:'revision-back',message:'旧款合作照常，新版本进度保留。'};return s;}
     if(action.type==='COMMISSION_COLLECTION_REVISION'&&r.status==='draft'&&state.cash>=3320&&state.history.length<=MAX_DEAL_ACTIONS-10){const s=copy(state);s.cash-=3200;Object.assign(s.collectionRevision,{status:'sampling',investment:3200,sampleDay:s.day+4});s.feedback={kind:'revision-sampling',message:'独立波线图样与分格内托已委托开发，旧稿没有被覆盖。'};return s;}
-    if(action.type==='RECEIVE_COLLECTION_REVISION'&&r.status==='sampling'&&(calendar||state.cash>=120)){const s=copy(state);s.day=r.sampleDay;s.cash-=calendar?0:120;s.collectionRevision.investment+=120;s.collectionRevision.status='sample';s.feedback={kind:'revision-sample',message:'潮汐分格实物样已完成。先核新版本授权，再决定是否签约。'};return s;}
+    if(action.type==='RECEIVE_COLLECTION_REVISION'&&r.status==='sampling'&&(calendar||state.cash>=120)){const s=copy(state);if(!overdue)s.day=r.sampleDay;s.cash-=calendar?0:120;s.collectionRevision.investment+=120;s.collectionRevision.status='sample';s.feedback={kind:'revision-sample',message:'潮汐分格实物样已完成。先核新版本授权，再决定是否签约。'};return s;}
     if(action.type==='SIGN_COLLECTION_REVISION'){
       const q=previewRevisionOrder(state,action);if(!q.valid)return state;const s=copy(state);s.cash+=q.deposit-q.cost;s.collectionRevision.active=q;s.collectionRevision.status='production';if(q.scope==='revision-exclusive')s.collectionRevision.exclusiveBuyer='northline';s.feedback={kind:'revision-signed',message:'只签署潮汐分格新版本的这份范围，旧版所有承诺保持。'};return s;
     }
     if(action.type==='FULFIL_COLLECTION_REVISION'&&r.status==='production'){
-      const q=r.active,s=copy(state);s.day=q.paymentDay;s.cash+=q.balanceDue-(calendar?0:q.operatingCost);s.collectionRevision.orders.push({...q,status:'paid'});delete s.collectionRevision.active;s.collectionRevision.status=s.collectionRevision.exclusiveBuyer||s.collectionRevision.orders.length===2?'complete':'sample';s.feedback={kind:'revision-paid',message:q.buyer+' 已收到潮汐分格版并付清货款，旧版订单没有改变。'};return s;
+      const q=r.active,s=copy(state);if(!overdue)s.day=q.paymentDay;s.cash+=q.balanceDue-(calendar?0:q.operatingCost);s.collectionRevision.orders.push({...q,status:'paid'});delete s.collectionRevision.active;s.collectionRevision.status=s.collectionRevision.exclusiveBuyer||s.collectionRevision.orders.length===2?'complete':'sample';s.feedback={kind:'revision-paid',message:q.buyer+' 已收到潮汐分格版并付清货款，旧版订单没有改变。'};return s;
     }
     return state;
   }
@@ -627,10 +637,10 @@ function apply(state,action,calendar=false){
   }
   if(action.type==='ADVANCE_SUPPLY_PLAN'&&state.phase==='planning-fulfillment'){
     const s=copy(state),plan=s.supplyPlan,event=plan.events[plan.eventIndex];if(!event)return state;
-    const fee=(event.day-s.day)*DAY_COST;
+    const fee=overdue?0:(event.day-s.day)*DAY_COST;
     const allocated=calendar?(event.day-(plan.events[plan.eventIndex-1]?.day??plan.signedDay))*DAY_COST:fee;
     if(s.cash-fee+event.income-event.cost<0)return state;
-    s.day=event.day;s.cash+=event.income-event.cost-fee;plan.operatingCostPaid+=allocated;plan.eventIndex++;plan.nextEventDay=plan.events[plan.eventIndex]?.day??null;
+    if(!overdue)s.day=event.day;s.cash+=event.income-event.cost-fee;plan.operatingCostPaid+=allocated;plan.eventIndex++;plan.nextEventDay=plan.events[plan.eventIndex]?.day??null;
     s.feedback={kind:'supply-progress',message:event.kind==='start'?`第二批已开工，生产支出 ${event.cost}，本次日常费用 ${fee}。`:`${event.kind==='payment'?'尾款到账':'按约交货'}，本次收款 ${event.income}，日常费用 ${fee}。`};
     if(plan.eventIndex===plan.events.length){plan.status='paid';plan.completed=true;s.phase='review';s.careerMilestone=true;
       s.supplyPlanHistory=[...(s.supplyPlanHistory||[]),copy(plan)];
@@ -662,7 +672,7 @@ function apply(state,action,calendar=false){
     const s=copy(state);s.collection.active=q;s.collection.status='production';s.cash+=q.deposit-q.cost;s.feedback={kind:'collection-signed',message:`${q.buyer} 接受了工作室这份设计，定金已收。`};return s;
   }
   if(action.type==='FULFIL_COLLECTION'&&state.phase==='collection'&&state.collection?.status==='production'){
-    const s=copy(state),c=s.collection,q=c.active;s.cash+=q.balanceDue-(calendar?0:q.operatingCost);s.day=q.paymentDay;c.orders.push({...q,status:'paid'});delete c.active;c.status=q.negotiated?(collectionPitchOffers(c).length?'sample':'complete'):(c.model==='private'||c.orders.length===2?'complete':'sample');s.feedback={kind:'collection-paid',message:`${q.buyer} 的系列已交付，货款收齐。`};return s;
+    const s=copy(state),c=s.collection,q=c.active;s.cash+=q.balanceDue-(calendar?0:q.operatingCost);if(!overdue)s.day=q.paymentDay;c.orders.push({...q,status:'paid'});delete c.active;c.status=q.negotiated?(collectionPitchOffers(c).length?'sample':'complete'):(c.model==='private'||c.orders.length===2?'complete':'sample');s.feedback={kind:'collection-paid',message:`${q.buyer} 的系列已交付，货款收齐。`};return s;
   }
   if(action.type==='CLOSE_COLLECTION'&&state.phase==='collection'&&['sample','complete'].includes(state.collection?.status)){const s=copy(state);s.phase='review';return s;}
   if(action.type==='OPEN_COLLECTION'&&['review','complete'].includes(state.phase)&&['sample','complete'].includes(state.collection?.status)){const s=copy(state);s.phase='collection';s.feedback={kind:'collection-review',message:state.collection.model==='own'?'看看工作室自己的系列，或继续向买手提案。':'Northline 的这份专用系列已交付。'};return s;}
@@ -679,10 +689,10 @@ function apply(state,action,calendar=false){
   }
   // The live route sleeps through each calendar day; those nights already charge
   // the operating reserve included in the quote. Neither milestone advances time.
-  if(action.type==='DELIVER_ACCOUNT_V1'&&state.phase==='account'&&state.account?.status==='fulfilling'&&state.day===state.account.deliveryDay){
-    const s=copy(state);s.account.status='receivable';s.feedback={kind:'account-delivered',message:`${s.account.stores} 家门店已收货，尾款第 ${s.account.paymentDay} 天到账。`};return s;
+  if(['DELIVER_ACCOUNT_V1','DELIVER_ACCOUNT_V2'].includes(action.type)&&state.phase==='account'&&state.account?.status==='fulfilling'&&(action.type.endsWith('_V2')?state.day>=state.account.deliveryDay:state.day===state.account.deliveryDay)){
+    const s=copy(state);s.account.status='receivable';s.feedback={kind:'account-delivered',message:`${s.account.stores} 家门店已收货，${action.type==='DELIVER_ACCOUNT_V2'&&state.day>=s.account.paymentDay?'尾款已到期，可以收款。':'尾款第 '+s.account.paymentDay+' 天到账。'}`};return s;
   }
-  if(action.type==='COLLECT_ACCOUNT_V1'&&state.phase==='account'&&state.account?.status==='receivable'&&state.day===state.account.paymentDay){
+  if(['COLLECT_ACCOUNT_V1','COLLECT_ACCOUNT_V2'].includes(action.type)&&state.phase==='account'&&state.account?.status==='receivable'&&(action.type.endsWith('_V2')?state.day>=state.account.paymentDay:state.day===state.account.paymentDay)){
     const s=copy(state),a=s.account;s.cash+=a.balanceDue;a.status='paid';
     if(a.expansion)s.accountHistory.push(copy(a));else s.accountHistory=[copy(a)];
     s.feedback={kind:'account-paid',message:a.expansion?'另外三家门店已交付，累计六家；两批货款均已收齐。':`${a.stores} 家门店货款收齐，净赚 ${a.netProfit}。`};return s;
@@ -743,7 +753,7 @@ function apply(state,action,calendar=false){
     const s=copy(state);s.caseGrowth={status:'production',referrerId:q.referrerId,agreement:q.agreement,active:{...q,signedDay:s.day}};s.cash=q.cashAfterSigning;s.feedback={kind:'case-growth-signed',message:q.agreement==='private'?'匿名供货约定已签；该客户身份不用于新的工作室案例展示。产品与设计原有权利不变。':'工作室署名案例约定已签，新采购采用你选择的搭配。产品与设计原有权利不变。'};return s;
   }
   if(action.type==='FULFIL_CASE_GROWTH'&&state.phase==='case-growth'&&state.caseGrowth?.status==='production'){
-    const s=copy(state),q=s.caseGrowth.active;s.cash+=q.balanceDue-(calendar?0:q.operatingCost);s.day=q.paymentDay;s.caseGrowth.status='paid';s.caseGrowthHistory=[...(s.caseGrowthHistory||[]),{...copy(q),status:'paid'}];s.feedback={kind:'case-growth-paid',message:`${q.buyer} 已按约收货，净赚 ${q.netProfit}。案例展示约定保留，原商品销售权不变。`};return s;
+    const s=copy(state),q=s.caseGrowth.active;s.cash+=q.balanceDue-(calendar?0:q.operatingCost);if(!overdue)s.day=q.paymentDay;s.caseGrowth.status='paid';s.caseGrowthHistory=[...(s.caseGrowthHistory||[]),{...copy(q),status:'paid'}];s.feedback={kind:'case-growth-paid',message:`${q.buyer} 已按约收货，净赚 ${q.netProfit}。案例展示约定保留，原商品销售权不变。`};return s;
   }
   if(action.type==='START_OPENING_CURATION'){
     const brief=openingCurationOffers(state).find(p=>p.id===action.clientId);if(!brief)return state;
@@ -766,7 +776,7 @@ function apply(state,action,calendar=false){
     s.feedback={kind:'curation-signed',message:`组合已确认，定金 ${q.deposit} 到账。整组 ${q.quantity} 套，第 ${q.deliveryDay} 天交付。`};return s;
   }
   if(action.type==='FULFIL_CURATION'&&state.phase==='curation-fulfillment'){
-    const s=copy(state),c=s.curation;s.day=c.paymentDay;s.cash+=c.balanceDue-(calendar?0:c.operatingCost);c.status='paid';s.curationHistory=[...(s.curationHistory||[]),copy(c)];s.phase='review';
+    const s=copy(state),c=s.curation;if(!overdue)s.day=c.paymentDay;s.cash+=c.balanceDue-(calendar?0:c.operatingCost);c.status='paid';s.curationHistory=[...(s.curationHistory||[]),copy(c)];s.phase='review';
     s.feedback={kind:'curation-paid',message:`${c.buyer} 已收到你搭配的 ${c.quantity} 套产品，货款收齐。`};return s;
   }
   if(action.type==='START_CLIENT_PROJECTS'&&['complete','review'].includes(state.phase)&&state.supplyPlanHistory?.length&&!state.clientProjectSeason&&canStartDeal(state)){
@@ -826,7 +836,7 @@ function apply(state,action,calendar=false){
     const dated=openingContractMilestone(state)||repeatContractMilestone(state);
     if(dated&&(!dated.delivery||state.day!==dated.contract.signedDay))return state;
     const s=copy(state),c=s.contracts.at(-1);
-    s.day=c.paymentDay;s.cash+=c.balanceDue-(calendar?0:c.operatingCost);c.status='paid';s.phase='paid';
+    if(!overdue)s.day=c.paymentDay;s.cash+=c.balanceDue-(calendar?0:c.operatingCost);c.status='paid';s.phase='paid';
     s.feedback={kind:'paid',message:`${c.clientName.split(' · ')[0]} 的货款已收齐，这单净赚 ${c.netProfit}。`};return s;
   }
   if(action.type==='NEXT_CLIENT'&&state.phase==='paid'){
@@ -853,27 +863,29 @@ function apply(state,action,calendar=false){
   return state;
 }
 const CURATION_SIGN_TYPES=['SIGN_CURATION','SIGN_CURATION_SAMPLE','SIGN_CURATION_V2','SIGN_CURATION_SAMPLE_V2'];
-const actionKeys={RECEIVE_OWN_COLLECTION_V1:['type'],SIGN_CURATION_V2:['type','products','quantity','packaging'],SIGN_CURATION_SAMPLE_V2:['type','products','quantity','packaging','lampVersion'],SIGN_OWN_COLLECTION_FROM_CASE:['type','referrerId','style'],PROPOSE_OPENING_QUOTE:['type','clientId','optionId'],CONTINUE_RETAIL_BUSINESS:['type'],OPEN_STOCK_PROCUREMENT:['type'],CLOSE_STOCK_PROCUREMENT:['type'],SIGN_STOCK_PROCUREMENT:['type','factoryMode'],FULFIL_STOCK_PROCUREMENT:['type'],SIGN_STUDIO_PROJECT_FROM_STOCK:['type'],SET_ACCOUNT_EXPANSION_BASIS:['type','basisId'],START_ACCOUNT_FROM_REVISION:['type'],SET_ACCOUNT_VERSION:['type','versionId'],OPEN_COLLECTION_REVISION:['type'],CLOSE_COLLECTION_REVISION:['type'],COMMISSION_COLLECTION_REVISION:['type'],RECEIVE_COLLECTION_REVISION:['type'],SIGN_COLLECTION_REVISION:['type','buyerId','scope'],FULFIL_COLLECTION_REVISION:['type'],START_CASE_DEVELOPMENT:['type'],OPEN_STUDIO_READING_PAIR:['type'],CLOSE_SETTLED_ROUND:['type'],CANCEL_ROUND_RECEIVABLES:['type'],ENABLE_ROUND_RECEIVABLES:['type'],DELIVER_ROUND_ORDER:['type'],WAIT_ROUND_RECEIPT:['type'],FINISH_ROUND_RECEIVABLES:['type'],SIGN_FIRST_CATALOGUE_ORDER:['type','referrerId','lampVersion'],START_OPENING_CURATION:['type','clientId'],SIGN_STUDIO_ALLOCATION:['type','allocation'],WAIT_STUDIO_ALLOCATION:['type','allocation'],START_ACCOUNT_FROM_COLLECTION:['type'],PAUSE_CLIENT_PROJECTS:['type'],RESUME_CLIENT_PROJECTS:['type'],OPEN_LAUNCH_PROJECT:['type'],CLOSE_LAUNCH_PROJECT:['type'],SET_LAUNCH:['type','field','value'],REVIEW_LAUNCH:['type'],REVISE_LAUNCH:['type'],HAND_OVER_LAUNCH:['type'],PROPOSE_GROUP_CHANGE:['type'],RESTORE_GROUP_SPEC:['type','briefId'],KEEP_STUDIO_PROJECT:['type'],REVISE_STUDIO_PROJECT:['type'],OPEN_STUDIO_PROJECT:['type','direction'],CLOSE_STUDIO_PROJECT:['type'],SET_STUDIO_PROJECT:['type','field','value'],REVIEW_STUDIO_PROJECT:['type'],SIGN_STUDIO_PROJECT_ORDER:['type'],WAIT_STUDIO_PROJECT:['type'],SIGN_CATALOGUE_ORDER:['type','lampVersion'],APPROVE_CASE_LAMP:['type','model'],SIGN_APPROVED_CASE_LAMP:['type','terms'],OPEN_ACCOUNT_EXPANSION:['type'],SIGN_ACCOUNT_EXPANSION:['type'],FULFIL_ACCOUNT_EXPANSION:['type'],DELIVER_ACCOUNT_V1:['type'],COLLECT_ACCOUNT_V1:['type'],WAIT_CASE_CALLOFF:['type','products'],SIGN_CASE_CALLOFF:['type','agreement','products','packaging','terms'],WAIT_CASE_GROWTH:['type','products'],OPEN_CASE_GROWTH:['type','referrerId'],CLOSE_CASE_GROWTH:['type'],SIGN_CASE_GROWTH:['type','agreement','products','packaging','terms'],FULFIL_CASE_GROWTH:['type'],SIGN_CURATION_SAMPLE:['type','products','quantity','packaging','lampVersion'],VIEW_DEVELOPMENT:['type'],CLOSE_SAMPLE:['type'],START_DEVELOPMENT:['type'],CLOSE_DEVELOPMENT:['type'],COMMISSION_SAMPLE:['type','factory'],RECEIVE_SAMPLE:['type'],ACCEPT_SAMPLE:['type'],PAUSE_FOR_BUYER:['type','clientId'],WAIT_FOR_BUYER:['type','clientId'],START_RETAIL_PLANNING:['type'],BACK_FROM_CLIENTS:['type'],WAIT_FOR_RETAIL:['type'],OPEN_COLLECTION_PITCH:['type','buyerId'],BACK_COLLECTION_PITCH:['type'],SIGN_COLLECTION_PITCH:['type','optionId'],START_COLLECTION:['type'],BACK_FROM_COLLECTION:['type'],SIGN_COLLECTION:['type','model','style'],SIGN_COLLECTION_ORDER:['type','buyerId'],FULFIL_COLLECTION:['type'],CLOSE_COLLECTION:['type'],OPEN_COLLECTION:['type'],START_ACCOUNT:['type','referrerId'],BACK_FROM_ACCOUNT:['type'],SIGN_ACCOUNT:['type','optionId'],FULFIL_ACCOUNT:['type'],CLOSE_ACCOUNT:['type'],BACK_FROM_CURATION:['type'],START_CURATION:['type','clientId'],SIGN_CURATION:['type','products','quantity','packaging'],FULFIL_CURATION:['type'],START_CLIENT_PROJECTS:['type'],PROPOSE:['type','optionId'],ADVANCE:['type'],NEXT_CLIENT:['type'],CONTINUE_BUSINESS:['type'],SELECT_CLIENT:['type','clientId'],BACK_TO_CLIENTS:['type'],START_SUPPLY_PLAN:['type','clientId','firstBatch','payment'],ADVANCE_SUPPLY_PLAN:['type'],FULFIL_SUPPLY_PLAN:['type']};
+const actionKeys={RECEIVE_OWN_COLLECTION_V1:['type'],SIGN_CURATION_V2:['type','products','quantity','packaging'],SIGN_CURATION_SAMPLE_V2:['type','products','quantity','packaging','lampVersion'],SIGN_OWN_COLLECTION_FROM_CASE:['type','referrerId','style'],PROPOSE_OPENING_QUOTE:['type','clientId','optionId'],CONTINUE_RETAIL_BUSINESS:['type'],OPEN_STOCK_PROCUREMENT:['type'],CLOSE_STOCK_PROCUREMENT:['type'],SIGN_STOCK_PROCUREMENT:['type','factoryMode'],FULFIL_STOCK_PROCUREMENT:['type'],SIGN_STUDIO_PROJECT_FROM_STOCK:['type'],SET_ACCOUNT_EXPANSION_BASIS:['type','basisId'],START_ACCOUNT_FROM_REVISION:['type'],SET_ACCOUNT_VERSION:['type','versionId'],OPEN_COLLECTION_REVISION:['type'],CLOSE_COLLECTION_REVISION:['type'],COMMISSION_COLLECTION_REVISION:['type'],RECEIVE_COLLECTION_REVISION:['type'],SIGN_COLLECTION_REVISION:['type','buyerId','scope'],FULFIL_COLLECTION_REVISION:['type'],START_CASE_DEVELOPMENT:['type'],OPEN_STUDIO_READING_PAIR:['type'],CLOSE_SETTLED_ROUND:['type'],CANCEL_ROUND_RECEIVABLES:['type'],ENABLE_ROUND_RECEIVABLES:['type'],DELIVER_ROUND_ORDER:['type'],WAIT_ROUND_RECEIPT:['type'],FINISH_ROUND_RECEIVABLES:['type'],SIGN_FIRST_CATALOGUE_ORDER:['type','referrerId','lampVersion'],START_OPENING_CURATION:['type','clientId'],SIGN_STUDIO_ALLOCATION:['type','allocation'],WAIT_STUDIO_ALLOCATION:['type','allocation'],START_ACCOUNT_FROM_COLLECTION:['type'],PAUSE_CLIENT_PROJECTS:['type'],RESUME_CLIENT_PROJECTS:['type'],OPEN_LAUNCH_PROJECT:['type'],CLOSE_LAUNCH_PROJECT:['type'],SET_LAUNCH:['type','field','value'],REVIEW_LAUNCH:['type'],REVISE_LAUNCH:['type'],HAND_OVER_LAUNCH:['type'],PROPOSE_GROUP_CHANGE:['type'],RESTORE_GROUP_SPEC:['type','briefId'],KEEP_STUDIO_PROJECT:['type'],REVISE_STUDIO_PROJECT:['type'],OPEN_STUDIO_PROJECT:['type','direction'],CLOSE_STUDIO_PROJECT:['type'],SET_STUDIO_PROJECT:['type','field','value'],REVIEW_STUDIO_PROJECT:['type'],SIGN_STUDIO_PROJECT_ORDER:['type'],WAIT_STUDIO_PROJECT:['type'],SIGN_CATALOGUE_ORDER:['type','lampVersion'],APPROVE_CASE_LAMP:['type','model'],SIGN_APPROVED_CASE_LAMP:['type','terms'],OPEN_ACCOUNT_EXPANSION:['type'],SIGN_ACCOUNT_EXPANSION:['type'],FULFIL_ACCOUNT_EXPANSION:['type'],DELIVER_ACCOUNT_V1:['type'],COLLECT_ACCOUNT_V1:['type'],DELIVER_ACCOUNT_V2:['type'],COLLECT_ACCOUNT_V2:['type'],WAIT_CASE_CALLOFF:['type','products'],SIGN_CASE_CALLOFF:['type','agreement','products','packaging','terms'],WAIT_CASE_GROWTH:['type','products'],OPEN_CASE_GROWTH:['type','referrerId'],CLOSE_CASE_GROWTH:['type'],SIGN_CASE_GROWTH:['type','agreement','products','packaging','terms'],FULFIL_CASE_GROWTH:['type'],SIGN_CURATION_SAMPLE:['type','products','quantity','packaging','lampVersion'],VIEW_DEVELOPMENT:['type'],CLOSE_SAMPLE:['type'],START_DEVELOPMENT:['type'],CLOSE_DEVELOPMENT:['type'],COMMISSION_SAMPLE:['type','factory'],RECEIVE_SAMPLE:['type'],ACCEPT_SAMPLE:['type'],PAUSE_FOR_BUYER:['type','clientId'],WAIT_FOR_BUYER:['type','clientId'],START_RETAIL_PLANNING:['type'],BACK_FROM_CLIENTS:['type'],WAIT_FOR_RETAIL:['type'],OPEN_COLLECTION_PITCH:['type','buyerId'],BACK_COLLECTION_PITCH:['type'],SIGN_COLLECTION_PITCH:['type','optionId'],START_COLLECTION:['type'],BACK_FROM_COLLECTION:['type'],SIGN_COLLECTION:['type','model','style'],SIGN_COLLECTION_ORDER:['type','buyerId'],FULFIL_COLLECTION:['type'],CLOSE_COLLECTION:['type'],OPEN_COLLECTION:['type'],START_ACCOUNT:['type','referrerId'],BACK_FROM_ACCOUNT:['type'],SIGN_ACCOUNT:['type','optionId'],FULFIL_ACCOUNT:['type'],CLOSE_ACCOUNT:['type'],BACK_FROM_CURATION:['type'],START_CURATION:['type','clientId'],SIGN_CURATION:['type','products','quantity','packaging'],FULFIL_CURATION:['type'],START_CLIENT_PROJECTS:['type'],PROPOSE:['type','optionId'],ADVANCE:['type'],NEXT_CLIENT:['type'],CONTINUE_BUSINESS:['type'],SELECT_CLIENT:['type','clientId'],BACK_TO_CLIENTS:['type'],START_SUPPLY_PLAN:['type','clientId','firstBatch','payment'],ADVANCE_SUPPLY_PLAN:['type'],FULFIL_SUPPLY_PLAN:['type']};
 function canonicalAction(a){
   if(a?.type===LIQUIDATE_ACTION)return Object.keys(a).length===3&&Number.isSafeInteger(a.checkedDay)&&a.checkedDay>0&&Number.isSafeInteger(a.expectedProceeds)&&a.expectedProceeds>0?{type:a.type,checkedDay:a.checkedDay,expectedProceeds:a.expectedProceeds}:null;
   if(a?.type===BANKRUPTCY_ACTION)return Object.keys(a).length===2&&Number.isSafeInteger(a.checkedDay)&&a.checkedDay>0?{type:a.type,checkedDay:a.checkedDay}:null;
   if(a?.type==='ROUND_CALENDAR_V1')return canonicalRoundCalendarAction(a);
-  if(a?.type===SPECIALTY_MILESTONE)return canonicalSpecialtyMilestone(a);
-  if(a?.type==='CORE_CALENDAR_V1'){
-    if(Object.keys(a).length!==2||!a.action||a.action.type==='CORE_CALENDAR_V1')return null;
+  if([SPECIALTY_MILESTONE,'SPECIALTY_MILESTONE_V2'].includes(a?.type))return canonicalSpecialtyMilestone(a);
+  if(a?.type==='CORE_CALENDAR_V1'||a?.type==='CORE_CALENDAR_V2'){
+    const late=a.type==='CORE_CALENDAR_V2';
+    if(Object.keys(a).length!==(late?3:2)||!Object.hasOwn(a,'action')||!a.action)return null;
+    if(late&&(!Object.hasOwn(a,'checkedDay')||!Number.isSafeInteger(a.checkedDay)||a.checkedDay<1||!coreCalendarActions.has(a.action.type)))return null;
     const raw=a.action;
     if(!coreCalendarActions.has(raw.type)&&raw.type!=='SIGN_OWN_COLLECTION_FROM_CASE'&&!(raw.type==='SIGN_COLLECTION'&&raw.model==='own'))return null;
     const action=canonicalAction(raw);
-    return action?{type:a.type,action}:null;
+    return action?(late?{type:a.type,action,checkedDay:a.checkedDay}:{type:a.type,action}):null;
   }
   if(a?.type==='OPENING_MARKET_ACTION_V1')return canonicalOpeningMarketAction(a);
-  if(['SIGN_OPENING_QUOTE_V2','SIGN_FAMILIAR_QUOTE_V2','SIGN_FAMILIAR_QUOTE_V3','SIGN_FAMILIAR_SAMPLE_V1'].includes(a?.type))return Object.keys(a).length===3&&Object.hasOwn(a,'clientId')&&Object.hasOwn(a,'optionId')&&CLIENTS.some(c=>c.id===a.clientId)&&typeof a.optionId==='string'&&a.optionId.length<=40
+  if(['SIGN_OPENING_QUOTE_V2','SIGN_OPENING_QUOTE_V3','SIGN_FAMILIAR_QUOTE_V2','SIGN_FAMILIAR_QUOTE_V3','SIGN_FAMILIAR_SAMPLE_V1'].includes(a?.type))return Object.keys(a).length===3&&Object.hasOwn(a,'clientId')&&Object.hasOwn(a,'optionId')&&CLIENTS.some(c=>c.id===a.clientId)&&typeof a.optionId==='string'&&a.optionId.length<=40
     ?{type:a.type,clientId:a.clientId,optionId:a.optionId}:null;
   if(a&&Object.hasOwn(LEGACY_EQUIPMENT_ACTION_KEYS,a.type))return canonicalLegacyEquipmentAction(a);
   if(a&&Object.hasOwn(PROMOTION_ACTION_KEYS,a.type))return canonicalPromotionAction(a);
   if(a?.type==='DELIVER_OPENING_ORDER_V1'||a?.type==='COLLECT_OPENING_ORDER_V1')return canonicalOpeningCalendar(a);
   if(isRepeatCalendarAction(a?.type))return canonicalRepeatCalendar(a);
-  if(['SLEEP_TO_NEXT_DAY','SLEEP_TO_NEXT_DAY_V2'].includes(a?.type))return canonicalWorkspaceSleep(a);
+  if(['SLEEP_TO_NEXT_DAY','SLEEP_TO_NEXT_DAY_V2','SLEEP_TO_NEXT_DAY_V3'].includes(a?.type))return canonicalWorkspaceSleep(a);
   if(a&&Object.hasOwn(PROPERTY_ACTION_KEYS,a.type))return canonicalPropertyAction(a);
   if(a&&Object.hasOwn(OUTING_ACTION_KEYS,a.type))return canonicalOutingAction(a);
   if(a&&typeof MARKET_ACTION_KEYS!=='undefined'&&Object.hasOwn(MARKET_ACTION_KEYS,a.type))return canonicalMarketAction(a);
@@ -942,7 +954,7 @@ function compactDecorTail(state){
  let start=state.history.length;
  while(start>0&&decorJournalTypes.has(state.history[start-1]?.type))start--;
  if(state.history.length-start<128)return state;
- let base=createDealRoom();
+ let base=createDealRoom(state.version);
  for(const action of state.history.slice(0,start)){const next=reduceRecordedDeal(base,action);if(next===base)return state;base=next;}
  const last=new Map();
  for(const action of state.history.slice(start)){const key=action.type+':'+action.itemId;last.delete(key);last.set(key,action);}
@@ -983,13 +995,19 @@ export function reduceDealRoom(state,action){
 // Neither an individual milestone nor a stale wait control may move the clock.
 export function reduceLiveDealRoom(state,input){
  const type=input?.type;let action=input;
- if(type==='SLEEP_TO_NEXT_DAY')action={...input,type:'SLEEP_TO_NEXT_DAY_V2'};
+ if(type==='SIGN_OPENING_QUOTE_V2'&&miraFirstTrialV3(state,input.clientId)&&input.optionId==='trial')action={...input,type:'SIGN_OPENING_QUOTE_V3'};
+ else if(type==='SLEEP_TO_NEXT_DAY')action={...input,type:'SLEEP_TO_NEXT_DAY_V3'};
+ else if(type===SPECIALTY_MILESTONE&&!specialtyMilestone(state,{allowLate:false})?.ready)action={...input,type:'SPECIALTY_MILESTONE_V2'};
  else if(type==='RECEIVE_SAMPLE'||type==='COLLECT_FIRST_SAMPLE')action={type:SPECIALTY_MILESTONE,task:'first-sample-collect',checkedDay:state.day};
  else if(['RECEIVE_SECOND_SAMPLE','SETTLE_SHOP_TRIAL','RECEIVE_LINEN_FREIGHT','DELIVER_ATELIER_RESTOCK','COLLECT_ATELIER_RESTOCK'].includes(type))return state;
- else if(coreCalendarActions.has(type)||type==='SIGN_OWN_COLLECTION_FROM_CASE'||type==='SIGN_COLLECTION'&&input.model==='own')action={type:'CORE_CALENDAR_V1',action:input};
+ else if(coreCalendarActions.has(type)||type==='SIGN_OWN_COLLECTION_FROM_CASE'||type==='SIGN_COLLECTION'&&input.model==='own'){
+  const task=coreCalendarTarget(state,type);
+  // Preserve on-time journals; the replayable overdue action cannot pay early or alter today's clock.
+  action=task&&state.day>task.day?{type:'CORE_CALENDAR_V2',action:input,checkedDay:state.day}:{type:'CORE_CALENDAR_V1',action:input};
+ }
  else if(removedLiveWaits.has(type)||type==='DELIVER_ROUND_ORDER'||type==='WAIT_ROUND_RECEIPT')return state;
  const next=reduceDealRoom(state,action);
- const sleep=action?.type==='SLEEP_TO_NEXT_DAY_V2';
+ const sleep=action?.type==='SLEEP_TO_NEXT_DAY_V3';
  return next.day-state.day===(sleep?1:0)?next:state;
 }
 // Only successful, fully compared replays enter this process-local cache.
@@ -1000,14 +1018,14 @@ export function reduceLiveDealRoom(state,input){
 const VERIFIED_REPLAY_LIMIT = 4;
 const VERIFIED_REPLAY_CHARS = 1024 * 1024;
 const verifiedReplays = [];
-function replayPrefix(history,paged) {
+function replayPrefix(history,paged,version) {
   const actions = history.map(a => JSON.stringify(a));
   let best;
   for (const entry of verifiedReplays) {
-    if ((!paged && entry.paged) || (paged && !entry.paged && entry.actions.length>JOURNAL_PAGE_SIZE) || entry.actions.length > actions.length || (best && entry.actions.length <= best.actions.length)) continue;
+    if (entry.version!==version||(!paged && entry.paged) || (paged && !entry.paged && entry.actions.length>JOURNAL_PAGE_SIZE) || entry.actions.length > actions.length || (best && entry.actions.length <= best.actions.length)) continue;
     if (entry.actions.every((a, i) => a === actions[i])) best = entry;
   }
-  if(!best)return createDealRoom();
+  if(!best)return createDealRoom(version);
   const restored=JSON.parse(best.snapshot);
   if(restored.historyPages)restored.historyPages=Object.freeze(restored.historyPages.map(sealJournalPage));
   return restored;
@@ -1017,14 +1035,14 @@ function rememberVerifiedReplay(state) {
   if (snapshot.length > VERIFIED_REPLAY_CHARS) return;
   const existing = verifiedReplays.findIndex(entry => entry.snapshot === snapshot);
   if (existing !== -1) verifiedReplays.splice(existing, 1);
-  verifiedReplays.push({snapshot, paged:!!state.historyPages, actions: allJournalActions(state).map(a => JSON.stringify(a))});
+  verifiedReplays.push({snapshot,version:state.version,paged:!!state.historyPages, actions: allJournalActions(state).map(a => JSON.stringify(a))});
   if (verifiedReplays.length > VERIFIED_REPLAY_LIMIT) verifiedReplays.shift();
 }
 /** Strict canonical replay rejects edited money, unknown keys and old-game saves.
  * A tiny action journal avoids accepting guessed financial fields as trusted state.
  */
 export function normalizeDealRoom(raw){
-  if(!raw||typeof raw!=='object'||Array.isArray(raw)||!Array.isArray(raw.history))throw new Error('谈单进度无效');
+  if(!raw||typeof raw!=='object'||Array.isArray(raw)||![1,2].includes(raw.version)||!Array.isArray(raw.history))throw new Error('谈单进度无效');
   const paged=Object.hasOwn(raw,'historyPages');
   if(paged){
     const p=raw.historyPages;
@@ -1035,7 +1053,7 @@ export function normalizeDealRoom(raw){
   // one contact through several referrals. The app retains rejected raw saves.
   const caseOwners=new Map(),caseRecords=[...(Array.isArray(raw.caseGrowthHistory)?raw.caseGrowthHistory:[]),...(raw.caseGrowth?.status==='production'?[raw.caseGrowth.active]:[])];
   for(const c of caseRecords){if(!c||!['portfolio','private'].includes(c.agreement))continue;if(caseOwners.has(c.agreement)&&caseOwners.get(c.agreement)!==c.referrerId)throw new Error('旧实验曾将同一客户复制到多个案例；原存档未修改，请保留并使用对应实验版本读取。');caseOwners.set(c.agreement,c.referrerId);}
-  const actions=allJournalActions(raw);let state=replayPrefix(actions,paged);
+  const actions=allJournalActions(raw);let state=replayPrefix(actions,paged,raw.version);
   for(let i=journalLength(state);i<actions.length;i++){
     const next=applyOnJournalPage(state,actions[i],replayRecordedDeal);
     if(next===state)throw new Error('谈单记录无效');state=paged?pageJournal(next):next;

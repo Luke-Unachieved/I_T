@@ -1,6 +1,6 @@
-import {acceptedLampSample} from './deal-room-development.js';
-import {catalogueProposal,catalogueVersions} from './deal-room-design-catalogue.js';
-import {caseGrowthDemand,caseGrowthOffers} from './deal-room-case-growth.js';
+import {acceptedLampSample} from './deal-room-development.js?v=36';
+import {catalogueProposal,catalogueVersions} from './deal-room-design-catalogue.js?v=36';
+import {caseGrowthDemand,caseGrowthOffers} from './deal-room-case-growth.js?v=36';
 /** A real original-series quote uses the existing gift-order economics.
  * Design reuse never creates a premium, another customer, or another stock pool. */
 const ITEMS=[{id:'mira',name:'便携台灯',price:55,cost:30},{id:'samir',name:'保温杯',price:48,cost:26},{id:'ines',name:'棉麻桌布',price:42,cost:24}];

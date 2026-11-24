@@ -1,7 +1,7 @@
 import {marketTiming} from './deal-room-order-cadence.js';
 import {marketCalendarDue} from './deal-room-market-calendar.js';
 import {MARKET_PRODUCTS} from './deal-room-market-data.js';
-import {prospectInbox} from './deal-room-prospects.js';
+import {prospectInbox} from './deal-room-prospects.js?v=36';
 import {prospectDisplayText} from './deal-room-prospect-locale.js';
 
 // The two curated tray storylines share their actual commercial rules, not

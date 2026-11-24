@@ -1,7 +1,7 @@
 import {comicDialogueBlock} from './deal-room-opening-dialogue.js';
 import {prospectExtraScenes} from './deal-room-prospect-scenes-extra.js';
 import {marketCalendarDue} from './deal-room-market-calendar.js';
-import {prospectContentById,prospectInbox} from './deal-room-prospects.js';
+import {prospectContentById,prospectInbox} from './deal-room-prospects.js?v=36';
 import {prospectDisplayText} from './deal-room-prospect-locale.js';
 const extraProducts=Object.freeze({'011':'tray','012':'carafe','013':'salad-bowl','014':'serving-tongs','015':'pepper-mill'});
 // Extra correspondence, not contract terms. Only read on the individual quote
@@ -393,7 +393,7 @@ export function evaTrayStoryMoment(state){
  const a=state?.market?.active,status=state?.market?.status;
  if(a?.customerId!=='001'||!['transit','paid'].includes(status)||a.deposit!==0||a.paymentDay!==a.deliveryDay)return '';
  const due=marketCalendarDue(state);
- const moment=due?.delivery&&state.day===due.day&&a.delivered===0&&a.received===0?'inspection':
+ const moment=due?.delivery&&state.day>=due.day&&a.delivered===0&&a.received===0?'inspection':
   fullyPaid(a,status)&&Number.isSafeInteger(a.paidDay)&&a.paidDay>=a.paymentDay&&state.day>=a.paidDay&&state.marketHistory?.some(r=>
    r.customerId==='001'&&r.productId==='tray'&&r.signedDay===a.signedDay&&r.paidDay===a.paidDay&&r.optionId===a.optionId&&
    r.buyer===a.buyer&&r.source===a.source&&r.quantity===a.quantity&&r.revenue===a.revenue&&fullyPaid(r,'paid'))?'paid':'';

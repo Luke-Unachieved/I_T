@@ -1,4 +1,4 @@
-import {exteriorWeatherSvg} from './deal-room-life-view.js';
+import {exteriorWeatherSvg} from './deal-room-life-view.js?v=36';
 import {MARKET_PRODUCTS} from './deal-room-market-data.js';
 import {WAREHOUSE_TIERS,warehouseAvailable,warehouseSummary,previewWarehousePurchase,previewWarehouseExpansion} from './deal-room-warehouse.js';
 

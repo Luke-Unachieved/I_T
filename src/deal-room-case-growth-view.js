@@ -1,9 +1,9 @@
 import {netProfitAmount} from './deal-room-net-profit.js';
-import {acceptedLampSample} from './deal-room-development.js';
-import {allocationReceipt} from './deal-room-allocation-view.js';
-import {previewCatalogueOrder,previewFirstCatalogueOrder} from './deal-room-catalogue-order.js';
-import {catalogueVersions} from './deal-room-design-catalogue.js';
-import {previewCaseGrowth,previewCaseCalloff,previewApprovedCaseLamp,canProposeCaseLamp,caseCalloffConsequence,canCalloffCase,caseGrowthOffers,caseGrowthDemand} from './deal-room-case-growth.js';
+import {acceptedLampSample} from './deal-room-development.js?v=36';
+import {allocationReceipt} from './deal-room-allocation-view.js?v=36';
+import {previewCatalogueOrder,previewFirstCatalogueOrder} from './deal-room-catalogue-order.js?v=36';
+import {catalogueVersions} from './deal-room-design-catalogue.js?v=36';
+import {previewCaseGrowth,previewCaseCalloff,previewApprovedCaseLamp,canProposeCaseLamp,caseCalloffConsequence,canCalloffCase,caseGrowthOffers,caseGrowthDemand} from './deal-room-case-growth.js?v=36';
 const money=n=>`¥${Number(n||0).toLocaleString('zh-CN')}`;
 export const caseClientLabel=(id,agreement)=>`${{mira:'Mira',samir:'Samir',ines:'Inês'}[id]||'熟客'} 引荐 · ${agreement==='private'?'集团采购':'概念店选品'}`;
 const goods={mira:'台灯',samir:'保温杯',ines:'棉麻桌布'};

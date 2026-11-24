@@ -1,4 +1,4 @@
-import {acceptedLampSample} from './deal-room-development.js';
+import {acceptedLampSample} from './deal-room-development.js?v=36';
 /** Case presentation permission is separate from product/design ownership.
  * Opt-in follow-up projects do not rewrite any earlier client's agreement. */
 const PRODUCTS=[{id:'mira',name:'便携台灯',price:55,cost:30},{id:'samir',name:'保温杯',price:48,cost:26},{id:'ines',name:'棉麻桌布',price:42,cost:24}];

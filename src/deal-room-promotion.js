@@ -2,10 +2,10 @@
 // the exact no-stranding reserve are reconstruction rules, not recovered odds.
 import {PROSPECT_CONTENT} from './deal-room-prospect-content.js';
 import {MARKET_PRODUCTS} from './deal-room-market-data.js';
-import {businessOpportunities,openFirstBuyers,openingQuoteProjection,previewOffer,quoteOptions} from './deal-room-engine.js';
+import {businessOpportunities,openFirstBuyers,openingQuoteProjection,previewOffer,quoteOptions} from './deal-room-engine.js?v=36';
 import {marketCalendarDue} from './deal-room-market-calendar.js';
-import {openingMarketOrders} from './deal-room-opening-market.js';
-import {openingFlow} from './deal-room-opening-calendar.js';
+import {openingMarketOrders} from './deal-room-opening-market.js?v=36';
+import {openingFlow} from './deal-room-opening-calendar.js?v=36';
 
 export const PROMOTION_CHANNELS=Object.freeze([
   Object.freeze({id:'district',name:'街区商报',fee:380,replyDays:2,possible:'以小批试货为主，也可能收到铺货询价。'}),

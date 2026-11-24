@@ -1,4 +1,4 @@
-import {openingContractMilestone} from './deal-room-opening-calendar.js';
+import {openingContractMilestone} from './deal-room-opening-calendar.js?v=36';
 
 function inspectionComic(scene,alt,caption){
  return `<figure class="ws-equipment-comic ws-opening-inspection"><img class="pv-art" src="assets/deal-client-comic-${scene}-inspection.webp" width="1440" height="720" loading="lazy" alt="${alt}"><figcaption class="comic-narration">${caption}</figcaption></figure>`;
@@ -7,7 +7,7 @@ function inspectionComic(scene,alt,caption){
 export function openingInspectionView(state){
  const contract=openingContractMilestone(state)?.contract;
  if(contract?.status==='fulfilling'&&contract.clientId==='samir'&&contract.optionId==='ready'&&
-    contract.product==='不锈钢保温杯'&&state.day===contract.deliveryDay){
+    contract.product==='不锈钢保温杯'&&state.day>=contract.deliveryDay){
   const comic=inspectionComic(
    'samir-ready',
    '萨米尔从打开的纸箱里拿出没有纸套的金色保温杯，然后检查深绿色杯盖',

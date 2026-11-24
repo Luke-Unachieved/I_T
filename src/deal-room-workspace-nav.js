@@ -1,16 +1,16 @@
 import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
-import {openingMarketOrders,openingMarketProjection} from './deal-room-opening-market.js';
-import {parkedMarketOrders} from './deal-room-market.js';
+import {openingMarketOrders,openingMarketProjection} from './deal-room-opening-market.js?v=36';
+import {parkedMarketOrders} from './deal-room-market.js?v=36';
 import {companyRenameView,companyTitleText} from './deal-room-company.js';
-import {orderFooterAdvice} from './deal-room-adviser.js?v=34';
+import {orderFooterAdvice} from './deal-room-adviser.js?v=36';
 import {officeWeatherView} from './deal-room-workspace-office-weather.js';
 import {officeIntroView} from './deal-room-workspace-intro.js';
 import {prospectDisplayText} from './deal-room-prospect-locale.js';
-import {prospectInbox} from './deal-room-prospects.js';
-import {equipmentOpportunity} from './deal-room-equipment.js';
+import {prospectInbox} from './deal-room-prospects.js?v=36';
+import {equipmentOpportunity} from './deal-room-equipment.js?v=36';
 import {neighborhoodRequest} from './deal-room-neighborhood.js';
-import {marketBook} from './deal-room-market.js';
-import {CURATION_PRODUCTS} from './deal-room-engine.js';
+import {marketBook} from './deal-room-market.js?v=36';
+import {CURATION_PRODUCTS} from './deal-room-engine.js?v=36';
 // Workspace pages are a view of the same ongoing day, never economic actions.
 const tabs=Object.freeze([['office','办公室'],['inbox','询盘'],['orders','订单'],['development','发展'],['afterwork','下班']].map(Object.freeze));
 const tabSet=new Set(tabs.map(([id])=>id));

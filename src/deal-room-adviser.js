@@ -1,26 +1,26 @@
 import {netProfitAmount} from './deal-room-net-profit.js';
 import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
-import {openingContractMilestone} from './deal-room-opening-calendar.js';
+import {openingContractMilestone} from './deal-room-opening-calendar.js?v=36';
 import {repeatContractMilestone} from './deal-room-repeat-calendar.js';
-import {openingMarketOrders,openingMarketProjection} from './deal-room-opening-market.js';
-import {openFirstBuyers,familiarBuyers,CURATION_PRODUCTS} from './deal-room-engine.js';
-import {SAMPLE_FACTORIES} from './deal-room-development.js';
+import {openingMarketOrders,openingMarketProjection} from './deal-room-opening-market.js?v=36';
+import {openFirstBuyers,familiarBuyers,openingQuoteProjection,familiarQuoteProjection,quoteOptions,previewOffer,reduceLiveDealRoom,CURATION_PRODUCTS} from './deal-room-engine.js?v=36';
+import {SAMPLE_FACTORIES} from './deal-room-development.js?v=36';
 import {marketCalendarDue} from './deal-room-market-calendar.js';
-import {coreCalendarMilestone} from './deal-room-core-calendar.js';
-import {specialtyMilestone} from './deal-room-specialty-calendar.js';
+import {coreCalendarMilestone} from './deal-room-core-calendar.js?v=36';
+import {specialtyMilestone} from './deal-room-specialty-calendar.js?v=36';
 import {roundReceivableSummary} from './deal-room-round-receivables.js';
-import {legacyEquipmentCalendarAction,legacyEquipmentCashSchedule} from './deal-room-equipment-legacy.js';
+import {legacyEquipmentCalendarAction,legacyEquipmentCashSchedule} from './deal-room-equipment-legacy.js?v=36';
 import {carafeTransport} from './deal-room-market-carafe-transport.js';
 import {prospectDisplayText} from './deal-room-prospect-locale.js';
-import {DEAL_SAVE_KEY} from './deal-room-save.js';
-import {marketBook,marketAvailable,canParkMarketOrder,parkedMarketOrders} from './deal-room-market.js';
+import {DEAL_SAVE_KEY} from './deal-room-save.js?v=36';
+import {marketBook,marketAvailable,canParkMarketOrder,parkedMarketOrders,previewMarket} from './deal-room-market.js?v=36';
 import {neighborhoodRequest} from './deal-room-neighborhood.js';
-import {prospectInbox} from './deal-room-prospects.js';
-import {previewPromotion,promotionStatus} from './deal-room-promotion.js';
+import {prospectInbox} from './deal-room-prospects.js?v=36';
+import {previewPromotion,promotionStatus} from './deal-room-promotion.js?v=36';
 import {warehouseAvailable,warehouseSummary} from './deal-room-warehouse.js';
-import {previewAccount} from './deal-room-account.js';
-import {advanceEquipmentShipping,equipmentOpportunity} from './deal-room-equipment.js';
-import {WORKSPACE_DAY_COST} from './deal-room-workspace-sleep.js';
+import {previewAccount} from './deal-room-account.js?v=36';
+import {advanceEquipmentShipping,equipmentOpportunity} from './deal-room-equipment.js?v=36';
+import {WORKSPACE_DAY_COST} from './deal-room-workspace-sleep.js?v=36';
 
 // Advisory text is projected from the current view. Navigating from a note only focuses a
 // visible control. Trading actions and the replayed business save stay under player control.
@@ -153,7 +153,58 @@ function milestoneLine(d,day){
  if(d.day>day)return (subject?subject+'，':'')+'第 '+d.day+' 天再到「订单」'+milestoneAction(d)+'。';
  return todayLine([d],day);
 }
-const nextLetter=rows=>[...rows].sort((a,b)=>(a.replyBy??Infinity)-(b.replyBy??Infinity))[0]||null;
+function ordinaryInquiryDesk(s){
+ const side=openingMarketProjection(s,0);
+ if(side)return side;
+ if(s.phase==='market'&&s.market.status==='draft')return s;
+ const action=s.phase==='market'&&(s.market.status==='paid'||canParkMarketOrder(s))
+  ?{type:'SWITCH_MARKET_ORDER_V1',orderId:0}:marketAvailable(s)?{type:'OPEN_MARKET'}:null;
+ // Apply the exact navigation to a local projection, never to the actual save.
+ const p=action&&reduceLiveDealRoom(s,action);
+ return p?.phase==='market'&&p.market?.status==='draft'?p:null;
+}
+function inquiryFunding(s,row,desk){
+ if(!row.person){
+  const p=openingQuoteProjection(s,row.id)||familiarQuoteProjection(s,row.id,3);
+  const quotes=p?quoteOptions(p,p.openingQuoteV2===true).map(o=>previewOffer(p,o.id)):[];
+  return summarizeFunding(quotes,s.cash,q=>q.reason==='现金不足以覆盖这单和回款前的日常费用。');
+ }
+ const quotes=[];
+ if(desk)for(const o of row.options??[]){
+  // At the buyer's allowed ceiling, a deposit (if any) gives the lowest
+  // possible upfront need. Never expose this ceiling or assume this is the price the player sent.
+  if(!Number.isSafeInteger(o.maxUnitPrice))continue;
+  for(const source of ['stock','factory','warehouse']){
+   quotes.push(previewMarket(desk,{customerId:row.person.id,optionId:o.id,source,unitPrice:o.maxUnitPrice,
+    ...(o.id==='vip-volume'?{previousPaidDay:row.previous?.paidDay}:{})},{cadence:true}));
+  }
+ }
+ return summarizeFunding(quotes,s.cash,q=>q.accepted===true);
+}
+function summarizeFunding(quotes,cash,onlyCash){
+ const flexible=quotes.filter(q=>q.accepted!==false);
+ if(flexible.some(q=>q.valid))return {affordable:true};
+ const amounts=flexible.filter(q=>onlyCash(q)&&Number.isSafeInteger(q.cashRequired)&&q.cashRequired>cash).map(q=>q.cashRequired);
+ return {required:amounts.length?Math.min(...amounts):null};
+}
+function inquiryNote(s,rows,reads,dates,desk){
+ let funded=false,required=Infinity;
+ for(const row of [...rows].sort((a,b)=>(a.replyBy??Infinity)-(b.replyBy??Infinity))){
+  const q=inquiryFunding(s,row,desk);
+  if(q.affordable){
+   if(!reads?.has(s,row))return {letter:row};
+   funded=true;
+  }else if(q.required!==null)required=Math.min(required,q.required);
+ }
+ // A read letter stays selectable; the assistant need not send the player
+ // back to a letter they already reviewed, whether or not they can afford it.
+ if(funded||!Number.isSafeInteger(required))return {};
+ const receipt=dates.filter(d=>Number.isSafeInteger(d.contract?.paymentDay)&&d.contract.paymentDay>s.day)
+  .sort((a,b)=>a.contract.paymentDay-b.contract.paymentDay)[0];
+ const who=receipt&&prospectDisplayText(receipt.buyer||'').split(' · ')[0];
+ const wait=receipt?(who?who+'那笔':'手上的一笔订单')+`约在第 ${receipt.contract.paymentDay} 天回款，到账后再算。`:'先不签新单。';
+ return {text:`手头有 ${money(s.cash)}，这些询盘最省的方案也要留 ${money(required)} 周转，还差 ${money(required-s.cash)}。`+wait};
+}
 const buyerName=row=>row?.person?.displayName||openingNames[row?.id]||row?.name?.split(' · ')[0]||'';
 const productName=row=>typeof row?.product==='string'?row.product:row?.product?.name;
 function letterLine(row,day,place='询盘'){
@@ -162,14 +213,13 @@ function letterLine(row,day,place='询盘'){
  if(Number.isSafeInteger(row.replyBy))return `${who}的询盘${row.replyBy===day?'今天':'第 '+row.replyBy+' 天'}截止，${open}这封${what?'，先看'+what+'要哪天到':''}。`;
  return `${open}${who}的来信${what?'，先看'+what+'要多少、哪天交货':'，先看数量和交货日'}。`;
 }
-function workspaceNote(s,person){
+function workspaceNote(s,person,reads){
  const nav=(text,label,tab,ref)=>({text,label,tab,ref});
  const dates=adviserMilestones(s),today=actionableToday(s,dates),waiting=dates.find(d=>d.day>s.day);
  if(today.length)return {text:todayLine(today,s.day)};
- const opening=openFirstBuyers(s),familiar=familiarBuyers(s),projection=openingMarketProjection(s,0);
- const canOpen=marketAvailable(s)||canParkMarketOrder(s)||s.phase==='market'&&['draft','paid'].includes(s.market?.status);
- const ordinary=projection?prospectInbox(projection):canOpen?prospectInbox(s,{whileActive:canParkMarketOrder(s)}):[];
- const letter=nextLetter([...opening,...familiar,...ordinary]);
+ const opening=openFirstBuyers(s),familiar=familiarBuyers(s),desk=ordinaryInquiryDesk(s);
+ const {letter,text:cash}=inquiryNote(s,[...opening,...familiar,...prospectInbox(desk)],reads,dates,desk);
+ if(cash)return {text:cash};
  if(letter){
   const who=buyerName(letter),text=who&&opening.length&&!s.contracts?.length
    ?`到「询盘」打开${who}的来信。${person.first}`:letterLine(letter,s.day,'办公室');
@@ -180,14 +230,14 @@ function workspaceNote(s,person){
  if(waiting)return {text:milestoneLine(waiting,s.day)};
  return null; // no generic rest instruction or assistant end-day button
 }
-export function adviserInboxAdvice(s,rows){
+export function adviserInboxAdvice(s,rows,reads){
  const dates=adviserMilestones(s),today=actionableToday(s,dates),waiting=dates.find(d=>d.day>s.day);
  if(today.length)return todayLine(today,s.day);
- const letter=nextLetter(rows);
- return letter?letterLine(letter,s.day):waiting?milestoneLine(waiting,s.day):'';
+ const {letter,text:cash}=inquiryNote(s,rows,reads,dates,rows.some(row=>row.person)?ordinaryInquiryDesk(s):null);
+ return cash||(letter?letterLine(letter,s.day):waiting?milestoneLine(waiting,s.day):'');
 }
 export function adviserWorkspaceAdvice(s,ui={}){
- const person=ADVISERS.find(x=>x.id===ui.choice), note=person?workspaceNote(s,person):null;
+ const person=ADVISERS.find(x=>x.id===ui.choice), note=person?workspaceNote(s,person,ui.inquiryReads):null;
  return note?[{title:note.label,tab:note.tab,text:note.text,ref:note.ref}]:[];
 }
 function accountNote(s,option){
@@ -211,9 +261,9 @@ function warehouseNote(s){
 }
 function developmentNote(s){
  const pending=promotionStatus(s)?.pending;
- if(pending)return {text:`这期推广第 ${pending.replyDay} 天回信，到时去「询盘」看，不用再付一次。`};
+ if(pending)return {text:`这次推广已经付了 ${money(pending.fee)}。第 ${pending.replyDay} 天到「询盘」看看有没有买家来问。`};
  const promo=previewPromotion(s,'district');
- if(promo.valid)return suggested(`想多接一封来信，可以先看「推广获客」。街区商报要 ${money(promo.quotedFee)}，第 ${promo.replyDay} 天回信，回信不是订单。`,'[data-hub-promotion] > summary','比较推广版位');
+ if(promo.valid)return suggested(`${promo.name}要付 ${money(promo.quotedFee)}。如果今天投，第 ${promo.replyDay} 天到「询盘」看看有没有感兴趣的买家来信。`,'[data-hub-promotion] > summary','比较推广版位');
  return null;
 }
 function marketOrderNote(state){
@@ -240,7 +290,7 @@ function currentNote(state,context,person){
   if(context.view==='inquiry')return context.quote?quoteNote(context.quote,state,context.place==='采购台'?'.market-quote':'.business'):null;
   if(context.place==='发展')return developmentNote(state);
   if(context.place==='自有仓库')return warehouseNote(state);
-  if(context.place==='办公室')return workspaceNote(state,person);
+  if(context.place==='办公室')return workspaceNote(state,person,context.inquiryReads);
   if(context.place==='采购台'&&state.phase==='market'){
     if(state.market.status==='draft')return context.quote?quoteNote(context.quote,state,'.market-quote'):inboxNote(state,true);
     return marketOrderNote(state);

@@ -17,8 +17,8 @@
 }
 #deal-room .ws-opening-guide strong {display:inline;color:var(--ws-mark,#cdb88b);font-weight:650}
 #deal-room [data-opening-guide-target] {
- outline:2px solid var(--ws-mark,#cdb88b);
- outline-offset:2px;
+ outline:3px solid #79dff2;
+ outline-offset:3px;
 }
 #deal-room[data-opening-guide-context="intro"] .ws-intro-dialogue > :is(strong,p),
 #deal-room[data-opening-guide-context="intro"] [data-workspace-intro="skip"] {display:none}

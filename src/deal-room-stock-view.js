@@ -1,5 +1,5 @@
 import {netProfitAmount} from './deal-room-net-profit.js';
-import {stockProcurementOpportunity,previewStockProcurement,previewStudioProjectFromStock} from './deal-room-stock-procurement.js';
+import {stockProcurementOpportunity,previewStockProcurement,previewStudioProjectFromStock} from './deal-room-stock-procurement.js?v=36';
 const money=n=>`¥${Number(n||0).toLocaleString('zh-CN')}`;
 // Reconcile this factory lot only; newly made components are not its inventory.
 function lotMoves(state){

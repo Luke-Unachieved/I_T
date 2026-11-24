@@ -1,6 +1,6 @@
 import {netProfitAmount} from './deal-room-net-profit.js';
-import {catalogueVersions} from './deal-room-design-catalogue.js';
-import {collectionPitchOffers,COLLECTION_STYLES} from './deal-room-collection.js';
+import {catalogueVersions} from './deal-room-design-catalogue.js?v=36';
+import {collectionPitchOffers,COLLECTION_STYLES} from './deal-room-collection.js?v=36';
 const PEOPLE={atelier:{id:'atelier',name:'Élise',company:'Atelier',role:'主题店主理人',purpose:'看重陈列主题与独特纹样',column:0},northline:{id:'northline',name:'Adrian',company:'Northline',role:'品牌采购',purpose:'看重品牌标准与可复用供货',column:1}};
 const buyerKey=id=>id==='northline-private'?'northline':id;
 const money=n=>`¥${Number(n).toLocaleString('zh-CN')}`;

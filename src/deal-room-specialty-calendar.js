@@ -1,14 +1,14 @@
-import {SAMPLE_FACTORIES,applySecondSupplierAction} from './deal-room-development.js';
-import {applyShopTrialAction} from './deal-room-shop-trial.js';
-import {applyLinenFreight} from './deal-room-linen-freight.js';
-import {applyAtelierRestock} from './deal-room-atelier-restock.js';
+import {SAMPLE_FACTORIES,applySecondSupplierAction} from './deal-room-development.js?v=36';
+import {applyShopTrialAction} from './deal-room-shop-trial.js?v=36';
+import {applyLinenFreight} from './deal-room-linen-freight.js?v=36';
+import {applyAtelierRestock} from './deal-room-atelier-restock.js?v=36';
 
 export const SPECIALTY_MILESTONE='SPECIALTY_MILESTONE_V1';
 const tasks=new Set(['first-sample-collect','second-sample','shop-trial-settle','linen-freight-receive','atelier-restock-deliver','atelier-restock-collect']);
 const positiveDay=day=>Number.isSafeInteger(day)&&day>0;
 const home=phase=>phase==='review'||phase==='complete';
 
-function dated(s,task,dueDay,label,waitingLabel,{required=true,allowLate=false}={}){
+function dated(s,task,dueDay,label,waitingLabel,{required=true,allowLate=true}={}){
  if(!positiveDay(s?.day)||!positiveDay(dueDay))return null;
  // A sample can leave the workshop waiting screen while other business continues.
  // If it is picked up after its arrival date, retain the original date as dueDay.
@@ -21,7 +21,7 @@ function sample(s,entry,task,{required,allowReceived,label}){
  return dated(s,task,entry.sampleDay,label,'样品到货',{required,allowLate:true});
 }
 
-export function specialtyMilestone(s){
+export function specialtyMilestone(s,{allowLate=true}={}){
  if(!s)return null;
  if(s.phase==='development')return sample(s,s.productDevelopment,'first-sample-collect',{required:true,allowReceived:false,label:'拆开寄来的样品'});
  if(home(s.phase))return sample(s,s.productDevelopment,'first-sample-collect',{required:false,allowReceived:true,label:'查看工厂样品'});
@@ -30,38 +30,38 @@ export function specialtyMilestone(s){
   if(s.secondSupplier?.factory===other)return sample(s,s.secondSupplier,'second-sample',{required:true,allowReceived:false,label:'拆开另一家的样品'});
  }
  if(s.phase==='shop-trial'&&s.shopTrial?.status==='display'){
-  return dated(s,'shop-trial-settle',s.shopTrial.settlementDay,s.shopTrial.returned?'收款并收回陈列灯':'收齐货款','小店结算');
+  return dated(s,'shop-trial-settle',s.shopTrial.settlementDay,s.shopTrial.returned?'收款并收回陈列灯':'收齐货款','小店结算',{allowLate});
  }
  if(s.phase==='linen-freight'&&s.linenFreight?.status==='transit'){
   const {signedDay,index,lots}=s.linenFreight,lot=lots?.[index];
   if(!positiveDay(signedDay)||!positiveDay(lot?.after)||!positiveDay(lot?.quantity))return null;
-  return dated(s,'linen-freight-receive',signedDay+lot.after,`确认 ${lot.quantity} 条桌布签收并收款`,`${lot.quantity} 条桌布签收并收款`);
+  return dated(s,'linen-freight-receive',signedDay+lot.after,`确认 ${lot.quantity} 条桌布签收并收款`,`${lot.quantity} 条桌布签收并收款`,{allowLate});
  }
  if(s.phase==='atelier-restock'){
   const p=s.atelierRestock;
-  if(p?.status==='production')return dated(s,'atelier-restock-deliver',p.deliveryDay,p.lag?'确认交货':'确认交货并收款',p.lag?'交货':'交货并收款');
-  if(p?.status==='receivable')return dated(s,'atelier-restock-collect',p.paymentDay,'收齐尾款','收尾款');
+  if(p?.status==='production')return dated(s,'atelier-restock-deliver',p.deliveryDay,p.lag?'确认交货':'确认交货并收款',p.lag?'交货':'交货并收款',{allowLate});
+  if(p?.status==='receivable')return dated(s,'atelier-restock-collect',p.paymentDay,'收齐尾款','收尾款',{allowLate});
  }
  return null;
 }
 
 export function canonicalSpecialtyMilestone(a){
  if(!a||typeof a!=='object'||Array.isArray(a)||Object.keys(a).length!==3||
-    !['type','task','checkedDay'].every(k=>Object.hasOwn(a,k))||a.type!==SPECIALTY_MILESTONE||
+    !['type','task','checkedDay'].every(k=>Object.hasOwn(a,k))||![SPECIALTY_MILESTONE,'SPECIALTY_MILESTONE_V2'].includes(a.type)||
     !tasks.has(a.task)||!positiveDay(a.checkedDay))return null;
- return {type:SPECIALTY_MILESTONE,task:a.task,checkedDay:a.checkedDay};
+ return {type:a.type,task:a.task,checkedDay:a.checkedDay};
 }
 
 export function applySpecialtyMilestone(s,a){
- const action=canonicalSpecialtyMilestone(a),m=action?specialtyMilestone(s):null;
+ const action=canonicalSpecialtyMilestone(a),allowLate=action?.type==='SPECIALTY_MILESTONE_V2',m=action?specialtyMilestone(s,{allowLate}):null;
  if(!m?.ready||action.task!==m.task||action.checkedDay!==s.day)return s;
  switch(action.task){
-  case 'first-sample-collect':return applySecondSupplierAction(s,{type:'COLLECT_FIRST_SAMPLE'},{calendar:true});
-  case 'second-sample':return applySecondSupplierAction(s,{type:'RECEIVE_SECOND_SAMPLE'},{calendar:true});
-  case 'shop-trial-settle':return applyShopTrialAction(s,{type:'SETTLE_SHOP_TRIAL'},{calendar:true});
-  case 'linen-freight-receive':return applyLinenFreight(s,{type:'RECEIVE_LINEN_FREIGHT'},false,{calendar:true});
-  case 'atelier-restock-deliver':return applyAtelierRestock(s,{type:'DELIVER_ATELIER_RESTOCK'},false,{calendar:true});
-  case 'atelier-restock-collect':return applyAtelierRestock(s,{type:'COLLECT_ATELIER_RESTOCK'},false,{calendar:true});
+  case 'first-sample-collect':return applySecondSupplierAction(s,{type:'COLLECT_FIRST_SAMPLE'},{calendar:true,allowLate});
+  case 'second-sample':return applySecondSupplierAction(s,{type:'RECEIVE_SECOND_SAMPLE'},{calendar:true,allowLate});
+  case 'shop-trial-settle':return applyShopTrialAction(s,{type:'SETTLE_SHOP_TRIAL'},{calendar:true,allowLate});
+  case 'linen-freight-receive':return applyLinenFreight(s,{type:'RECEIVE_LINEN_FREIGHT'},false,{calendar:true,allowLate});
+  case 'atelier-restock-deliver':return applyAtelierRestock(s,{type:'DELIVER_ATELIER_RESTOCK'},false,{calendar:true,allowLate});
+  case 'atelier-restock-collect':return applyAtelierRestock(s,{type:'COLLECT_ATELIER_RESTOCK'},false,{calendar:true,allowLate});
   default:return s;
  }
 }

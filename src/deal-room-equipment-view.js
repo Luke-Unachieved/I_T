@@ -1,7 +1,7 @@
 import {netProfitAmount} from './deal-room-net-profit.js';
 import {equipmentComicView} from './deal-room-equipment-comics.js';
-import {EQUIPMENT_PROJECTS,EQUIPMENT_SIGN_V2,equipmentOpportunity,previewEquipment,canRebookEquipment} from './deal-room-equipment.js';
-import {DAY_COST} from './deal-room-market.js';
+import {EQUIPMENT_PROJECTS,EQUIPMENT_SIGN_V2,equipmentOpportunity,previewEquipment,canRebookEquipment} from './deal-room-equipment.js?v=36';
+import {DAY_COST} from './deal-room-market.js?v=36';
 
 const artwork = {
   'cold-chain': ['assets/deal-project-cold-chain.webp','assets/deal-buyer-zhou-lan.webp'],
@@ -89,7 +89,7 @@ function activeView(state, project) {
   const preparing = a.status === 'preparing', transit = a.status === 'transit', paid = a.status === 'paid';
   let action;
   if (preparing) {
-    action = `<p>第 ${a.shipDay} 天装船，整批出运 ${a.quantity} ${a.unit}。</p>${state.day===a.shipDay?'<button class="primary" data-market-action="SHIP_EQUIPMENT_V2">确认装船</button>':''}`;
+    action = `<p>第 ${a.shipDay} 天装船，整批出运 ${a.quantity} ${a.unit}。</p>${state.day>=a.shipDay?'<button class="primary" data-market-action="SHIP_EQUIPMENT_'+(state.day===a.shipDay?'V2':'V3')+'">确认装船</button>':''}`;
   } else if (transit) {
     const choose=a.transfer&&!a.rebookPaid&&state.day===a.shipDay;
     const available=choose&&canRebookEquipment(state,DAY_COST);

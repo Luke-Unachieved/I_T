@@ -1,4 +1,4 @@
-import {PROMOTION_CHANNELS,previewPromotion,promotionStatus} from './deal-room-promotion.js';
+import {PROMOTION_CHANNELS,previewPromotion,promotionStatus} from './deal-room-promotion.js?v=36';
 const promoEsc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const promoMoney=n=>Number.isSafeInteger(n)?'¥'+n.toLocaleString('zh-CN'):'—';
 const campaignCopy=Object.freeze({

@@ -1,7 +1,7 @@
 // Normal promotion replies can be handled while opening contracts are in flight.
 // Keep the legacy phase and dated contracts intact; only the ordinary market
 // workbench is projected. All money/inventory mutations use the market reducer.
-import {openingFlow,openingOrders} from './deal-room-opening-calendar.js';
+import {openingFlow,openingOrders} from './deal-room-opening-calendar.js?v=36';
 import {repeatActiveOrders} from './deal-room-repeat-calendar.js';
 import {roundReceivablesActive} from './deal-room-round-receivables.js';
 function sideMarketContext(s){
@@ -10,7 +10,7 @@ function sideMarketContext(s){
     s.contracts.filter(c=>c.status!=='paid').length===repeatActiveOrders(s).length)return 'familiar';
  return null;
 }
-import {applyMarketAction,canonicalMarketAction,parkedMarketOrders,canParkMarketOrder} from './deal-room-market.js';
+import {applyMarketAction,canonicalMarketAction,parkedMarketOrders,canParkMarketOrder} from './deal-room-market.js?v=36';
 const allowed=new Set(['SIGN_PROSPECT_LOT_V1','SIGN_PROSPECT_LOT_V2','DELIVER_MARKET_V2','COLLECT_MARKET_V2','DISMISS_PROSPECT_V1']);
 export function openingMarketProjection(s,orderId=null){
  const context=sideMarketContext(s);if(!context)return null;

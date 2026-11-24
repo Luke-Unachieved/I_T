@@ -1,6 +1,6 @@
-import {acceptedLampSample} from './deal-room-development.js';
-import { catalogueVersions } from './deal-room-design-catalogue.js';
-import { caseGrowthDemand } from './deal-room-case-growth.js';
+import {acceptedLampSample} from './deal-room-development.js?v=36';
+import { catalogueVersions } from './deal-room-design-catalogue.js?v=36';
+import { caseGrowthDemand } from './deal-room-case-growth.js?v=36';
 const ITEMS=[{id:'mira',name:'便携台灯',price:55,cost:30},{id:'samir',name:'保温杯',price:48,cost:26},{id:'ines',name:'棉麻桌布',price:42,cost:24}];
 const BRIEFS={'reading-drink':{direction:'independent',products:['mira','samir']},reading:{direction:'independent',products:['mira','ines']},hosting:{direction:'independent',products:['samir','ines']},bedside:{direction:'group',products:['mira','samir']},welcome:{direction:'group',products:['samir','ines']}};
 const KEYS=['direction','briefId','lampVersion','layout','light','status','referrerId'];

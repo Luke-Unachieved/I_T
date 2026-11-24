@@ -1,4 +1,4 @@
-import {acceptedLampSample} from './deal-room-development.js';
+import {acceptedLampSample} from './deal-room-development.js?v=36';
 import {revisionCatalogueVersion} from './deal-room-collection-revision.js';
 /** Rights facts only. A version is not a new customer, order or inventory pool.
  * These are fictional game agreements, not a real-world legal interpretation. */

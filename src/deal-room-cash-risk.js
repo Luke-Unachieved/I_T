@@ -1,11 +1,49 @@
-import {legacyEquipmentCashSchedule} from './deal-room-equipment-legacy.js';
+import {applyMarketAction} from './deal-room-market.js?v=36';
+import {openingMarketProjection} from './deal-room-opening-market.js?v=36';
+import {applyOpeningCalendar} from './deal-room-opening-calendar.js?v=36';
+import {applyRepeatCalendar} from './deal-room-repeat-calendar.js';
+import {applyRoundCalendarAction} from './deal-room-round-receivables.js';
+import {legacyEquipmentCashSchedule} from './deal-room-equipment-legacy.js?v=36';
 // Project signed cash flows only; prospects, hypothetical sales and unsold stock
 // are not cash. A receipt available today can pay tonight's operating expense.
 const dueStatuses=new Set(['fulfilling','production','preparing','transit','receivable','legacy-preparing','legacy-transit','legacy-receivable','display']);
 const safe=value=>Number.isSafeInteger(value)&&value>=0;
+// Only count payments already released for collection. An overdue shipment,
+// inspection or production debit does not turn into cash by moving its date.
+function collectibleLateReceipts(s){
+ const ready=new Map();
+ const eligible=o=>o?.status==='receivable'&&safe(o.paymentDay)&&o.paymentDay<s.day&&safe(o.balanceDue)&&o.balanceDue>0&&Number.isSafeInteger(s.cash+o.balanceDue);
+ const add=(o,n)=>{if(eligible(o)&&n&&n.day===s.day&&n.cash-s.cash===o.balanceDue)ready.set(o,o.balanceDue);};
+ if(s.bankruptcy||s.phase==='outing-trip')return ready;
+ for(const o of s.contracts??[]){
+  if(!eligible(o))continue;
+  const args={clientId:o.clientId,checkedDay:s.day};
+  add(o,o.roundReceivable?applyRoundCalendarAction(s,{type:'ROUND_CALENDAR_V1',...args}):
+   o.businessRound?applyRepeatCalendar(s,{type:'COLLECT_REPEAT_ORDER_V1',...args}):applyOpeningCalendar(s,{type:'COLLECT_OPENING_ORDER_V1',...args}));
+ }
+ const tryMarket=(o,view)=>{
+  if(eligible(o)&&view?.market?.status==='receivable'&&view.market.active?.status==='receivable')add(o,applyMarketAction(view,{type:'COLLECT_MARKET_V2'}));
+ };
+ tryMarket(s.market?.active,s);
+ for(const o of s.marketParked??[])if(eligible(o)&&o.queueId>0){
+  const view=applyMarketAction(s,{type:'SWITCH_MARKET_ORDER_V1',orderId:o.queueId});
+  if(view!==s&&view.market.active?.queueId===o.queueId)tryMarket(o,view);
+ }
+ const side=s.openingMarket;
+ if(eligible(side?.market?.active))tryMarket(side.market.active,openingMarketProjection(s));
+ for(const o of side?.parked??[])if(eligible(o)&&o.queueId>0)tryMarket(o,openingMarketProjection(s,o.queueId));
+ if(s.phase==='account'&&eligible(s.account))ready.set(s.account,s.account.balanceDue);
+ if(s.phase==='atelier-restock'&&eligible(s.atelierRestock))ready.set(s.atelierRestock,s.atelierRestock.balanceDue);
+ return ready;
+}
+export function collectibleLateAmount(s){
+ if(!s||!safe(s.day)||!safe(s.cash))return 0;
+ const total=[...collectibleLateReceipts(s).values()].reduce((sum,value)=>sum+value,0);
+ return safe(total)?total:0;
+}
 export function cashRiskProjection(s,dailyCost){
  if(!s||!safe(s.day)||!safe(s.cash)||!safe(dailyCost)||dailyCost<1)return null;
- const flows=new Map(), beforeIncome=new Map(), seen=new Set();
+ const flows=new Map(), beforeIncome=new Map(), seen=new Set(),late=collectibleLateReceipts(s);
  function flow(day,value){
   if(!safe(day)||day<s.day||!Number.isSafeInteger(value))return;
   const amount=(flows.get(day)||0)+value;
@@ -13,7 +51,7 @@ export function cashRiskProjection(s,dailyCost){
  }
  function receipt(order,day=order?.paymentDay,amount=order?.balanceDue??order?.revenue){
   if(!order||seen.has(order)||!dueStatuses.has(order.status)||!safe(amount)||!amount)return;
-  seen.add(order);flow(day,amount);
+  seen.add(order);flow(late.has(order)?s.day:day,amount);
  }
  for(const o of s.contracts||[])receipt(o);
  for(const o of [...(s.marketParked||[]),...(s.openingMarket?.parked||[])])receipt(o);

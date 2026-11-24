@@ -1,4 +1,4 @@
-import {normalizeDealRoom} from './deal-room-engine.js';
+import {normalizeDealRoom} from './deal-room-engine.js?v=36';
 
 export const DEAL_SAVE_KEY='trade-tycoon:deal-room:v1';
 export const DEAL_BACKUP_MAX_BYTES=5*1024*1024;

@@ -1,5 +1,5 @@
-import {studioProjectReview,previewStudioProjectOrder} from './deal-room-studio-project.js';
-import {caseGrowthDemand} from './deal-room-case-growth.js';
+import {studioProjectReview,previewStudioProjectOrder} from './deal-room-studio-project.js?v=36';
+import {caseGrowthDemand} from './deal-room-case-growth.js?v=36';
 /** One existing unsigned purchase, 60 positions. Not another order or reward. */
 export function previewStudioAllocation(state,allocation='bedside'){
  const p=state.studioProject;

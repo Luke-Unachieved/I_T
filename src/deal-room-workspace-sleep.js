@@ -1,13 +1,15 @@
 import {roundCalendarDue,creditRoundSleep} from './deal-room-round-receivables.js';
-import {specialtyMilestone,creditSpecialtySleep} from './deal-room-specialty-calendar.js';
-import {coreCalendarMilestone} from './deal-room-core-calendar.js';
-import {openingMarketOrders} from './deal-room-opening-market.js';
+import {specialtyMilestone,creditSpecialtySleep} from './deal-room-specialty-calendar.js?v=36';
+import {coreCalendarMilestone} from './deal-room-core-calendar.js?v=36';
+import {openingMarketOrders} from './deal-room-opening-market.js?v=36';
 import {repeatContractMilestone} from './deal-room-repeat-calendar.js';
-import {openingContractMilestone} from './deal-room-opening-calendar.js';
-import {marketParallelDue,parkedMarketOrders} from './deal-room-market.js';
-import {prospectInbox} from './deal-room-prospects.js';
+import {openingContractMilestone,openingOrders} from './deal-room-opening-calendar.js?v=36';
+import {marketParallelDue,parkedMarketOrders} from './deal-room-market.js?v=36';
+import {prospectInbox} from './deal-room-prospects.js?v=36';
 
 export const WORKSPACE_DAY_COST=30;
+export const SLEEP_WARN_ACTION='SLEEP_TO_NEXT_DAY_V3';
+const sleepTypes=new Set(['SLEEP_TO_NEXT_DAY','SLEEP_TO_NEXT_DAY_V2',SLEEP_WARN_ACTION]);
 const safe=n=>Number.isSafeInteger(n)&&n>=0;
 const accountMilestone=s=>s?.phase==='account'?(s.account?.status==='fulfilling'?s.account.deliveryDay:s.account?.status==='receivable'?s.account.paymentDay:null):null;
 const workspaceActiveOrder=s=>openingMarketOrders(s).length>0||parkedMarketOrders(s).length>0||s?.contracts?.find(c=>c.status!=='paid')||s?.market?.active&&['preparing','transit','receivable','legacy-preparing','legacy-transit','legacy-receivable'].includes(s.market.status);
@@ -48,22 +50,50 @@ export function previewWorkspaceSleep(s,{live=false}={}){
  const roundCue=round&&s.day>=round.day?{reason:round.delivery?'这笔周转订单该交货了。':'这笔周转订单今天该收款了。',tab:'orders',label:'去订单'}:null;
  const coreCue=core&&s.day>=core.day?{reason:'今天得先处理：'+core.label+'。',tab:'orders',label:'去订单'}:null;
  const deferred=live&&['portfolio','development','supplier-development','curation-fulfillment','case-growth','collection','collection-revision','stock-procurement','shop-trial','atelier-restock','linen-freight','planning-fulfillment','launch-project'].includes(s.phase);
- const specialty=live?specialtyMilestone(s):null;
+ const specialty=live?specialtyMilestone(s,{allowLate:false}):null;
  const specialtyCue=specialty?.required&&specialty.ready?{reason:'今天得先处理：'+specialty.label+'。',tab:'orders',label:'去订单'}:null;
  const cue=coreCue??specialtyCue??roundCue??((core||specialty||round||deferred)&&!pendingGlobal?null:baseCue);
  const reason=cue?.reason||(s.cash<WORKSPACE_DAY_COST?'手头还不够付今天的工作室开支。':'');
  return {valid:!reason,reason,pending:due,cost:WORKSPACE_DAY_COST,nextDay:s.day+1,checkedDay:s.day,cashAfter:s.cash-WORKSPACE_DAY_COST,...(cue?.tab?{nextStep:{tab:cue.tab,label:cue.label}}:{})};
 }
 export function canonicalWorkspaceSleep(a){
- if(!a||!['SLEEP_TO_NEXT_DAY','SLEEP_TO_NEXT_DAY_V2'].includes(a.type)||Object.keys(a).length!==3||!Object.hasOwn(a,'type')||!Object.hasOwn(a,'checkedDay')||!Object.hasOwn(a,'acknowledgePending')||!safe(a.checkedDay)||a.checkedDay<1||typeof a.acknowledgePending!=='boolean')return null;
+ if(!a||!sleepTypes.has(a.type)||Object.keys(a).length!==3||!Object.hasOwn(a,'type')||!Object.hasOwn(a,'checkedDay')||!Object.hasOwn(a,'acknowledgePending')||!safe(a.checkedDay)||a.checkedDay<1||typeof a.acknowledgePending!=='boolean')return null;
  return {type:a.type,checkedDay:a.checkedDay,acknowledgePending:a.acknowledgePending};
 }
 export function applyWorkspaceSleep(s,a){
- const q=previewWorkspaceSleep(s,{live:a?.type==='SLEEP_TO_NEXT_DAY_V2'}),c=canonicalWorkspaceSleep(a);
+ const c=canonicalWorkspaceSleep(a),q=a?.type===SLEEP_WARN_ACTION?previewLiveWorkspaceSleep(s):previewWorkspaceSleep(s,{live:a?.type==='SLEEP_TO_NEXT_DAY_V2'});
  if(!c||!q.valid||q.checkedDay!==c.checkedDay||q.pending.length&&!c.acknowledgePending)return s;
  const n=structuredClone(s);n.day=q.nextDay;n.cash=q.cashAfter;
  n.feedback={kind:'workspace-next-day',message:'到了第 '+n.day+' 天，工作室开支 ¥'+q.cost+' 已入账。'};
- return a.type==='SLEEP_TO_NEXT_DAY_V2'?creditRoundSleep(s,creditSpecialtySleep(s,n,q.cost),q.cost):n;
+ return a.type!=='SLEEP_TO_NEXT_DAY'?creditRoundSleep(s,creditSpecialtySleep(s,n,q.cost),q.cost):n;
 }
 
-export const previewLiveWorkspaceSleep=s=>previewWorkspaceSleep(s,{live:true});
+export function previewLiveWorkspaceSleep(s){
+ if(!s||!safe(s.day)||s.day<1||!safe(s.cash)||!safe(s.day+1)||s.bankruptcy)return {valid:false,reason:'现在不能结这一天的账。',pending:[]};
+ if(s.phase==='outing-trip'||s.afterWorkOutings?.activeTrip)return {valid:false,reason:'这趟还没结束。',pending:[]};
+ const orders=[],tasks=[],inquiries=[],today=s.day;
+ for(const c of s.contracts??[]){
+  if(!['fulfilling','receivable'].includes(c.status))continue;
+  const delivery=c.status==='fulfilling',day=delivery?c.deliveryDay:c.paymentDay;
+  if(!safe(day)||day>today)continue;
+  const who=c.clientName?.split(' · ')[0]||'客户';
+  orders.push(who+'的订单尚未'+(delivery?(c.deliveryDay===c.paymentDay?'交货收款':'交货'):'收款'));
+ }
+ const markets=[s.market?.active,s.openingMarket?.market?.active,...parkedMarketOrders(s),...(s.openingMarket?.parked??[])];
+ for(const a of new Set(markets)){
+  const stage=a?.status?.replace(/^legacy-/,'');
+  const [day,verb]=stage==='preparing'?[a.shipDay,'装船']:stage==='transit'?[a.deliveryDay,'交货']:stage==='receivable'?[a.paymentDay,'收款']:[null,''];
+  if(safe(day)&&day<=today)orders.push((a.buyer||a.productName||'采购台订单')+'尚未'+verb);
+ }
+ const account=accountMilestone(s);
+ if(safe(account)&&account<=today)orders.push(s.account.status==='fulfilling'?'门店订单尚未交货':'门店订单尚未收齐尾款');
+ const core=coreCalendarMilestone(s),specialty=specialtyMilestone(s);
+ if(core&&core.day<=today&&!(s.phase==='fulfilling'&&orders.length))tasks.push(core.label);
+ if(specialty&&specialty.dueDay<=today&&specialty.required)tasks.push(specialty.label);
+ for(const inquiry of prospectInbox(s,{whileActive:true}))if(inquiry.replyBy===today)inquiries.push(inquiry.person.displayName+'的询盘今天截止');
+ const openingRemaining=!s.businessRound&&!s.clientProjectActive&&['negotiating','fulfilling','paid'].includes(s.phase)&&openingOrders(s).length<3;
+ if(openingRemaining)inquiries.push('还有开局询盘未回复');
+ const reason=s.cash<WORKSPACE_DAY_COST?'手头还不够付今天的工作室开支。':'';
+ const warningGroups=[['订单待办',orders],['询盘待回复',inquiries],['其他工作待办',tasks]].filter(([,items])=>items.length).map(([title,items])=>({title,items:[...new Set(items)]}));
+ return {valid:!reason,reason,warningGroups,pending:warningGroups.flatMap(g=>g.items),cost:WORKSPACE_DAY_COST,nextDay:today+1,checkedDay:today,cashAfter:s.cash-WORKSPACE_DAY_COST};
+}

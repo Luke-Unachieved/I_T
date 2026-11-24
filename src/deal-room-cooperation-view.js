@@ -1,4 +1,4 @@
-import {cooperationChapter} from './deal-room-cooperation.js';
+import {cooperationChapter} from './deal-room-cooperation.js?v=36';
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function cooperationView(state){
  const chapter=cooperationChapter(state);if(!chapter.relation)return '';

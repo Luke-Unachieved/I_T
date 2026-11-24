@@ -1,5 +1,5 @@
 import {netProfitAmount} from './deal-room-net-profit.js';
-import {specialtyMilestoneView} from './deal-room-specialty-calendar.js';
+import {specialtyMilestoneView} from './deal-room-specialty-calendar.js?v=36';
 // Independent fixed buyer brief. Goods are at a Spanish consolidation warehouse;
 // freight and dates below are this fictional contract's terms, not market rates.
 const freightKinds=['OPEN_LINEN_FREIGHT','CLOSE_LINEN_FREIGHT','SIGN_LINEN_GROUPAGE','SIGN_LINEN_SPLIT','RECEIVE_LINEN_FREIGHT'];
@@ -16,7 +16,7 @@ export function linenFreightQuote(s,mode){
  const required=cost-deposit+needed;
  return {mode,goodsCost,freight,cost,goodsRevenue,serviceFee,revenue,deposit,lots,operatingCost,required,valid:s.cash>=required,netProfit:revenue-cost-operatingCost};
 }
-export function applyLinenFreight(s,a,canStart,{calendar=false}={}){
+export function applyLinenFreight(s,a,canStart,{calendar=false,allowLate=false}={}){
  if(!canonicalLinenFreight(a))return s;const p=s.linenFreight,t=a.type,home=['review','complete'].includes(s.phase);
  if(t==='OPEN_LINEN_FREIGHT'){
   if(!home||!referral(s)||p&&p.status!=='paid'||!p&&!canStart)return s;
@@ -30,9 +30,9 @@ export function applyLinenFreight(s,a,canStart,{calendar=false}={}){
  }
  if(t==='RECEIVE_LINEN_FREIGHT'&&p.status==='transit'){
   const lot=p.lots[p.index];if(!lot)return s;const day=p.signedDay+lot.after,expense=calendar?0:(day-s.day)*30;
-  if(s.day!==(calendar?day:p.signedDay+(p.index?p.lots[p.index-1].after:0))||s.cash<expense)return s;
+  if((calendar&&allowLate?s.day<day:s.day!==(calendar?day:p.signedDay+(p.index?p.lots[p.index-1].after:0)))||s.cash<expense)return s;
   const n=structuredClone(s),f=n.linenFreight;if(!calendar)n.day=day;n.cash+=lot.balance-expense;f.index++;f.delivered+=lot.quantity;f.received+=lot.balance;
-  if(f.index===f.lots.length){f.status='paid';f.paidDay=day;}return n;
+  if(f.index===f.lots.length){f.status='paid';f.paidDay=calendar&&allowLate?s.day:day;}return n;
  }
  return s;
 }

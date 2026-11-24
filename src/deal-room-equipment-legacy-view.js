@@ -2,8 +2,8 @@ import {netProfitAmount} from './deal-room-net-profit.js';
 import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
 import {tradeAdviserHint} from './deal-room-market-adviser-hint.js';
 import {equipmentComicView} from './deal-room-equipment-comics.js';
-import {equipmentRoutePair,equipmentQuoteMilestones,equipmentQuoteDelay} from './deal-room-equipment-view.js';
-import {legacyEquipmentOffers,previewLegacyEquipment,legacyEquipmentCalendarAction} from './deal-room-equipment-legacy.js';
+import {equipmentRoutePair,equipmentQuoteMilestones,equipmentQuoteDelay} from './deal-room-equipment-view.js?v=36';
+import {legacyEquipmentOffers,previewLegacyEquipment,legacyEquipmentCalendarAction} from './deal-room-equipment-legacy.js?v=36';
 const e=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=x=>Number.isSafeInteger(x)?'¥'+x.toLocaleString('zh-CN'):'—';
 const fact=(k,v,net=false)=>'<div><dt>'+e(k)+'</dt><dd>'+(net?netProfitAmount(v):e(v))+'</dd></div>';
@@ -57,8 +57,8 @@ function activeLegacy(s,ui){
  const moment=settled?story?.paid:transit?(a.rebooked?'船代把新提单发了过来，旧班次被划掉了。这回别按旧日期通知买方。':story?.shipped):preparing?'工厂收到了首款。助理先把出运要付的钱单独记下来，没算在可挪用的余额里。':(a.transfer&&!a.rebooked?'「晚到那几天，我们把人手挪去做别的了。现在货验完了，我把回执补发给你。」':a.rebooked?'「比换船通知上的日子早到了。我把验收单发你，尾款按新日期付。」':story?.accepted);
  const figure=a.legacyProjectId==='filling-line'&&transit?'<img class="pv-art" alt="" src="assets/deal-original-filling-line-crated.webp">':picture(a.legacyProjectId);
  const next=preparing?'第 '+a.shipDay+' 天装船。届时付工厂余款和运费，共 '+money(a.supplierBalance+a.freight)+'。此时不收买方验收款。':transit?'第 '+a.deliveryDay+' 天验收。先付 '+money(a.acceptanceFee+(a.transfer?a.stationFee:0))+' 交付费用，验收再收 '+money(a.progressDue)+'。':settled?'合同款已收齐。':'第 '+a.paymentDay+' 天收尾款 '+money(a.tailDue)+'。';
- return '<section class="market-active ws-equipment-state eq-order" aria-label="设备合同履行"><small>大型设备合同，'+(preparing?'已订货':statusName[status])+'</small><h3>'+e(a.productName)+'，'+a.physicalQuantity+e(a.physicalUnit)+'</h3><p>'+e(a.buyer)+'，'+route+'，第 '+s.day+' 天</p><dl class="market-facts">'+fact('主账可用现金',money(s.cash))+fact('已收买方款',money(a.received))+fact('已付各项支出',money(a.spent+(settled?0:(s.day-(preparing?a.signedDay:transit?a.shipDay:a.deliveryDay))*30)))+fact('尚未收到',money(a.balanceDue))+'</dl><p role="status">'+e(next)+'</p>'+legacyOrderDetails(a,figure,settled)+(status==='legacy-receivable'?buyerSpeech(moment,'买方验收留言'):storyLine(moment))+equipmentComicView(a,status)+(preparing&&s.day===a.shipDay&&!move?tradeAdviserHint(ui.adviserId,'工厂尾款和运费得先付。客户那笔验收款还不能算进手头的钱。'):'')+
- (settled?'<button type="button" class="primary" data-market-action="CLOSE_MARKET">回工作室</button>':move?'<button type="button" class="primary" data-legacy-next>'+e(labels[status])+'</button>':s.day===(preparing?a.shipDay:transit?a.deliveryDay:a.paymentDay)?'<p>手头现金不足，无法继续这一步。</p>':'')+
+ return '<section class="market-active ws-equipment-state eq-order" aria-label="设备合同履行"><small>大型设备合同，'+(preparing?'已订货':statusName[status])+'</small><h3>'+e(a.productName)+'，'+a.physicalQuantity+e(a.physicalUnit)+'</h3><p>'+e(a.buyer)+'，'+route+'，第 '+s.day+' 天</p><dl class="market-facts">'+fact('主账可用现金',money(s.cash))+fact('已收买方款',money(a.received))+fact('已付各项支出',money(a.spent+(settled?0:(s.day-(preparing?a.signedDay:transit?a.shipDay:a.deliveryDay))*30)))+fact('尚未收到',money(a.balanceDue))+'</dl><p role="status">'+e(next)+'</p>'+legacyOrderDetails(a,figure,settled)+(status==='legacy-receivable'?buyerSpeech(moment,'买方验收留言'):storyLine(moment))+equipmentComicView(a,status)+(preparing&&s.day>=a.shipDay&&!move?tradeAdviserHint(ui.adviserId,'工厂尾款和运费得先付。客户那笔验收款还不能算进手头的钱。'):'')+
+ (settled?'<button type="button" class="primary" data-market-action="CLOSE_MARKET">回工作室</button>':move?'<button type="button" class="primary" data-legacy-next>'+e(labels[status])+'</button>':s.day>=(preparing?a.shipDay:transit?a.deliveryDay:a.paymentDay)?'<p>手头现金不足，无法继续这一步。</p>':'')+
  '</section>';
 
 }

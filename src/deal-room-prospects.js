@@ -1,4 +1,4 @@
-import {promotionLeads} from './deal-room-promotion.js';
+import {promotionLeads} from './deal-room-promotion.js?v=36';
 import {MARKET_PRODUCTS} from './deal-room-market-data.js';
 import {PROSPECT_CONTENT} from './deal-room-prospect-content.js';
 

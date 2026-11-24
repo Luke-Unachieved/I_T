@@ -1,15 +1,15 @@
 import {netProfitAmount} from './deal-room-net-profit.js';
 import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
-import {adviserInboxAdvice} from './deal-room-adviser.js?v=34';
+import {adviserInboxAdvice} from './deal-room-adviser.js?v=36';
 import {orderReadListStatus} from './deal-room-order-read.js';
 import {repeatParallelScope,repeatActiveOrders} from './deal-room-repeat-calendar.js';
 import {prospectDisplayText} from './deal-room-prospect-locale.js';
-import {prospectInbox,prospectIdValid} from './deal-room-prospects.js';
-import {marketAvailable,marketBook,parkedMarketOrders,canParkMarketOrder} from './deal-room-market.js';
-import {openingMarketOrders,openingMarketProjection} from './deal-room-opening-market.js';
-import {openingOrders} from './deal-room-opening-calendar.js';
-import {openFirstBuyers,familiarBuyers,CURATION_PRODUCTS} from './deal-room-engine.js';
-import {COLLECTION_STYLES} from './deal-room-collection.js';
+import {prospectInbox,prospectIdValid} from './deal-room-prospects.js?v=36';
+import {marketAvailable,marketBook,parkedMarketOrders,canParkMarketOrder} from './deal-room-market.js?v=36';
+import {openingMarketOrders,openingMarketProjection} from './deal-room-opening-market.js?v=36';
+import {openingOrders} from './deal-room-opening-calendar.js?v=36';
+import {openFirstBuyers,familiarBuyers,CURATION_PRODUCTS} from './deal-room-engine.js?v=36';
+import {COLLECTION_STYLES} from './deal-room-collection.js?v=36';
 import {prospectAvatar} from './deal-room-prospect-avatar.js';
 const ixEsc=x=>String(prospectDisplayText(x)??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const ixMoney=x=>Number.isSafeInteger(x)?'¥'+x.toLocaleString('zh-CN'):'—';
@@ -29,29 +29,30 @@ function inboxAdvice(id,text){
  if(!mailAdvisers.has(id)||!text)return '';
  return '<aside class="ws-mail-advice" aria-label="助理建议"><h3>助理建议</h3><div><i aria-hidden="true" class="adviser-face adviser-'+id+'"></i><p>'+ixEsc(openingDialogueQuote(text))+'</p></div></aside>';
 }
-const mailRow=(attr,face,name,item,last)=>'<button type="button" class="ws-contact" '+attr+'><span class="ws-contact-avatar">'+face+'<i class="ws-contact-unread" role="img" aria-label="未处理，待报价" title="未处理"></i></span><span><strong>'+ixEsc(name)+'</strong><span>'+ixEsc(item)+'</span><small>'+ixEsc(last)+'</small></span></button>';
+const unreadDot='<i class="ws-contact-unread" role="img" aria-label="未读" title="未读"></i>';
+const mailRow=(attr,face,name,item,last,read)=>'<button type="button" class="ws-contact" '+attr+'><span class="ws-contact-avatar">'+face+(read?'':unreadDot)+'</span><span><strong>'+ixEsc(name)+'</strong><span>'+ixEsc(item)+'</span><small>'+ixEsc(last)+'</small></span></button>';
 const opening={
  mira:['荷兰','先订一批在一家店试卖，也考虑三家店一起上。',0],
  samir:['阿联酋','新店第 7 天开门，现货或定制都想看看。',50],
  ines:['葡萄牙','第 11 天换季布置餐桌，也想了解小批试卖。',100]
 };
-export function workspaceOpeningInbox(s,adviserId=null){
+export function workspaceOpeningInbox(s,adviserId=null,reads=null){
  const rows=openFirstBuyers(s), leads=prospectInbox(openingMarketProjection(s,0));
- const leadNotes=leads.map(row=>mailRow('data-opening-promotion-letter="'+ixEsc(row.person.id)+'"',prospectAvatar(row.person.id),row.person.displayName,row.product.name,'推广来信')).join('');
- return inboxHead()+rows.map(row=>mailRow('data-first-buyer="'+ixEsc(row.id)+'"','<span class="ws-first-face" aria-hidden="true" style="--face-x:'+opening[row.id][2]+'%"></span>',row.name.split(' · ')[0],row.product,'第 '+s.day+' 天来信')).join('')+leadNotes+'</div></section>'+inboxAdvice(adviserId,adviserInboxAdvice(s,[...rows,...leads]))+inboxFooter;
+ const leadNotes=leads.map(row=>mailRow('data-opening-promotion-letter="'+ixEsc(row.person.id)+'"',prospectAvatar(row.person.id),row.person.displayName,row.product.name,'推广来信',reads?.has(s,row))).join('');
+ return inboxHead()+rows.map(row=>mailRow('data-first-buyer="'+ixEsc(row.id)+'"','<span class="ws-first-face" aria-hidden="true" style="--face-x:'+opening[row.id][2]+'%"></span>',row.name.split(' · ')[0],row.product,'第 '+s.day+' 天来信',reads?.has(s,row))).join('')+leadNotes+'</div></section>'+inboxAdvice(adviserId,adviserInboxAdvice(s,[...rows,...leads],reads))+inboxFooter;
 }
-export function workspaceFamiliarInbox(s,adviserId=null){
+export function workspaceFamiliarInbox(s,adviserId=null,reads=null){
  const rows=familiarBuyers(s),leads=prospectInbox(openingMarketProjection(s,0));
- const marketLetters=leads.map(row=>mailRow('data-opening-promotion-letter="'+ixEsc(row.person.id)+'"',prospectAvatar(row.person.id),row.person.displayName,row.product.name,row.promotion?'推广来信':'新询盘')).join('');
- return inboxHead()+rows.map(row=>mailRow('data-familiar-buyer="'+ixEsc(row.id)+'"','<span class="ws-first-face" aria-hidden="true" style="--face-x:'+opening[row.id][2]+'%"></span>',row.name.split(' · ')[0],row.product,'老客户补货')).join('')+marketLetters+
- (rows.length||marketLetters?'':'<p class="ws-mail-empty">暂时没有新询盘。</p>')+'</div></section>'+inboxAdvice(adviserId,adviserInboxAdvice(s,[...rows,...leads]))+inboxFooter;
+ const marketLetters=leads.map(row=>mailRow('data-opening-promotion-letter="'+ixEsc(row.person.id)+'"',prospectAvatar(row.person.id),row.person.displayName,row.product.name,row.promotion?'推广来信':'新询盘',reads?.has(s,row))).join('');
+ return inboxHead()+rows.map(row=>mailRow('data-familiar-buyer="'+ixEsc(row.id)+'"','<span class="ws-first-face" aria-hidden="true" style="--face-x:'+opening[row.id][2]+'%"></span>',row.name.split(' · ')[0],row.product,'老客户补货',reads?.has(s,row))).join('')+marketLetters+
+ (rows.length||marketLetters?'':'<p class="ws-mail-empty">暂时没有新询盘。</p>')+'</div></section>'+inboxAdvice(adviserId,adviserInboxAdvice(s,[...rows,...leads],reads))+inboxFooter;
 }
-export function workspaceInboxIndex(s,adviserId=null){
+export function workspaceInboxIndex(s,adviserId=null,reads=null){
  const live=canParkMarketOrder(s)||s.phase==='market'&&s.market?.status==='paid';
  const rows=prospectInbox(s,{whileActive:live});
  const ranked=[...rows].sort((a,b)=>(a.replyBy??Infinity)-(b.replyBy??Infinity));
- const hint=adviserInboxAdvice(s,ranked);
- const list=ranked.map(x=>mailRow('data-workspace-inbox-desk="'+ixEsc(x.person.id)+'"',prospectAvatar(x.person.id),x.person.displayName,x.product.name,Number.isSafeInteger(x.replyBy)?'第 '+x.replyBy+' 天截止':x.previous?'熟客补货':'新来信')).join('')||'<p class="ws-mail-empty">没有待回复的来信。</p>';
+ const hint=adviserInboxAdvice(s,ranked,reads);
+ const list=ranked.map(x=>mailRow('data-workspace-inbox-desk="'+ixEsc(x.person.id)+'"',prospectAvatar(x.person.id),x.person.displayName,x.product.name,Number.isSafeInteger(x.replyBy)?'第 '+x.replyBy+' 天截止':x.previous?'熟客补货':'新来信',reads?.has(s,x))).join('')||'<p class="ws-mail-empty">没有待回复的来信。</p>';
  return inboxHead()+list+'</div></section>'+inboxAdvice(adviserId,hint)+inboxFooter;
 }
 function orderTrack(stops){

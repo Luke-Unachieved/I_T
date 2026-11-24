@@ -21,12 +21,17 @@ const bad=reason=>({valid:false,reason,action:null});
 const outingAfterWorkPhase=(s,phase)=>['review','complete'].includes(phase)||
  (phase==='market'&&(s.market?.status==='draft'&&!s.market.active||
   s.market?.status==='paid'&&s.market.active?.status==='paid'&&[undefined,'prospect','neighborhood'].includes(s.market.active.kind)));
-function outingBlock(s){
+const openingDeal=c=>c&&['mira','samir','ines'].includes(c.clientId)&&!c.businessRound&&!c.projectId;
+const openingPaid=s=>Array.isArray(s?.contracts)&&['mira','samir','ines'].every(id=>s.contracts.some(c=>openingDeal(c)&&c.clientId===id&&c.status==='paid'));
+const earlyFriends=s=>s?.version===2&&['negotiating','fulfilling','paid'].includes(s.phase)&&!s.businessRound&&!s.clientProjectActive&&
+ Array.isArray(s.contracts)&&s.contracts.some(c=>openingDeal(c)&&['fulfilling','receivable','paid'].includes(c.status))&&!openingPaid(s);
+function outingBlock(s,friendCost=null){
  if(!s||!Number.isSafeInteger(s.day)||s.day<1||!uint(s.cash))return '当前日期或经营资金无效。';
  const b=bookOf(s);
  if(!goodBook(b)||!uint(b.revision+1))return '出游记录无效或已达上限。';
  if(b.activeTrip)return '旅程还没结束，可以先返回下班。';
- if(!Array.isArray(s.contracts)||!['mira','samir','ines'].every(id=>s.contracts.some(c=>c?.clientId===id&&c.status==='paid'&&!c.businessRound&&!c.projectId)))return '三位开场客户的首单都收齐后，就能下班出门。';
+ if(friendCost!==null&&earlyFriends(s))return friendCost===0?'':'开场订单还没收齐，可以先选免费活动。';
+ if(!openingPaid(s))return '三位开场客户的首单都收齐后，就能下班出门。';
  if(!outingAfterWorkPhase(s,s.phase)){
   if(s.phase==='market'&&s.market?.status==='paid'&&s.market.active?.status==='paid')
    return '这笔订单已经结清。先点「回工作室」，再安排出门。';
@@ -47,7 +52,7 @@ export function availableFriendEvents(companionId,mementos=[]){
 export function outingSummary(s){
  const b=bookOf(s);
  if(!goodBook(b))return {valid:false,revision:null,activeTrip:null,mementos:[],reason:'出游记录无效。'};
- return {valid:true,...structuredClone(b),available:outingsAvailable(s),reason:outingBlock(s)};
+ return {valid:true,...structuredClone(b),available:outingsAvailable(s),friendsAvailable:!outingBlock(s,0),freeFriendsOnly:!!earlyFriends(s),reason:outingBlock(s)};
 }
 export function canonicalOutingAction(a){
  if(!a||typeof a!=='object'||Array.isArray(a)||!Object.hasOwn(a,'type')||!Object.hasOwn(OUTING_ACTION_KEYS,a.type))return null;
@@ -64,7 +69,7 @@ export function canonicalOutingAction(a){
  return Object.fromEntries(keys.map(k=>[k,a[k]]));
 }
 function quote(s,draft,cost,type,visits){
- const reason=outingBlock(s),b=bookOf(s),cashAfter=uint(s?.cash)?s.cash-cost:null;
+ const reason=outingBlock(s,type==='CONFIRM_FRIEND_OUTING'?cost:null),b=bookOf(s),cashAfter=uint(s?.cash)?s.cash-cost:null;
  const why=reason||(!uint(cost)||!uint(b.spent+cost)||!uint(visits+1)?'这笔消费超出可记录范围。':s.cash<cost?'手头的钱还不够，可以改选免费活动。':'');
  const revision=goodBook(b)?b.revision:null;
  return {valid:!why,reason:why,cost,cashAfter,revision,action:why?null:{type,...draft,quotedCost:cost,confirmed:true,revision}};
@@ -110,7 +115,7 @@ export function applyOutingAction(s,action,canStart=true){
    n.feedback={kind:'outing-depart',message:q.name+'，'+(a.companionId?'与'+q.companionName+'同行。':'独自出发。')+(q.cost?'行程已付 ¥'+q.cost+'。':'这趟免费。')};
   }else{
    b.friendVisits++;remember(b,{kind:'friend',placeId:a.eventId,choiceId:a.choiceId,companionId:a.companionId,day:s.day});
-   n.feedback={kind:'outing-friend',message:outingMoment(b.last).outcome};
+   if(!earlyFriends(s))n.feedback={kind:'outing-friend',message:outingMoment(b.last).outcome};
   }
   return n;
  }

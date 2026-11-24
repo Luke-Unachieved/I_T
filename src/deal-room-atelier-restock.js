@@ -1,5 +1,5 @@
 import {netProfitAmount} from './deal-room-net-profit.js';
-import {specialtyMilestoneView} from './deal-room-specialty-calendar.js';
+import {specialtyMilestoneView} from './deal-room-specialty-calendar.js?v=36';
 // One replenishment of the same Atelier-exclusive design. No new licence, stock
 // pool, client, passive revenue or permission to sell the work to someone else.
 const TERMS={small:{sets:40,production:5,lag:0,depositRate:50},season:{sets:60,production:7,lag:4,depositRate:30}};
@@ -23,7 +23,7 @@ export function previewAtelierRestock(s,term){
  const revenue=b.unitPrice*p.sets,cost=b.unitCost*p.sets,deposit=Math.floor(revenue*p.depositRate/100),operatingCost=(p.production+p.lag)*30,required=cost-deposit+operatingCost;
  return {...b,term,buyerId:'atelier',scope:'same-exclusive-goods',licenceFee:0,sampleCost:0,...p,revenue,cost,deposit,balanceDue:revenue-deposit,operatingCost,requiredCash:required,signedDay:s.day,deliveryDay:s.day+p.production,paymentDay:s.day+p.production+p.lag,netProfit:revenue-cost-operatingCost,cashAfterSigning:s.cash+deposit-cost,cashAfterPayment:s.cash+revenue-cost-operatingCost,valid:s.cash>=required};
 }
-export function applyAtelierRestock(s,action,canStart,{calendar=false}={}){
+export function applyAtelierRestock(s,action,canStart,{calendar=false,allowLate=false}={}){
  if(!canonicalAtelierRestock(action))return s;const t=action.type,old=s.atelierRestock,home=['review','complete'].includes(s.phase);
  if(t==='OPEN_ATELIER_RESTOCK'){
   const b=atelierRestockBasis(s);if(!home||!b||s.day<b.reviewDay||old&&!['paid','declined'].includes(old.status))return s;
@@ -39,11 +39,11 @@ export function applyAtelierRestock(s,action,canStart,{calendar=false}={}){
   const n=structuredClone(s);n.cash=q.cashAfterSigning;n.atelierRestock={...q,status:'production'};n.feedback={kind:'atelier-restock-signed',message:'Élise 确认补货。只按实物付钱，不再支付独家授权费。'};return n;
  }
  if(t==='DELIVER_ATELIER_RESTOCK'&&old.status==='production'){
-  const n=structuredClone(s),p=n.atelierRestock;if(s.day!==(calendar?p.deliveryDay:p.signedDay))return s;if(!calendar){n.day=p.deliveryDay;n.cash-=p.production*30;}p.status=p.lag?'receivable':'paid';if(!p.lag)n.cash+=p.balanceDue;
+  const n=structuredClone(s),p=n.atelierRestock;if((calendar&&allowLate?s.day<p.deliveryDay:s.day!==(calendar?p.deliveryDay:p.signedDay)))return s;if(!calendar){n.day=p.deliveryDay;n.cash-=p.production*30;}p.status=p.lag?'receivable':'paid';if(!p.lag)n.cash+=p.balanceDue;
   n.feedback={kind:'atelier-restock-delivered',message:p.lag?'Atelier 已收到原版补货，尾款到约定日才入账。':'Atelier 收到补货，尾款也已结清。'};return n;
  }
  if(t==='COLLECT_ATELIER_RESTOCK'&&old.status==='receivable'){
-  if(s.day!==(calendar?old.paymentDay:old.deliveryDay))return s;const n=structuredClone(s);if(!calendar)n.day=old.paymentDay;n.cash+=old.balanceDue-(calendar?0:old.lag*30);n.atelierRestock.status='paid';n.feedback={kind:'atelier-restock-paid',message:'这次同版补货的尾款到了。'};return n;
+  if((calendar&&allowLate?s.day<old.paymentDay:s.day!==(calendar?old.paymentDay:old.deliveryDay)))return s;const n=structuredClone(s);if(!calendar)n.day=old.paymentDay;n.cash+=old.balanceDue-(calendar?0:old.lag*30);n.atelierRestock.status='paid';n.feedback={kind:'atelier-restock-paid',message:'这次同版补货的尾款到了。'};return n;
  }
  return s;
 }

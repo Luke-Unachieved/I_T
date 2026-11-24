@@ -1,7 +1,7 @@
-import {shopTrialAccounting} from './deal-room-shop-trial.js';
-import {acceptedLampSample} from './deal-room-development.js';
-import {SAMPLE_FACTORIES} from './deal-room-development.js';
-import {previewStudioProjectOrder} from './deal-room-studio-project.js';
+import {shopTrialAccounting} from './deal-room-shop-trial.js?v=36';
+import {acceptedLampSample} from './deal-room-development.js?v=36';
+import {SAMPLE_FACTORIES} from './deal-room-development.js?v=36';
+import {previewStudioProjectOrder} from './deal-room-studio-project.js?v=36';
 /** One authored follow-up inquiry, not a historical fact or guaranteed inventory buyer.
  * Small-run 60/unit is a new explicit offer; the existing 60-unit quote is not an MOQ. */
 export function stockProcurementOpportunity(state){

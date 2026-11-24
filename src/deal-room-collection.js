@@ -1,6 +1,6 @@
 import {netProfitAmount} from './deal-room-net-profit.js';
-import {atelierRestockProfit} from './deal-room-atelier-restock.js';
-import {paidSeriesStoreOrders} from './deal-room-account.js';
+import {atelierRestockProfit} from './deal-room-atelier-restock.js?v=36';
+import {paidSeriesStoreOrders} from './deal-room-account.js?v=36';
 /** One player-owned collection or one buyer-owned private-label commission.
  * Rights affect reuse of this packaging, never the user's earlier generic products.
  */

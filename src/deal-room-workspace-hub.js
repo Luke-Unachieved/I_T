@@ -1,17 +1,19 @@
-import {cashRescueView} from './deal-room-bankruptcy-view.js';
-import {previewBankruptcy,previewLiquidation} from './deal-room-engine.js';
-import {careerProjects,openProductReorder} from './deal-room-career-focus.js';
-import {workspaceLedgerView} from './deal-room-workspace-nav.js?v=34';
-import {bindPropertyEntries} from './deal-room-property-view.js';
-import {propertyHoldings,PROPERTY_CATALOG} from './deal-room-property.js';
-import {openingCurationOffers,curationOffers,reduceDealRoom} from './deal-room-engine.js';
+import {collectibleLateAmount} from './deal-room-cash-risk.js?v=36';
+import {sleepWarningsView} from './deal-room-sleep-warning-view.js?v=36';
+import {cashRescueView} from './deal-room-bankruptcy-view.js?v=36';
+import {previewBankruptcy,previewLiquidation} from './deal-room-engine.js?v=36';
+import {careerProjects,openProductReorder} from './deal-room-career-focus.js?v=36';
+import {workspaceLedgerView} from './deal-room-workspace-nav.js?v=36';
+import {bindPropertyEntries} from './deal-room-property-view.js?v=36';
+import {propertyHoldings,PROPERTY_CATALOG} from './deal-room-property.js?v=36';
+import {openingCurationOffers,curationOffers,reduceDealRoom} from './deal-room-engine.js?v=36';
 import {propertySceneArt} from './deal-room-property-art.js';
-import {promotionView,bindPromotion} from './deal-room-promotion-view.js';
-import {promotionStatus} from './deal-room-promotion.js';
-import {previewLiveWorkspaceSleep as previewWorkspaceSleep} from './deal-room-workspace-sleep.js';
-import {afterworkAdviserView} from './deal-room-afterwork-adviser.js?v=34';
-import {cooperationChapter} from './deal-room-cooperation.js';
-import {tradingChapter} from './deal-room-trading-chapter.js';
+import {promotionView,bindPromotion} from './deal-room-promotion-view.js?v=36';
+import {promotionStatus} from './deal-room-promotion.js?v=36';
+import {previewLiveWorkspaceSleep as previewWorkspaceSleep} from './deal-room-workspace-sleep.js?v=36';
+import {afterworkAdviserView} from './deal-room-afterwork-adviser.js?v=36';
+import {cooperationChapter} from './deal-room-cooperation.js?v=36';
+import {tradingChapter} from './deal-room-trading-chapter.js?v=36';
 import {prospectDisplayText} from './deal-room-prospect-locale.js';
 const wsEsc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function workspaceWeather(day){return ['晴','晴','阴','雨','晴','雪','阴'][(Math.imul(day,1597334677)>>>0)%7];}
@@ -88,7 +90,7 @@ export function workspaceHubView(state,tab,lifeEnabled,sleepOpen=false,promotion
  ].join(''):'';
  const recap=recapRows?'<section class="ws-hub-card"><h3>已做成的合作</h3>'+recapRows+'</section>':'';
  const q=previewWorkspaceSleep(state);
- const confirm=sleepOpen&&q.valid?'<section id="workspace-sleep-confirmation" class="ws-hub-card" aria-labelledby="workspace-sleep-title"><h3 id="workspace-sleep-title" tabindex="-1">睡前看一眼</h3>'+(q.pending.length?'<ul>'+q.pending.map(x=>'<li>'+wsEsc(x)+'</li>').join('')+'</ul>':'')+'<p>工作室开支 ¥'+q.cost+'，确认后进入第 '+q.nextDay+' 天。</p><button type="button" class="ws-control ws-control--main" data-workspace-sleep-confirm>进入第 '+q.nextDay+' 天</button><button type="button" class="ws-control ws-control--secondary" data-workspace-sleep-cancel>先不睡</button></section>':'';
+ const confirm=sleepOpen&&q.valid?'<section id="workspace-sleep-confirmation" class="ws-hub-card" aria-labelledby="workspace-sleep-title"><h3 id="workspace-sleep-title" tabindex="-1">睡前看一眼</h3>'+sleepWarningsView(q)+'<p>工作室开支 ¥'+q.cost+'，确认后进入第 '+q.nextDay+' 天。</p><button type="button" class="ws-control ws-control--main" data-workspace-sleep-confirm>进入第 '+q.nextDay+' 天</button><button type="button" class="ws-control ws-control--secondary" data-workspace-sleep-cancel>先不睡</button></section>':'';
  const ledger='<button type="button" class="ws-hub-row" data-workspace-ledger>'+ledgerIcon+hubLabel('销售账本')+'</button>';
  const pendingPromotion=dev?promotionStatus(state)?.pending:null;
  const promotion='<details class="ws-hub-promotion" data-hub-promotion'+(promotionUI.hubPromotionOpen||promotionUI.promotionChannel?' open':'')+'><summary class="ws-hub-row">'+hubIcon('promo')+hubLabel('推广获客',pendingPromotion?'等第 '+pendingPromotion.replyDay+' 天回信':'选择推广渠道')+'</summary><div class="ws-hub-promotion-body">'+promotionView(state,promotionUI)+'</div></details>';
@@ -102,7 +104,7 @@ export function workspaceHubView(state,tab,lifeEnabled,sleepOpen=false,promotion
  hubRow('data-workspace-outing="trips"','旅行','trips')+
  hubRow('data-workspace-outing="friends"','约朋友','friends')+'</nav>';
  const insolvency=dev?null:previewBankruptcy(state);
- const day=insolvency?cashRescueView(insolvency,previewLiquidation(state)):q.valid?'<button type="button" class="ws-hub-row ws-hub-night" data-workspace-sleep aria-expanded="'+String(sleepOpen)+'"'+(sleepOpen?' aria-controls="workspace-sleep-confirmation"':'')+'>'+hubLabel('睡到明天')+'</button>':
+ const day=insolvency?cashRescueView(insolvency,previewLiquidation(state),collectibleLateAmount(state)):q.valid?'<button type="button" class="ws-hub-row ws-hub-night" data-workspace-sleep aria-expanded="'+String(sleepOpen)+'"'+(sleepOpen?' aria-controls="workspace-sleep-confirmation"':'')+'>'+hubLabel('睡到明天')+'</button>':
  q.nextStep?'<button type="button" class="ws-hub-row ws-hub-night" data-workspace-continue data-workspace-open="'+wsEsc(q.nextStep.tab)+'">'+hubLabel(q.nextStep.label,q.reason)+'</button>':
  '<section class="ws-hub-card ws-hub-night" aria-label="休息"><p>'+wsEsc(q.reason)+'</p></section>';
  return '<section class="ws-office ws-hub ws-original-hub '+(dev?'ws-original-growth':'ws-original-evening')+'">'+

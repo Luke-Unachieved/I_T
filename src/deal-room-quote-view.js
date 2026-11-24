@@ -1,7 +1,7 @@
 import {netProfitAmount} from './deal-room-net-profit.js';
 import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
 import {cupPaperProofArt,selectedSample} from './deal-room-samples.js';
-import {previewOffer} from './deal-room-engine.js';
+import {previewOffer} from './deal-room-engine.js?v=36';
 import {comparePriorUnitPrice} from './deal-room-goods-prices.js';
 import {inquiryOpening,inquirySpeech,inquiryOption,inquiryActions,inquiryDetails,inquiryFacts} from './deal-room-inquiry-layout.js';
 import {roundQuoteNote} from './deal-room-round-view.js';
@@ -94,10 +94,11 @@ const quoteBlockMessage=reason=>typeof reason==='string'&&reason.includes('经�
 function openingCommitment(state,offer,{action,quantityLabel,counterMessage}){
   const accepted=offer.accepted!==false,advance=Math.max(0,offer.cost-(offer.deposit||0));
   const note=openingCounterVoice(state,offer,counterMessage);
+ const fundingGap=Math.max(0,(offer.cashRequired??state.cash)-state.cash);
   const facts=[['订购量',quantityLabel||offer.quantity+' 件'],['总货款',money(offer.revenue)],
    ['备货及交付成本',money(offer.cost)],['定金',offer.deposit>0?money(offer.deposit):''],
    ['你先垫付',offer.deposit>0?money(advance):''],[offer.sharedOperatingDays?'本单新增日常开支':'回款前日常开支',money(offer.operatingCost)],
-   [offer.cashAfterSigning<0?'资金缺口':'签约后可用资金',money(Math.abs(offer.cashAfterSigning))],
+   [fundingGap>0?'资金缺口':'签约后可用资金',money(fundingGap||offer.cashAfterSigning)],
    ['收齐后的可用资金',money(offer.cashAfterPayment)]];
   return '<section class="quote-commitment inquiry-settlement" aria-label="报价与签约">'+
    (!accepted&&!note?'<p class="inquiry-wait">客户确认后才能签约。</p>':'')+
