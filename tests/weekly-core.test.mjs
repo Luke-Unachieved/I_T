@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { access } from 'node:fs/promises';
-import { newGame, act, endWeek, forecast, creditLimit } from '../v38/engine/game.js';
+import { newGame, act, endWeek as closeWeek, forecast, creditLimit } from '../v38/engine/game.js';
 import { quote } from '../v38/engine/quotes.js';
 import { PRODUCTS, ASSISTANTS } from '../v38/data/core.js';
 
@@ -12,6 +12,18 @@ const apply = (state, action) => {
 };
 const fresh = (seed = 381) => newGame({ name: '周转功能验收', assistant: 'fang', seed });
 const firstBid = state => ({ type: 'bid', inquiryId: state.inquiries[0].id, source: 'stock', ratio: 80, extraTerms: 0 });
+const payroll = state => state.staff.reduce((sum, person) => sum + person.salary, 0);
+const endWeek = state => {
+  // Long calendar checks make an actual choice when expansion introduces a decision.
+  // This fixture is for functionality and does not select actions to optimize income.
+  let ready = state;
+  for (let i = 0; ready.events.length && i < 20; i++) {
+    const event = ready.events[0];
+    ready = apply(ready, { type: 'resolve-event', eventId: event.id, choice: event.choices.at(-1).id });
+  }
+  assert.equal(ready.events.length, 0);
+  return closeWeek(ready);
+};
 
 test('new company starts with a week, assistant, domestic inquiries and actual reference capital', () => {
   const state = fresh();
@@ -21,7 +33,8 @@ test('new company starts with a week, assistant, domestic inquiries and actual r
   assert.equal(state.loan, 0);
   assert.equal(state.company.rep, 60);
   assert.ok(creditLimit(state) >= 20000);
-  assert.ok(state.inquiries.length >= 4 && state.inquiries.length <= 6);
+  const sales = state.staff.filter(person => person.role === 'sales').length;
+  assert.ok(state.inquiries.length >= 4 + sales && state.inquiries.length <= 6 + sales);
   assert.match(JSON.stringify(state.inquiries[0]), /米拉/);
   assert.equal(new Set(state.inquiries.map(item => item.id)).size, state.inquiries.length);
 });
@@ -88,6 +101,7 @@ test('weekly tender settlement produces a real order and later its paid receivab
 
 test('an overpriced losing tender names the actual winner without creating an order or buyer deposit', () => {
   let state = fresh();
+  const expectedCash = state.cash - 1200 - payroll(state);
   state = apply(state, { ...firstBid(state), ratio: 105 });
   const result = endWeek(state);
   assert.equal(result.orders.length, 0);
@@ -95,7 +109,7 @@ test('an overpriced losing tender names the actual winner without creating an or
   assert.equal(result.summary.lost.length, 1);
   assert.ok(result.summary.lost[0].winner);
   assert.ok(result.summary.lost[0].price > 0);
-  assert.equal(result.cash, 48800);
+  assert.equal(result.cash, expectedCash);
 });
 
 test('only three quotations can be outstanding, and withdrawing releases a slot', () => {
@@ -127,6 +141,7 @@ test('pending bids produce a visible hypothetical cash path and a first-week act
   const noBid = forecast(state);
   state = apply(state, firstBid(state));
   const points = forecast(state);
+  assert.deepEqual(points.map(point => point.cash), noBid.map(point => point.cash), 'Unsigned bids must remain outside the existing-contract baseline');
   assert.ok(points.some((point, index) => point.hypothetical !== noBid[index].cash));
   const next = endWeek(state);
   assert.equal(points[0].hypothetical, next.cash);

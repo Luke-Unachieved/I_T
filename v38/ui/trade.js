@@ -1,5 +1,6 @@
 import { CATEGORIES, PRODUCTS } from '../data/core.js';
-import { expediteFee, forecast, lawsuitFee, liquidationValue } from '../engine/game.js';
+import { CERTIFICATION_BY_ID, FINANCING, MARKET_BY_ID, STAFF_ROLES } from '../data/expansion.js';
+import { expediteFee, factorValue, forecast, lawsuitFee, liquidationValue } from '../engine/game.js';
 import { quote } from '../engine/quotes.js';
 
 const sources = {
@@ -15,7 +16,7 @@ const orderStatus = {
 
 const receivableStatus = {
   open: '待回款', overdue: '已逾期', paid: '已到账', 'bad-debt': '坏账',
-  lawsuit: '诉讼中', recovered: '已追回',
+  lawsuit: '诉讼中', recovered: '已追回', factored: '已保理', insured: '已获赔',
 };
 
 const activeOrderStates = new Set(['procurement', 'production', 'transit', 'delivered']);
@@ -109,7 +110,7 @@ function inquiryTable(rows, state) {
     const full = state.bids.length >= 3;
     const tour = !hasTutorialAnchor && canQuote && !alreadyBid && !full ? 'data-tour="quote"' : '';
     if (tour) hasTutorialAnchor = true;
-    const flags = [inquiry.tutorial && badge('开场客户'), inquiry.market !== 'domestic' && marketName(inquiry)].filter(Boolean);
+    const flags = [inquiry.tutorial && badge('开场客户'), marketName(inquiry), inquiry.framework && badge('年度框架'), inquiry.repeat && badge('熟客复购')].filter(Boolean);
     const quotesAction = alreadyBid ? badge('已报价', 'pending') : `<button type="button" class="button${tour ? ' primary' : ''}"
       data-ui="quote-open" data-id="${escapeHtml(inquiry.id)}" ${tour}>${canQuote && !full ? '算价' : '查看条款'}</button>`;
     return `<tr role="row">${cell('商品', `${productCell(inquiry.productName, inquiry.category, inquiry.asset)}${flags.length ? `<small class="trade-flags">${flags.join(' ')}</small>` : ''}`)}
@@ -125,7 +126,7 @@ function inquiryTable(rows, state) {
 
 function marketName(inquiry) {
   if (!inquiry.market || inquiry.market === 'domestic') return '';
-  return badge(inquiry.marketName ?? inquiry.market);
+  return badge(MARKET_BY_ID[inquiry.market]?.name ?? inquiry.market);
 }
 
 function bidTable(state) {
@@ -133,7 +134,7 @@ function bidTable(state) {
   return table('已提交报价', headers, state.bids.map(bid => {
     const inquiry = state.inquiries.find(item => item.id === bid.inquiryId);
     const label = inquiry ? `${inquiry.productName} · ${inquiry.buyer.name}` : productIndex.get(bid.productId)?.name;
-    return `<tr role="row">${cell('询盘', escapeHtml(label || '待揭晓报价'))}${cell('货源', escapeHtml(sources[bid.source]?.name ?? bid.source))}
+    return `<tr role="row">${cell('询盘', `${escapeHtml(label || '待揭晓报价')}${marketName(inquiry ?? bid)}`)}${cell('货源', `${escapeHtml(sources[bid.source]?.name ?? bid.source)}${bid.financing && bid.financing !== 'standard' ? `<small>${escapeHtml(FINANCING[bid.financing]?.label)}</small>` : ''}`)}
       ${cell('报价', `${money(bid.unitPrice, bid.currency)}<small>总货款 ${money(bid.foreignTotal ?? bid.total, bid.currency)}</small>`, 'number')}
       ${cell('中单率', percent(bid.probability), 'number')}${cell('垫资峰值', money(bid.workingCapital ?? bid.upfront), 'number')}
       ${cell('操作', button('withdraw-bid', bid.inquiryId, '撤回'), 'trade-actions')}</tr>`;
@@ -179,6 +180,7 @@ function orderTable(rows, state, name) {
   return table(name, headers, rows.map(order => {
     const product = productIndex.get(order.productId);
     const buyer = typeof order.buyer === 'object' ? order.buyer?.name : order.buyer;
+    const staff = order.staffId ? state.staff.find(person => person.id === order.staffId) : null;
     const late = !order.deliveredWeek && state.week > order.dueWeek && activeOrderStates.has(order.status);
     let actions = '—';
     if (order.expedited) actions = badge('已加急');
@@ -186,10 +188,11 @@ function orderTable(rows, state, name) {
       actions = `${button('expedite', order.id, `加急 · ${money(expediteFee(order))}`)}<small>提前 1 周到货</small>`;
     }
     return `<tr role="row">${cell('订单', `<strong>${escapeHtml(order.productName ?? product?.name ?? '商品订单')}</strong>
-        <small>${escapeHtml(buyer)} · ${number(order.quantity)} ${escapeHtml(product?.unit ?? '件')}</small>`)}
+        <small>${escapeHtml(buyer)} · ${number(order.quantity)} ${escapeHtml(product?.unit ?? '件')}</small>
+        ${marketName(order)}${staff ? `<small>负责人 ${escapeHtml(staff.name)}</small>` : ''}`)}
       ${cell('状态', `${badge(orderStatus[order.status] ?? order.status, late ? 'negative' : '')}
         ${late ? badge(`逾期 ${state.week - order.dueWeek} 周`, 'negative') : ''}<small>${timeline(order)}</small>`)}
-      ${cell('约定交期', week(order.dueWeek))}${cell('预计回款', week(order.expectedPayWeek))}
+      ${cell('约定交期', week(order.dueWeek))}${cell('预计回款', `${week(order.expectedPayWeek)}${order.currency && order.currency !== 'CNY' ? `<small>合同额 ${money(order.foreignTotal, order.currency)}</small>` : ''}${order.financing && order.financing !== 'standard' ? `<small>${escapeHtml(FINANCING[order.financing]?.label)}</small>` : ''}`)}
       ${cell('利润与罚款', `${money(order.profit)}${order.penalty ? `<small class="negative">−${money(order.penalty)} 交付罚款</small>` : ''}`, `number${order.profit < 0 ? ' negative' : ''}`)}
       ${cell('操作', actions, 'trade-actions')}</tr>`;
   }));
@@ -201,19 +204,43 @@ function receivablesTable(rows, name, state) {
     const buyerName = typeof item.buyer === 'object' ? item.buyer?.name : item.buyer;
     const buyerCredit = typeof item.buyer === 'object' ? item.buyer?.credit : '';
     const delayed = item.originalDueWeek && item.originalDueWeek !== item.dueWeek;
+    const overseas = item.currency && item.currency !== 'CNY';
+    const payout = factorValue(state, item);
+    const waitingForInsurance = item.status === 'bad-debt' && item.insuranceDueWeek >= state.week;
+    const funds = item.status === 'factored' ? '保理到账' : item.status === 'insured' ? '保险赔付' : '实际到账';
     let action = '—';
     if (item.status === 'open' || item.status === 'overdue') {
-      action = item.reminderWeek === state.week ? badge('本周已催款') :
+      const reminder = item.reminderWeek === state.week ? badge('本周已催款') :
         `${button('collect', item.id, '催款')}<small>提高回款机会，略降客户关系</small>`;
+      action = `${reminder}${payout > 0 ? `<div class="trade-factor">${button('factor', item.id, `保理 · ${money(payout)}`)}<small>立即收款，银行接手剩余应收</small></div>` : ''}`;
+    } else if (waitingForInsurance) {
+      action = `<small>预计 ${week(item.insuranceDueWeek)}保险赔付</small>`;
     } else if (item.status === 'bad-debt') {
       action = `${button('sue', item.id, `起诉 · ${money(lawsuitFee(item))}`)}<small>支付费用后等待部分追回</small>`;
     }
-    return `<tr role="row">${cell('买家', `<strong>${escapeHtml(buyerName ?? '客户')}</strong>${buyerCredit ? ` ${badge(buyerCredit)}` : ''}`)}
-      ${cell('应收', money(item.amount, item.currency), 'number')}
+    return `<tr role="row">${cell('买家', `<strong>${escapeHtml(buyerName ?? '客户')}</strong>${buyerCredit ? ` ${badge(buyerCredit)}` : ''}${marketName(item)}
+        ${item.financing && item.financing !== 'standard' ? `<small>${escapeHtml(FINANCING[item.financing]?.label)}</small>` : ''}`)}
+      ${cell('应收', `${overseas && Number.isFinite(item.foreignBalance) ? `${money(item.foreignBalance, item.currency)}<small>入账折合 ${money(item.amount)}</small>` : money(item.amount)}
+        ${Number.isFinite(item.paidAmount) ? `<small>${funds} ${money(item.paidAmount)}</small>` : ''}
+        ${item.fxGain ? `<small class="${item.fxGain > 0 ? 'positive' : 'negative'}">${item.fxGain > 0 ? '汇兑收益' : '汇兑损失'} ${money(Math.abs(item.fxGain))}</small>` : ''}`, 'number')}
       ${cell('回款周', `${week(item.dueWeek)}${delayed ? `<small>原定 ${week(item.originalDueWeek)}</small>` : ''}`)}
-      ${cell('状态', badge(receivableStatus[item.status] ?? item.status, ['overdue', 'bad-debt'].includes(item.status) ? 'negative' : ''))}
+      ${cell('状态', badge(waitingForInsurance ? '等待理赔' : receivableStatus[item.status] ?? item.status, ['overdue', 'bad-debt'].includes(item.status) ? 'negative' : ''))}
       ${cell('操作', action, 'trade-actions')}</tr>`;
   }));
+}
+
+function scheduledReceipts(state) {
+  const records = state.queue.filter(item => item.type === 'export-refund' || item.type === 'insurance')
+    .sort((a, b) => a.dueWeek - b.dueWeek);
+  if (!records.length) return '';
+  const rows = records.map(item => {
+    const order = state.orders.find(order => order.id === item.orderId);
+    return `<tr role="row">${cell('款项', item.type === 'insurance' ? '出口信用保险赔付' : '出口退税')}
+      ${cell('相关订单', escapeHtml(order?.productName ?? '海外订单'))}
+      ${cell('预计金额', money(item.amount), 'number')}${cell('到账周', week(item.dueWeek))}</tr>`;
+  });
+  return panel('预计到账的退税与理赔', table('预计到账的退税与理赔', ['款项', '相关订单', '预计金额', '到账周'], rows),
+    '<span class="trade-note">这些款项已计入现金预测</span>');
 }
 
 function inventoryTable(state) {
@@ -252,6 +279,7 @@ export function ordersPage(state) {
     '<span class="trade-note">生产、发运和交付随周结算推进</span>')}
     ${panel('应收账款', `${receivables.length ? receivablesTable(receivables, '未结应收账款', state) : empty('暂时没有应收账款。')}
       ${settled.length ? `<details><summary>最近回款（${Math.min(settled.length, 12)} 笔）</summary>${receivablesTable(settled.slice(-12).reverse(), '最近回款', state)}</details>` : ''}`)}
+    ${scheduledReceipts(state)}
     ${panel('库存', state.inventory.some(item => item.quantity > 0) ? inventoryTable(state) : empty('仓库暂无待处置库存。'),
     '<span class="trade-note">库存可用于同款询盘，也可清仓回笼现金</span>')}
   </div>`;
@@ -265,9 +293,11 @@ function quoteArtwork(inquiry) {
     ${buyer.line ? `<blockquote>${escapeHtml(buyer.line)}</blockquote>` : ''}
     ${image(inquiry.asset, 'quote-product-image')}
     <p><strong>${escapeHtml(inquiry.productName)}</strong> · ${number(inquiry.quantity)} ${escapeHtml(inquiry.unit)}</p>
+    ${marketName(inquiry)}
     ${buyer.comic ? `<details><summary>查看来信漫画</summary>${image(buyer.comic, 'buyer-comic')}</details>` : ''}
     <p class="trade-note">约定 ${week(inquiry.dueWeek)}交货，报价有效至 ${week(inquiry.expiresWeek)}。</p>
     <p class="trade-note">定金 ${number(inquiry.depositRate)}% · 基础账期 ${number(inquiry.terms)} 周 · 最低信誉 ${number(inquiry.minRep)}。</p>
+    ${inquiry.cert ? `<p class="trade-note">所需认证：${escapeHtml(CERTIFICATION_BY_ID[inquiry.cert]?.name ?? inquiry.cert)}</p>` : ''}
     <p class="trade-note">${inquiry.rivals.length} 家同行参与${inquiry.rivals.length ? `，包括 ${inquiry.rivals.slice(0, 2).map(rival => `${escapeHtml(rival.name)}（${escapeHtml(rival.style)}）`).join('、')}` : ''}。</p>
   </aside>`;
 }
@@ -277,19 +307,26 @@ function quoteNumbers(state, proposal, inquiry) {
   const cashFlow = forecast(state, proposal);
   const lowest = cashFlow.reduce((current, item) => !current || item.hypothetical < current.hypothetical ? item : current, null);
   const probability = Math.max(0, Math.min(100, Math.round(proposal.probability * 100)));
+  const gross = proposal.total - proposal.cost - proposal.shipping;
   const rows = [
     ['单价', money(proposal.unitPrice, proposal.currency)],
     ['总货款', money(proposal.foreignTotal ?? proposal.total, proposal.currency)],
     ['采购成本', money(proposal.cost)],
-    ['运费', money(proposal.shipping)],
+    ['运费', money(proposal.shipping - (proposal.tariff ?? 0))],
+    ...(proposal.tariff ? [['关税', money(proposal.tariff)]] : []),
+    ...(proposal.insurancePremium ? [['签约投保保费', money(proposal.insurancePremium)]] : []),
+    ...(proposal.commission ? [['负责人提成', money(proposal.commission)]] : []),
     ['客户定金', money(proposal.deposit)],
     ['先付采购款', money(proposal.prepayment)],
-    ['毛利率', percent(proposal.margin)],
-    ['预计毛利', money(proposal.profit)],
+    ['毛利率', percent(gross / proposal.total)],
+    ['预计毛利', money(gross)],
+    ...(gross !== proposal.profit ? [['预计订单利润', money(proposal.profit)]] : []),
     ['签约时需垫资', money(proposal.upfront)],
     ['回款前垫资峰值', money(proposal.workingCapital ?? proposal.upfront)],
     ['预计交货', week(proposal.deliverWeek ?? state.week + proposal.productionWeeks + proposal.shippingWeeks)],
-    ['预计最晚回款', week(proposal.expectedPayWeek)],
+    ['预计回款（按约定）', week(proposal.expectedPayWeek)],
+    ...(proposal.rebateEstimate ? [['预计交货后退税', money(proposal.rebateEstimate)]] : []),
+    ...(proposal.currency && proposal.currency !== 'CNY' ? [[`每 ${escapeHtml(proposal.currency)} 测算汇率`, `¥${number(proposal.fx)}`]] : []),
   ];
   return `<div class="quote-metrics"><div class="quote-probability">
     <span>预计中单率 <strong>${probability}%</strong></span>
@@ -299,7 +336,27 @@ function quoteNumbers(state, proposal, inquiry) {
     ${lowest && Number.isFinite(lowest.hypothetical) ? `<p class="quote-risk${lowest.hypothetical < 0 ? ' negative' : ''}" data-tour="cash-forecast">
       <strong>若中标 · 未来 12 周最低现金 ${money(lowest.hypothetical)}</strong>（${week(lowest.week)}）
       ${lowest.hypothetical < 0 ? '<small>预计现金出现缺口，检查授信和到期款后再提交。</small>' : ''}</p>` : ''}
-    ${inquiry.currency && inquiry.currency !== 'CNY' ? '<p class="trade-note">货款为合同币种，采购、垫资及毛利按当前汇率估算人民币金额。</p>' : ''}</div>`;
+    ${inquiry.currency && inquiry.currency !== 'CNY' ? '<p class="trade-note">货款以合同币种结算。毛利、垫资和现金预测按人民币列示，最终回款按到账周汇率折算。</p>' : ''}</div>`;
+}
+
+function staffField(state, model) {
+  if (!state.staff.length) return '';
+  const options = state.staff.map(person => {
+    const load = state.orders.filter(item => item.staffId === person.id && activeOrderStates.has(item.status)).length +
+      state.bids.filter(item => item.staffId === person.id).length;
+    const role = STAFF_ROLES[person.role]?.label ?? '员工';
+    return `<option value="${escapeHtml(person.id)}"${person.id === model.staffId ? ' selected' : ''}${load >= 3 ? ' disabled' : ''}>${escapeHtml(person.name)} · ${role} · 能力 ${number(person.ability)} · ${load}/3 单</option>`;
+  });
+  return `<label>负责人<select name="staffId" data-ui="quote-input"><option value="">亲自跟进</option>${options.join('')}</select>
+    <small>员工同时最多跟进 3 笔报价或订单。业务员提高中单率，跟单员减少履约风险。</small></label>`;
+}
+
+function financingField(inquiry, model) {
+  if (!inquiry.currency || inquiry.currency === 'CNY') return '';
+  const selected = model.financing ?? 'standard';
+  return `<label>回款保障<select name="financing" data-ui="quote-input">${Object.entries(FINANCING).map(([id, item]) =>
+    `<option value="${id}"${id === selected ? ' selected' : ''}>${item.label}${item.threshold ? `（货款 ≥ ${money(item.threshold)}）` : ''}</option>`).join('')}</select>
+    <small data-quote-preview="financing-hint">${escapeHtml(FINANCING[selected]?.text)}</small></label>`;
 }
 
 export function quoteDialog(state, ui) {
@@ -307,13 +364,13 @@ export function quoteDialog(state, ui) {
   const close = '<button type="button" class="button" data-ui="close-dialog">关闭</button>';
   if (!inquiry) return `<header class="trade-header"><h2 id="quote-title">询盘已结束</h2>${close}</header><p>返回询盘查看本周新机会。</p>`;
   const model = ui.quote ?? {};
-  const ratio = Number.isFinite(Number(model.ratio)) ? Math.max(80, Math.min(105, Number(model.ratio))) : 100;
+  const ratio = Number.isFinite(Number(model.ratio)) ? Math.max(80, Math.min(105, Math.round(Number(model.ratio)))) : 100;
   const extraTerms = Number(model.extraTerms) || 0;
   const sourcesAvailable = availableSources(state, inquiry).map(source => ({
-    source, proposal: quote(state, inquiry, { ...model, source, ratio, extraTerms }),
+    source, proposal: quote(state, inquiry, { source, ratio, extraTerms }),
   }));
   const selected = sourcesAvailable.find(item => model.source === item.source) ?? sourcesAvailable[0];
-  const proposal = selected.proposal;
+  const proposal = quote(state, inquiry, { ...model, source: selected.source, ratio, extraTerms });
   const alreadyBid = state.bids.some(bid => bid.inquiryId === inquiry.id);
   const disabled = proposal.error || alreadyBid || state.bids.length >= 3;
   return `<header class="trade-header"><div><h2 id="quote-title">算价与报价</h2><p class="trade-note">${escapeHtml(inquiry.buyer.name)} · ${escapeHtml(inquiry.productName)}</p></div>${close}</header>
@@ -332,6 +389,7 @@ export function quoteDialog(state, ui) {
         <label>账期让步<select name="extraTerms" data-ui="quote-input">
           ${[0, 1, 2, 3, 4].map(terms => `<option value="${terms}"${terms === extraTerms ? ' selected' : ''}>${terms ? `延长 ${terms} 周` : '按买家原账期'}</option>`).join('')}
         </select><small>账期更长可能提高中单率，也会延后现金回流。</small></label>
+        ${staffField(state, model)}${financingField(inquiry, model)}
         <div data-quote-preview="numbers">${quoteNumbers(state, proposal, inquiry)}</div>
         <div class="dialog-actions" data-quote-preview="submit"><button class="button primary" type="submit"${disabled ? ' disabled' : ''}>提交报价</button>
           <small>${alreadyBid ? '这条询盘已经提交报价。' : state.bids.length >= 3 ? '本周 3 个报价位已用完。' : `本周已用 ${state.bids.length} / 3 个报价位，周末统一开结果。`}</small></div>

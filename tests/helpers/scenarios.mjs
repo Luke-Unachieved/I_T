@@ -1,0 +1,19 @@
+export async function loadScenario(page, expression) {
+  await page.evaluate(`(async()=>{const app=await import('/v38/ui/app.js');const game=await import('/v38/engine/game.js');const quotes=await import('/v38/engine/quotes.js');const state=await (${expression})(game,quotes);app.__scenarioForTest(state);})()`);
+}
+
+export async function currentState(page) {
+  return page.evaluate("import('/v38/ui/app.js').then(app=>app.__stateForTest())");
+}
+
+export async function dismissDecisions(page) {
+  for (let attempts = 0; attempts < 20; attempts++) {
+    if (!await page.evaluate('Boolean(document.querySelector("dialog[open]"))')) return;
+    if (await page.evaluate('Boolean(document.querySelector("dialog[open] [data-action=resolve-event]"))')) {
+      await page.click('dialog[open] [data-action="resolve-event"]:last-child');
+    } else if (await page.evaluate('Boolean(document.querySelector("dialog[open] [data-ui=close-dialog]"))')) {
+      await page.click('dialog[open] [data-ui="close-dialog"]');
+    } else return;
+  }
+  throw new Error('Decision dialog loop exceeded 20 choices');
+}

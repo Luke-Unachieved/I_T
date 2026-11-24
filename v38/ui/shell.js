@@ -4,6 +4,7 @@ import { forecast, creditLimit, netAssets } from '../engine/game.js';
 const fmt = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 0 });
 export const count = value => fmt.format(Number.isFinite(value) ? value : 0);
 export const yuan = value => `${value < 0 ? '−' : ''}¥${count(Math.abs(value ?? 0))}`;
+const contractPrice = bid => bid.price ? `${bid.currency === 'USD' ? 'US$' : bid.currency === 'EUR' ? '€' : '¥'}${count(bid.price)} / 件` : '—';
 export const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[ch]));
@@ -27,7 +28,8 @@ const weekLabel = week => `第 ${count(week)} 周`;
 const yearWeek = week => `第 ${Math.floor((week - 1) / 52) + 1} 年 · 第 ${(week - 1) % 52 + 1} 周`;
 const classicLinks = () => `<div class="classic-links"><a href="classic.html">玩经典版（V37）</a><a href="legacy-game.html">玩旧版</a></div>`;
 const openOrders = state => state.orders.filter(order => !['settled', 'cancelled', 'bad-debt', 'closed', 'paid', 'delivered'].includes(order.stage ?? order.status));
-const moneyDue = state => state.receivables.reduce((sum, bill) => ['paid', 'bad-debt', 'badDebt', 'factored', 'written-off'].includes(bill.status) ? sum : sum + (bill.remaining ?? bill.amount ?? 0), 0);
+const openInvoice = bill => bill.status === 'open' || bill.status === 'overdue';
+const moneyDue = state => state.receivables.reduce((sum, bill) => sum + (openInvoice(bill) ? bill.remaining ?? bill.amount : 0), 0);
 const history4 = state => state.history.slice(-4).reduce((sum, row) => sum + row.profit, 0);
 
 export function opening(notice = '', settings = '') {
@@ -81,6 +83,20 @@ function indicators(state) {
   </section>`;
 }
 
+const fxValue = value => new Intl.NumberFormat('zh-CN', { minimumFractionDigits: 3, maximumFractionDigits: 3 }).format(value);
+
+function macroIndicators(state, ui) {
+  const metrics = [
+    ['美元兑人民币', 'usd', fxValue], ['欧元兑人民币', 'eur', fxValue],
+    ['海运运价', 'freight'], ['原料价格', 'materials'], ['消费景气', 'consumer'],
+  ].filter(([, key]) => Number.isFinite(state.macro[key]));
+  if (!metrics.length) return '';
+  return `<details class="macro-disclosure" data-ui="macro-disclosure"${ui.showMacro ? ' open' : ''}><summary>市场指数</summary><div class="kpi-grid" aria-label="市场指数">${metrics.map(([title, key, format]) => {
+    const values = state.history.slice(-11).map(row => row.macro?.[key]).filter(Number.isFinite);
+    return kpi(title, state.macro[key], values.at(-2), [...values, state.macro[key]], format);
+  }).join('')}</div></details>`;
+}
+
 function weekControls(state) {
   const stopped = state.bankrupt ? ' disabled' : '';
   return `<div class="week-controls">
@@ -122,7 +138,7 @@ export function shell(state, ui, content, extraIndicators = '') {
     <main class="workspace" id="work-area" aria-labelledby="page-title">
       <header class="page-header"><div><p class="eyebrow">${esc(state.company.name)} · ${yearWeek(state.week)}</p><h1 id="page-title" tabindex="-1">${title}</h1><p>${captions[ui.page]}</p></div><span class="badge">V38</span></header>
       <div class="app-notices" aria-live="polite" aria-atomic="true">${ui.notice ? `<p class="notice" role="status">${esc(ui.notice)}</p>` : ''}${state.cash < 0 && !state.bankrupt ? `<div class="notice negative" role="alert"><strong>资金链告急</strong><p>还差 ${yuan(-state.cash)}。可以到订单页清仓，或到公司页借款。连续两周资金为负会破产。</p></div>` : ''}${state.events.length ? `<p class="notice">有 ${count(state.events.length)} 件事需要你决定。<button type="button" class="button quiet" data-ui="show-event">查看事项</button></p>` : ''}</div>
-      ${indicators(state)}${extraIndicators}
+      ${indicators(state)}${macroIndicators(state, ui)}${extraIndicators}
       ${tutorialNote(state)}
       <div class="page-content">${content}</div>
     </main>
@@ -134,7 +150,7 @@ function shortYuan(n) {
   return magnitude >= 10_000 ? `${n < 0 ? '−' : ''}${Number((magnitude / 10_000).toFixed(1))} 万` : `${n < 0 ? '−' : ''}${count(magnitude)}`;
 }
 
-export function forecastPanel(rows) {
+export function forecastPanel(rows, state) {
   const totalLow = rows.reduce((low, row) => (row.hypothetical ?? row.cash) < (low.hypothetical ?? low.cash) ? row : low, rows[0]);
   const low = totalLow.hypothetical ?? totalLow.cash;
   const width = 680, height = 248, left = 61, right = 24, top = 35, bottom = 38;
@@ -162,7 +178,32 @@ export function forecastPanel(rows) {
       <figcaption class="chart-legend"><span class="positive">▉ ＋到账</span><span class="negative">▉ −支出</span><span>━ 预计余额</span><span class="pending">┄ 若中标</span></figcaption>
     </figure>
     <details class="forecast-details"><summary>查看逐周明细</summary>${table(['周次', '到账', '支出', '周末现金', '若中标'], rows.map(row => [weekLabel(row.week), yuan(row.inflow), yuan(row.outflow), yuan(row.cash), yuan(hypothetical(row))]))}</details>
+    ${state ? fundingSchedule(state, rows.at(-1).week) : ''}
   </section>`;
+}
+
+function fundingSchedule(state, horizon) {
+  const inRange = week => week >= state.week && week <= horizon;
+  const types = { 'export-refund': '出口退税', insurance: '保险赔款' };
+  const rows = state.queue.filter(item => types[item.type] && inRange(item.dueWeek)).map(item => ({
+    label: types[item.type], week: item.dueWeek, amount: yuan(item.amount), note: '已排入到账计划',
+  }));
+  const financing = { 'letter-of-credit': '信用证尾款', insured: '已投保应收' };
+  for (const invoice of state.receivables) {
+    if (invoice.status === 'factored' && invoice.paidWeek >= state.week - 3) {
+      rows.push({ label: '保理到账', week: invoice.paidWeek, amount: yuan(invoice.paidAmount), note: '已到帐，应收已移出后续预测' });
+    } else if (openInvoice(invoice) && financing[invoice.financing] && inRange(invoice.dueWeek)) {
+      rows.push({ label: financing[invoice.financing], week: invoice.dueWeek, amount: yuan(invoice.amount), note: '按当前账期与汇率列示' });
+    }
+  }
+  for (const order of openOrders(state)) {
+    if (financing[order.financing] && inRange(order.expectedPayWeek)) {
+      rows.push({ label: financing[order.financing], week: order.expectedPayWeek, amount: yuan(order.total - order.deposit), note: '订单交付后生成应收' });
+    }
+  }
+  if (!rows.length) return '';
+  rows.sort((a, b) => a.week - b.week);
+  return `<details class="forecast-details"><summary>融资与退税计划</summary>${table(['项目', '预计周次', '人民币金额', '状态'], rows.map(row => [row.label, weekLabel(row.week), row.amount, row.note]))}</details>`;
 }
 
 function table(headers, rows, empty = '暂无记录。') {
@@ -171,7 +212,7 @@ function table(headers, rows, empty = '暂无记录。') {
 }
 
 function adviserTip(state, rows) {
-  const creditLeft = Math.max(0, creditLimit(state) - state.loan);
+  const creditLeft = Math.max(0, (state.creditLine ?? creditLimit(state)) - state.loan);
   const risk = rows.find(row => row.hypothetical < 0);
   if (state.events.length) return '桌上有一件不能替你决定的事。先处理，再结算下一周。';
   if (state.cash < 0) return `手头资金转负了。先清仓或筹钱，可用授信还剩 ${yuan(creditLeft)}。`;
@@ -184,14 +225,14 @@ export function officePage(state, feature = {}) {
   const rows = forecast(state);
   const person = assistantFor(state.assistant);
   const open = openOrders(state).length;
-  const due = state.receivables.filter(item => (item.dueWeek ?? Infinity) <= state.week && !['paid','bad-debt','badDebt','factored'].includes(item.status)).length;
+  const due = state.receivables.filter(item => openInvoice(item) && item.dueWeek <= state.week).length;
   return `<section class="hero panel"><img src="${esc(feature.officeImage ?? person.office)}" alt="" fetchpriority="high"><div class="hero-copy"><p>${yearWeek(state.week)} · ${['晴间多云', '晴', '微风', '阵雨'][state.week % 4]}</p><h2>${esc(state.company.name)}</h2><p>${esc(person.name)}已就位。把本周的生意一单一单理清。</p></div>${feature.port ?? ''}</section>
     <div class="office-grid"><section class="panel"><header class="panel-heading"><div><h2>本周待办</h2><p>结算前看一下手上的事。</p></div></header><div class="todo-list">
       <button type="button" data-ui="page" data-page="inquiries"><span><strong>${count(state.inquiries.length)} 条询盘</strong><small>已提交 ${count(state.bids.length)} / 3 个报价</small></span><span aria-hidden="true">→</span></button>
       <button type="button" data-ui="page" data-page="orders"><span><strong>${count(open)} 笔在手订单</strong><small>${due ? `本周 ${count(due)} 笔待收款` : '查看履约、回款与库存'}</small></span><span aria-hidden="true">→</span></button>
     </div></section>
     <section class="panel adviser"><header class="panel-heading"><div><h2>助理建议</h2><p>${esc(person.name)}</p></div>${portrait(person)}</header><p class="adviser-note">${adviserTip(state, rows)}</p></section></div>
-    ${forecastPanel(rows)}
+    ${forecastPanel(rows, state)}
     <section class="panel"><header class="panel-heading"><h2>经营动态</h2></header>${state.log.length ? `<ol class="activity-list">${state.log.slice(0, 10).map(item => `<li><span class="badge">${weekLabel(item.week)}</span><p>${esc(item.text)}</p></li>`).join('')}</ol>` : '<p class="empty">开张第一周，等你发出首笔报价。</p>'}</section>`;
 }
 
@@ -209,7 +250,15 @@ export function companyPage(state, extra = '') {
     <section class="panel"><header class="panel-heading"><div><h2>信誉与净资产</h2><p>按时交付积累信誉；信誉影响投标、询盘准入和授信。</p></div></header><dl class="key-values"><div><dt>信誉</dt><dd>${count(state.company.rep)} / 100</dd></div><div><dt>净资产</dt><dd>${yuan(netAssets(state))}</dd></div></dl><progress max="100" value="${state.company.rep}" aria-label="公司信誉"></progress></section></div>
     <section class="panel"><header class="panel-heading"><h2>年度经营</h2></header>${table(['年度', '营收', '净利', '交付', '逾期'], [...(year.records ?? []), year].slice(-8).map(row => [`第 ${count(row.number)} 年`, yuan(row.revenue), yuan(row.profit), `${count(row.deliveries)} 单`, `${count(row.late)} 单`]))}</section>
     ${extra}
-    <section class="panel"><header class="panel-heading"><h2>最近 12 周</h2></header>${table(['周次', '营收', '净利', '周末现金', '信誉'], state.history.slice(-12).reverse().map(row => [weekLabel(row.week), yuan(row.revenue), yuan(row.profit), yuan(row.cash), count(row.rep)]), '结算后，这里会列出每周经营记录。')}</section>`;
+    <section class="panel"><header class="panel-heading"><h2>最近 12 周</h2></header>${recentTrends(state.history)}${table(['周次', '营收', '净利', '周末现金', '信誉'], state.history.slice(-12).reverse().map(row => [weekLabel(row.week), yuan(row.revenue), yuan(row.profit), yuan(row.cash), count(row.rep)]), '结算后，这里会列出每周经营记录。')}</section>`;
+}
+
+function recentTrends(history) {
+  if (history.length < 2) return '';
+  return `<div class="company-grid" aria-label="经营趋势">${[['周末现金', 'cash'], ['周净利', 'profit']].map(([title, key]) => {
+    const values = history.slice(-12).map(row => row[key]);
+    return kpi(title, values.at(-1), values.at(-2), values, yuan);
+  }).join('')}</div>`;
 }
 
 export function offworkPage(state, extra = '') {
@@ -229,8 +278,8 @@ function summaryContent(summary) {
   const buyerName = bid => bid.buyer?.name ?? bid.buyer;
   return `<header class="dialog-header"><div><p class="eyebrow">${multiWeek ? `${weekLabel(weeks[0].week)}至${weekLabel(summary.week)}` : weekLabel(summary.week)}</p><h2 id="modal-title">本周小结</h2></div></header>
     <div class="dialog-body"><dl class="key-values summary-totals"><div><dt>中单</dt><dd>${count(won.length)} 笔</dd></div><div><dt>交付</dt><dd>${count(delivered)} 笔</dd></div><div><dt>到账</dt><dd class="positive">+${yuan(inflow)}</dd></div><div><dt>支出</dt><dd class="negative">−${yuan(outflow)}</dd></div></dl>
-    ${won.length ? `<h3>中单通知</h3>${table(['买家', '成交价'], won.map(bid => [buyerName(bid), `${yuan(bid.price)} / 件`]))}` : ''}
-    ${lost.length ? `<h3>未中单</h3>${table(['买家', '胜出同行', '成交价'], lost.map(bid => [buyerName(bid), bid.winner, `${yuan(bid.price)} / 件`]))}` : ''}
+    ${won.length ? `<h3>中单通知</h3>${table(['买家', '成交价'], won.map(bid => [buyerName(bid), contractPrice(bid)]))}` : ''}
+    ${lost.length ? `<h3>未中单</h3>${table(['买家', '胜出同行', '成交价'], lost.map(bid => [buyerName(bid), bid.winner, contractPrice(bid)]))}` : ''}
     ${messages.length ? `<ul class="summary-messages">${messages.map(message => `<li>${esc(message)}</li>`).join('')}</ul>` : ''}
     ${summary.annual ? `<section class="annual-summary"><h3>年度结算 · 第 ${count(summary.annual.number)} 年</h3><p>营收 ${yuan(summary.annual.revenue)} · 净利 ${yuan(summary.annual.profit)} · 交付 ${count(summary.annual.deliveries)} 单 · 逾期 ${count(summary.annual.late)} 单</p>${summary.annual.result ? `<p>${esc(summary.annual.result)}</p>` : ''}</section>` : ''}
     </div>`;
@@ -241,7 +290,8 @@ export function dialogContent(state, ui, quote) {
   if (ui.dialog === 'summary' && state.summary) return `${summaryContent(state.summary)}<div data-tour="week-summary">${tutorialNote(state, true)}</div><footer class="dialog-footer"><button type="button" class="button primary" data-ui="close-dialog">继续经营</button></footer>`;
   if (ui.dialog === 'event' && state.events.length) {
     const event = state.events[0];
-    return `<header class="dialog-header"><div><p class="eyebrow">需要决定</p><h2 id="modal-title">${esc(event.title)}</h2></div></header><div class="dialog-body"><p>${esc(event.text)}</p>${ui.notice ? `<p role="alert" class="notice negative">${esc(ui.notice)}</p>` : ''}</div><footer class="dialog-footer">${event.choices.map(choice => `<button type="button" class="button secondary" data-action="resolve-event" data-id="${esc(event.id)}" data-choice="${esc(choice.id)}">${esc(choice.label)}</button>`).join('')}</footer>`;
+    const comic = /^assets\/[\w.-]+\.(?:webp|png|jpe?g|svg)$/i.test(event.comic ?? '') ? `<img class="event-comic" src="${esc(event.comic)}" alt="${esc(event.comicAlt ?? '客户插画')}" loading="lazy" decoding="async">` : '';
+    return `<header class="dialog-header"><div><p class="eyebrow">需要决定</p><h2 id="modal-title">${esc(event.title)}</h2></div></header><div class="dialog-body">${comic}<p>${esc(event.text ?? event.description)}</p>${ui.notice ? `<p role="alert" class="notice negative">${esc(ui.notice)}</p>` : ''}</div><footer class="dialog-footer">${event.choices.map(choice => `<button type="button" class="button secondary" data-action="resolve-event" data-id="${esc(event.id)}" data-choice="${esc(choice.id)}"${choice.disabled ? ' disabled' : ''}>${esc(choice.label)}</button>`).join('')}</footer>`;
   }
   if (ui.dialog === 'bankruptcy') return `<header class="dialog-header"><div><p class="eyebrow">${weekLabel(state.week - 1)} · 本局结束</p><h2 id="modal-title">公司破产</h2></div></header><div class="dialog-body"><p>连续两周资金为负，授信已无法覆盖到期支出。</p><p>期末现金 <strong class="negative">${yuan(state.cash)}</strong></p></div><footer class="dialog-footer"><button type="button" class="button primary" data-ui="restart">重新开局</button></footer>`;
   if (ui.dialog === 'restart') return '<header class="dialog-header"><h2 id="modal-title">重新开局？</h2></header><div class="dialog-body"><p>重新开局会结束这次经营。</p></div><footer class="dialog-footer"><button type="button" class="button secondary" data-ui="close-dialog">继续本局</button><button type="button" class="button primary" data-ui="restart">重新开局</button></footer>';

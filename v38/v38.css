@@ -297,6 +297,8 @@ input[type=range] { width: 100%; min-height: 44px; margin: 0; }
 .activity-list .badge { flex: none; }
 .todo-list { display: grid; gap: .46rem; }
 .todo-list > div, .todo-list > button { display: flex; justify-content: space-between; align-items: center; gap: .6rem; }
+.todo-list > button { text-align: left; }
+.todo-list button small { display: block; margin-top: .12rem; color: var(--ws-secondary); }
 .key-values { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 6rem), 1fr)); gap: .46rem; }
 .key-values > div { min-width: 0; padding: .48rem .55rem; background: var(--ws-well); border: 1px solid var(--ws-rule); border-radius: .36rem; }
 .key-values dt { color: var(--ws-secondary); font-size: .8rem; }
@@ -368,6 +370,8 @@ input[type=range] { width: 100%; min-height: 44px; margin: 0; }
 }
 .trade-product :is(small, span) { min-width: 0; overflow-wrap: anywhere; }
 .trade-note { font-size: .84rem; }
+.trade-factor { display: grid; gap: .2rem; margin-top: .42rem; }
+.trade-factor small { color: var(--ws-secondary); }
 .trade-flags { margin-top: .2rem; }
 .badge.negative { color: #f0a88f; border-color: #754833; background: #38241a; }
 .badge.positive { color: #aecb9b; border-color: #4b613d; background: #263320; }
@@ -510,6 +514,58 @@ dialog.dialog::backdrop { background: #0b0907bf; }
 .workspace > .tutorial { margin-bottom: var(--space); }
 .tutorial :is(.button, button) { margin-left: auto; }
 
+/* Company growth: staff, certifications, markets and key customers. */
+.macro-disclosure { margin-bottom: var(--space); }
+.macro-disclosure > summary { padding-inline: .28rem; font-weight: 700; }
+.growth-shortcuts { padding-inline: .25rem; }
+.growth-section, .market-card { scroll-margin: var(--gutter); }
+.market-card:target, .growth-section:target { border-color: var(--ws-mark); }
+.growth-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: .65rem; }
+.growth-card {
+  display: grid;
+  align-content: start;
+  gap: .5rem;
+  min-width: 0;
+  padding: .72rem;
+  border: 1px solid var(--ws-rule);
+  border-radius: .55rem;
+  background: var(--ws-well);
+  overflow-wrap: anywhere;
+}
+.growth-card-heading, .growth-person { display: flex; justify-content: space-between; align-items: start; gap: .55rem; }
+.growth-card-heading > .badge { flex: none; }
+.growth-person { justify-content: start; align-items: center; }
+.growth-person p, .growth-note { color: var(--ws-secondary); font-size: .86rem; }
+.growth-headshot { flex: none; width: 3.4rem; height: 3.4rem; border: 1px solid var(--ws-line-warm); border-radius: 50%; object-fit: cover; }
+.placeholder-headshot { display: grid; place-items: center; color: var(--ws-mark-bright); background: var(--ws-raised); font-weight: 700; }
+.growth-metrics { grid-template-columns: repeat(auto-fit, minmax(min(100%, 5.1rem), 1fr)); }
+.growth-metrics > div { background: var(--ws-raised); padding: .35rem .48rem; }
+.growth-subheading { margin: .85rem 0 .45rem; }
+.growth-note { margin-top: .55rem; }
+.growth-checklist, .market-inquiries { display: grid; gap: .32rem; list-style: none; margin: .15rem 0; padding: 0; font-size: .86rem; }
+.growth-checklist > li { display: flex; gap: .47rem; align-items: baseline; }
+.growth-checklist > li > span:first-child { flex: none; min-width: .9rem; color: var(--ws-mark); }
+.growth-checklist > li.positive > span:first-child { color: var(--ws-up); }
+.world-map { border: 1px solid var(--ws-rule); border-radius: .52rem; background: var(--ws-well); overflow: hidden; }
+.world-map svg { width: 100%; height: auto; max-height: 24rem; }
+.world-map figcaption { display: flex; gap: .85rem; padding: .35rem .65rem; border-top: 1px solid var(--ws-rule); font-size: .82rem; }
+.map-water { fill: #181710; }
+.map-grid { fill: none; stroke: #383126; stroke-width: 1; }
+.map-land { fill: #3a3124; stroke: #625444; stroke-width: 1; }
+.map-marker .map-hit { fill: transparent; }
+.map-marker .map-pin { fill: #231c13; stroke: var(--ws-mark); stroke-width: 1.6; }
+.map-marker text { fill: var(--ws-type); font-size: 13px; font-weight: 650; paint-order: stroke; stroke: #231c13; stroke-width: 3.4px; stroke-linejoin: round; }
+.map-marker.open .map-pin { fill: var(--ws-up); stroke: #cddbb5; }
+.map-marker.open text { fill: #c4daa9; }
+.map-marker:hover .map-pin, .map-marker:focus-visible .map-pin { stroke: var(--ws-mark-bright); stroke-width: 3.15px; }
+.market-links { display: flex; flex-wrap: wrap; gap: .22rem; margin: .4rem 0; }
+.market-links a { min-width: 3.8rem; padding-inline: .53rem; }
+.market-cards { grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); }
+.market-inquiries li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .15rem .5rem; border-top: 1px solid var(--ws-rule); padding-top: .22rem; }
+.market-inquiries small { color: var(--ws-secondary); }
+.rival-own { color: var(--ws-mark-bright); }
+.event-comic, .growth-comic { width: min(100%, 30rem); max-height: 60dvh; object-fit: contain; object-position: left center; border-radius: .45rem; }
+
 @media (max-width: 1140px) {
   .app-shell { grid-template-columns: 12.4rem minmax(0, 1fr); }
   .kpi-card :is(.sparkline, .spark) { width: 2.2rem; }
@@ -591,6 +647,11 @@ dialog.dialog::backdrop { background: #0b0907bf; }
   .dialog, .dialog-backdrop > .dialog { width: min(100%, 37rem); }
   dialog.dialog { max-width: calc(100% - 1rem); }
   .dialog-backdrop { padding: .5rem; }
+  .growth-shortcuts { gap: .2rem; padding: 0; }
+  .growth-shortcuts a { padding-inline: .41rem; }
+  .map-marker text { font-size: 20px; }
+  .market-links a { flex: 1 1 22%; }
+  .growth-cards, .market-cards { grid-template-columns: minmax(0, 1fr); }
   input:not([type=checkbox], [type=radio], [type=range]), select, textarea { font-size: 1rem; }
 }
 

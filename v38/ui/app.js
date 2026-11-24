@@ -1,6 +1,7 @@
 import { act, newGame } from '../engine/game.js';
 import { quote } from '../engine/quotes.js';
 import { inquiriesPage, ordersPage, quoteDialog } from './trade.js';
+import { growthPanel } from './growth.js';
 import { companyPage, dialogContent, esc, officePage, offworkPage, opening, shell, tourTarget } from './shell.js';
 
 const mount = document.querySelector('#v38-root');
@@ -15,13 +16,21 @@ let focusAfterDialog;
 let ui = freshUi();
 
 function freshUi() {
-  return { page: 'office', dialog: '', quoteId: '', quote: {}, filters: { category: '', availability: 'all' }, notice: '', tutorialStep: 0 };
+  return { page: 'office', dialog: '', quoteId: '', quote: {}, filters: { category: '', availability: 'all' }, notice: '', tutorialStep: 0, showMacro: false };
 }
 
-const pageViews = { office: officePage, inquiries: inquiriesPage, orders: ordersPage, company: companyPage, offwork: offworkPage };
+const pageViews = {
+  office: officePage,
+  inquiries: inquiriesPage,
+  orders: ordersPage,
+  company: (current, model) => companyPage(current, growthPanel(current, model)),
+  offwork: offworkPage,
+};
 const notices = {
   bid: '报价已提交，本周末开结果。', 'withdraw-bid': '已撤回报价。', borrow: '借款已到账。', repay: '已还款。',
   expedite: '加急已安排，船期提前一周。', collect: '已发出催款提醒。', sue: '已付诉讼费，等待追回。', liquidate: '库存已清仓。',
+  hire: '已办理入职。', 'dismiss-staff': '已办理离职。', 'buy-cert': '已取得认证。', 'open-market': '已进入新市场。',
+  exhibit: '已报名参展。', referral: '已请客户引荐。', factor: '保理款已到账。',
 };
 
 function render() {
@@ -30,7 +39,7 @@ function render() {
   } else {
     ui.tutorialStep = state.tutorial.done ? -1 : state.tutorial.step;
     const view = pageViews[ui.page];
-    mount.innerHTML = shell(state, ui, view(state, ui.page === 'inquiries' || ui.page === 'orders' ? ui : undefined));
+    mount.innerHTML = shell(state, ui, view(state, ui.page !== 'office' && ui.page !== 'offwork' ? ui : undefined));
   }
   renderDialog();
   highlightTutorial();
@@ -289,6 +298,10 @@ for (const root of [mount, dialog]) {
   root.addEventListener('input', input);
   root.addEventListener('change', change);
 }
+
+mount.addEventListener('toggle', event => {
+  if (event.target.matches('details[data-ui="macro-disclosure"]')) ui.showMacro = event.target.open;
+}, { capture: true });
 
 render();
 mount.removeAttribute('aria-busy');

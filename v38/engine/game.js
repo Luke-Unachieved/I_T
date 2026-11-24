@@ -1,6 +1,11 @@
 import { ASSISTANTS } from '../data/core.js';
+import { tradePolicy } from '../data/expansion.js';
+import { growthAction, growthEvent, growthWeek, initGrowth } from './expansion.js';
 import { generateInquiries, quote, resolveBid } from './quotes.js';
 import { random } from './rng.js';
+import { amount, factorValue, OPEN_RECEIVABLE, receivableValue, staffAbility } from './treasury.js';
+
+export { factorValue } from './treasury.js';
 
 const FIXED_COST = 1200;
 const WEEKLY_INTEREST = 0.0025;
@@ -9,10 +14,8 @@ const CREDIT = {
   BBB: [0.84, 0.025], BB: [0.76, 0.055], B: [0.65, 0.12],
 };
 const ACTIVE_ORDER = new Set(['procurement', 'production', 'transit']);
-const OPEN_RECEIVABLE = new Set(['open', 'overdue']);
 const STRONG_CREDIT = new Set(['AAA', 'AA', 'A']);
 
-const amount = (value) => Math.max(0, Math.min(Number.MAX_SAFE_INTEGER, Math.round(value)));
 const emptyFlow = () => ({ inflow: 0, outflow: 0, financing: 0, profit: 0, messages: [] });
 const emptyYear = (number, records = []) => ({ number, revenue: 0, profit: 0, deliveries: 0, late: 0, records });
 const changeRep = (s, delta) => { s.company.rep = Math.max(0, Math.min(100, s.company.rep + delta)); };
@@ -29,13 +32,14 @@ export function newGame({ name = '我的贸易工作室', assistant = ASSISTANTS
     summary: null, bankrupt: false, negativeWeeks: 0, tutorial: { step: 0, done: false },
     period: emptyFlow(), sequence: 0,
   };
+  initGrowth(s);
   s.inquiries = generateInquiries(s);
   return s;
 }
 
 export function netAssets(s) {
   const stock = s.inventory.reduce((sum, item) => sum + item.quantity * item.unitCost, 0);
-  const due = s.receivables.reduce((sum, item) => sum + (OPEN_RECEIVABLE.has(item.status) ? item.amount : 0), 0);
+  const due = s.receivables.reduce((sum, item) => sum + (OPEN_RECEIVABLE.has(item.status) ? receivableValue(s, item) : 0), 0);
   const unpaid = s.payables.reduce((sum, item) => sum + (item.paid ? 0 : item.amount), 0);
   const work = s.orders.reduce((sum, item) => sum + (ACTIVE_ORDER.has(item.status) ? item.costPaid - item.deposit : 0), 0);
   return s.cash + stock + due + work - unpaid - s.loan;
@@ -43,7 +47,7 @@ export function netAssets(s) {
 
 export function creditLimit(s) {
   const quality = s.receivables.reduce((sum, item) => (
-    sum + (OPEN_RECEIVABLE.has(item.status) && STRONG_CREDIT.has(item.buyer.credit) ? item.amount : 0)
+    sum + (OPEN_RECEIVABLE.has(item.status) && STRONG_CREDIT.has(item.buyer.credit) ? receivableValue(s, item) : 0)
   ), 0);
   return amount(Math.max(0, netAssets(s)) * (0.22 + s.company.rep * 0.003) + quality * 0.22);
 }
@@ -90,9 +94,26 @@ function spend(s, flow, value) {
   return paid;
 }
 
+function operations(s, flow) {
+  return {
+    receive: (value) => receive(s, flow, value),
+    spend: (value) => spend(s, flow, value),
+    log: (type, message) => log(s, type, message, flow),
+    changeRep: (delta) => changeRep(s, delta),
+    netAssets: () => netAssets(s),
+    id: (prefix) => nextId(s, prefix),
+    profit: (delta) => { flow.profit += delta; },
+  };
+}
+
 function schedulePayable(s, type, value, orderId) {
   if (value <= 0) return;
   s.payables.push({ id: nextId(s, 'pay'), type, amount: value, orderId, dueWeek: s.week, paid: false });
+}
+
+function scheduleReceipt(s, type, value, dueWeek, orderId, invoiceId) {
+  if (value <= 0) return;
+  s.queue.push({ id: nextId(s, 'scheduled-cash'), type, amount: value, orderId, invoiceId, dueWeek });
 }
 
 function consumeStock(s, productId, quantity) {
@@ -116,19 +137,20 @@ function placeOrder(s, flow, pitch, inquiry) {
   const cost = fromStock ? consumeStock(s, pitch.productId ?? inquiry.productId, pitch.quantity) : pitch.cost;
   if (cost === null) return null;
   const id = nextId(s, 'order');
+  const premium = pitch.insurancePremium ?? 0;
   const order = {
     ...pitch, id, productId: inquiry.productId, productName: inquiry.productName,
     buyer: { ...inquiry.buyer }, market: inquiry.market, bidId: pitch.id,
-    cost, profit: pitch.total - cost - pitch.shipping,
+    cost, profit: pitch.total - cost - pitch.shipping - premium,
     status: 'procurement', contractWeek: s.week, productionLeft: pitch.productionWeeks,
-    shippingLeft: pitch.shippingWeeks, penalty: 0, extraCost: 0,
+    shippingLeft: pitch.shippingWeeks, penalty: 0, extraCost: premium,
     costPaid: fromStock ? cost : pitch.prepayment,
     supplierScheduled: fromStock, freightScheduled: false,
     lateWeeks: 0, deliveredWeek: null, disruptionChecked: false, expedited: false,
   };
   s.orders.push(order);
   receive(s, flow, order.deposit);
-  spend(s, flow, order.prepayment);
+  spend(s, flow, order.prepayment + premium);
   return order;
 }
 
@@ -138,7 +160,7 @@ function closeBids(s, flow, assumeWins) {
     if (!inquiry) continue;
     const result = assumeWins ? { won: true, winner: s.company.name, price: bid.unitPrice } : resolveBid(s, inquiry, bid);
     const order = result.won ? placeOrder(s, flow, bid, inquiry) : null;
-    const record = { bidId: bid.id, inquiryId: inquiry.id, buyer: inquiry.buyer, winner: result.winner, price: result.price };
+    const record = { bidId: bid.id, inquiryId: inquiry.id, buyer: inquiry.buyer, winner: result.winner, price: result.price, currency: inquiry.currency };
     if (order) {
       flow.won.push({ ...record, orderId: order.id });
       log(s, 'won', `拿到${inquiry.buyer.name}的订单，已收定金 ¥${order.deposit.toLocaleString('zh-CN')}。`, flow);
@@ -182,6 +204,10 @@ function deliver(s, order, flow) {
   order.deliveredWeek = s.week;
   order.expectedPayWeek = s.week + order.terms;
   order.profit = bill - order.cost - order.shipping - order.extraCost;
+  const responsible = s.staff.find((person) => person.id === order.staffId);
+  const commission = amount(bill * (responsible?.commission ?? 0));
+  schedulePayable(s, 'commission', commission, order.id);
+  order.profit -= commission;
   order.status = balance > 0 ? 'delivered' : 'settled';
   flow.revenue += bill;
   flow.profit += order.profit;
@@ -189,15 +215,30 @@ function deliver(s, order, flow) {
   s.year.deliveries += 1;
   if (!order.lateWeeks) changeRep(s, 1);
   const relationship = s.relationships[order.buyer.id] ?? { deliveries: 0, rep: 0 };
+  relationship.buyer = order.buyer;
+  relationship.market = order.market;
+  relationship.comic = order.buyer.comic;
+  relationship.productId = order.productId;
   relationship.deliveries += 1;
   relationship.rep = Math.max(0, Math.min(100, relationship.rep + (order.lateWeeks ? -5 : 10)));
   s.relationships[order.buyer.id] = relationship;
   if (balance > 0) {
+    const currency = order.currency ?? 'CNY';
+    const fx = order.fx ?? 1;
+    const foreignBalance = currency === 'CNY' ? null : Math.max(0,
+      order.foreignTotal - (order.depositForeign ?? amount(order.deposit / fx)) - amount(order.penalty / fx));
     s.receivables.push({
       id: nextId(s, 'invoice'), orderId: order.id, buyer: order.buyer, market: order.market,
       amount: balance, dueWeek: order.expectedPayWeek, originalDueWeek: order.expectedPayWeek,
       status: 'open', delays: 0, reminderWeek: null, financing: order.financing,
+      currency, fx, foreignBalance, insuredRecovery: order.insuredRecovery ?? 0,
     });
+  }
+  const rebate = amount(bill * (order.rebateRate ?? 0));
+  if (rebate > 0) {
+    order.rebateAmount = rebate;
+    order.rebateWeek = s.week + 4;
+    scheduleReceipt(s, 'export-refund', rebate, order.rebateWeek, order.id);
   }
   log(s, 'delivered', `完成交付：${order.buyer.name}${balance > 0 ? `，预计第 ${order.expectedPayWeek} 周收到尾款` : '，款项已结清'}。`, flow);
 }
@@ -222,10 +263,11 @@ function progressOrders(s, flow, projecting) {
     if (order.status === 'production') {
       if (!order.disruptionChecked && order.source === 'factory') {
         order.disruptionChecked = true;
-        if (random(s) < 0.13) {
+        if (random(s) < 0.13 - staffAbility(s, 'operations', order.staffId) * 0.009) {
           const delay = 1 + Math.floor(random(s) * 2);
           const fee = Math.max(300, amount(order.cost * 0.06));
           order.productionLeft += delay;
+          order.expectedPayWeek += delay;
           if (!projecting) s.events.push({
             id: nextId(s, 'event'), type: 'factory-delay', title: '工厂排期延误',
             text: `${order.buyer.name}的货要晚 ${delay} 周。付 ¥${fee.toLocaleString('zh-CN')} 可以赶回原排期。`,
@@ -255,6 +297,7 @@ function finishPayment(s, item, flow, value, recovered = false) {
   const order = s.orders.find((candidate) => candidate.id === item.orderId);
   if (order && !recovered) order.status = 'settled';
   const correction = recovered ? paid : (paid - item.amount);
+  if (!recovered && item.currency !== 'CNY') item.fxGain = correction;
   if (order) order.profit += correction;
   flow.profit += correction;
   flow.collected.push({ id: item.id, amount: paid });
@@ -269,7 +312,9 @@ function progressReceivables(s, flow) {
       continue;
     }
     if (!OPEN_RECEIVABLE.has(item.status)) continue;
-    const [onTime, defaultRisk] = CREDIT[item.buyer.credit] ?? CREDIT.BBB;
+    const protectedTerms = item.financing === 'letter-of-credit';
+    const [onTime, defaultRisk] = protectedTerms ? [0.995, 0.001] : (CREDIT[item.buyer.credit] ?? CREDIT.BBB);
+    const financeAbility = staffAbility(s, 'finance');
     const roll = random(s);
     if (roll < defaultRisk) {
       item.status = 'bad-debt';
@@ -280,16 +325,46 @@ function progressReceivables(s, flow) {
         order.status = 'bad-debt';
         order.profit -= item.amount;
       }
-      log(s, 'bad-debt', `${item.buyer.name}无法支付尾款，可在订单页考虑诉讼。`, flow);
-    } else if (roll > Math.min(0.995, onTime + (item.reminderDueWeek === s.week ? 0.16 : 0)) && item.delays < 2) {
+      const insurance = item.financing === 'insured' ? amount(receivableValue(s, item) * item.insuredRecovery) : 0;
+      if (insurance > 0) {
+        item.insuranceDueWeek = s.week + 2;
+        scheduleReceipt(s, 'insurance', insurance, item.insuranceDueWeek, item.orderId, item.id);
+      }
+      log(s, 'bad-debt', `${item.buyer.name}无法支付尾款。${item.insuranceDueWeek ? `保险预计第 ${item.insuranceDueWeek} 周赔付。` : '可在订单页考虑诉讼。'}`, flow);
+    } else if (roll > Math.min(0.995, onTime + financeAbility * 0.006 + (item.collectionBoost ?? 0) + (item.reminderDueWeek === s.week ? 0.16 : 0)) && item.delays < 2) {
       item.dueWeek = s.week + 1 + Math.floor(random(s) * 4);
       item.status = 'overdue';
       item.delays += 1;
       const order = s.orders.find((candidate) => candidate.id === item.orderId);
       if (order) order.expectedPayWeek = item.dueWeek;
       log(s, 'overdue', `${item.buyer.name}延后付款，预计第 ${item.dueWeek} 周回款。`, flow);
-    } else finishPayment(s, item, flow, item.amount);
+    } else finishPayment(s, item, flow, receivableValue(s, item));
   }
+}
+
+function progressScheduledReceipts(s, flow) {
+  const pending = [];
+  for (const entry of s.queue) {
+    if (entry.dueWeek > s.week || !['export-refund', 'insurance'].includes(entry.type)) {
+      pending.push(entry);
+      continue;
+    }
+    const received = receive(s, flow, entry.amount);
+    flow.profit += received;
+    const order = s.orders.find((candidate) => candidate.id === entry.orderId);
+    if (order) order.profit += received;
+    if (entry.type === 'insurance') {
+      const item = s.receivables.find((candidate) => candidate.id === entry.invoiceId);
+      if (item) {
+        item.status = 'insured';
+        item.paidAmount = received;
+        item.paidWeek = s.week;
+        flow.collected.push({ id: item.id, amount: received });
+      }
+    }
+    log(s, 'collected', `${entry.type === 'insurance' ? '出口信用保险赔付' : '出口退税'}到账 ¥${received.toLocaleString('zh-CN')}。`, flow);
+  }
+  s.queue = pending;
 }
 
 function payBills(s, flow) {
@@ -301,8 +376,10 @@ function payBills(s, flow) {
     item.paid = true;
   }
   s.payables = s.payables.filter((item) => !item.paid);
-  const interest = amount(s.loan * WEEKLY_INTEREST);
-  flow.profit -= spend(s, flow, FIXED_COST + interest);
+  const rate = Math.max(0, WEEKLY_INTEREST + (tradePolicy(s, 'domestic').interestDelta ?? 0));
+  const interest = amount(s.loan * rate * (1 - staffAbility(s, 'finance') * 0.04));
+  const payroll = s.staff.reduce((sum, person) => sum + (person.salary ?? 0), 0);
+  flow.profit -= spend(s, flow, FIXED_COST + payroll + interest);
 }
 
 function finance(s, flow) {
@@ -321,12 +398,16 @@ function finance(s, flow) {
 
 function closeWeek(state, { assumeWins = false, projecting = false } = {}) {
   if (state.bankrupt || (!projecting && state.events.length)) return state;
-  const s = structuredClone(state);
+  // Forecast owns disposable working copies, so its 24 possible week steps need
+  // not clone years of company history again at every point on the chart.
+  const s = projecting ? state : structuredClone(state);
   const flow = { ...s.period, week: s.week, won: [], lost: [], delivered: [], collected: [], revenue: 0 };
   closeBids(s, flow, assumeWins);
   progressOrders(s, flow, projecting);
   progressReceivables(s, flow);
+  progressScheduledReceipts(s, flow);
   payBills(s, flow);
+  growthWeek(s, flow, operations(s, flow), { projecting });
   finance(s, flow);
   s.year.revenue += flow.revenue;
   s.year.profit += flow.profit;
@@ -337,39 +418,39 @@ function closeWeek(state, { assumeWins = false, projecting = false } = {}) {
   }
   s.history.push({
     week: s.week, cash: s.cash, loan: s.loan,
-    receivables: s.receivables.reduce((sum, item) => sum + (OPEN_RECEIVABLE.has(item.status) ? item.amount : 0), 0),
+    receivables: s.receivables.reduce((sum, item) => sum + (OPEN_RECEIVABLE.has(item.status) ? receivableValue(s, item) : 0), 0),
     orders: s.orders.reduce((sum, item) => sum + (ACTIVE_ORDER.has(item.status) ? 1 : 0), 0),
     revenue: flow.revenue, profit: flow.profit, inflow: flow.inflow, outflow: flow.outflow, rep: s.company.rep,
+    macro: { ...s.macro },
   });
   s.summary = flow;
   s.period = emptyFlow();
   s.week += 1;
   s.creditLine = creditLimit(s);
   s.inquiries = s.inquiries.filter((item) => item.expiresWeek >= s.week);
-  if (!s.bankrupt && !projecting) s.inquiries.push(...generateInquiries(s));
+  if (!s.bankrupt) s.inquiries.push(...generateInquiries(s));
   return s;
 }
 
 export const endWeek = (state) => closeWeek(state);
 
 export function forecast(state, draft) {
-  let baseline = state;
-  let hypothetical = structuredClone(state);
-  if (draft && !draft.error && hypothetical.inquiries.some((item) => item.id === draft.inquiryId)) {
+  const baseline = structuredClone({ ...state, bids: [] });
+  const hasDraft = draft && !draft.error && state.inquiries.some((item) => item.id === draft.inquiryId);
+  const hypothetical = state.bids.length || hasDraft ? structuredClone(state) : null;
+  if (hasDraft) {
     hypothetical.bids = [...hypothetical.bids.filter((bid) => bid.inquiryId !== draft.inquiryId), { ...draft, id: 'draft' }];
   }
   return Array.from({ length: 12 }, (_, index) => {
     const before = baseline.period;
-    const next = closeWeek(baseline, { projecting: true });
-    hypothetical = closeWeek(hypothetical, { assumeWins: true, projecting: true });
-    const flow = next === baseline ? emptyFlow() : next.summary;
-    baseline = next;
+    const flow = baseline.bankrupt ? emptyFlow() : closeWeek(baseline, { projecting: true }).summary;
+    if (hypothetical) closeWeek(hypothetical, { assumeWins: true, projecting: true });
     return {
       week: state.week + index,
       inflow: Math.max(0, flow.inflow - before.inflow),
       outflow: Math.max(0, flow.outflow - before.outflow),
       financing: Math.max(0, flow.financing - before.financing),
-      cash: baseline.cash, hypothetical: hypothetical.cash,
+      cash: baseline.cash, hypothetical: hypothetical?.cash ?? baseline.cash,
     };
   });
 }
@@ -446,11 +527,30 @@ export function act(state, action = {}) {
     case 'sue': {
       const item = s.receivables.find((record) => record.id === identifier && record.status === 'bad-debt');
       if (!item) return fail('只可对未追回的坏账提起诉讼。');
+      if (item.insuranceDueWeek) return fail('这笔坏账已申请保险赔付。');
       const fee = lawsuitFee(item);
       if (s.cash < fee) return fail('现金不足以支付诉讼费。');
       s.period.profit -= spend(s, s.period, fee);
       item.status = 'lawsuit';
       item.dueWeek = s.week + 2 + Math.floor(random(s) * 3);
+      break;
+    }
+    case 'factor': {
+      const item = s.receivables.find((record) => record.id === identifier);
+      const proceeds = factorValue(s, item);
+      if (!proceeds) return fail('只有未结清的应收可以办理保理。');
+      const received = receive(s, s.period, proceeds);
+      item.status = 'factored';
+      item.paidAmount = received;
+      item.paidWeek = s.week;
+      const correction = received - item.amount;
+      s.period.profit += correction;
+      const order = s.orders.find((candidate) => candidate.id === item.orderId);
+      if (order) {
+        order.status = 'settled';
+        order.profit += correction;
+      }
+      log(s, 'collected', `${item.buyer.name}的应收办理保理，到账 ¥${received.toLocaleString('zh-CN')}。`);
       break;
     }
     case 'resolve-event': {
@@ -462,7 +562,12 @@ export function act(state, action = {}) {
         const order = s.orders.find((item) => item.id === event.orderId);
         if (!order || s.cash < event.fee) return fail('现金不足以赶工。');
         order.productionLeft = Math.max(0, order.productionLeft - event.delay);
+        order.expectedPayWeek = Math.max(s.week, order.expectedPayWeek - event.delay);
         order.extraCost += spend(s, s.period, event.fee);
+      }
+      if (event.type !== 'factory-delay') {
+        const result = growthEvent(s, event, action.choice, operations(s, s.period));
+        if (result?.error) return fail(result.error);
       }
       s.events.splice(index, 1);
       break;
@@ -498,7 +603,11 @@ export function act(state, action = {}) {
       s.tutorial = { step: Math.min(4, step), done: s.tutorial.done || Boolean(action.done) || step === 5 };
       break;
     }
-    default: return fail('未知操作。');
+    default: {
+      const result = growthAction(s, action, operations(s, s.period));
+      if (!result) return fail('未知操作。');
+      if (result.error) return fail(result.error);
+    }
   }
   return { state: s };
 }

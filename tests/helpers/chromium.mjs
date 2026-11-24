@@ -8,13 +8,19 @@ import { once } from 'node:events';
 
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.png': 'image/png', '.mp3': 'audio/mpeg' };
 
-export async function launchBrowser(root) {
+export async function launchBrowser(root, { scenarios = false } = {}) {
   const server = createServer(async (req, res) => {
     const relative = decodeURIComponent(new URL(req.url, 'http://localhost').pathname).replace(/^\/+/, '') || 'index.html';
     if (relative === 'favicon.ico') { res.writeHead(204).end(); return; }
     const filename = path.resolve(root, relative);
     if (!filename.startsWith(path.resolve(root) + path.sep)) { res.writeHead(403).end(); return; }
-    try { const body = await readFile(filename); res.writeHead(200, { 'content-type': mime[path.extname(filename)] || 'application/octet-stream' }).end(body); }
+    try {
+      let body = await readFile(filename);
+      // This export exists only in this isolated test server's response. Production files
+      // are never changed, and normal onboarding tests use the unmodified response.
+      if (scenarios && relative === 'v38/ui/app.js') body = Buffer.concat([body, Buffer.from('\nexport function __scenarioForTest(value){state=value;ui=freshUi();render();}\nexport function __stateForTest(){return structuredClone(state);}\n')]);
+      res.writeHead(200, { 'content-type': mime[path.extname(filename)] || 'application/octet-stream' }).end(body);
+    }
     catch { res.writeHead(404).end('Not found'); }
   });
   server.listen(0, '127.0.0.1');

@@ -1,16 +1,17 @@
 import { BUYER_CREDITS, BUYER_TYPES, PRODUCTS, PRODUCT_BY_ID, RIVAL_COMPANIES, TUTORIAL_BUYERS } from '../data/core.js';
+import { clientComic, currencyRate, EXPORT_REBATE_RATE, FINANCING, MARKET_BY_ID, MARKETS, tradePolicy } from '../data/expansion.js';
 import { random } from './rng.js';
 
 const numberBetween = (state, low, high) => low + Math.floor(random(state) * (high - low + 1));
 const sample = (state, options) => options[numberBetween(state, 0, options.length - 1)];
 const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
 const sourceLabels = { stock: '现货仓', factory: '工厂排产', inventory: '用现有库存' };
-const domestic = { id: 'domestic', currency: 'CNY', fx: 1, shippingWeeks: 0, tariffRate: 0 };
+const domestic = MARKET_BY_ID.domestic;
 const activeOrder = item => !['paid', 'settled', 'cancelled', 'bad-debt', 'badDebt'].includes(item.status);
 
 function competitorBids(state, targetPrice, count) {
   const tracked = state.rivals?.filter(rival => rival.active !== false && !['failed', 'closed', 'acquired'].includes(rival.status));
-  const options = [...(tracked?.length ? tracked : RIVAL_COMPANIES)];
+  const options = [...(state.rivals?.length ? tracked : RIVAL_COMPANIES)];
   const rivals = [];
   while (options.length && rivals.length < count) {
     const [rival] = options.splice(numberBetween(state, 0, options.length - 1), 1);
@@ -22,7 +23,8 @@ function competitorBids(state, targetPrice, count) {
 }
 
 function makeInquiry(state, index, product, buyer, terms, market = domestic) {
-  const targetPrice = Math.max(1, Math.round(terms.targetPrice / market.fx));
+  const fx = currencyRate(state, market.currency);
+  const targetPrice = Math.max(1, Math.round(terms.targetPrice / fx));
   return {
     id: `w${state.week}-${index + 1}`,
     week: state.week,
@@ -39,14 +41,16 @@ function makeInquiry(state, index, product, buyer, terms, market = domestic) {
     dueWeek: state.week + terms.deadline,
     expiresWeek: state.week + terms.validity - 1,
     minRep: terms.minRep,
-    cert: terms.cert ?? null,
+    cert: terms.cert ?? market.cert,
     rivals: competitorBids(state, targetPrice, terms.competitors),
     market: market.id,
     currency: market.currency,
-    fx: market.fx,
+    fx,
     extraShippingWeeks: market.shippingWeeks,
     tariffRate: market.tariffRate,
     tutorial: terms.tutorial ?? false,
+    framework: terms.framework ?? false,
+    repeat: terms.repeat ?? false,
   };
 }
 
@@ -57,47 +61,96 @@ function tutorialInquiry(state, tutorial) {
   });
 }
 
-function regularInquiry(state, index) {
-  const product = sample(state, PRODUCTS);
-  const type = sample(state, BUYER_TYPES);
-  const buyerIndex = numberBetween(state, 0, type.names.length - 1);
-  const credit = type.grades[buyerIndex % type.grades.length];
-  const buyer = { id: `domestic-${type.id}-${buyerIndex}`, name: type.names[buyerIndex], type: type.label, credit, line: type.line };
-  const deadline = numberBetween(state, 2, 10);
-  const batch = numberBetween(state, type.lots[0], type.lots[1]);
+function regularInquiry(state, index, market, contact = null) {
+  const overseas = market.id !== domestic.id;
+  const preferred = overseas && random(state) < 0.8 ? PRODUCTS.filter(item => market.categories.includes(item.category)) : PRODUCTS;
+  const product = (contact && PRODUCT_BY_ID[contact.productId]) || sample(state, preferred);
+  const buyerTypes = state.company.certs.includes('audit') ? BUYER_TYPES : BUYER_TYPES.filter(item => item.id !== 'chain');
+  const type = sample(state, buyerTypes);
+  const names = overseas ? market.buyers : type.names;
+  const grades = overseas ? market.grades : type.grades;
+  const buyerIndex = numberBetween(state, 0, names.length - 1);
+  const credit = contact?.buyer.credit ?? grades[buyerIndex % grades.length];
+  const comicIndex = (MARKETS.indexOf(market) * 30 + BUYER_TYPES.indexOf(type) * names.length + buyerIndex) % 100 + 1;
+  const buyer = contact ? { ...contact.buyer, line: '上一批合作顺利，想再补一批。交货和回款条件都可以谈。' } : {
+    id: `${market.id}-${type.id}-${buyerIndex}`, name: names[buyerIndex],
+    type: type.label, credit, line: type.line, comicIndex,
+  };
+  if (contact) buyer.comic = clientComic(buyer, 'repeat');
+  const route = market.shippingWeeks + tradePolicy(state, market.id).delayWeeks;
+  const deadline = numberBetween(state, 2 + Math.max(0, route), 10 + Math.max(0, route));
+  const framework = !contact && type.id === 'chain' && state.company.certs.includes('supplier') && random(state) < 0.25;
+  const batch = numberBetween(state, type.lots[0], type.lots[1]) * (framework ? 5 : overseas ? 2 : 1);
   const { stock, factory } = product.sources;
-  const factorySuitable = deadline >= Math.max(2, Math.ceil(factory.days / 7) + 1) + 1;
+  const factorySuitable = deadline >= Math.max(2, Math.ceil(factory.days / 7) + 1) + 1 + route;
   const options = factorySuitable && batch >= 2 ? factory : stock;
   const quantity = options === factory ? factory.minQuantity * Math.ceil(batch / 2) : stock.minQuantity * batch;
   const unitFreight = (options.freightBase + Math.ceil(quantity / options.packSize) * options.freightPerBox) / quantity;
-  const targetPrice = Math.ceil((options.unitCost + unitFreight) * numberBetween(state, 125, 160) / 100);
+  const macroDemand = Math.max(0.8, Math.min(1.2, (state.macro?.consumer ?? 100) / 100));
+  const targetPrice = Math.ceil((options.unitCost + unitFreight) * numberBetween(state, 125, 160) / 100 * macroDemand);
   const gradeIndex = BUYER_CREDITS.indexOf(credit);
   const longest = Math.min(type.termLimit, [12, 10, 8, 6, 4, 3][gradeIndex]);
-  const minRep = batch >= 6 ? 65 : batch >= 4 ? 55 : 0;
+  const minRep = framework ? 80 : batch >= 6 ? 65 : batch >= 4 ? 55 : 0;
   return makeInquiry(state, index, product, buyer, {
     quantity, targetPrice, minRep, deadline,
-    weeks: numberBetween(state, 0, longest),
+    weeks: numberBetween(state, 0, contact ? Math.max(0, longest - 3) : longest),
     depositRate: sample(state, credit === 'B' ? [15, 20, 30] : [0, 10, 15, 20, 30]),
     validity: numberBetween(state, 1, 2),
     competitors: numberBetween(state, 1, 6),
-  });
+    cert: framework ? 'supplier' : market.cert,
+    framework, repeat: Boolean(contact),
+  }, market);
 }
 
 // A week's arrivals are appended by settlement, which independently removes expired inquiries.
 export function generateInquiries(state) {
-  const count = numberBetween(state, 4, 6);
+  const base = numberBetween(state, 4, 6);
+  const markets = state.company.markets.map(id => MARKET_BY_ID[id]).filter(Boolean);
+  const overseas = markets.filter(market => market.id !== domestic.id);
+  const exhibitions = (state.exhibitions ?? []).filter(item => item.untilWeek >= state.week && markets.some(market => market.id === item.market));
+  const sales = (state.staff ?? []).filter(person => person.role === 'sales').length;
+  const consumer = state.macro?.consumer ?? 100;
+  const count = Math.max(3, base + Math.min(4, sales) + Math.min(3, exhibitions.length) + (consumer >= 118 ? 1 : consumer <= 80 ? -1 : 0));
   const featured = TUTORIAL_BUYERS[state.week - 1];
   const arrivals = featured ? [tutorialInquiry(state, featured)] : [];
-  while (arrivals.length < count) arrivals.push(regularInquiry(state, arrivals.length));
+  const leadIndex = state.leads?.findIndex(item => item.buyer && item.untilWeek >= state.week && markets.some(market => market.id === item.market)) ?? -1;
+  if (leadIndex >= 0) {
+    const [lead] = state.leads.splice(leadIndex, 1);
+    arrivals.push(regularInquiry(state, arrivals.length, MARKET_BY_ID[lead.market], lead));
+  }
+  if (state.week % 4 === 0) {
+    const regulars = Object.entries(state.relationships ?? {}).filter(([id, client]) =>
+      client.deliveries >= 3 && client.rep >= 25 && !arrivals.some(item => item.buyer.id === id));
+    const entry = regulars.length ? sample(state, regulars) : null;
+    if (entry) {
+      const order = (state.orders ?? []).findLast(item => item.buyer?.id === entry[0]);
+      const info = entry[1];
+      const buyer = info.buyer ?? order?.buyer;
+      const market = MARKET_BY_ID[info.market ?? order?.market] ?? domestic;
+      if (buyer && markets.includes(market)) arrivals.push(regularInquiry(state, arrivals.length, market, { buyer, productId: info.productId ?? order?.productId }));
+    }
+  }
+  for (const item of exhibitions.slice(0, 3)) arrivals.push(regularInquiry(state, arrivals.length, MARKET_BY_ID[item.market]));
+  if (overseas.length && !arrivals.some(item => item.market !== domestic.id)) {
+    arrivals.push(regularInquiry(state, arrivals.length, sample(state, overseas)));
+  }
+  while (arrivals.length < count) {
+    const market = overseas.length && random(state) < 0.43 ? sample(state, overseas) : domestic;
+    arrivals.push(regularInquiry(state, arrivals.length, market));
+  }
   return arrivals;
 }
 
-function inventoryCost(state, productId, quantity) {
+function inventoryCost(state, productId, quantity, inquiryId) {
+  let reserved = (state.bids ?? []).filter(bid => bid.source === 'inventory' && bid.productId === productId && bid.inquiryId !== inquiryId)
+    .reduce((sum, bid) => sum + bid.quantity, 0);
   let remaining = quantity;
   let cost = 0;
   for (const item of state.inventory ?? []) {
     if (item.productId !== productId || !Number.isSafeInteger(item.quantity) || item.quantity < 1) continue;
-    const used = Math.min(remaining, item.quantity);
+    const held = Math.min(reserved, item.quantity);
+    reserved -= held;
+    const used = Math.min(remaining, item.quantity - held);
     const unitCost = item.unitCost ?? (Number.isSafeInteger(item.cost) ? Math.ceil(item.cost / item.quantity) : 0);
     cost += unitCost * used;
     remaining -= used;
@@ -124,8 +177,10 @@ function winProbability(state, inquiry, unitPrice, extraTerms, staff, financing)
   const priceEdge = clamp((inquiry.targetPrice - unitPrice) / distance, 0, 1);
   const relationships = state.relationships?.[inquiry.buyer.id];
   const priorSales = relationships?.deliveries ?? 0;
+  const salesTeam = (state.staff ?? []).filter(person => person.role === 'sales');
+  const generalSales = Math.max(0, ...salesTeam.map(person => person.ability ?? 0)) * 0.004;
   const mightSell = 0.16 + 0.69 * priceEdge ** 1.35 + (state.company.rep - 60) * 0.003 +
-    extraTerms * 0.025 + Math.min(5, priorSales) * 0.02 + (staff?.role === 'sales' ? (staff.ability ?? 0) * 0.012 : 0) -
+    extraTerms * 0.025 + Math.min(5, priorSales) * 0.02 + generalSales + (staff?.role === 'sales' ? (staff.ability ?? 0) * 0.012 : 0) -
     (financing === 'letter-of-credit' ? 0.06 : 0) - (state.energy < 35 ? 0.055 : 0);
   return { probability: clamp(mightSell, 0.03, 0.98), competitorFloor };
 }
@@ -140,7 +195,10 @@ export function quote(state, inquiry, options = {}) {
   if (inquiry.expiresWeek < state.week) return { error: '询盘已过了报价期限。' };
   if (inquiry.minRep > state.company.rep) return { error: `这笔询盘需要信誉 ${inquiry.minRep}。` };
   if (inquiry.cert && !state.company.certs.includes(inquiry.cert)) return { error: '公司还没有这笔询盘所需的认证。' };
-  if (!['standard', 'letter-of-credit', 'insured'].includes(financing) || (financing !== 'standard' && inquiry.market === domestic.id)) {
+  const market = MARKET_BY_ID[inquiry.market] ?? domestic;
+  const overseas = market.id !== domestic.id;
+  const policy = tradePolicy(state, market.id);
+  if (!Object.hasOwn(FINANCING, financing) || (financing !== 'standard' && !overseas)) {
     return { error: '这笔询盘不能使用所选贸易融资。' };
   }
   const staff = staffChoice(state, staffId);
@@ -153,34 +211,48 @@ export function quote(state, inquiry, options = {}) {
     return { error: `${supplier.name}需要至少 ${supplier.minQuantity} ${product.unit}，本单只有 ${quantity} ${product.unit}。` };
   }
   const productionWeeks = source === 'factory' ? Math.max(2, Math.ceil(supplier.days / 7) + 1) : source === 'stock' ? Math.max(1, Math.ceil(supplier.days / 7)) : 0;
-  const shippingWeeks = 1 + (inquiry.extraShippingWeeks ?? 0);
+  const extraShippingWeeks = Math.max(0, (inquiry.extraShippingWeeks ?? market.shippingWeeks) + policy.delayWeeks);
+  const shippingWeeks = 1 + extraShippingWeeks;
   const deliverWeek = state.week + productionWeeks + shippingWeeks;
   if (deliverWeek > inquiry.dueWeek) return { error: `最早第 ${deliverWeek} 周交货，赶不上第 ${inquiry.dueWeek} 周的交期。` };
-  const fx = inquiry.fx ?? 1;
-  const currency = inquiry.currency ?? 'CNY';
+  const currency = inquiry.currency ?? market.currency;
+  const fx = currencyRate(state, currency);
   const unitPrice = Math.max(1, Math.round(inquiry.targetPrice * ratio / 100));
   const foreignTotal = unitPrice * quantity;
   const total = Math.round(foreignTotal * fx);
-  const materialIndex = source === 'factory' ? (state.macro?.materials ?? 100) : 100;
-  const cost = source === 'inventory' ? inventoryCost(state, product.id, quantity) : Math.round(quantity * supplier.unitCost * materialIndex / 100);
-  if (cost === null) return { error: '库存不足以交齐这笔订单。' };
+  const financingMin = FINANCING[financing].threshold ?? 0;
+  if (total < financingMin) return { error: `信用证仅适用于总货款不低于 ¥${financingMin.toLocaleString('zh-CN')} 的海外订单。` };
+  const materialIndex = source === 'factory' ? Math.max(40, (state.macro?.materials ?? 100) + policy.materialDelta) : 100;
+  const cost = source === 'inventory' ? inventoryCost(state, product.id, quantity, inquiry.id) : Math.round(quantity * supplier.unitCost * materialIndex / 100);
+  if (cost === null) return { error: '扣除其他报价的预留量后，库存不足以交齐这笔订单。' };
   const baseFreight = supplier.freightBase + Math.ceil(quantity / supplier.packSize) * supplier.freightPerBox;
-  const overseasFactor = inquiry.market === domestic.id ? 1 : (state.macro?.freight ?? 100) / 100 * (1 + (inquiry.extraShippingWeeks ?? 0) / 2);
-  const shipping = Math.round(baseFreight * overseasFactor + cost * (inquiry.tariffRate ?? 0));
+  const overseasFactor = overseas ? Math.max(25, (state.macro?.freight ?? 100) + policy.freightDelta) / 100 * (1 + extraShippingWeeks / 2) : 1;
+  const tariffRate = overseas ? Math.max(0, (inquiry.tariffRate ?? market.tariffRate) + policy.tariffDelta) : 0;
+  const tariff = Math.round(cost * tariffRate);
+  const shipping = Math.round(baseFreight * overseasFactor) + tariff;
   const prepayment = source === 'inventory' ? 0 : source === 'factory' ? Math.round(cost * 0.3) : cost;
-  const deposit = Math.round(total * inquiry.depositRate / 100);
+  const depositForeign = Math.round(foreignTotal * inquiry.depositRate / 100);
+  const deposit = Math.round(depositForeign * fx);
   const terms = inquiry.terms + extraTerms;
   const expectedPayWeek = deliverWeek + terms;
-  const profit = total - cost - shipping;
-  if (![total, cost, shipping, prepayment, deposit, terms, expectedPayWeek].every(Number.isSafeInteger)) {
+  const insurancePremium = Math.round(total * (FINANCING[financing].premiumRate ?? 0));
+  const insuredRecovery = FINANCING[financing].recovery ?? 0;
+  const rebateRate = overseas ? clamp(EXPORT_REBATE_RATE + policy.rebateDelta, 0, 0.2) : 0;
+  const rebateEstimate = Math.round(total * rebateRate);
+  const commission = Math.round(total * (staff?.commission ?? 0));
+  const profit = total - cost - shipping - insurancePremium - commission;
+  if (![total, cost, shipping, prepayment, deposit, insurancePremium, rebateEstimate, commission, terms, expectedPayWeek].every(Number.isSafeInteger)) {
     return { error: '这笔询盘的金额或账期超出了可核算范围。' };
   }
   const acceptance = winProbability(state, inquiry, unitPrice, extraTerms, staff, financing);
   return {
     inquiryId: inquiry.id, productId: product.id, buyer: inquiry.buyer, market: inquiry.market,
     source, sourceLabel: source === 'inventory' ? sourceLabels.inventory : supplier.name, ratio, extraTerms, staffId, financing,
-    quantity, unitPrice, total, foreignTotal, cost, shipping, prepayment, deposit, profit, productionWeeks, shippingWeeks,
-    upfront: Math.max(0, prepayment - deposit), workingCapital: Math.max(0, cost + shipping - deposit), margin: profit / total,
+    quantity, unitPrice, total, foreignTotal, cost, shipping, prepayment, deposit, depositForeign, profit, productionWeeks, shippingWeeks,
+    upfront: Math.max(0, prepayment + insurancePremium - deposit),
+    workingCapital: Math.max(0, (source === 'inventory' ? 0 : cost) + shipping + insurancePremium + commission - deposit),
+    margin: profit / total,
+    tariff, insurancePremium, insuredRecovery, rebateRate, rebateEstimate, commission,
     quotedWeek: state.week, dueWeek: inquiry.dueWeek, deliverWeek, expectedPayWeek, terms, currency, fx,
     ...acceptance,
   };
