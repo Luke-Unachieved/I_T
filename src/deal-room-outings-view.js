@@ -65,6 +65,13 @@ const openingComics=Object.freeze({
  'awning-coffee':'assets/deal-outing-reel-awning-coffee.webp',
  'station-clock':'assets/deal-outing-reel-station-clock.webp'
 });
+// Only reuse an establishing frame when it also shows the chosen result beat.
+const verifiedFriendResultFrames=Object.freeze({
+ 'old-cinema:first':['old-cinema','旧影院的木售票窗，旁边是褪色的电影海报。'],
+ 'library-shelf:first':['library-shelf','图书馆旧藏里翻开的报纸。'],
+ 'rice-roll:first':['rice-roll','粉皮摊掀开蒸屉，热气从屉口升起来。'],
+ 'covered-market:first':['covered-market','收摊后的菜场通道，地面还带着雨水。']
+});
 function friendSpeech(id,line){
  const who=friendBy(id);if(!who||!line)return '';
  return '<div class="oo-speech"><i class="oo-speaker adviser-face adviser-'+who.id+'" aria-hidden="true"></i><blockquote><b>'+e(who.name)+'</b>'+e(openingDialogueQuote(line))+'</blockquote></div>';
@@ -94,6 +101,11 @@ function momentView(m,assets={},includeTravelArt=true){
  const detail=outingMoment(m);if(!detail)return '';
  const reveal=m.kind!=='friend'?null:m.placeId==='record-shop'&&m.choiceId==='follow-knocks'?[comicRehearsal,'不是敲门。第三下是给歌手的拍子。']:m.placeId==='chess-park'&&m.choiceId==='ask-blue-cap'?[comicRepair,'蓝盖压住的不是一张纸，是修车师傅还没下完的棋。']:null;
  if(reveal)return '<article class="oo-story oo-story-receipt"><figure class="oo-comic-frame"><img src="'+e(reveal[0])+'" alt="'+e(detail.outcome)+'"><figcaption class="comic-narration">'+e(reveal[1])+'</figcaption></figure>'+friendSpeech(m.companionId,detail.companionLine)+'</article>';
+ const verified=m.kind==='friend'?verifiedFriendResultFrames[m.placeId+':'+m.choiceId]:null;
+ if(verified){
+  const [art,alt]=verified;
+  return '<article class="oo-story oo-story-receipt"><figure class="oo-comic-frame"><img src="'+e(openingComics[art])+'" alt="'+e(alt)+'"><figcaption class="comic-narration">'+e(detail.outcome)+'</figcaption></figure>'+friendSpeech(m.companionId,detail.companionLine)+'</article>';
+ }
  if(m.kind==='trip'&&includeTravelArt)return '<article class="oo-story oo-story-receipt">'+tripMoment(m,detail,assets)+'</article>';
  return `<article class="oo-moment"><small>${e(detail.label)}</small><p class="comic-narration">${e(detail.outcome)}</p>${friendSpeech(m.companionId,detail.companionLine)}</article>`;
 }

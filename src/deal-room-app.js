@@ -36,7 +36,7 @@ import {PROPERTY_SCENE_ART,PROPERTY_CATALOGUE_ART,propertySceneArt} from './deal
 import {CAR_ART_BY_ID} from './deal-room-car-art.js';
 import {workspaceOpeningInbox,workspaceActiveOrders,openingNextWorkday,workspaceCurrentMarketOrder,workspaceMarketQueue,workspaceFamiliarInbox,workspaceInboxIndex,workspaceOrdersIndex,workspaceInquiryFromRef} from './deal-room-workspace-index.js';
 import {PROPERTY_CATALOG,propertyHoldings} from './deal-room-property.js';
-import {outingsView,bindOutings,openOutings} from './deal-room-outings-view.js';
+import {outingsView,bindOutings,openOutings} from './deal-room-outings-view.js?v=33';
 let workspaceOverride=null,propertyUI=null,outingsOpen=false,outingsUI={},sleepOpen=false,promotionUI={};
 import {openProductReorder} from './deal-room-career-focus.js';
 import {shopTrialView,shopShelfScene} from './deal-room-shop-trial.js';
