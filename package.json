@@ -1,0 +1,12 @@
+{
+  "name": "trade-tycoon-weekly",
+  "version": "38.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "python3 -m http.server 4173 --bind 127.0.0.1",
+    "test": "node --test",
+    "check": "npm test"
+  }
+}
