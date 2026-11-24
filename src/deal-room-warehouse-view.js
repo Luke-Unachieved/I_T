@@ -1,6 +1,6 @@
 import {exteriorWeatherSvg} from './deal-room-life-view.js';
 import {MARKET_PRODUCTS} from './deal-room-market-data.js';
-import {WAREHOUSE_TIERS,warehouseAvailable,warehouseSummary,previewWarehousePurchase,previewWarehouseExpansion,previewWarehouseWait} from './deal-room-warehouse.js';
+import {WAREHOUSE_TIERS,warehouseAvailable,warehouseSummary,previewWarehousePurchase,previewWarehouseExpansion} from './deal-room-warehouse.js';
 
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const cash=n=>Number.isSafeInteger(n)?'¥'+n.toLocaleString('zh-CN'):'—';
@@ -26,7 +26,7 @@ function bays(summary,ui){
   const p=productById(lot.productId);
   for(let i=0;i<lot.boxes;i++){
    const units=Math.min(lot.packSize,lot.remaining-i*lot.packSize);
-   all.push({state:lot.arrived?'stocked':'reserved',label:p.name+' '+units+p.unit+' · '+(lot.arrived?'已上架，可供货':'在途占位，'+day(lot.arrivalDay)+'到仓'),partial:lot.arrived&&units<lot.packSize});
+   all.push({state:lot.arrived?'stocked':'reserved',label:p.name+' '+units+p.unit+' · '+(lot.arrived?'已上架，可供货':'还在路上，'+day(lot.arrivalDay)+'到仓'),partial:lot.arrived&&units<lot.packSize});
   }
  }
  while(all.length<summary.capacity)all.push({state:'empty',label:'空仓位',partial:false});
@@ -54,7 +54,7 @@ function stockForm(state,summary,ui){
  '<button type="submit">核对箱数和费用</button></form><p data-wh-change hidden role="status">箱数已改，请重新核对费用。</p>'+
  '<div data-wh-costs><dl class="wh-facts">'+fact('采购商品数量',Number.isSafeInteger(q.quantity)?q.quantity+product.unit:'—')+fact('采购货款',cash(q.goodsCost))+fact('运费',cash(q.freight))+fact('本次实付',cash(q.cost))+fact('支付后可用现金',cash(q.cashAfter))+fact('预计到仓',day(q.arrivalDay))+fact('最晚到货前须留现金',cash(q.operatingReserve))+fact('采购后空余箱位',Number.isSafeInteger(q.freeAfter)&&q.freeAfter>=0?q.freeAfter+' 箱':'不足')+'</dl>'+
  (q.reason?'<p class="wh-warning" role="status" tabindex="-1" data-wh-reject>'+esc(q.reason)+'</p>':'')+
- (reviewed&&q.valid?'<p role="status">已核对 '+q.boxes+' 箱。确认后立即付款，不会收到客户货款，也不推进日期。</p>':'')+
+ (reviewed&&q.valid?'<p role="status">已核对 '+q.boxes+' 箱。确认后付货款和运费，货到仓后就能用。</p>':'')+
  '<button type="button" data-wh-buy class="wh-strong" '+(q.valid&&reviewed?'':'disabled')+'>'+esc(Number.isSafeInteger(q.cost)?'付 '+cash(q.cost)+'，预订 '+q.boxes+' 箱':'确认备货')+'</button></div></section>';
 }
 function expansion(state,summary){
@@ -66,10 +66,7 @@ function expansion(state,summary){
 }
 function waitView(state,m){
  if(!m.nextArrivalDay)return '';
- const q=previewWarehouseWait(state);
- return '<section class="wh-section wh-incoming"><h3>下一批在路上</h3><p>'+esc(day(q.arrivalDay)+'到仓，距今 '+q.days+' 天。等到那天会扣工作室日常开支 '+cash(q.operatingCost)+'。'+(m.lastArrivalDay>m.nextArrivalDay?'其他更晚的批次仍在路上。':''))+'</p>'+
- '<button type="button" data-wh-wait '+(q.valid?'':'disabled')+'>'+esc('等到'+day(q.arrivalDay)+' · 开支 '+cash(q.operatingCost))+'</button>'+
- (q.valid?'<p class="wh-caption">届时手头现金 '+esc(cash(q.cashAfter))+'。</p>':'<p class="wh-warning">'+esc(q.reason)+'</p>')+'</section>';
+ return '<section class="wh-section wh-incoming"><h3>下一批在路上</h3><p>'+esc(day(m.nextArrivalDay)+'到仓，距今 '+(m.nextArrivalDay-state.day)+' 天。到货后会自动进入库存。'+(m.lastArrivalDay>m.nextArrivalDay?'其他更晚的批次仍在路上。':''))+'</p></section>';
 }
 import {warehouseSceneArt,warehouseStage,warehouseSceneBoxes} from './deal-room-warehouse-art.js';
 export function warehouseView(state,ui={},model={}){
@@ -102,7 +99,6 @@ export function bindWarehouse(root,state,ui,rerender,dispatch,close){
  event('[data-wh-form]','submit',e=>{e.preventDefault();if(!inp)return;ui.warehouseBoxes=inp.value===''?'':Number(inp.value);
   const {d}=makeDraft(m,ui),q=previewWarehousePurchase(state,d);ui.warehouseChecked=stockKey(d);focus(q.valid?'[data-wh-buy]':'[data-wh-reject]');
  });
- event('[data-wh-buy]','click',()=>{const {d}=makeDraft(m,ui);if(ui.warehouseChecked!==stockKey(d)||!previewWarehousePurchase(state,d).valid)return;delete ui.warehouseChecked;dispatch({type:'BUY_WAREHOUSE_STOCK',...d});get('#wh-title')?.focus?.();});
- event('[data-wh-expand]','click',()=>{if(!m.nextTier)return;const d={target:m.nextTier.capacity,revision:m.revision};if(previewWarehouseExpansion(state,d).valid){delete ui.warehouseChecked;dispatch({type:'EXPAND_WAREHOUSE',...d});get('#wh-title')?.focus?.();}});
- event('[data-wh-wait]','click',()=>{const q=previewWarehouseWait(state);if(q.valid){delete ui.warehouseChecked;dispatch({type:'WAIT_WAREHOUSE_STOCK',revision:q.revision});get('#wh-title')?.focus?.();}});
+ event('[data-wh-buy]','click',()=>{const {d}=makeDraft(m,ui);if(ui.warehouseChecked!==stockKey(d)||!previewWarehousePurchase(state,d).valid)return;dispatch({type:'BUY_WAREHOUSE_STOCK',...d},()=>{delete ui.warehouseChecked;});get('#wh-title')?.focus?.();});
+ event('[data-wh-expand]','click',()=>{if(!m.nextTier)return;const d={target:m.nextTier.capacity,revision:m.revision};if(previewWarehouseExpansion(state,d).valid){dispatch({type:'EXPAND_WAREHOUSE',...d},()=>{delete ui.warehouseChecked;});get('#wh-title')?.focus?.();}});
 }

@@ -1,3 +1,4 @@
+import {comicDialogueBlock} from './deal-room-opening-dialogue.js';
 import {inquirySpeech} from './deal-room-inquiry-layout.js';
 import {organicTrayRepeatLetter,organicTrayRepeatOrder} from './deal-room-tray-repeat-proof.js';
 
@@ -34,6 +35,6 @@ export function evaRepeatInspectionView(scene){
 }
 export function evaRepeatPaidView(scene){
  if(scene?.stage!=='paid'||!['reorder','vip-volume'].includes(scene.option))return '';
- const dialogue=scene.option==='vip-volume'?'备用盘就留推车上，早餐忙起来随手能补。单子我也收好了。':'早餐台这批盘子补齐了。签收联和回执我放一块，营养科来查也方便。';
- return orderFigure(frames[scene.option],'「'+dialogue+'」','paid');
+ const dialogue=scene.option==='vip-volume'?'备用盘就留推车上，早餐忙起来随手能补。单子我也收好了。':'新旧能摞到一块儿，早班收起来省地方。以后补也别换款。';
+ return '<figure class="ws-order-comic ws-order-comic-paid">'+image(frames[scene.option])+'<figcaption class="comic-narration">'+frames[scene.option][1]+'</figcaption></figure>'+comicDialogueBlock('伊娃',dialogue);
 }

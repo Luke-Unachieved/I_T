@@ -1,3 +1,4 @@
+import {comicDialogueBlock} from './deal-room-opening-dialogue.js';
 import {inquirySpeech} from './deal-room-inquiry-layout.js';
 import {organicTrayRepeatLetter,organicTrayRepeatOrder} from './deal-room-tray-repeat-proof.js';
 
@@ -31,7 +32,7 @@ export function lukaRepeatOrderSpeech(scene){
  if(scene.stage==='receivable')return '数量没问题，新盘也能跟旧盘叠在一块儿。尾款到约好的日子我安排。';
  return '';
 }
-const orderFigure=(frame,caption,kind,lazy=false)=>'<figure class="ws-order-comic ws-order-comic-'+kind+'">'+picture(frame,lazy)+'<figcaption>'+caption+'</figcaption></figure>';
+const orderFigure=(frame,caption,kind,lazy=false)=>'<figure class="ws-order-comic ws-order-comic-'+kind+'">'+picture(frame,lazy)+'<figcaption'+(lazy?' class="comic-narration"':'')+'>'+caption+'</figcaption></figure>';
 export function lukaRepeatInspectionView(scene){
  if(!art.inspection||!scene||!['inspection','paid'].includes(scene.stage))return '';
  const replay=scene.stage==='paid';
@@ -41,6 +42,6 @@ export function lukaRepeatInspectionView(scene){
 export function lukaRepeatPaidView(scene){
  if(scene?.stage!=='paid')return '';
  const vip=scene.option==='vip-volume',frame=vip?art.vipPaid:art.reorderPaid;
- const dialogue=vip?'加订的那摞我单放了。下场布展时，直接连车推过去就行。':'签收联和回执我放一块，下回查起来方便。';
- return frame?orderFigure(frame,'「'+dialogue+'」','paid'):'';
+ const dialogue=vip?'两场展挨得近。有这批备用盘，第二场就不用临时等补货。':'下次补也别换款，盘子尺寸一变，备餐间就不好叠。';
+ return frame?'<figure class="ws-order-comic ws-order-comic-paid">'+picture(frame)+'<figcaption class="comic-narration">'+frame[3]+'</figcaption></figure>'+comicDialogueBlock('卢卡',dialogue):'';
 }

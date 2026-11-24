@@ -1,3 +1,5 @@
+import {netProfitAmount} from './deal-room-net-profit.js';
+import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
 import {cupPaperProofArt,selectedSample} from './deal-room-samples.js';
 import {previewOffer} from './deal-room-engine.js';
 import {comparePriorUnitPrice} from './deal-room-goods-prices.js';
@@ -16,7 +18,7 @@ export function quoteOptionExplanation(state, offer) {
   // Do not reveal an as-yet unmet next buyer's opening window to the player.
   if (!state.businessRound && !state.clientProjectActive && state.clientIndex === 0) {
     if (offer.id === 'trial') return '米拉：先给我这家 60 盏，货到我就付清。';
-    if (offer.id === 'rollout') return '米拉：三家一起订 120 盏，不付定金，我收货后第四天一次付清。';
+    if (offer.id === 'rollout') return '米拉：三家一起订 120 盏，不付定金，收货后 '+offer.payLag+' 天一次付清。';
   }
   return (offer.exchange || '').replace('本次总净赚较少','这单预计赚得较少');
 }
@@ -33,8 +35,16 @@ function openingBuyerVoice(client,state){
     if(!samirReadyInTime(state))return '这批赶不上开业，就按平时补货谈。无印字的和带纸套的，你都给我报个价吧。';
     if(previewOffer(state,'branded-opening').accepted!==true)return '开业先给我 80 只无印字的，货到我就付。要做店里的纸套，就按平时补货谈。';
   }
-  if(client.id==='ines'&&state&&previewOffer(state,'season').deliveryDay>11)
-    return '这批赶不上换季陈列，就按平时备货谈。两家店先试卖，一共 50 条，货到我就付。要是订 150 条，我先付三成，收货后第六天再付剩下的。';
+  if(client.id==='mira'&&state?.openingQuoteV2){
+    const lag=previewOffer(state,'rollout').payLag;
+    const days=['','一','两','三','四','五','六','七','八','九','十'];
+    return OPENING_DIALOGUE.mira.replace('收货后第四天',lag?'收货'+(days[lag]||lag)+'天后':'收货当天');
+  }
+  if(client.id==='ines'&&state){
+    const q=previewOffer(state,'season');
+    if(q.deliveryDay>11)return '这批赶不上换季陈列，就按平时备货谈。两家店先试卖，一共 50 条，货到我就付。要是订 150 条，我先付三成，收货后 '+q.payLag+' 天再付剩下的。';
+    if(state.openingQuoteV2)return OPENING_DIALOGUE.ines.replace('第六天',q.payLag+' 天');
+  }
   return OPENING_DIALOGUE[client.id];
 }
 export function openingBuyerLineView(client,quoteState){
@@ -58,8 +68,8 @@ export function openingQuoteChoicesView(state,client,options,selected){
     const active=samir?selectedSample(selected)===v.action:selected===v.quote;
     const unit=samir?'只':id==='mira'?'盏':'条';
     const m=[['订购量',q.quantity+' '+unit],['交货日期','第 '+q.deliveryDay+' 天'],
-       ['付款',q.accepted===false?(q.id==='all-now'?'拟全款预付':'待确认'):openingPayment(q)],
-       q.accepted===false?['状态','待客户确认']:[q.netProfit<0?'预计亏损':'预计净利',money(Math.abs(q.netProfit))]];
+       ['付款方式',q.accepted===false?(q.id==='all-now'?'拟全款预付':'待确认'):openingPayment(q)],
+       q.accepted===false?['状态','待客户确认']:[q.netProfit<0?'预计亏损':'预计净利',q.netProfit,'net-profit']];
     return inquiryOption(v.label,m,{hook:samir?'data-sample':'data-select',value:v.action,active});
   }).join('');
   return '<fieldset class="inquiry-choices"><legend>这批货怎么谈？</legend>'+cards+'</fieldset>';
@@ -75,22 +85,25 @@ function openingCounterVoice(state,offer,message){
       :'两种杯子都赶不上开业。做不做纸套都行，按平时补货给我重新报。';
   }
   if(offer.accepted===false&&offer.id==='all-now')
-    return '150 条我可以订，但不能先付全款。我先付三成，收货后第六天再付剩下的。要是不能留账期，就先做 50 条，货到我就付。';
+    return '150 条我可以订，但不能先付全款。我先付三成，收货后 '+previewOffer(state,'season').payLag+' 天再付剩下的。要是不能留账期，就先做 50 条，货到我就付。';
   return message;
 }
+// Translate save-capacity errors only at the view boundary.
+const quoteBlockMessage=reason=>typeof reason==='string'&&reason.includes('经营记录已到容量上限')
+  ?'这份存档暂时不能接新单。已签订单还能继续处理。':reason;
 function openingCommitment(state,offer,{action,quantityLabel,counterMessage}){
   const accepted=offer.accepted!==false,advance=Math.max(0,offer.cost-(offer.deposit||0));
   const note=openingCounterVoice(state,offer,counterMessage);
   const facts=[['订购量',quantityLabel||offer.quantity+' 件'],['总货款',money(offer.revenue)],
    ['备货及交付成本',money(offer.cost)],['定金',offer.deposit>0?money(offer.deposit):''],
-   ['你先垫付',offer.deposit>0?money(advance):''],['回款前日常开支',money(offer.operatingCost)],
+   ['你先垫付',offer.deposit>0?money(advance):''],[offer.sharedOperatingDays?'本单新增日常开支':'回款前日常开支',money(offer.operatingCost)],
    [offer.cashAfterSigning<0?'资金缺口':'签约后可用资金',money(Math.abs(offer.cashAfterSigning))],
    ['收齐后的可用资金',money(offer.cashAfterPayment)]];
   return '<section class="quote-commitment inquiry-settlement" aria-label="报价与签约">'+
    (!accepted&&!note?'<p class="inquiry-wait">客户确认后才能签约。</p>':'')+
    (note?inquirySpeech(note,{reply:true}):'')+
-   (!offer.valid&&offer.reason!==note?'<p class="quote-blocked" role="status">'+escape(offer.reason)+'</p>':'')+
-   (!accepted?'<button type="button" class="primary opening-ask" data-action="'+escape(action)+'"'+(offer.valid?'':' disabled')+'>发送报价</button>':'')+
+   (!offer.valid&&offer.reason!==note?'<p class="quote-blocked" role="status">'+escape(quoteBlockMessage(offer.reason))+'</p>':'')+
+   (!accepted?'<button type="button" class="primary opening-ask ws-control ws-control--main" data-action="'+escape(action)+'"'+(offer.valid?'':' disabled')+'>发送报价</button>':'')+
    (accepted?inquiryDetails('收支明细',inquiryFacts(facts)):'')+openingContractActions(offer,action)+'</section>';
 }
 export function quoteCommitmentView(state, offer, {roundActive=false,counterMessage='',action='PROPOSE',quantityLabel=null,client=null,opening=false,openingDesk=false}={}) {
@@ -109,7 +122,7 @@ export function quoteCommitmentView(state, offer, {roundActive=false,counterMess
   const twoReceipts = roundActive && offer.valid && Number.isSafeInteger(offer.paymentDay) && Number.isSafeInteger(offer.projectedSettlementDay) && offer.projectedSettlementDay > offer.paymentDay && Number.isSafeInteger(offer.cashAtOwnPayment);
   const expectedBalances = twoReceipts ? `<div class="quote-dated-balances" aria-label="预计可用资金" style="display:grid;gap:.35rem"><div><small>第 ${offer.paymentDay} 天 · 本单收齐</small><strong>${money(offer.cashAtOwnPayment)}</strong></div><div><small>第 ${offer.projectedSettlementDay} 天 · 两单收齐</small><strong>${money(offer.cashAfterPayment)}</strong></div></div>` : '';
   const counter = counterMessage ? `<p class="counter" role="alert">${escape(counterMessage)}</p>` : '';
-  const reason = !offer.valid ? `<p class="quote-blocked" role="status">${escape(offer.reason)}</p>` : '';
+  const reason = !offer.valid ? `<p class="quote-blocked" role="status">${escape(quoteBlockMessage(offer.reason))}</p>` : '';
   const showQuantity=escape(quantityLabel||`${offer.quantity} 件`);
   const offerFacts=opening?`<dl class="opening-quote-facts${signed?' opening-quote-confirmed':''}">
     <div><dt>数量</dt><dd>${showQuantity}</dd></div>
@@ -127,17 +140,17 @@ export function quoteCommitmentView(state, offer, {roundActive=false,counterMess
     ${offerFacts}<div class="quote-price"><span>${opening?'合同货款':'这单货款'}</span><strong>${money(offer.revenue)}</strong>${opening?'':`<small>${showQuantity}</small>`}</div>
     ${opening?'':pricing}${action==='PROPOSE'?comparePriorUnitPrice(state,offer,client)+shelfProofView(offer):''}<dl class="quote-now">${deposit>0?`<div><dt>客户先付定金</dt><dd>${money(deposit)}</dd></div>`:''}<div><dt>${opening?'备货及交付成本':'备货和交货'}</dt><dd>${money(offer.cost)}</dd></div>${deposit>0?`<div><dt>你先垫付</dt><dd>${money(advance)}</dd></div>`:''}<div class="quote-cash"><dt>${offer.cashAfterSigning<0?'还差':opening?'签约后可用资金':'签完还剩'}</dt><dd>${money(offer.cashAfterSigning<0?-offer.cashAfterSigning:offer.cashAfterSigning)}</dd></div></dl>
     ${opening?'':`<div class="quote-schedule"><span>第 <b>${offer.deliveryDay}</b> 天交货</span><span>第 <b>${offer.paymentDay}</b> 天收齐货款</span></div>`}
-    <p class="quote-profit"><span>${opening?'预计净利':'这单预计赚到'}</span><strong>${money(offer.netProfit)}</strong></p>
+    <p class="quote-profit"><span>${opening?'预计净利':'这单预计赚到'}</span><strong>${netProfitAmount(offer.netProfit)}</strong></p>
     ${(state.businessRound||state.clientProjectActive)&&nextStep?`<p class="opportunity quote-choice" aria-label="接下这单后的安排">${escape(nextStep)}</p>`:''}
-    <details class="quote-breakdown"><summary>这单怎么结算</summary>${opening?pricing:''}<p>货款 ${money(offer.revenue)} − 备货交付 ${money(offer.cost)} − ${roundActive?'仅做这单预计花费的':'回款前的'}日常开销 ${money(offer.operatingCost)} = 预计赚到 ${money(offer.netProfit)}</p><p>待收尾款 ${money(offer.balanceDue)}。${offer.valid&&!twoReceipts?(roundActive?'按已签订单的回款日期估算，收齐后':'本单收齐后')+'预计可用现金 '+money(offer.cashAfterPayment)+'。':''}</p>${expectedBalances}</details>
+    <details class="quote-breakdown"><summary>这单怎么结算</summary>${opening?pricing:''}<p>货款 ${money(offer.revenue)} − 备货交付 ${money(offer.cost)} − ${roundActive?'仅做这单预计花费的':'回款前的'}日常开销 ${money(offer.operatingCost)} = 预计赚到 ${netProfitAmount(offer.netProfit)}</p><p>待收尾款 ${money(offer.balanceDue)}。${offer.valid&&!twoReceipts?(roundActive?'按已签订单的回款日期估算，收齐后':'本单收齐后')+'预计可用现金 '+money(offer.cashAfterPayment)+'。':''}</p>${expectedBalances}</details>
     ${reason}${counter}${signed?'':'<p class="quote-action-note">先听听客户的回复，这一步不花钱。</p>'}
     ${openingDesk?openingContractActions(offer,action):`<button class="primary" data-action="${escape(action)}" ${offer.valid?'':'disabled'}>签下这单 <span aria-hidden="true">→</span></button>`}
   </section>`;
 }
 
 export function quoteBuyerBrief(state, client, selected='') {
-  if(state.businessRound&&!state.clientProjectActive&&client?.id==='samir'&&['cup-front-proof','cup-back-proof'].includes(selected))return '这批杯要上收银货架。标签不能跨包装折线；可以让出正面图案的位置，也可以另付一道背贴工序。普通补货还是原来的条件。';
-  if(['developed-lamp','second-developed-lamp'].includes(selected)) return (selected==='second-developed-lamp'?state.secondSupplier:state.productDevelopment)?.factory==='studio'?'展台白天要亮、晚上要柔和。我想先订一批调光灯试试。':'这批门店统一用暖光灯，我想按整批采购来谈。';
+  if(state.businessRound&&!state.clientProjectActive&&client?.id==='samir'&&['cup-front-proof','cup-back-proof'].includes(selected))return openingDialogueQuote('这批杯要上收银货架。标签不能跨包装折线；可以让出正面图案的位置，也可以另付一道背贴工序。普通补货还是原来的条件。');
+  if(['developed-lamp','second-developed-lamp'].includes(selected)) return openingDialogueQuote((selected==='second-developed-lamp'?state.secondSupplier:state.productDevelopment)?.factory==='studio'?'展台白天要亮、晚上要柔和。我想先订一批调光灯试试。':'这批门店统一用暖光灯，我想按整批采购来谈。');
   if (!state.businessRound && !state.clientProjectActive && state.phase==='negotiating' && client && Object.hasOwn(OPENING_DIALOGUE,client.id)) return openingBuyerVoice(client,state);
   return client?.brief || '';
 }

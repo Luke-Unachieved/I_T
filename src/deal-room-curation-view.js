@@ -1,3 +1,6 @@
+import {netProfitAmount} from './deal-room-net-profit.js';
+import {DAY_COST} from './deal-room-market.js';
+import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
 import {CURATION_PRODUCTS} from './deal-room-engine.js';
 import {quoteCommitmentView} from './deal-room-quote-view.js';
 import {sampleSvg} from './deal-room-samples.js';
@@ -7,20 +10,20 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 function buyerSpeech(buyer,message,live=false){
  if(typeof buyer!=='string'||!buyer.trim()||typeof message!=='string'||!message.trim())return '';
  const line=message.trim(), punctuated=/[。！？…]$/.test(line)?line:line+'。';
- return `<figure class="curation-buyer-speech"${live?' role="status"':''}><figcaption>${esc(buyer.trim())}：</figcaption><blockquote>“${esc(punctuated)}”</blockquote></figure>`;
+ return `<figure class="curation-buyer-speech"${live?' role="status"':''}><figcaption>${esc(buyer.trim())}：</figcaption><blockquote>${esc(openingDialogueQuote(punctuated))}</blockquote></figure>`;
 }
 // A counteroffer changes exactly one existing choice. Keep the referrer's anchor,
 // a specifically selected dimmer and the current packaging. A budget fit is not a signature.
 function curationBudgetCounter(brief,q,availableCash){
  if(!q||q.valid!==false||!String(q.reason).startsWith('超过预算 ')||!Number.isSafeInteger(brief?.budget)||q.revenue<=brief.budget||!Number.isSafeInteger(q.cost)||q.deposit*2!==q.revenue||![40,60].includes(q.quantity)||!q.products?.includes(brief.anchor))return '';
  const offers=[];
- function add(attr,label,revenue,cost){
+ function add(attr,label,revenue,cost,operating=q.operatingCost){
   if(![revenue,cost].every(Number.isSafeInteger)||revenue<=0||cost<0||revenue>brief.budget)return;
-  const needed=cost-Math.floor(revenue/2)+q.operatingCost,shortfall=Number.isSafeInteger(availableCash)?Math.max(0,needed-availableCash):0;
-  offers.push(`<button class="quote" ${attr}><strong>${esc(label)}</strong><span>货款 ${money(revenue)}，预计净赚 ${money(revenue-cost-q.operatingCost)}</span>${shortfall?`<small>预算可接受，工作室周转还差 ${money(shortfall)}。</small>`:''}</button>`);
+  const needed=cost-Math.floor(revenue/2)+operating,shortfall=Number.isSafeInteger(availableCash)?Math.max(0,needed-availableCash):0;
+  offers.push(`<button class="quote" ${attr}><strong>${esc(label)}</strong><span>货款 ${money(revenue)}，预计净赚 ${netProfitAmount(revenue-cost-operating)}</span>${shortfall?`<small>预算可接受，工作室周转还差 ${money(shortfall)}。</small>`:''}</button>`);
  }
  // Same packaging, model and due terms: both quantity and merchandise cost scale.
- if(q.quantity===60)add('data-curation-quantity="40"','保留整组，改为 40 套',q.price*40,q.cost/q.quantity*40);
+ if(q.quantity===60)add('data-curation-quantity="40"','保留整组，改为 40 套',q.price*40,q.cost/q.quantity*40,q.operatingCost-(q.quantityExtraDays||0)*DAY_COST);
  if(q.products.length===3)for(const item of CURATION_PRODUCTS){
   if(item.id===brief.anchor||!q.products.includes(item.id)||item.id==='mira'&&q.lampVersion==='developed')continue;
   add(`data-curation-product="${item.id}"`,`保留 ${q.quantity} 套，不放${item.name}`,q.revenue-q.quantity*item.price,q.cost-q.quantity*item.cost);
@@ -88,11 +91,14 @@ function linenStudyArt(pair){
 }
 
 export function businessFeedback(state,{viewingCase=null,supplyDraft=null}={}){
- if(state.feedback?.kind==='personal-life')return (state.feedback.message||'').replace('这是个人消费，不会提高订单收益。','把忙碌换成一点自己的日常。');
+ if(state.feedback?.kind==='personal-life')return (state.feedback.message||'').replace('这是个人消费，不会提高订单收益。','');
  if(state.feedback?.kind==='account-back')return '这份采购先放一放。';
  if(state.history?.at(-1)?.type==='CLOSE_CASE_GROWTH'&&state.caseGrowth?.status==='paid')return '这批已结清，客户留在合作簿里；下次按门店实际需求继续谈。';
  if(viewingCase)return `${viewingCase.buyer} · 第 ${viewingCase.deliveryDay} 天已交付，货款已收齐。`;
  if(supplyDraft)return '按客户两次收货日期，谈妥付款安排。';
+ const group=state.caseGrowth?.active;
+ if(state.phase==='case-growth'&&state.caseGrowth?.status==='paid'&&state.feedback?.kind==='case-growth-paid'&&group?.agreement==='private'&&group.buyer==='集团采购 · 匿名供货')
+  return state.feedback.message.replace(`，净赚 ${group.netProfit}。`,'。');
  if(state.feedback?.kind==='supply-complete')return `两批货已收齐，净赚 ${money(state.supplyPlan.netProfit)}。`;
  return state.feedback?.message||'一位海外客户发来了采购需求。';
 }
@@ -154,5 +160,5 @@ export function playerStatusText(text){
 export function curationReceiptView(state){
  const c=state.curation;
  if(state.feedback?.kind!=='curation-paid'||c?.status!=='paid'||![c.balanceDue,c.netProfit,state.cash,c.quantity].every(Number.isFinite))return '';
- return `<section class="curation-receipt" aria-label="这笔合作的回款"><small>这一单做成了</small><h3>${esc(c.buyer)} 已收齐这组产品</h3><p>${c.products.length} 款产品，各 ${c.quantity} 件，已经摆进客户的店里。</p><dl><div><dt>尾款到账</dt><dd>${money(c.balanceDue)}</dd></div><div><dt>${c.netProfit<0?'本单亏损':'这次净赚'}</dt><dd>${money(Math.abs(c.netProfit))}</dd></div><div><dt>手头现在有</dt><dd>${money(state.cash)}</dd></div></dl><small>货款已收齐。可以看看下一份合作，也可以下班回家。</small></section>`;
+ return `<section class="curation-receipt" aria-label="这笔合作的回款"><small>这一单做成了</small><h3>${esc(c.buyer)} 已收齐这组产品</h3><p>${c.products.length} 款产品，各 ${c.quantity} 件，已经摆进客户的店里。</p><dl><div><dt>尾款到账</dt><dd>${money(c.balanceDue)}</dd></div><div><dt>${c.netProfit<0?'本单亏损':'这次净赚'}</dt><dd>${netProfitAmount(c.netProfit)}</dd></div><div><dt>手头现在有</dt><dd>${money(state.cash)}</dd></div></dl><small>货款已收齐。可以看看下一份合作，也可以下班回家。</small></section>`;
 }

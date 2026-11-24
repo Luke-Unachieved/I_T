@@ -11,13 +11,13 @@ export function bindSaveBackupFile(root,panel,preview,report,maxBytes){
   const chosen=file.files?.[0],read=panel.fileRead={};
   if(!chosen)return;
   file.value='';panel.preview=null;panel.filesOpen=true;
-  if(chosen.size>maxBytes){report('存档超过 5 MiB，当前进度未修改。');return;}
+  if(chosen.size>maxBytes){report('文件超过 5 MiB，无法导入。当前进度没变。');return;}
   try{
    const data=await chosen.text();
    if(panel.fileRead!==read||file.isConnected===false)return;
    preview(data);
   }catch{
-   if(panel.fileRead===read&&file.isConnected!==false)report('无法读取存档文件，当前进度未修改。');
+   if(panel.fileRead===read&&file.isConnected!==false)report('读不到这个存档文件。当前进度没变。');
   }
  };
 }

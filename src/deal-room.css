@@ -211,22 +211,20 @@
 }
 #deal-room .ws-opening-signed .ws-signed-stages li[aria-current=step]{border-color:#d4b376}
 #deal-room .ws-opening-signed .ws-signed-stages time{font-weight:700;color:var(--ws-type,#ece8de)}
-#deal-room .ws-opening-signed .ws-opening-inspection-dialogue{
- margin:.65rem 0;padding:.55rem .75rem;border-inline-start:2px solid var(--ws-mark,#d7bd89);
- color:var(--ws-type,#ece8de);line-height:1.5
-}
-
 #deal-room .ws-opening-comic-stage{margin:.65rem 0}
-#deal-room .ws-opening-comic-stage .ws-opening-comic-voice{
- margin:.55rem 0;padding:.52rem .72rem;border-inline-start:2px solid var(--ws-mark,#d7bd89);
- line-height:1.5;color:var(--ws-type,#ece8de);
+
+/* A character's words sit apart from the panel's unobtrusive narration. */
+#deal-room :is(.ws-opening-signed .ws-opening-inspection-dialogue,:is(.ws-opening-comic-stage .ws-opening-comic-voice,:is(.ws-order-comic-paid,.ws-repeat-story) + .ws-opening-comic-voice)){
+ margin:.6rem 0;padding:.6rem .8rem;border-inline-start:2px solid var(--ws-mark,#d7bd89);
+ border-radius:0 6px 6px 0;background:#2b241c;
+ color:var(--ws-type,#ece8de);font-weight:400;line-height:1.55;
 }
-#deal-room .ws-opening-comic-stage .ws-opening-comic-voice p{margin:0}
-#deal-room .ws-opening-comic-stage .ws-opening-comic-voice footer{margin:.20rem 0 0;padding:0;color:#d8c8ad;font-size:.78rem}
+#deal-room :is(.ws-opening-comic-stage .ws-opening-comic-voice,:is(.ws-order-comic-paid,.ws-repeat-story) + .ws-opening-comic-voice) p{margin:0;color:inherit;font-weight:inherit}
+#deal-room :is(.ws-opening-comic-stage .ws-opening-comic-voice,:is(.ws-order-comic-paid,.ws-repeat-story) + .ws-opening-comic-voice) footer{margin:.20rem 0 0;padding:0;color:#d8c8ad;font-size:.78rem}
 
 /* Opening inspection, story and repeat strips on the dark order surface. */
 #deal-room > .business:is(.ws-opening-signed,.ws-opening-paid)
- :is(figure.ws-opening-inspection,.ws-opening-comic-stage > figure.ws-equipment-comic) > figcaption{
+ :is(figure.ws-opening-inspection,.ws-opening-comic-stage > figure.ws-equipment-comic) > figcaption:not(.comic-narration){
  color:var(--ws-secondary,#c3bcae);
 }
 
@@ -255,4 +253,15 @@
 @media(prefers-reduced-motion:no-preference){
  html:not(.reduce-motion) #deal-room img[data-deal-image="loading"]{animation:ws-image-wait 1.65s ease-in-out infinite}
  html:not(.reduce-motion) #deal-room img[data-deal-image="revealed"]{animation:ws-image-in .25s ease-out both}
+}
+
+#deal-room .ws-order-detail .ws-order-detail-note{color:var(--ws-type,#ece8de)}
+
+/* Signed net figures only: labels, currency and gross amounts stay neutral. */
+#deal-room .receipt strong.ws-net-result { color:inherit; }
+#deal-room .ws-net-profit { display:inline; font:inherit; line-height:inherit; margin:0; }
+#deal-room .ws-net-profit--gain { color:var(--ws-net-gain,#266443); }
+#deal-room .ws-net-profit--loss { color:var(--ws-net-loss,#a3272b); }
+#deal-room :is(.ws-order-detail,.ws-office,.inquiry-read,.ws-carafe-panel,.ws-ship-choice,.ws-work-quote,.market-modern) {
+ --ws-net-gain:#82d6a3; --ws-net-loss:#ff9d99;
 }

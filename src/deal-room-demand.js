@@ -39,5 +39,5 @@ export function buyerWaitView(state){
  if(!state.retailPlanning||state.phase!=='portfolio')return '';
  const options=Object.entries({mira:'Mira',samir:'Samir',ines:'Inês'}).map(([id,name])=>({id,name,wait:retailWait(state,id)})).filter(o=>o.wait).sort((a,b)=>a.wait.day-b.wait.day);
  if(!options.length)return '';
- return `<details class="buyer-wait"><summary>想继续和某位客户合作？</summary><p>可以等对方的下一批采购，不必为了推进日历接其他单。也可以回工作室做别的业务。</p>${options.map(({id,name,wait:w})=>`<button data-wait-buyer="${id}" ${w.valid?'':'disabled'}><strong>等 ${name} 到第 ${w.day} 天</strong><span>${w.days} 天 · 工作室支出 ¥${w.cost}</span></button>${retailPause(state,id)?`<button data-pause-buyer="${id}"><strong>暂停营业，等 ${name} 到第 ${w.day} 天</strong><span>资金不足时暂关工作室 ${w.days} 天 · 不营业、不计日费、不产生收入；客户照常销售现货。</span></button>`:''}`).join('')}</details>`;
+ return `<details class="buyer-wait"><summary>熟客的补货日期</summary><ul>${options.map(({name,wait:w})=>`<li>${name} 的门店预计第 ${w.day} 天需要补货。</li>`).join('')}</ul><p>这几天可以先接别的单，也可以从「下班」一天一天过。</p></details>`;
 }

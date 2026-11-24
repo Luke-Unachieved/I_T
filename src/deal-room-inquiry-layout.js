@@ -1,6 +1,15 @@
+import {netProfitAmount} from './deal-room-net-profit.js';
+import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export const inquirySpeech = (line, {reply=false,extra=''}={}) => line
- ? '<blockquote class="inquiry-speech'+(reply?' is-reply':' opening-quote-chat')+'"'+(reply?' role="status" tabindex="-1" data-prospect-reply':'')+'><p>'+esc(line)+'</p>'+(extra?'<small>'+esc(extra)+'</small>':'')+'</blockquote>' : '';
+ ? '<blockquote class="inquiry-speech'+(reply?' is-reply':' opening-quote-chat')+'"'+(reply?' role="status" tabindex="-1" data-prospect-reply':'')+'><p>'+esc(openingDialogueQuote(line))+'</p>'+(extra?'<small>'+esc(extra)+'</small>':'')+'</blockquote>' : '';
+
+// The same buyer heading supports trade pages with either fixed offers or adjustable prices.
+export function inquiryBuyerHeading({avatar='',name,organization,product,status,focusHook=''}){
+ return '<div class="prospect-byline inquiry-read-byline">'+avatar+'<div><div class="prospect-identity"><h2 class="inquiry-read-title" tabindex="-1" '+focusHook+'>'+esc(name)+'</h2>'+
+  (status?'<span class="prospect-quote-status inquiry-read-status" data-prospect-quote-status>'+esc(status)+'</span>':'')+'</div>'+
+  '<span class="prospect-origin">'+esc(organization)+'</span><span class="prospect-region">'+esc(product)+'</span></div></div>';
+}
 
 // Opening artwork is not a delivery/settlement reward. An unillustrated letter
 // keeps its own words; never substitute another buyer's or another product's art.
@@ -18,12 +27,12 @@ export function inquiryOpening(line,{kind,customerId,product}={}){
  return '<figure class="inquiry-comic"><img src="'+asset+'" width="1440" height="720" decoding="async" alt="'+esc(comic[2])+'"><figcaption>'+speech+'</figcaption></figure>';
 }
 
-export const inquiryFacts = (facts, kind='') => '<dl class="inquiry-facts'+(kind?' '+kind:'')+'">'+facts.filter(([,value])=>value!==''&&value!=null).map(([label,value])=>'<div><dt>'+esc(label)+'</dt><dd>'+esc(value)+'</dd></div>').join('')+'</dl>';
+export const inquiryFacts = (facts, kind='') => '<dl class="inquiry-facts'+(kind?' '+kind:'')+'">'+facts.filter(([,value])=>value!==''&&value!=null).map(([label,value,kind])=>'<div><dt>'+esc(label)+'</dt><dd>'+(kind==='net-profit'?netProfitAmount(value):esc(value))+'</dd></div>').join('')+'</dl>';
 // A native button may only contain phrasing content. Keep facts in spans here.
 export const inquiryOption = (title,facts,{hook,value,active=false}={}) =>
- '<button type="button" class="inquiry-option" '+hook+'="'+esc(value)+'" aria-pressed="'+active+'"><strong>'+esc(title)+'</strong><span class="inquiry-option-facts">'+facts.filter(([,value])=>value!==''&&value!=null).map(([label,value])=>'<span><small>'+esc(label)+'</small><b>'+esc(value)+'</b></span>').join('')+'</span></button>';
+ '<button type="button" class="inquiry-option" '+hook+'="'+esc(value)+'" aria-pressed="'+active+'"><strong>'+esc(title)+'</strong><span class="inquiry-option-facts">'+facts.filter(([,value])=>value!==''&&value!=null).map(([label,value,kind])=>'<span><small>'+esc(label)+'</small><b>'+(kind==='net-profit'?netProfitAmount(value):esc(value))+'</b></span>').join('')+'</span></button>';
 export const inquiryActions = ({backHook,backLabel='不接这单',signHook='',signValue='',canSign=false}) =>
- '<div class="inquiry-actions"><button type="button" class="quiet" '+backHook+'>'+esc(backLabel)+'</button><button type="button" class="primary"'+(signHook?' '+signHook+(signValue?'="'+esc(signValue)+'"':''):'')+(canSign?'':' disabled')+'>签约</button></div>';
+ '<div class="inquiry-actions"><button type="button" class="quiet ws-control ws-control--secondary" '+backHook+'>'+esc(backLabel)+'</button><button type="button" class="primary ws-control ws-control--main"'+(signHook?' '+signHook+(signValue?'="'+esc(signValue)+'"':''):'')+(canSign?'':' disabled')+'>签约</button></div>';
 export const inquiryDetails = (label,html,{kind=''}={}) => '<details class="inquiry-details'+(kind?' '+kind:'')+'"><summary>'+esc(label)+'</summary>'+html+'</details>';
 
 // Keep the keyboard on the result rather than reopening the price input.

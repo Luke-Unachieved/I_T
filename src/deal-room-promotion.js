@@ -2,7 +2,10 @@
 // the exact no-stranding reserve are reconstruction rules, not recovered odds.
 import {PROSPECT_CONTENT} from './deal-room-prospect-content.js';
 import {MARKET_PRODUCTS} from './deal-room-market-data.js';
-import {businessOpportunities} from './deal-room-engine.js';
+import {businessOpportunities,openFirstBuyers,openingQuoteProjection,previewOffer,quoteOptions} from './deal-room-engine.js';
+import {marketCalendarDue} from './deal-room-market-calendar.js';
+import {openingMarketOrders} from './deal-room-opening-market.js';
+import {openingFlow} from './deal-room-opening-calendar.js';
 
 export const PROMOTION_CHANNELS=Object.freeze([
   Object.freeze({id:'district',name:'街区商报',fee:380,replyDays:2,possible:'以小批试货为主，也可能收到铺货询价。'}),
@@ -27,9 +30,15 @@ const promoValidBook=b=>promoObj(b)&&Array.isArray(b.campaigns)&&b.campaigns.len
     c.replyDay===c.bookedDay+channel.replyDays&&promoDay(c.replyDay)&&!!promoFind(c.customerId)&&['trial','bulk'].includes(c.mode)&&
     (i===0||b.campaigns[i-1].replyDay<=c.bookedDay);})
   && new Set(b.campaigns.map(c=>c.customerId)).size===b.campaigns.length&&b.feesPaid===b.campaigns.reduce((a,c)=>a+c.fee,0);
+const livePhases=new Set(['transit','receivable']);
+const marketLive=s=>s?.market?.active?.kind!=='equipment'&&livePhases.has(s?.market?.status)&&!!marketCalendarDue(s);
+const bookingDuringOrders=s=>openingFlow(s)||marketLive(s)||!!s?.marketParked?.length||
+ (s?.businessRound&&!s.clientProjectActive&&s.phase==='fulfilling');
+const outstandingDays=s=>Math.max(0,...(s?.contracts||[]).filter(c=>c.status!=='paid').map(c=>c.paymentDay-s.day),
+ ...(s?.marketParked||[]).map(c=>c.paymentDay-s.day),...openingMarketOrders(s).map(c=>c.paymentDay-s.day),marketLive(s)?s.market.active.paymentDay-s.day:0);
 const promoReady=s=>s&&promoDay(s.day)&&promoUint(s.cash)&&promoUint(s.fame??0)&&(s.fame??0)<=100&&Array.isArray(s.contracts)&&Array.isArray(s.history)
-  && (s.marketHistory===undefined||Array.isArray(s.marketHistory)) && s.contracts.length>0&&s.contracts.every(c=>c?.status==='paid')&&!s.clientProjectActive&&!s.afterWorkOutings?.activeTrip&&
-  (['review','complete'].includes(s.phase)||s.phase==='market'&&s.market?.status==='draft');
+  && (s.marketHistory===undefined||Array.isArray(s.marketHistory)) && s.contracts.length>0&&!s.clientProjectActive&&!s.afterWorkOutings?.activeTrip&&
+  (bookingDuringOrders(s)||(s.contracts.every(c=>c?.status==='paid')&&(['review','complete'].includes(s.phase)||s.phase==='market'&&s.market?.status==='draft')));
 const promoInvalid=reason=>({valid:false,reason,action:null});
 const promoSettled=c=>c?.status==='paid'&&c.delivered===c.quantity&&c.received===c.revenue&&promoUint(c.paidDay);
 const promoMix=str=>{let n=2166136261;for(const c of str)n=Math.imul(n^c.charCodeAt(0),16777619);return n>>>0;};
@@ -59,6 +68,14 @@ export function promotionStatus(state){
  * restocks, keep enough for the least costly *actual settled order's* working gap. */
 export function promotionReserve(state){
   if(!promoReady(state))return null;
+  if(openingFlow(state)){
+   const available=openFirstBuyers(state).flatMap(c=>{
+    const qState=openingQuoteProjection(state,c.id);
+    return quoteOptions(qState,true).filter(q=>q.accepted).map(o=>previewOffer(qState,o.id))
+     .filter(q=>promoUint(q.cashRequired)).map(q=>({required:Math.max(0,q.cost-q.deposit),clientId:c.id,optionId:q.id,basis:'opening-next'}));
+   }).filter(q=>q.required<=state.cash);
+   return available.length?available.reduce((a,b)=>a.required<=b.required?a:b):{required:0,basis:'opening-in-flight'};
+  }
   const projected={...state,phase:'portfolio',businessRound:(state.businessRound||0)+1,...(state.supplyPlanHistory?.length?{retailPlanning:true}:{})};
   const available=businessOpportunities(projected).flatMap(c=>c.options.filter(q=>q.id!=='repeat-prepaid'&&q.valid&&q.accepted!==false&&promoUint(q.cashRequired))
     .map(o=>({required:o.cashRequired,clientId:c.id,optionId:o.id,basis:'ready-repeat'})));
@@ -70,13 +87,13 @@ export function promotionReserve(state){
 }
 export function previewPromotion(s,channelId){
   const ch=promoChannel(channelId);if(!ch)return promoInvalid('没有这个推广渠道。');
-  if(!promoReady(s))return promoInvalid('先收好手上这笔生意，再刊登找客广告。');
+  if(!promoReady(s))return promoInvalid('签下首单后，就可以刊登广告找客户。');
   const b=promoBook(s),st=promotionStatus(s);if(!st)return promoInvalid('推广记录暂时无法核对。');
   if(st.pending)return promoInvalid('已经刊登过一份广告，先等这次回信。');
   const replyDay=s.day+ch.replyDays;if(!promoDay(replyDay))return promoInvalid('回信日期无法核对。');
   const reserve=promotionReserve(s);
   if(!reserve)return promoInvalid('还没有可核对的生意周转金额。');
-  const waitBudget=ch.replyDays*30,minimum=reserve.required+ch.fee+waitBudget;
+  const waitBudget=Math.max(ch.replyDays,outstandingDays(s))*30,minimum=reserve.required+ch.fee+waitBudget;
   if(!promoUint(minimum))return promoInvalid('推广所需周转金额无法核对。');
   const target=promoTarget(s,b,ch);if(!target)return promoInvalid('这期暂无未接洽的新买家，免费询盘照常。');
   const revision='ad1-'+promoMix([ch.id,s.day,s.cash,s.fame??0,b.campaigns.length,reserve.required].join(':')).toString(36)+'-'+b.campaigns.length;
@@ -86,7 +103,7 @@ export function previewPromotion(s,channelId){
     action:valid?{type:'BOOK_PROMOTION_V1',channelId:ch.id,quotedFee:ch.fee,revision,confirmed:true}:null};
 }
 export function promotionWaitPreview(s){
-  const st=promotionStatus(s),wait=st?.pending;if(!promoReady(s)||!wait)return promoInvalid('没有可以等候的推广回信。');
+  const st=promotionStatus(s),wait=st?.pending;if(!promoReady(s)||!wait||openingFlow(s)||marketLive(s)||s.marketParked?.length||s.contracts.some(c=>c.status!=='paid'))return promoInvalid('没有可以等候的推广回信。');
   const days=wait.replyDay-s.day,cost=days*30,reserve=promotionReserve(s);
   if(!reserve||!promoUint(promoBook(s).waitCost+cost)||!promoUint(cost+reserve.required)||s.cash<cost+reserve.required)return promoInvalid('留足下一单周转后，手头不够付这段日常开支。');
   return {valid:true,reason:'',days,cost,cashAfter:s.cash-cost,replyDay:wait.replyDay,action:{type:'WAIT_PROMOTION_V1',campaignId:wait.id}};
@@ -94,7 +111,7 @@ export function promotionWaitPreview(s){
 /** Merge into the ordinary prospect inbox by person.id; never replace weekly
  * letters or paid repeaters. Merely reading a due letter does not mutate state. */
 export function promotionLeads(s){
-  if(!promoReady(s))return [];
+  if(!promoReady(s)&&!s?.promotionBook?.campaigns?.length)return [];
   const b=promoBook(s);if(!promoValidBook(b))return [];
   const settled=new Set((s.marketHistory||[]).filter(c=>promoSettled(c)&&c.paidDay<=s.day).map(c=>c.customerId));
   return b.campaigns.filter(c=>c.replyDay<=s.day&&!settled.has(c.customerId)).map(c=>{

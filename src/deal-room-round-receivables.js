@@ -50,3 +50,41 @@ export function previewRoundSigning(state,q,clientId){
   cashRequired:Math.max(0,q.cost-q.deposit),cashAfterSigning:state.cash+q.deposit-q.cost,
   cashAfterPayment:reason?null:s.cash,projectedSettlementDay:horizon,opportunityNote:'交货后可谈本轮第二单；尾款按原账期到账。两单收齐后再回工作室。'};
 }
+
+const actionDay=c=>c.status==='fulfilling'?c.deliveryDay:c.paymentDay;
+const openRoundOrders=s=>orders(s).filter(c=>['fulfilling','receivable'].includes(c.status)&&Number.isSafeInteger(actionDay(c))&&actionDay(c)>0)
+ .sort((a,b)=>actionDay(a)-actionDay(b)||(a.status==='receivable'?-1:1)-(b.status==='receivable'?-1:1));
+export function roundCalendarDue(s){
+ if(!s?.contracts||!roundReceivablesActive(s))return null;
+ const c=openRoundOrders(s)[0];
+ return c?{clientId:c.clientId,day:actionDay(c),delivery:c.status==='fulfilling',sameDay:c.status==='fulfilling'&&c.deliveryDay===c.paymentDay,contract:c}:null;
+}
+export function canonicalRoundCalendarAction(a){
+ return a?.type==='ROUND_CALENDAR_V1'&&Object.keys(a).length===3&&
+  ['mira','samir','ines'].includes(a.clientId)&&Number.isSafeInteger(a.checkedDay)&&a.checkedDay>0
+  ?{type:a.type,clientId:a.clientId,checkedDay:a.checkedDay}:null;
+}
+export function applyRoundCalendarAction(s,a){
+ const action=canonicalRoundCalendarAction(a),due=roundCalendarDue(s);
+ if(!action||!due||action.checkedDay!==s.day||action.clientId!==due.clientId||s.day<due.day||
+  !['fulfilling','portfolio','negotiating'].includes(s.phase))return s;
+ const paid=!due.delivery||due.sameDay;
+ if(paid&&(!Number.isSafeInteger(due.contract.balanceDue)||due.contract.balanceDue<0||!Number.isSafeInteger(s.cash+due.contract.balanceDue)))return s;
+ const n=clone(s),c=n.contracts[s.contracts.indexOf(due.contract)];
+ c.status=paid?'paid':'receivable';
+ if(paid){n.cash+=c.balanceDue;c.paidDay=s.day;}
+ if(due.delivery&&s.phase==='fulfilling')n.phase='portfolio';
+ n.feedback=due.delivery?{kind:'round-delivered',message:paid?'已交货，货款已收齐。':'已交货，还可以接着谈下一单。'}
+  :{kind:'round-receipt',message:'到期尾款已到账。'};
+ return n;
+}
+export function creditRoundSleep(prev,next,cost){
+ if(!prev?.contracts||!roundReceivablesActive(prev)||next?.day!==prev.day+1||!Number.isSafeInteger(cost)||cost<=0)return next;
+ const rows=openRoundOrders(prev),c=rows.find(row=>row.status==='fulfilling')||rows[0];
+ const owner=c&&next.contracts?.[prev.contracts.indexOf(c)];
+ if(owner&&owner.businessRound===c.businessRound&&owner.clientId===c.clientId){
+  owner.operatingCost+=cost;
+  owner.netProfit=owner.profit-owner.operatingCost;
+ }
+ return next;
+}

@@ -1,10 +1,11 @@
+import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
 import {MARKET_PRODUCTS} from './deal-room-market-data.js';
 import {neighborhoodRequest} from './deal-room-neighborhood.js';
 import {marketPlate} from './deal-room-market-art.js';
 
 // Dialogue is text, including the quantity and day quoted from a receipt.
 export function neighborhoodContact(line) {
-  const text=String(line).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+  const text=openingDialogueQuote(line).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
   return `<div class="neighborhood-contact"><img src="assets/deal-buyer-lin-yan.webp" width="72" height="72" alt="林妍的肖像"><div><strong>林妍</strong><small>四邻百货门店采购</small><p>${text}</p></div></div>`;
 }
 
@@ -25,7 +26,7 @@ export function neighborhoodInvite(state, receipts) {
 }
 
 export function neighborhoodQuote(stores, offer, unit) {
-  const line=stores===12?'第一批先供这十二家。每家拿一样多，你给我一个单价，我好把清单分给各店。':stores===18?'上一期的箱单还在。十八家店这回各拿一样多，你照本期总数报单价。':stores===24?'这次二十四家店一起补。每店数量不变，请照新清单报，不用沿用上一期的总数。':'请按每家店的数量配货，报一个单价。';
+  const line=stores===12?'第一批先供这十二家。每家拿一样多，你给我一个单价，我好把清单分给各店。':stores===18?'上一期的箱单还在。十八家店这回各拿一样多，你照本期总数报单价。':stores===24?'这期是 24 家。各店按清单上同一个数配，别按上期总数备货。':'请按每家店的数量配货，报一个单价。';
   return `<section class="market-buyer-brief" aria-label="林妍的采购要求">
   ${neighborhoodContact(line)}
   <dl class="market-brief-facts"><div><dt>门店</dt><dd>${stores} 家</dd></div><div><dt>每店</dt><dd>${offer.perStore} ${unit}</dd></div><div><dt>合计</dt><dd>${offer.quantity} ${unit}</dd></div></dl>

@@ -1,3 +1,4 @@
+import {marketParallelDue,settledMarketDesk} from './deal-room-market-calendar.js';
 import {MARKET_PRODUCTS} from './deal-room-market-data.js';
 // Private ordinary-goods stock, not the supplying depot or a bespoke lamp/linen batch.
 // Serialization: do NOT seed this property on existing/new games. The journal replays
@@ -40,8 +41,10 @@ export function canonicalWarehouseAction(a){
  return Object.fromEntries(keys.map(k=>[k,a[k]]));
 }
 export function warehouseAvailable(s){
+ const market=s?.market;
  return !!s&&positive(s.day)&&nonneg(s.cash)&&Array.isArray(s.contracts)&&s.contracts.some(c=>c?.status==='paid')&&s.contracts.every(c=>c?.status==='paid')&&
-  ((['review','complete'].includes(s.phase)&&(!s.market||['draft','paid'].includes(s.market.status)))||(s.phase==='market'&&s.market?.status==='draft'));
+  ((['review','complete'].includes(s.phase)&&(!market||['draft','paid'].includes(market.status)))||
+   (s.phase==='market'&&(market?.status==='draft'||settledMarketDesk(s))));
 }
 export function warehouseSummary(s){
  const w=raw(s);
@@ -88,7 +91,9 @@ export function previewWarehouseWait(s){
  const q=warehouseSummary(s),reason=ready(s,q,q.revision);if(reason)return bad(reason);
  if(!q.nextArrivalDay)return bad('没有等待到货的批次。');
  const arrivalDay=q.nextArrivalDay,days=arrivalDay-s.day,operatingCost=days*daysCost;
- const why=!nonneg(operatingCost)||s.cash<operatingCost?'现金不足以支付等货期间的日常开支。':'';
+ const due=marketParallelDue(s),cannotWait=due&&(s.day>=due.day||due.day<arrivalDay);
+ const why=cannotWait?(s.day>=due.day?'有订单到期了，请先去「订单」处理。':'第 '+due.day+' 天有订单待处理，不能直接等到货。请按天推进。'):
+  !nonneg(operatingCost)||s.cash<operatingCost?'现金不足以支付等货期间的日常开支。':'';
  return {valid:!why,reason:why,revision:q.revision,arrivalDay,days,operatingCost,cashAfter:s.cash-operatingCost};
 }
 export function applyWarehouseAction(s,a,canStart=true){

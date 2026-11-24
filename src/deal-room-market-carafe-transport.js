@@ -1,3 +1,5 @@
+import {netProfitAmount} from './deal-room-net-profit.js';
+import {isSpecialCarafe} from './deal-room-market-calendar.js';
 import {tradeAdviserHint} from './deal-room-market-adviser-hint.js';
 // Only this ordinary offer/consignment is evidenced in the pre-loss screenshot.
 const carafePanels=Object.freeze({
@@ -11,8 +13,15 @@ export function carafeComicFrame(kind){
 }
 export function carafeTransport(s){
  const a=s?.market?.active;
- if(s?.phase!=='market'||s.market.status!=='transit'||a?.status!=='transit'||a.kind||a.carafeCharter||a.productId!=='carafe'||a.buyer!=='岚岸餐饮采购社'||a.source!=='stock'||a.mode!=='bulk'||a.quantity!==72||a.unitPrice!==51||a.deposit!==1101||s.day!==a.signedDay||a.deliveryDay!==s.day+4||a.paymentDay!==s.day+9)return null;
+ if(s?.phase!=='market'||s.market.status!=='transit'||a?.status!=='transit'||!isSpecialCarafe(a)||a.carafeCharter||a.carafeStandard||s.day!==a.signedDay||a.deliveryDay!==s.day+4||a.paymentDay!==s.day+9)return null;
  return {fee:96,saved:60,delivery:a.deliveryDay-2,payment:a.paymentDay-2,affordable:s.cash>=96+a.operatingCost-60};
+}
+export function keepStandardCarafe(s){
+ if(!carafeTransport(s))return s;
+ const n=structuredClone(s);
+ n.market.active.carafeStandard=true;
+ n.feedback={kind:'market-standard-car',message:'这批货按原车安排。'};
+ return n;
 }
 export function charterCarafe(s){
  const q=carafeTransport(s);if(!q?.affordable)return s;
@@ -36,14 +45,14 @@ export function carafeTransportView(s,adviserId){
  const route=(title,action,fee,delivery,payment,profit,enabled,detail)=>
   '<button class="ws-carafe-route" type="button" data-market-action="'+action+'"'+(enabled?'':' disabled')+'>'+
   '<strong>'+title+'</strong><span class="ws-carafe-route-facts">'+
-  [['现在加付',money(fee)],['交货',day(delivery)],['收尾款',day(payment)],['预计净利',money(profit)]].map(([label,value])=>
+  [['现在加付',money(fee)],['交货',day(delivery)],['收尾款',day(payment)],['预计净利',netProfitAmount(profit)]].map(([label,value])=>
    '<span><span>'+label+'</span><b>'+value+'</b></span>').join('')+
   '</span><small>'+detail+'</small></button>';
  return '<section class="ws-ship-choice ws-route-decision"><header class="ws-carafe-call ws-order-decision-head"><div><h3>选运输方案</h3>'+
-  '<p><strong>联仓调度：</strong>冷水壶配齐了，能跟原车走。另叫一辆车能早送两天，车费要现在付。</p>'+
-  '<p><strong>岚岸采购：</strong>按原日子到也行，交班的人会收。要是早两天，培训的两组人都能用上。</p></div></header>'+
+  '<p><strong>联仓调度：</strong>“冷水壶配齐了，能跟原车走。另叫一辆车能早送两天，车费要现在付。”</p>'+
+  '<p><strong>岚岸采购：</strong>“按原日子到也行，交班的人会收。要是早两天，培训的两组人都能用上。”</p></div></header>'+
   '<div class="ws-carafe-routes">'+
-  route('走原车','DELIVER_MARKET',0,a.deliveryDay,a.paymentDay,a.netProfit,true,'按原计划交货')+
+  route('走原车','CHOOSE_CARAFE_STANDARD_V1',0,a.deliveryDay,a.paymentDay,a.netProfit,true,'保留原交货日')+
   route('确认包车','CHARTER_CARAFE_V1',q.fee,q.delivery,q.payment,a.netProfit-q.fee+q.saved,q.affordable,q.affordable?'先付车费，再安排交货':'手头现金不够包车并等到回款')+
   '</div><p class="ws-route-note">包车少付 '+money(q.saved)+' 日常开支，净多花 '+money(q.fee-q.saved)+'。</p>'+
   tradeAdviserHint(adviserId,q.affordable?'包车净多花 ¥36，能早两天收款。下一单要是正缺这笔钱，才值得换。':'包车费现在就得付，货款还要等。要是手头紧，按原班车走更稳。')+'</section>';

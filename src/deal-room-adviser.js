@@ -1,9 +1,15 @@
+import {netProfitAmount} from './deal-room-net-profit.js';
+import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
+import {openingContractMilestone} from './deal-room-opening-calendar.js';
+import {repeatContractMilestone} from './deal-room-repeat-calendar.js';
+import {openingMarketOrders,openingMarketProjection} from './deal-room-opening-market.js';
+import {openFirstBuyers,familiarBuyers} from './deal-room-engine.js';
 import {marketCalendarDue} from './deal-room-market-calendar.js';
-import {previewWorkspaceSleep} from './deal-room-workspace-sleep.js';
+import {previewLiveWorkspaceSleep as previewWorkspaceSleep} from './deal-room-workspace-sleep.js';
 import {carafeTransport} from './deal-room-market-carafe-transport.js';
 import {prospectDisplayText} from './deal-room-prospect-locale.js';
 import {DEAL_SAVE_KEY} from './deal-room-save.js';
-import {marketBook} from './deal-room-market.js';
+import {marketBook,marketAvailable,canParkMarketOrder,parkedMarketOrders} from './deal-room-market.js';
 import {neighborhoodRequest} from './deal-room-neighborhood.js';
 import {prospectInbox} from './deal-room-prospects.js';
 import {previewPromotion} from './deal-room-promotion.js';
@@ -14,10 +20,10 @@ import {equipmentOpportunity} from './deal-room-equipment.js';
 // Advisory text is projected from the current view. Navigating from a note only focuses a
 // visible control. Trading actions and the replayed business save stay under player control.
 const ADVISERS = [
-  {id:'fang', name:'方文斌', first:'手头的合同我来理。收件箱有新来信，你对哪封感兴趣？'},
-  {id:'liang', name:'梁佳音', first:'我把几位买家要货的日子圈出来了。哪一家的时间比较合适？'},
-  {id:'tao', name:'陶乐', first:'样品摆好了。我也想看看买家打算把它们用在哪儿。'},
-  {id:'xu', name:'许明珊', first:'收款日我都记在单子旁边了。哪笔周转得开，咱们一起算算？'}
+  {id:'fang', name:'方文斌', first:'先看有哪几封要回。你挑一封，我帮你把订单条件理清。'},
+  {id:'liang', name:'梁佳音', first:'这几家要货的日子不一样。先挑一单赶得上的。'},
+  {id:'tao', name:'陶乐', first:'先问清楚货摆在哪儿。做橱窗样品和补货，谈的条件不一样。'},
+  {id:'xu', name:'许明珊', first:'先看看这笔要垫多少、哪天收钱。别把下单的钱都压在这儿。'}
 ];
 const money = n => '¥' + n.toLocaleString('zh-CN');
 const escape = value => String(prospectDisplayText(value)).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -41,7 +47,7 @@ function quoteNote(quote, state, target) {
   if (quote.accepted === false) return suggested('对方没接受这份条件。要是还想谈，报价可以改。', price, '查看买方要求');
   if (quote.netProfit < 0) return suggested(`按这份报价要亏 ${money(-quote.netProfit)}。确认前还能调整条件。`, facts, '核对成本');
   if (quote.kind === 'equipment') return suggested('除了采购款，这单还有运费和验收费。船期也列在下面，方便一起算。', desk?'equipment-route':target, '查看设备条款');
-  return suggested(desk?'采购、运费和回款日放在一起，哪份报价占钱更久就看得出来了。':'这几份的垫款和回款日不一样，手头留的钱也会有差别。', price, '查看报价');
+  return suggested(desk?'先看看要垫多少、哪天能收回来。手上还有别的单，就把两边要付的钱一起算。':'这几份的垫款和回款日不一样，手头留的钱也会有差别。', price, '查看报价');
 }
 
 function inboxNote(state, atDesk) {
@@ -56,20 +62,56 @@ function inboxNote(state, atDesk) {
   return null;
 }
 
+const openingNames={mira:'米拉',samir:'萨米尔',ines:'伊内斯'};
+export function adviserNextMilestone(s){
+ const story=[openingContractMilestone(s),repeatContractMilestone(s)].filter(Boolean)
+  .map(d=>({...d,buyer:openingNames[d.clientId]}));
+ const active=s.phase==='market'?s.market?.active:null;
+ const market=[active,...parkedMarketOrders(s),...openingMarketOrders(s)].filter(Boolean).map(o=>{
+  const d=marketCalendarDue({phase:'market',market:{status:o.status,active:o}});
+  return d&&{...d,contract:o,buyer:prospectDisplayText(o.buyer)};
+ });
+ const account=s.phase==='account'&&s.account;
+ const delivery=account?.status==='fulfilling';
+ const dated=account&&['fulfilling','receivable'].includes(account.status)
+  ?{delivery,day:delivery?account.deliveryDay:account.paymentDay,contract:account}:null;
+ return [...story,...market,dated].filter(d=>Number.isSafeInteger(d?.day)&&d.day>0).sort((a,b)=>a.day-b.day)[0]||null;
+}
+function milestoneLine(d,day){
+ const action=d.stage==='ship'?'确认装船':d.sameDay?'确认交货并收款':d.delivery?'确认交货':d.equipment||d.contract?.deposit>0?'收取尾款':'收取货款';
+ const subject=d.buyer?d.buyer+'这单':'这笔订单';
+ if(d.day<=day)return subject+(d.day===day?'今天要':'已经到期，记得去订单里')+action+'。';
+ const event=d.stage==='ship'?'装船':d.sameDay?'交货并收款':d.delivery?'交货':d.equipment||d.contract?.deposit>0?'收尾款':'收货款';
+ return subject+'第 '+d.day+' 天'+event+'。';
+}
+function nextLetter(rows){
+ return [...rows].sort((a,b)=>(a.replyBy??Infinity)-(b.replyBy??Infinity))[0]||null;
+}
 function workspaceNote(s,person){
  const nav=(text,label,tab,ref)=>({text,label,tab,ref});
- if(s.phase==='paid'||s.phase==='market'&&s.market?.active&&s.market.status==='paid')return nav('这笔货款已收齐。可以去订单核对收款凭据。','查看收款凭据','orders');
- if(s.phase==='market'&&s.market?.active&&s.market.status!=='paid'||['fulfilling','supply','collection','collection-revision','stock-procurement','atelier-restock','linen-freight','studio-project'].includes(s.phase))
-  return nav('手头这单还没走完，交接安排和款项都在订单里。','看这笔订单','orders');
- if(s.phase==='negotiating')return nav(person.first,'去收件箱','inbox');
- if(!['review','complete','market'].includes(s.phase))return null;
- const letters=prospectInbox(s);
- if(letters.some(letter=>letter.replyBy===s.day))return nav('有封询盘今天截止，来信里列了数量和最迟收货日。','去收件箱','inbox');
- if(letters.length||inboxNote(s,false))return nav('有新来信了。买家要多少、什么时候收货，信里都写了。','去收件箱','inbox');
- if(previewPromotion(s,'district').valid)return nav('今天没有待回的询盘。要是想找新客户，推广页上有可选版位和价格。','去推广获客','development','promotion');
- const sleep=previewWorkspaceSleep(s);
- if(sleep.valid)return nav('今天没有待处理的订单。想收工的话，明天可以接着做。','去下班','afterwork');
+ const due=adviserNextMilestone(s), sleep=previewWorkspaceSleep(s);
+ if(due&&due.day<=s.day)return nav(milestoneLine(due,s.day),'去订单','orders');
+ const opening=openFirstBuyers(s),familiar=familiarBuyers(s),projection=openingMarketProjection(s,0);
+ const canOpen=marketAvailable(s)||canParkMarketOrder(s)||s.phase==='market'&&['draft','paid'].includes(s.market?.status);
+ const ordinary=projection?prospectInbox(projection):canOpen?prospectInbox(s,{whileActive:canParkMarketOrder(s)}):[];
+ const letter=nextLetter(ordinary);
+ const before=due?milestoneLine(due,s.day)+' ':'';
+ if(letter&&letter.replyBy===s.day)return nav(before+letter.person.displayName+'的询盘今天截止，有空可以先回这封。','去收件箱','inbox');
+ if(opening.length||familiar.length||letter)return nav(due?before+'还有来信没回，等货时也可以接着谈。':
+  opening.length&&!s.contracts?.length?person.first:'收件箱有来信，先看看数量和交货日期。','去收件箱','inbox');
+ if(previewPromotion(s,'district').valid)return nav(before+'要是想找新客户，可以先看这次推广要花多少钱。','去推广获客','development','promotion');
+ if(sleep.valid)return nav(before+'今天没有到期的订单。想收工的话，明天继续。','去下班','afterwork');
+ if(due)return nav(before.trim(),'去订单','orders');
  return null;
+}
+export function adviserInboxAdvice(s,rows){
+ const due=adviserNextMilestone(s);
+ if(due&&due.day<=s.day)return milestoneLine(due,s.day)+(rows.length?' 手上的单子办完，再回来看来信。':'');
+ const letter=nextLetter(rows);
+ if(letter&&Number.isSafeInteger(letter.replyBy))return letter.person.displayName+'的来信第 '+letter.replyBy+' 天截止。先看数量，再看看来不来得及交货。';
+ if(!rows.length)return due?milestoneLine(due,s.day):'';
+ if(due)return milestoneLine(due,s.day)+' 要接新单，先看看两笔生意的备货款会不会撞到一起。';
+ return '报价之前，咱们先算算要垫多少。客户愿意先付定金，这单就少占一点周转钱。';
 }
 export function adviserWorkspaceAdvice(s,ui={}){
  const person=ADVISERS.find(x=>x.id===ui.choice), note=person?workspaceNote(s,person):null;
@@ -102,7 +144,7 @@ export function orderFooterAdvice(s,adviserId){
  }else if((s.contracts||[]).some(o=>o.status==='fulfilling'))text='还有货待交，订单上能看到哪一笔先到期。';
  else if(['review','complete'].includes(s.phase))text='要对账的话，从「最近回款」能查到每笔实收。';
  if(!text)return '';
- return `<aside class="ws-order-tip" aria-label="${escape(person.name)}"><i class="adviser-face adviser-${person.id}" aria-hidden="true"></i><p>${escape(text)}</p></aside>`;
+ return `<aside class="ws-order-tip" aria-label="${escape(person.name)}"><i class="adviser-face adviser-${person.id}" aria-hidden="true"></i><p>${escape(openingDialogueQuote(text))}</p></aside>`;
 }
 function warehouseNote(s){
  const w=warehouseSummary(s);
@@ -118,6 +160,9 @@ function developmentNote(s){
  return suggested('除了推广，也可以留意合作客户的引荐，看看买手最近在找什么。','.ws-leads > summary','查看客户机会');
 }
 function currentNote(state, context, person) {
+  // An open inquiry can belong to another buyer while the journal is waiting
+  // for shipment or payment. Never infer this screen's outcome from that phase.
+  if(context.view==='inquiry')return context.quote?quoteNote(context.quote,state,context.place==='采购台'?'.market-quote':'.business'):null;
   if(context.place==='发展')return developmentNote(state);
   if(context.place==='自有仓库')return warehouseNote(state);
   if(context.place==='订单列表') {
@@ -134,11 +179,11 @@ function currentNote(state, context, person) {
     const text=q.pending.length?'有询盘今天截止。「睡到明天」里会列出这些来信。':'如果今天做完了，「睡到明天」里可以看到今天的工作室开支。';
     return suggested(text,home?'[data-home-sleep]':'[data-workspace-sleep]','看看睡前安排');
   }
-  if (context.place === '生活') return {text:'今天也可以歇一会儿。要是看中什么，标价和手头的钱都查得到。'};
-  if (context.place === '工作室布置') return {text:'布置和标价都能慢慢看，确认购买才会扣款。'};
-  if (context.place === '展览') return {text:'这次能拿来展出的作品都在这儿，想怎么摆都行。'};
+  if (context.place === '生活') return {text:'先看看价，买不买由你。'};
+  if (context.place === '工作室布置') return {text:'先比较两种布置。没点购买，不会扣钱。'};
+  if (context.place === '展览') return {text:'想换个摆法，先挑要摆出来的样品。'};
   if (context.place === '侧间') return {text:'侧间里的东西都还在，想换个摆法也行。'};
-  if (context.place === '收工') return {text:'收齐的货款已经留在账本里了。有空再回来接下一单。'};
+  if (context.place === '收工') return {text:'收到的货款都记到账本上了。'};
   if (state.phase === 'market') {
     const {status, active} = state.market;
     if (status === 'draft') {
@@ -169,23 +214,23 @@ function currentNote(state, context, person) {
     if (context.quote && (state.history.length || !context.quote.valid)) return quoteNote(context.quote, state, '.business');
     return suggested(person.first, '.business', '去看询盘');
   }
-  if (state.phase === 'fulfilling') return suggested('合同签好了，哪天交货、哪天收尾款都按单子上的约定走。', '.business','查看合同');
-  if (state.phase === 'paid') return suggested('这笔货款收齐了，交货日期和净利都记在收据上了。', '.receipt','查看收款凭据');
+  if (state.phase === 'fulfilling') return suggested('这单签了。交货日和收款日都在订单上。', '.business','查看合同');
+  if (state.phase === 'paid') return suggested('这笔货款收齐了，交货日期和净利都记在收据上了。', '.receipt','看收款记录');
   if (state.phase === 'portfolio') {
     const overdue = state.contracts.filter(c => c.status === 'receivable').sort((a,b) => a.paymentDay-b.paymentDay)[0];
     if (overdue) return suggested(`还有一笔 ${money(overdue.balanceDue)} 尾款，约在第 ${overdue.paymentDay} 天收。`, '.business','查看应收安排');
     return suggested('想接返单的话，这里能看到哪些客户有补货需求。', '.business','查看客户需求');
   }
   if (['review','complete'].includes(state.phase) && context.place === '工作室') return inboxNote(state,false) || suggested('手里这轮合同已经结清。可以看看采购台的新货，再决定接哪单。', '[data-action="OPEN_MARKET"]', '去找下一单');
-  return suggested('这笔的数量和付款日都列在单子上，随时可以核对。', '.business h2', '看看手头的单子');
+  return suggested('要对数量或收款日，打开手头这张单。', '.business h2', '看看手头的单子');
 }
 
 function equipmentCosts(q) {
   if (q?.kind !== 'equipment') return '';
   const rows = [['合同货款',q.revenue],['采购货款',q.goodsCost],['运费',q.freight],['验收费用',q.acceptanceFee],['日常开支',q.operatingCost]];
-  rows.push([q.shipping === 'locked' ? '锁舱预计净利' : '顺利时预计净利',q.netProfit]);
-  if (q.shipping === 'standard') rows.push(['换船场站费',q.stationFee],['换船风险下预计净利',q.riskNetProfit],['如选改订，另付',q.rebookFee]);
-  return '<details class="adviser-costs"><summary>这份设备报价怎么算</summary><dl>' + rows.map(([label,n]) => `<div><dt>${label}</dt><dd>${money(n)}</dd></div>`).join('') + '</dl></details>';
+  rows.push([q.shipping === 'locked' ? '锁舱预计净利' : '顺利时预计净利',q.netProfit,true]);
+  if (q.shipping === 'standard') rows.push(['换船场站费',q.stationFee],['换船风险下预计净利',q.riskNetProfit,true],['如选改订，另付',q.rebookFee]);
+  return '<details class="adviser-costs"><summary>这份设备报价怎么算</summary><dl>' + rows.map(([label,n,net]) => `<div><dt>${label}</dt><dd>${net?netProfitAmount(n):money(n)}</dd></div>`).join('') + '</dl></details>';
 }
 
 export function adviserPickerOpen(state,ui){
@@ -203,7 +248,7 @@ export function adviserView(state, context, ui) {
   const note = pick||minimal?{}:currentNote(state, context, person)??{};
   const action=note.tab?`<button type="button" class="quiet" data-adviser-tab="${note.tab}"${note.ref==='promotion'?' data-adviser-ref="promotion"':''}>${note.label} →</button>`:note.target?`<button type="button" class="quiet" data-adviser-focus="${escape(note.target)}">${note.label} →</button>`:'';
   const message=!pick&&!context.compact&&!minimal&&note.text;
-  const tip=message?`<div class="adviser-message"><i class="adviser-face adviser-${person.id}" aria-hidden="true"></i><div><p>${escape(note.text)}</p>${action}</div></div>`:action;
+  const tip=message?`<div class="adviser-message"><i class="adviser-face adviser-${person.id}" aria-hidden="true"></i><div><p>${escape(openingDialogueQuote(note.text))}</p>${action}</div></div>`:action;
   return `<aside class="adviser-panel" aria-label="工作室助理"><div class="adviser-byline"><i class="adviser-face adviser-${person.id}" aria-hidden="true"></i><strong>${person.name}</strong><button type="button" class="quiet" data-adviser-picker aria-expanded="${pick}">${band}</button></div>${controls}${tip}${pick?'':equipmentCosts(context.quote)}</aside>`;
 }
 // Resolve the nearest meaningful live control, never a paid action dispatch.

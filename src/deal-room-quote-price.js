@@ -1,3 +1,4 @@
+import {netProfitAmount} from './deal-room-net-profit.js';
 const MIN=1, MAX=100000;
 const money=(n,decimals=0)=>'¥'+n.toLocaleString('zh-CN',{minimumFractionDigits:decimals,maximumFractionDigits:decimals});
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -49,9 +50,9 @@ export function quotePriceControls({key,unit,price,guide,q,sent=false,canSend=tr
   '<output id="'+id+'" class="quote-price-output" tabindex="-1" aria-live="polite">'+display+'<small> / '+esc(unit)+'</small></output>'+stepButton(1,'+')+'</div>'+
   (sent?'':(guide?'<dl class="quote-price-hint"><div><dt>建议单价</dt><dd>'+money(guide.recommended)+'</dd></div><div><dt>保本价</dt><dd>'+money(guide.breakEven)+'</dd></div></dl>':'<p class="quote-price-basis">当前货源暂不能估算成本。</p>')+
    '<dl class="quote-price-metrics" aria-label="报价预估">'+
-   '<div><dt>'+(q.netProfit<0?'预计亏损':'预计净利')+'</dt><dd>'+(Number.isSafeInteger(q.netProfit)?money(Math.abs(q.netProfit)):'—')+'</dd></div>'+
+   '<div><dt>'+(q.netProfit<0?'预计亏损':'预计净利')+'</dt><dd>'+netProfitAmount(q.netProfit)+'</dd></div>'+
    '<div><dt>预计同意率</dt><dd data-quote-acceptance'+(forecast===null?' aria-label="暂不估计"':'')+'>'+result+'</dd></div></dl>')+
-  '</div><button class="primary quote-price-send" type="submit"'+(hasPrice&&canSend?'':' disabled')+ '><span class="quote-price-send-label">发送报价</span></button>';
+  '</div><button class="primary quote-price-send ws-control ws-control--main" type="submit"'+(hasPrice&&canSend?'':' disabled')+ '><span class="quote-price-send-label">发送报价</span></button>';
 }
 
 // The surrounding app redraws the screen; restore the same control without

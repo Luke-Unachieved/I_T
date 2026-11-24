@@ -1,3 +1,4 @@
+import {comicDialogueBlock} from './deal-room-opening-dialogue.js';
 import {prospectExtraScenes} from './deal-room-prospect-scenes-extra.js';
 import {marketCalendarDue} from './deal-room-market-calendar.js';
 import {prospectContentById,prospectInbox} from './deal-room-prospects.js';
@@ -349,7 +350,7 @@ const clientStories=Object.freeze({
 });
 const repeatTrayStories=Object.freeze({
  reorder:['assets/deal-client-comic-001-reorder.webp','采购把补到的餐盘和旧款对了一遍，再把签收联放回原来的夹子。','还是放老地方。新来的这一批跟上次叠在一起，换班的人不用再找。'],
- 'vip-volume':['assets/deal-client-comic-001-vip-volume.webp','多订的同款餐盘暂放在手推车上，采购按这批的收货单对照旧档。','加的那批先留在推车上。早餐台不挤，缺了再推过去补。']
+ 'vip-volume':['assets/deal-client-comic-001-vip-volume.webp','多订的同款餐盘暂放在手推车上，采购按这批的收货单对照旧档。','这回早班忙起来，缺盘就能接着拿，不用等下一批送到。']
 });
 function repeatTrayComic(order){
  if(order.customerId!=='001'||order.productId!=='tray'||order.prospectRepeat!==true||
@@ -357,7 +358,7 @@ function repeatTrayComic(order){
     !Number.isSafeInteger(order.signedDay)||order.prospectPreviousPaidDay>order.signedDay||
     !Object.hasOwn(repeatTrayStories,order.optionId))return '';
  const [art,alt,reply]=repeatTrayStories[order.optionId];
- return '<figure class="ws-work-story ws-repeat-story"><img src="'+art+'" alt="'+alt+'" loading="lazy"><figcaption>「'+reply+'」</figcaption></figure>';
+ return '<figure class="ws-work-story ws-repeat-story"><img src="'+art+'" alt="'+alt+'" loading="lazy"><figcaption class="comic-narration">'+alt+'</figcaption></figure>'+comicDialogueBlock('伊娃',reply);
 }
 const fullyPaid=(order,status)=>status==='paid'&&order?.status==='paid'&&order.kind==='prospect'&&Number.isSafeInteger(order.quantity)&&order.quantity>0&&Number.isSafeInteger(order.revenue)&&order.revenue>0&&order.delivered===order.quantity&&order.received===order.revenue;
 // A presentation-only check against the signed day's real organic offer. A
@@ -379,11 +380,11 @@ export function lukaTrayStoryMoment(state,matched=isLukaTrayStoryOrder(state)){
  return due?.delivery&&today>=due.day&&a.delivered===0&&a.deposit===0&&a.received===0?'inspection':
   fullyPaid(a,status)&&[a.deliveryDay,a.paymentDay,a.paidDay].every(Number.isSafeInteger)&&a.deliveryDay>=a.signedDay&&a.paymentDay>=a.deliveryDay&&a.paidDay>=a.paymentDay&&today>=a.paidDay?'paid':'';
 }
-function orderComicFigure(art,title,alt,kind,width,height,lazy=false){
- return '<figure class="ws-order-comic ws-order-comic-'+kind+'"><img src="'+art+'" alt="'+alt+'" width="'+width+'" height="'+height+'" decoding="async"'+(lazy?' loading="lazy"':'')+'><figcaption>'+title+'</figcaption></figure>';
+function orderComicFigure(art,title,alt,kind,width,height,lazy=false,voice=''){
+ return '<figure class="ws-order-comic ws-order-comic-'+kind+'"><img src="'+art+'" alt="'+alt+'" width="'+width+'" height="'+height+'" decoding="async"'+(lazy?' loading="lazy"':'')+'><figcaption'+(kind==='paid'||lazy?' class="comic-narration"':'')+'>'+title+'</figcaption></figure>'+voice;
 }
 function latestEvaFirstSigning(state){
- const check=a=>a?.type==='SIGN_PROSPECT_LOT_V1'&&a.customerId==='001';
+ const check=a=>['SIGN_PROSPECT_LOT_V1','SIGN_PROSPECT_LOT_V2'].includes(a?.type)&&a.customerId==='001';
  let sign=state.history?.findLast(check);
  for(let i=(state.historyPages?.length??0)-1;i>=0&&!sign;i--)sign=state.historyPages[i].findLast(check);
  return sign;
@@ -428,13 +429,13 @@ export function prospectComicView(order,status,{lukaMoment='',evaMoment=''}={}){
  const [art,title,alt]=entry[order.optionId];
  if(evaMoment==='paid'&&order.customerId==='001'&&order.productId==='tray'&&order.mode==='trial'){
   const quote=order.optionId==='quote';
-  const speech=quote?'签收联和回执我都夹好了。营养科来问，我能直接翻到这笔。':'两张单我对过了，就放一个夹子。下次缺多少，我早点来问你。';
-  return orderComicFigure(art,'「'+speech+'」',alt,'paid',quote?1280:1440,quote?854:960);
+  const speech=quote?'':'先给早班用着。要是还缺，我数清楚再来找你。';
+  return orderComicFigure(art,alt,alt,'paid',quote?1280:1440,quote?854:960,false,comicDialogueBlock('伊娃',speech));
  }
  if(lukaMoment==='paid'&&order.customerId==='006'&&order.productId==='tray'&&order.mode==='trial'){
-  const dialogue=order.optionId==='quote'?'回执发我一份吧。签收单在我这儿，两份正好一起存。':'下一场还要用盘。我先把缺的数记下来，要补货再给你发单。';
+  const dialogue=order.optionId==='quote'?'下一场展的托盘总算齐了。辛苦你了。':'下一场还要用盘。我先把缺的数记下来，要补货再给你发单。';
   const sceneAlt=order.optionId==='quote'?'卢卡拿着托盘，在桌边和会计核对单据。':'卢卡把灰色托盘放在旁边，记下下场要用的数量。';
-  return orderComicFigure(art,'「'+dialogue+'」',sceneAlt,'paid',1280,853);
+  return orderComicFigure(art,sceneAlt,sceneAlt,'paid',1280,853,false,comicDialogueBlock('卢卡',dialogue));
  }
  return '<details class="ws-work-story"><summary>'+title+'</summary><figure><img src="'+art+'" alt="'+alt+'" loading="lazy"></figure></details>';
 }

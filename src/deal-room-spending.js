@@ -11,5 +11,5 @@ export function spendingLiquidity(state,price){
 }
 export function spendingLiquidityView(state,price){
  const q=spendingLiquidity(state,price);if(!q)return '';
- return `<p class="spending-liquidity">这笔钱花完，当前熟客普通补货最小的一单还差 ¥${q.shortfall.toLocaleString('zh-CN')} 周转。<small>可以先做一单再买；也可以向需要补货的熟客让价，换取八成预付。</small></p>`;
+ return `<p class="spending-liquidity">买完后，就算接熟客最小的一笔普通补货单，还差 ¥${q.shortfall.toLocaleString('zh-CN')} 周转。<small>可以先接单再买，也可以给熟客让点价，谈八成预付。</small></p>`;
 }

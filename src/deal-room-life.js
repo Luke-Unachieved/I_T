@@ -8,9 +8,9 @@ export const LIFE_ITEMS = Object.freeze([
  Object.freeze({id:'coffee',name:'家用咖啡机',price:1200,detail:'给自己做一杯，不是给客户准备的样品。',verb:'磨豆，做一杯咖啡'}),
  Object.freeze({id:'books',name:'《沿街走走》手工书册',price:260,detail:'四篇关于小城和散步的短章，配一枚布书签。放在阅读椅旁，想读时接着上次翻。',verb:'翻开我的书册'}),
  Object.freeze({id:'record',name:'唱片机与首张唱片',price:1800,detail:'给收藏的第一张唱片，留一个喜欢的角落。',verb:'放上一张唱片'}),
- Object.freeze({id:'records',name:'周末双面唱片',price:2200,detail:'雨后散步的慢拍，与街角小舞步的轻快旋律。给唱片机添两面不同的音乐，选一张陪今晚。',verb:'挑一面周末唱片'})
+ Object.freeze({id:'records',name:'周末双面唱片',price:2200,detail:'一面是慢拍的《雨后散步》，另一面是轻快的《街角小舞步》。今晚想听哪一面？',verb:'挑一面周末唱片'})
 ]);
-const readingLamp=Object.freeze({id:'readinglamp',name:'三档调光阅读角',price:760,detail:'你交给 Mira 的那款调光灯，也能在家里用。另向工厂订一盏家用灯（¥180），再配木边几和安装（¥580）。这是自己的新灯，不占客户的货或工作室留样。',verb:'试试我的三档灯'});
+const readingLamp=Object.freeze({id:'readinglamp',name:'三档调光阅读角',price:760,detail:'你交给米拉的那款调光灯，也能在家里用。另向工厂订一盏家用灯（¥180），再配木边几和安装（¥580）。这是自己的新灯，不占客户的货或工作室留样。',verb:'试试我的三档灯'});
 const balcony=Object.freeze({id:'balcony',name:'窗外的小阳台',price:9600,detail:'把闲置的小阳台改成自己的露台：防滑地板、木凳和一个种植槽。苗和用具都在这笔预算里。可以种薄荷留一包茶料，或把小花做成桌上的干花。',verb:'推开阳台门'});
 const balconyOpen=s=>!!(s?.personalLife?.purchases?.length&&s.contracts?.some(c=>c.status==='paid'&&c.businessRound>0));
 const itemFor=id=>id==='balcony'?balcony:id==='readinglamp'?readingLamp:LIFE_ITEMS.find(item=>item.id===id);
@@ -32,7 +32,7 @@ export function lifePurchasePreview(state,id){
  const needsHome=id==='balcony'&&!balconyOpen(state);
  const available=lifeAvailable(state),valid=!needsHome&&!needsBasis&&!needsRecord&&!needsChair&&!!item&&available&&!owned&&Number.isSafeInteger(state.cash)&&state.cash>=item.price;
  const gate=!available&&item&&!owned&&!needsHome&&!needsBasis&&!needsRecord&&!needsChair?workspaceProgressCue(state):null;
- return {item,owned,valid,cashAfter:item?state.cash-item.price:state.cash,reason:!item?'没有这件物品':owned?'已在家里':needsHome?'先布置一件自己的家具，并结清一笔熟客复购':needsBasis?'先让 Mira 实际采用这款调光灯并结清货款':needsChair?'先给阅读角添一把椅子':needsRecord?'先给家里添一台唱片机':gate?gate.reason:state.cash<item.price?'手头的钱还不够':'',...(gate?.tab?{nextStep:{tab:gate.tab,label:gate.label}}:{})};
+ return {item,owned,valid,cashAfter:item?state.cash-item.price:state.cash,reason:!item?'没有这件物品':owned?'已在家里':needsHome?'家里先添一件家具，再做完一单老客户的生意':needsBasis?'先给米拉交付这款调光灯，再收齐货款':needsChair?'先给阅读角添一把椅子':needsRecord?'先给家里添一台唱片机':gate?gate.reason:state.cash<item.price?'手头的钱还不够':'',...(gate?.tab?{nextStep:{tab:gate.tab,label:gate.label}}:{})};
 }
 export function canonicalLifeAction(a){
  if(!a||typeof a!=='object'||Array.isArray(a)||!Object.hasOwn(LIFE_ACTION_KEYS,a.type)||!itemFor(a.itemId))return null;

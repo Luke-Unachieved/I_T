@@ -33,8 +33,7 @@ export function careerProjects(state){
  else if(['sampling','received'].includes(state.productDevelopment.status)){
   const d=state.productDevelopment,days=d.status==='sampling'?Math.max(0,d.sampleDay-state.day):0;
   product.step=days?'工厂会在第 '+d.sampleDay+' 天寄到实物。可先接旧款订单；已经用于交货的天数不用再等、再付日费。':'实物样已经到了。报价仍用旧款，直到你亲自确认新样。';
-  if(!days||state.cash>=days*30)product.actions=[action('COLLECT_FIRST_SAMPLE',days?'等余下 '+days+' 天取样 · ¥'+days*30:'拆看已经到货的工厂样')];
-  else product.step+=' 现在空等还差 ¥'+(days*30-state.cash)+'，也可以先做生意。';
+  if(!days)product.actions=[action('COLLECT_FIRST_SAMPLE','拆看已经到货的工厂样')];
  }else if(state.productDevelopment.status!=='active'){product.step='工厂正在准备新样，验过实物后再带去谈单。';}
  else if(state.productDevelopment.factory==='line'&&!acceptedLampSample(state,'studio')){product.title='让量产新样进入客户采购';product.step='带验过的暖光样找 Mira 谈 180 盏整批供货。不需要改成调光，也不能承诺客房调光。';product.actions=[{type:'OPEN_PRODUCT_REORDER',factory:'line',label:'找 Mira 谈量产样采购'}];}
  else if(!!acceptedLampSample(state,'studio')&&(state.contracts||[]).some(c=>c.clientId==='mira'&&c.status==='paid')){

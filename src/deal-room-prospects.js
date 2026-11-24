@@ -11,8 +11,15 @@ const pick=(items,n)=>items?.length?items[n%items.length]:'';
 const declineKey=(row,day)=>row.promotion?'campaign:'+row.promotion.campaignId:
  (row.isRepeat?'repeat:'+row.previous.paidDay+':':'week:')+Math.floor((day-1)/7)+':'+row.person.id;
 export function prospectRelationship(row){return (row?.repeatNumber??0)>=3?'VIP客户':row?.isRepeat?'稳定客户':'新客户';}
-export function prospectInbox(s){
- if(!s||!draftPhase(s)||!Number.isSafeInteger(s.day)||s.day<1||!s.contracts?.some(r=>r.status==='paid')||s.contracts.some(r=>r.status!=='paid'))return [];
+export function prospectInbox(s,{whileActive=false}={}){
+ if(!s||!draftPhase(s)&&!whileActive||!Number.isSafeInteger(s.day)||s.day<1)return [];
+ const duringOpening=s.market?.returnPhase==='opening';
+ if(duringOpening){
+  const busy=new Set([...(s.marketParked??[]),...(whileActive&&['transit','receivable'].includes(s.market?.status)?[s.market.active]:[])].map(a=>a?.customerId));
+  const ignored=new Set(s.dismissedProspectLetters??[]);
+  return promotionLeads(s).filter(row=>!busy.has(row.person.id)&&!ignored.has(declineKey(row,s.day)));
+ }
+ if(!s.contracts?.some(r=>r.status==='paid')||s.market?.returnPhase!=='familiar'&&s.contracts.some(r=>r.status!=='paid'))return [];
  const week=Math.floor((s.day-1)/7), closingDay=(week+1)*7, offset=week*5%PROSPECT_CONTENT.length;
  const paid=(s.marketHistory??[]).filter(r=>prospectIdValid(r.customerId)&&r.status==='paid'&&Number.isSafeInteger(r.paidDay)&&r.paidDay<=s.day&&r.delivered===r.quantity&&r.received===r.revenue);
  const previous=new Map();
@@ -46,7 +53,8 @@ export function prospectInbox(s){
  const rows=inbox.filter(Boolean),ids=new Set(rows.map(r=>r.person.id));
  for(const lead of promotionLeads(s))if(!ids.has(lead.person.id)){ids.add(lead.person.id);rows.push(lead);}
  const ignored=new Set(s.dismissedProspectLetters??[]);
- return rows.filter(row=>!ignored.has(declineKey(row,s.day)));
+ const active=new Set([...(s.marketParked??[]),...(whileActive&&['transit','receivable'].includes(s.market?.status)?[s.market.active]:[])].map(a=>a?.customerId));
+ return rows.filter(row=>!active.has(row.person.id)&&!ignored.has(declineKey(row,s.day)));
 }
 
 export function dismissProspect(s,customerId,checkedDay){

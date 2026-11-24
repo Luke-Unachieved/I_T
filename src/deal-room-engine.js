@@ -1,9 +1,13 @@
-import {repeatContractMilestone,isRepeatCalendarAction,canonicalRepeatCalendar,applyRepeatCalendar} from './deal-room-repeat-calendar.js';
-import {openingContractMilestone,canonicalOpeningCalendar,applyOpeningCalendar} from './deal-room-opening-calendar.js';
+import {SPECIALTY_MILESTONE,canonicalSpecialtyMilestone,applySpecialtyMilestone} from './deal-room-specialty-calendar.js';
+import {coreCalendarActions,coreCalendarTarget,removedLiveWaits} from './deal-room-core-calendar.js';
+import {familiarTimingV1} from './deal-room-order-cadence.js';
+import {canonicalOpeningMarketAction,reduceOpeningMarket,graduateOpeningMarket,openingMarketReserveDays,openingMarketOrders} from './deal-room-opening-market.js';
+import {repeatContractMilestone,isRepeatCalendarAction,canonicalRepeatCalendar,applyRepeatCalendar,isOrdinaryRepeatChoice,repeatActiveOrders,repeatParallelScope,repeatReserveDays} from './deal-room-repeat-calendar.js';
+import {openingContractMilestone,canonicalOpeningCalendar,applyOpeningCalendar,openingFlow,openingOrders,openingReserveDays,OPENING_TERMS_V2} from './deal-room-opening-calendar.js';
 import {LEGACY_EQUIPMENT_ACTION_KEYS,canonicalLegacyEquipmentAction,applyLegacyEquipmentAction} from './deal-room-equipment-legacy.js';
 import {PROMOTION_ACTION_KEYS,canonicalPromotionAction,applyPromotionAction} from './deal-room-promotion.js';
-import {canonicalWorkspaceSleep,applyWorkspaceSleep} from './deal-room-workspace-sleep.js';
-import {PROPERTY_ACTION_KEYS,canonicalPropertyAction,applyPropertyAction} from './deal-room-property.js';
+import {canonicalWorkspaceSleep,applyWorkspaceSleep,previewLiveWorkspaceSleep} from './deal-room-workspace-sleep.js';
+import {PROPERTY_ACTION_KEYS,canonicalPropertyAction,applyPropertyAction,propertyHoldings,PROPERTY_CATALOG,propertyTradeInAllowance} from './deal-room-property.js';
 import {OUTING_ACTION_KEYS,canonicalOutingAction,applyOutingAction} from './deal-room-outings.js';
 import {MARKET_ACTION_KEYS,canonicalMarketAction,applyMarketAction} from './deal-room-market.js';
 import {LINEN_FREIGHT_ACTIONS,canonicalLinenFreight,applyLinenFreight} from './deal-room-linen-freight.js';
@@ -15,7 +19,7 @@ import {canonicalOfficeAction,applyOfficeAction,OFFICE_ACTION_KEYS} from './deal
 import {canonicalLifeAction,applyLifeAction,LIFE_ACTION_KEYS} from './deal-room-life.js';
 import {stockProcurementOpportunity,previewStockProcurement,previewStudioProjectFromStock} from './deal-room-stock-procurement.js';
 import {revisionOpportunity,previewRevisionOrder} from './deal-room-collection-revision.js';
-import {roundReceivablesActive,roundReceivableSummary,previewRoundSigning,advanceRoundTime} from './deal-room-round-receivables.js';
+import {roundReceivablesActive,roundReceivableSummary,previewRoundSigning,advanceRoundTime,canonicalRoundCalendarAction,applyRoundCalendarAction} from './deal-room-round-receivables.js';
 import {previewStudioAllocation} from './deal-room-allocation.js';
 import {launchBasis,launchReview} from './deal-room-launch.js';
 import {studioProjectEligibility,studioProjectReview,previewStudioProjectOrder,groupProjectChange} from './deal-room-studio-project.js';
@@ -24,6 +28,7 @@ import {caseGrowthOffers,previewCaseGrowth,caseGrowthDemand,previewCaseCalloff,c
 import {SAMPLE_FACTORIES,developmentOffer,hasLampDevelopmentCase,acceptedLampSample,secondDevelopmentOffer,SECOND_SUPPLIER_ACTIONS,canonicalSecondSupplierAction,applySecondSupplierAction} from './deal-room-development.js';
 import {retailDemand,retailWait,retailPause} from './deal-room-demand.js';
 import {collectionSeedChoices,collectionQuote,COLLECTION_STYLES,collectionPitchOffers,previewCollectionPitch} from './deal-room-collection.js';
+import {cashRiskProjection} from './deal-room-cash-risk.js';
 import {previewAccount,canExpandAccount,accountCollectionBasis,accountRevisionBasis,accountExpansionBases} from './deal-room-account.js';
 /** Isolated modern trade experiment. All amounts are fictional settled RMB integers.
  * Design assumptions, not real export quotations: 30/day office cost; freight,
@@ -33,6 +38,33 @@ const DAY_COST = 30;
 export const MAX_DEAL_ACTIONS = 4096;
 const canStartDeal = state => state.history.length <= MAX_DEAL_ACTIONS - 5;
 const copy = value => JSON.parse(JSON.stringify(value));
+export function previewCashRisk(prev,next){
+ if(!prev||!next||next===prev||!Number.isSafeInteger(next.cash)||next.cash>=prev.cash||next.day!==prev.day)return null;
+ const risk=cashRiskProjection(next,DAY_COST);
+ return risk?.shortfall>0?risk:null;
+}
+export const bankruptcyStatus=s=>s?.bankruptcy??null;
+export function previewBankruptcy(s){
+ if(bankruptcyStatus(s)||!s||!Number.isSafeInteger(s.cash)||s.cash<0||s.cash>=DAY_COST)return null;
+ const q=previewLiveWorkspaceSleep({...s,cash:DAY_COST});
+ if(!q.valid||q.checkedDay!==s.day)return null;
+ return {day:s.day,cash:s.cash,dailyCost:DAY_COST,shortfall:DAY_COST-s.cash};
+}
+const BANKRUPTCY_ACTION='DECLARE_BANKRUPTCY_V1',LIQUIDATE_ACTION='LIQUIDATE_PERSONAL_ASSETS_V1';
+export function previewLiquidation(s){
+ if(bankruptcyStatus(s)||!s||!Number.isSafeInteger(s.cash)||s.cash<0||s.phase==='outing-trip')return null;
+ const risk=cashRiskProjection(s,DAY_COST);
+ if(s.cash>=DAY_COST&&!risk?.shortfall)return null;
+ const h=propertyHoldings(s);if(!h)return null;
+ const assets=h.owned.flatMap(r=>{
+  const item=PROPERTY_CATALOG.find(x=>x.id===r.id);
+  if(!item||item.id==='home-starter'||r.paid===0||!['home','car'].includes(item.kind))return [];
+  return [{id:item.id,name:item.name,kind:item.kind,paid:r.paid,proceeds:propertyTradeInAllowance(r.paid)}];
+ });
+ const proceeds=assets.reduce((sum,r)=>sum+r.proceeds,0),cashAfter=s.cash+proceeds;
+ return proceeds>0&&Number.isSafeInteger(cashAfter)?{day:s.day,cash:s.cash,proceeds,cashAfter,assets,starterHomeId:'home-flat',starterHomeName:'旧公寓'}:null;
+}
+
 const offer = (id,title,exchange,quantity,revenue,cost,deliveryDays,payLag,accepted=true,reason='') =>
   ({id,title,exchange,quantity,revenue,cost,deliveryDays,payLag,accepted,reason});
 const CLIENTS = [
@@ -104,13 +136,13 @@ function reorderContext(state,clientId){
 // Unanswered opening inquiries. Browsing projects a different buyer onto the same day/cash;
 // only a submitted alternate proposal becomes a journal entry.
 export function openFirstBuyers(state){
- if(!state||state.phase!=='negotiating'||state.businessRound||state.clientProjectActive)return [];
+ if(!openingFlow(state))return [];
  const contracted=new Set(state.contracts.map(o=>o.clientId));
  return CLIENTS.filter(c=>!contracted.has(c.id)).map(c=>({id:c.id,name:c.name,product:c.product,index:CLIENTS.indexOf(c)}));
 }
 export function firstBuyerProjection(state,id){
  const c=openFirstBuyers(state).find(c=>c.id===id);
- return c&&state.clientIndex!==c.index?{...state,clientIndex:c.index}:state;
+ return c&&(state.clientIndex!==c.index||state.phase!=='negotiating')?{...state,phase:'negotiating',clientIndex:c.index}:state;
 }
 /** A single finite client season. Explicit opt-in preserves all previous journals. */
 const PROJECTS={
@@ -136,7 +168,7 @@ export function openingCurationOffers(state){
  const uses={mira:'用已交付的台灯，搭一个阅读角。',samir:'用已交付的保温杯，搭一组出行礼物。',ines:'用已交付的桌布，搭一个餐桌陈列。'};
  return CLIENTS.map((c,i)=>({id:c.id,referrerName:c.name,product:c.product,anchor:c.id,buyer:'Atelier · 生活方式买手店',purpose:uses[c.id],giftAllowed:true,budget:7200,source:'opening-delivery',deliveredQuantity:opening[i].quantity}));
 }
-export function previewCuration(state,draft={}){
+export function previewCuration(state,draft={},{cadence=false}={}){
  const brief=state.curation;
  if(!brief||brief.status!=='draft')return {valid:false,reason:'这份选品委托已经处理。'};
  const ids=draft.products;
@@ -145,9 +177,10 @@ export function previewCuration(state,draft={}){
  const sampleReason=developed&&(!ids.includes('mira')||!acceptedLampSample(state,'studio')&&!acceptedLampSample(state,'line'))?'先把已验过的新台灯加入组合。':developed&&!acceptedLampSample(state,'studio')?'这家工厂的新批量成本要180盏起做，不能用于40或60套组合。':developed&&!brief.giftAllowed?'这位买手只采购原来的标准款，不为调光功能另付预算。新样可以留给主题买手。':'';
  const selected=CURATION_PRODUCTS.filter(p=>ids.includes(p.id)).map(p=>developed&&p.id==='mira'?{...p,name:'三档调光台灯',price:75,cost:45}:p),gift=draft.packaging==='gift';
  const price=selected.reduce((n,p)=>n+p.price,0)+(gift?12:0),unitCost=selected.reduce((n,p)=>n+p.cost,0)+(gift?8:0),revenue=price*draft.quantity,cost=unitCost*draft.quantity;
- const deliveryDay=state.day+(gift?6:4),paymentDay=deliveryDay+(gift?3:2),operatingCost=(paymentDay-state.day)*DAY_COST,deposit=Math.floor(revenue*.5);
+ const quantityExtraDays=cadence&&draft.quantity===60?1:0;
+ const deliveryDay=state.day+(gift?6:4)+quantityExtraDays,paymentDay=deliveryDay+(gift?3:2),operatingCost=(paymentDay-state.day)*DAY_COST,deposit=Math.floor(revenue*.5);
  const reason=sampleReason||(!ids.includes(brief.anchor)?'保留引荐案例里的那件产品，再搭一件。':ids.length<2?'买手要一组搭配，再添一件不同产品。':gift&&!brief.giftAllowed?'日常补货不需要礼盒，换成常规包装即可。':revenue>brief.budget?`超过预算 ${revenue-brief.budget}；${ids.length>2?'可以减为 40 套，或少选一件':developed?'可以改回旧款，或减为 40 套':'可以换更便宜的搭配，或减为 40 套'}。`:state.cash<cost-deposit+operatingCost?'可用资金不够覆盖备货与回款前支出。':!canStartDeal(state)?'经营记录容量已满，暂不能接新委托。':'');
- return {valid:!reason,reason,...(developed?{lampVersion:'developed',productNames:selected.map(p=>p.name)}:{}),products:selected.map(p=>p.id),quantity:draft.quantity,packaging:draft.packaging,revenue,cost,price,deposit,balanceDue:revenue-deposit,deliveryDay,paymentDay,operatingCost,netProfit:revenue-cost-operatingCost,cashAfterSigning:state.cash+deposit-cost,cashAfterPayment:state.cash+revenue-cost-operatingCost};
+ return {valid:!reason,reason,...(quantityExtraDays?{quantityExtraDays}:{}),...(developed?{lampVersion:'developed',productNames:selected.map(p=>p.name)}:{}),products:selected.map(p=>p.id),quantity:draft.quantity,packaging:draft.packaging,revenue,cost,price,deposit,balanceDue:revenue-deposit,deliveryDay,paymentDay,operatingCost,netProfit:revenue-cost-operatingCost,cashAfterSigning:state.cash+deposit-cost,cashAfterPayment:state.cash+revenue-cost-operatingCost};
 }
 function clientProjectContext(state,id,trackRetail=true){
  const d=PROJECTS[id],c=CLIENTS.find(c=>c.id===id);if(!d||!state.clientProjectSeason)return null;
@@ -161,7 +194,11 @@ function clientProjectContext(state,id,trackRetail=true){
   return {...offer(optionId,onTime?d.labels[i]:(i?'整批系列补货':'小批现货补货'),`${quantity} 件 · ${i?'先付三成，尾款留账期':'交货付款'}${onTime?'':' · 用于门店日常销售'}`,quantity,onTime?revenue:d.regular[i],cost,deliveryDays,payLag),
    ...(retailFallback?{projectRetailDelivery:true}:{}),projectId:id,projectTitle:d.title,projectOnTime:onTime,specification:id==='samir'&&i?'branded':'standard',...(i?{deposit:Math.floor((onTime?revenue:d.regular[i])*.3)}:{})};
  });
- return {client:c,title:d.title,brief:options.some(o=>o.projectOnTime)?d.brief:`${d.title}这次赶不上了。这批保留原规格，改做门店日常补货。`,deadline,options};
+ const timely=options.filter(o=>o.projectOnTime);
+ const brief=timely.length===options.length?d.brief:timely.length===1?
+  '第 '+deadline+' 天前只能赶上「'+timely[0].title+'」。整批照原规格做，可改成门店日常补货。':
+  d.title+'这次赶不上了。这批保留原规格，改做门店日常补货。';
+ return {client:c,title:d.title,brief,deadline,options};
 }
 export function clientProjects(state){
  if(!state.clientProjectSeason)return [];
@@ -183,37 +220,65 @@ export function businessOpportunities(state){
       available:options.some(o=>o.valid),reason:options.some(o=>o.valid)?'':options[0].reason}];
   });
 }
+/** A live familiar-customer inbox is not the old optional two-lot challenge. */
+export function familiarBuyers(state){
+ if(!state?.businessRound||state.clientProjectActive||roundReceivablesActive(state)||
+    !['portfolio','negotiating','fulfilling','paid'].includes(state.phase))return [];
+ const live=state.contracts.filter(c=>c.status!=='paid');
+ if(live.length!==repeatActiveOrders(state).length)return [];
+ return CLIENTS.filter(c=>!live.some(o=>o.clientId===c.id)&&reorderContext(state,c.id))
+  .map(c=>({id:c.id,name:c.name,product:c.product,index:CLIENTS.indexOf(c)}));
+}
+export function familiarQuoteProjection(state,id,version=2){
+ const client=familiarBuyers(state).find(c=>c.id===id);
+ return client?{...state,phase:'negotiating',clientIndex:client.index,repeatQuoteV2:true,...(version===3?{repeatCadencePreview:true}:{})}:null;
+}
 export function createDealRoom(){return {version:1,day:1,cash:5000,clientIndex:0,phase:'negotiating',contracts:[],feedback:{kind:'welcome',message:'先看看客户要把这批货用在哪里。'},history:[]};}
 export function currentClient(state){
   if(['complete','portfolio','review','curating','curation-fulfillment','account','collection','collection-revision','development','case-growth','atelier-restock','linen-freight'].includes(state.phase))return null;
   const c=CLIENTS[state.clientIndex]; if(!c)return null;
   if(state.clientProjectActive){const p=clientProjectContext(state,c.id);return {...c,brief:p.brief,requirements:p.options.some(o=>o.projectOnTime)?[`第 ${p.deadline} 天前交货用于${p.title}`,'日期来不及，可改谈门店补货']:['门店常规补货，保留原规格'],windowNote:'先做谁，会改变其他客户能否赶上专题。'};}
   if(state.businessRound){const r=reorderContext(state,c.id),last=state.contracts.at(-1);return {id:c.id,name:c.name,country:c.country,product:['fulfilling','paid'].includes(state.phase)&&last?.optionId==='developed-lamp'?last.product:c.product,brief:r.consequence,requirements:['沿用已确认规格，不降低品质','小批交货付款；规模备货先付 30%，尾款留账期'],windowNote:'主动选择经营哪位客户；本次结清后可继续同客，也可换客。'};}
+  if(state.openingQuoteV2){
+   const [ready,custom,season]=[OPENING_TERMS_V2.ready,OPENING_TERMS_V2.branded,OPENING_TERMS_V2.season];
+   const requirements={mira:['首批至少 60 盏；同一色温标准','小批交货付款；三家铺货交货后 '+OPENING_TERMS_V2.rollout[1]+' 天付清'],samir:['开业批第 7 天前到货；错过就按日常补货谈','现货 '+ready[0]+' 天交货，定制 '+custom[0]+' 天交货；定制收货后 '+custom[1]+' 天结清'],ines:['统一面料与尺寸，不能靠降规格压价','小单交货付款；季度备货先付 30%，收货后 '+season[1]+' 天付清','陈列批第 11 天前到货按 6,200；之后按 5,800']}[c.id];
+   return {...c,options:undefined,requirements,windowNote:c.id==='samir'?'第 7 天前交货可以赶上开业。':c.id==='ines'?'第 11 天前交货可以赶上换季陈列。':''};
+  }
   if(samirOpeningCustom(state))return {id:c.id,name:c.name,country:c.country,product:c.product,brief:c.brief,requirements:['第 7 天开业前交货','无印字现货做 2 天；定制包装做 5 天，交货后 3 天结清'],windowNote:'今天下单，两款都赶得上开业；定制款交货后还要等三天回款。'};
   return {id:c.id,name:c.name,country:c.country,product:c.product,brief:c.brief,requirements:[...c.requirements],windowNote:state.clientIndex===0?'下一位客户的开业批要在第 7 天前送到。':state.clientIndex===1?(state.day+2<=7?'现货还赶得上第 7 天开业。':'开业批已关闭，现货改按常规补货预算。')+' 下一位客户第 11 天前到货的陈列批有 400 溢价，备货需 5 天。':'陈列批第 11 天前到货有 400 溢价；之后仍可做常规备货。'};
 }
 // The same five-day customised cup and three-day terms can serve the opening
 // only while there are five manufacturing days left. Keep historical proposal
 // identities untouched: the earlier "promise" counter was never a signed order.
-function samirOpeningCustom(state){
+function samirOpeningCustom(state,modern=false){
  if(state.phase!=='negotiating'||state.businessRound||state.clientProjectActive||state.clientIndex!==1)return null;
  const branded=CLIENTS[1].options.find(o=>o.id==='branded');
- return state.day+branded.deliveryDays<=7?{...branded,id:'branded-opening',title:'120 只定制 · 开业陈列',exchange:'定制包装照原工期制作；赶上开业，交货后三天结清。',specification:'branded'}:null;
+ return state.day+(modern?OPENING_TERMS_V2.branded[0]:branded.deliveryDays)<=7?{...branded,id:'branded-opening',title:'120 只定制 · 开业陈列',exchange:'定制包装照原工期制作；赶上开业，交货后三天结清。',specification:'branded'}:null;
 }
-export function quoteOptions(state){
+export function quoteOptions(state,modern=false){
   if(!currentClient(state))return [];
   if(state.clientProjectActive)return copy(clientProjectContext(state,CLIENTS[state.clientIndex].id).options);
-  if(state.businessRound)return copy(reorderContext(state,CLIENTS[state.clientIndex].id).options);
-  const options=copy(CLIENTS[state.clientIndex].options),timelySamir=samirOpeningCustom(state);
+  if(state.businessRound){const options=copy(reorderContext(state,CLIENTS[state.clientIndex].id).options);return state.repeatCadencePreview?options.map(familiarTimingV1):options;}
+  const options=copy(CLIENTS[state.clientIndex].options),timelySamir=samirOpeningCustom(state,modern);
   if(timelySamir)options[2]=timelySamir;
   if(state.clientIndex===1 && state.day+2>7){
     Object.assign(options[0],{title:'80 只现货 · 常规补货',exchange:'开业批已关闭；按常规预算、5 天交货，不必支付加急费用。',revenue:2800,cost:2000,deliveryDays:5});
   }
-  if(state.clientIndex===2 && state.day+5>11){
+  if(state.clientIndex===2 && state.day+(modern?OPENING_TERMS_V2.season[0]:5)>11){
     Object.assign(options[1],{title:'150 条备货 · 30% 定金',revenue:5800,deposit:1740,exchange:'陈列档期已过，按常规备货价；先付 1,740，尾款在交货后 6 天收到。'});
     options[2].revenue=5800;
   }
-  return options;
+  if(!modern)return options;
+  return options.map(o=>{
+   const [deliveryDays,payLag]=OPENING_TERMS_V2[o.id];
+   const paymentText=o.id==='promise'&&!o.accepted?'定制要 '+deliveryDays+' 天，赶不上开业。可以改现货，或改做常规补货。':
+    (o.id==='all-now'&&!o.accepted?o.reason:deliveryDays+' 天交货，'+(payLag?'交货后 '+payLag+' 天结清。':'货到付清。'));
+   return {...o,deliveryDays,payLag,exchange:paymentText,...(o.id==='promise'&&!o.accepted?{reason:paymentText}:{}),title:o.title.replace('留 4 天账期','留 2 天账期')};
+  });
+}
+export function openingQuoteProjection(state,id){
+ if(!openFirstBuyers(state).some(c=>c.id===id))return null;
+ return {...firstBuyerProjection(state,id),openingQuoteV2:true};
 }
 function projectScheduleNote(state,o,paymentDay){
  const remaining=clientProjects(state).filter(p=>!p.completed&&p.id!==o.projectId),open=remaining.filter(p=>p.openForProject);
@@ -222,23 +287,28 @@ function projectScheduleNote(state,o,paymentDay){
  return own+(!remaining.length?'这笔收齐，三位客户的计划就都落地了。':lost.length?`这单收齐后，${lost.map(p=>p.title).join('、')}只能改做常规补货。`:open.length?'收齐后仍有其他专题机会，接下一单时再看日期。':'余下客户也按常规补货安排，不再追专题日期。');
 }
 export function previewOffer(state,optionId){
-  const o=quoteOptions(state).find(x=>x.id===optionId)
+  const modern=state.openingQuoteV2===true;
+  const o=quoteOptions(state,modern).find(x=>x.id===optionId)
     // Older proposals used this distinct rejected identity even on day one.
     ||(optionId==='promise'&&samirOpeningCustom(state)?CLIENTS[1].options.find(x=>x.id===optionId):null)
     ||(state.clientProjectActive&&state.retailPlanning&&['project-focus','project-series'].includes(optionId)?clientProjectContext(state,CLIENTS[state.clientIndex].id,false).options.find(x=>x.id===optionId):null);
   if(!o)return {valid:false,reason:'没有这份报价。'};
   const demand=state.businessRound&&!state.clientProjectActive?retailDemand(state,CLIENTS[state.clientIndex].id):null;
   if(demand&&!demand.ready)return {...o,valid:false,reason:`门店约余 ${demand.remaining} 件，第 ${demand.readyDay} 天才需要补货。先看其他客户，或做工作室的其他业务。`};
-  const deposit=o.deposit||0,operatingCost=(o.deliveryDays+o.payLag)*DAY_COST;
-  const cashRequired=o.id==='repeat-prepaid'?Math.max(0,o.cost-deposit+operatingCost):o.cost-deposit+operatingCost;
+  const deposit=o.deposit||0,duration=o.deliveryDays+o.payLag;
+  const modernRepeat=state.repeatQuoteV2===true&&isOrdinaryRepeatChoice(o.id);
+  const priorReserve=modern?Math.max(openingReserveDays(state),openingMarketReserveDays(state)):modernRepeat?Math.max(repeatReserveDays(state),openingMarketReserveDays(state)):0;
+  const sharedDays=Math.min(priorReserve,duration),operatingCost=(duration-sharedDays)*DAY_COST,calendarExpense=duration*DAY_COST;
+  const cashRequired=modern||modernRepeat?Math.max(0,o.cost-deposit+Math.max(priorReserve,duration)*DAY_COST):o.id==='repeat-prepaid'?Math.max(0,o.cost-deposit+operatingCost):o.cost-deposit+operatingCost;
   const deliveryDay=state.day+o.deliveryDays,paymentDay=deliveryDay+o.payLag;
-  const valid=state.phase==='negotiating'&&state.cash>=cashRequired&&canStartDeal(state);
+  const specialBlocked=!!state.businessRound&&!modernRepeat&&(state.repeatQuoteV2===true&&repeatActiveOrders(state).length>0||openingMarketOrders(state).length>0);
+  const valid=state.phase==='negotiating'&&!specialBlocked&&state.cash>=cashRequired&&canStartDeal(state);
   const quoted={...o,deposit,balanceDue:o.revenue-deposit,valid,
-    reason:!canStartDeal(state)?'本份经营记录已到容量上限；已签合同仍可结清，请保留进度并查看账目。':state.phase!=='negotiating'?'这份合同已经处理。':state.cash<cashRequired?'现金不足以覆盖这单和回款前的日常费用。':o.reason,
-    profit:o.revenue-o.cost,operatingCost,netProfit:o.revenue-o.cost-operatingCost,
+    reason:specialBlocked?'先处理已有订单，再签这份特别合作。':!canStartDeal(state)?'本份经营记录已到容量上限；已签合同仍可结清，请保留进度并查看账目。':state.phase!=='negotiating'?'这份合同已经处理。':state.cash<cashRequired?'现金不足以覆盖这单和回款前的日常费用。':o.reason,
+    profit:o.revenue-o.cost,operatingCost,...(sharedDays?{sharedOperatingDays:sharedDays}:{}),netProfit:o.revenue-o.cost-operatingCost,
     cashRequired,deliveryDay,paymentDay,cashAfterSigning:state.cash+deposit-o.cost,
-    cashAfterPayment:state.cash+o.revenue-o.cost-operatingCost,
-    opportunityNote:demand?`这批约供门店卖 ${Math.ceil(o.quantity/demand.rate)} 天；预计第 ${deliveryDay+Math.ceil(o.quantity/demand.rate)} 天再补货。期间可换客户或经营其他业务。`:state.clientProjectActive?projectScheduleNote(state,o,paymentDay)+(o.projectRetailDelivery?' 本批交付后计入门店余货，日常返单要等现货卖完。':''):state.businessRound?'小批周转更快；规模备货占资更久。结清后由你决定继续同客或换客。':state.clientIndex===0?(paymentDay+2<=7?'收款后，下一位客户的开业批还来得及。':'这单收齐后，将错过下一位客户的开业批；仍可谈常规补货。'):state.clientIndex===1?(paymentDay+5<=11?'收齐后还赶得上下一位客户的季度陈列批，合同额多 400。':'收齐后错过下一位客户的陈列档期，仍可做常规备货。'):'小单更早结束、大单总利润更高；收齐前不能抽回垫款。'};
+    cashAfterPayment:state.cash+o.revenue-o.cost-calendarExpense,
+    opportunityNote:demand?`这批约供门店卖 ${Math.ceil(o.quantity/demand.rate)} 天；预计第 ${deliveryDay+Math.ceil(o.quantity/demand.rate)} 天再补货。期间可换客户或经营其他业务。`:state.clientProjectActive?projectScheduleNote(state,o,paymentDay)+(o.projectRetailDelivery?' 本批交付后计入门店余货，日常返单要等现货卖完。':''):modern?'签约后仍可处理其他来信；到期再交货和收款。':modernRepeat?'签后还能谈其他独立询盘，交货和回款各按约定。':state.businessRound?'小批周转更快；规模备货占资更久。结清后由你决定继续同客或换客。':state.clientIndex===0?(paymentDay+2<=7?'收款后，下一位客户的开业批还来得及。':'这单收齐后，将错过下一位客户的开业批；仍可谈常规补货。'):state.clientIndex===1?(paymentDay+5<=11?'收齐后还赶得上下一位客户的季度陈列批，合同额多 400。':'收齐后错过下一位客户的陈列档期，仍可做常规备货。'):'小单更早结束、大单总利润更高；收齐前不能抽回垫款。'};
   if(roundReceivablesActive(state)){const adjusted=previewRoundSigning(state,quoted,CLIENTS[state.clientIndex].id);return canStartDeal(state)?adjusted:{...adjusted,valid:false,reason:quoted.reason};}
   return quoted;
 }
@@ -294,7 +364,44 @@ function collectionSeedDraft(basis){
  const items=CURATION_PRODUCTS.filter(p=>basis.products.includes(p.id)).map(p=>basis.lampVersion==='developed'&&p.id==='mira'?{...p,price:75,cost:45}:p);
  return {status:'draft',products:items.map(p=>p.id),price:items.reduce((n,p)=>n+p.price,0),cost:items.reduce((n,p)=>n+p.cost,0),orders:[],...(basis.lampVersion?{lampVersion:basis.lampVersion}:{})};
 }
-function apply(state,action){
+const LEGACY_TIME_OR_MODE_CHANGES=new Set(['ADVANCE','WAIT_FOR_BUYER','WAIT_FOR_RETAIL','PAUSE_FOR_BUYER','ENABLE_ROUND_RECEIVABLES','START_SUPPLY_PLAN']);
+function apply(state,action,calendar=false){
+  if(bankruptcyStatus(state))return state;
+  if(action.type===LIQUIDATE_ACTION){
+    const q=previewLiquidation(state);
+    if(!q||q.day!==action.checkedDay||q.proceeds!==action.expectedProceeds)return state;
+    const h=propertyHoldings(state),sold=new Set(q.assets.map(row=>row.id));
+    h.owned=h.owned.filter(row=>!sold.has(row.id));
+    // Occupancy only. The temporary apartment has no paid value, is not a
+    // purchase, and never provides a resale or trade-in allowance.
+    if(!h.owned.some(row=>row.id===q.starterHomeId))h.owned.push({id:q.starterHomeId,paid:0,day:state.day});
+    h.active.home=q.starterHomeId;h.active.car=null;
+    return {...state,cash:q.cashAfter,propertyAssets:h,feedback:{kind:'liquidated',message:'已收到变卖款，搬回旧公寓暂住。'}};
+  }
+  if(action.type===BANKRUPTCY_ACTION){
+    const bankruptcy=previewBankruptcy(state);
+    if(!bankruptcy||action.checkedDay!==state.day)return state;
+    return {...state,bankruptcy,feedback:{kind:'bankrupt',message:'手头的钱不够支付今天的工作室开支，经营结束。'}};
+  }
+  if(action.type==='ROUND_CALENDAR_V1')return applyRoundCalendarAction(state,action);
+  if(action.type===SPECIALTY_MILESTONE)return applySpecialtyMilestone(state,action);
+  if(action.type==='CORE_CALENDAR_V1'){
+    const inner=action.action,task=coreCalendarTarget(state,inner.type);
+    const hire=inner.type==='SIGN_OWN_COLLECTION_FROM_CASE'||inner.type==='SIGN_COLLECTION'&&inner.model==='own';
+    if(!hire&&(!task||state.day!==task.day))return state;
+    if(task?.mark){
+      const n=copy(state),current=coreCalendarTarget(n,inner.type);
+      current.stage.calendarDelivered=true;
+      n.feedback={kind:'calendar-delivered',message:'这批货已交付，按约定日期再收款。'};
+      return n;
+    }
+    return apply(state,inner,true);
+  }
+  if(calendar&&action.type==='RECEIVE_OWN_COLLECTION_V1'&&state.phase==='collection'&&state.collection?.status==='sampling'){
+    const s=copy(state);s.collection.status='sample';s.feedback={kind:'collection-sample',message:'自己的系列样品做好了，可以拿给买手看。'};return s;
+  }
+  if(action.type==='OPENING_MARKET_ACTION_V1')return reduceOpeningMarket(state,action,canStartDeal(state));
+  if(openingMarketOrders(state).length&&LEGACY_TIME_OR_MODE_CHANGES.has(action.type))return state;
   if(isRepeatCalendarAction(action.type))return applyRepeatCalendar(state,action);
   if(action.type==='DELIVER_OPENING_ORDER_V1'||action.type==='COLLECT_OPENING_ORDER_V1')return applyOpeningCalendar(state,action);
   if(Object.hasOwn(LEGACY_EQUIPMENT_ACTION_KEYS,action.type))return applyLegacyEquipmentAction(state,action,canStartDeal(state));
@@ -303,7 +410,7 @@ function apply(state,action){
     const next=applyPromotionAction(state,action);
     return next===state?state:{...next,history:[...state.history]};
   }
-  if(action.type==='SLEEP_TO_NEXT_DAY')return applyWorkspaceSleep(state,action);
+  if(['SLEEP_TO_NEXT_DAY','SLEEP_TO_NEXT_DAY_V2'].includes(action.type))return applyWorkspaceSleep(state,action);
   if(Object.hasOwn(OUTING_ACTION_KEYS,action.type))return applyOutingAction(state,action,canStartDeal(state));
   if(state.phase==='outing-trip')return state;
   if(Object.hasOwn(PROPERTY_ACTION_KEYS,action.type)){
@@ -316,10 +423,38 @@ function apply(state,action){
   if(state.phase==='market')return state;
   if(action.type==='SIGN_OWN_COLLECTION_FROM_CASE'){
     const b=collectionSeedChoices(state).find(o=>o.referrerId===action.referrerId&&!o.current);
-    if(!b)return state;const projected={...state,collection:collectionSeedDraft(b)},n=apply(projected,{type:'SIGN_COLLECTION',model:'own',style:action.style});
+    if(!b)return state;const projected={...state,collection:collectionSeedDraft(b)},n=apply(projected,{type:'SIGN_COLLECTION',model:'own',style:action.style},calendar);
     if(n===projected)return state;n.collection.seedCase={referrerId:b.referrerId,paymentDay:b.day};return n;
   }
+  if(action.type==='SIGN_OPENING_QUOTE_V2'){
+    const projected=openingQuoteProjection(state,action.clientId);
+    if(!projected)return state;
+    const next=apply(projected,{type:'PROPOSE',optionId:action.optionId});
+    if(next===projected)return state;
+    delete next.openingQuoteV2;
+    if(next.feedback.kind==='counter')return {...state,history:[...state.history],feedback:next.feedback};
+    next.contracts.at(-1).openingTermsVersion=2;next.openingParallel=true;next.openingOrderChosen=true;
+    return next;
+  }
+  if(action.type==='SIGN_FAMILIAR_SAMPLE_V1'){
+    if(action.clientId!=='mira'||!['developed-lamp','second-developed-lamp'].includes(action.optionId)
+        ||state.contracts.some(c=>c.status!=='paid')||openingMarketOrders(state).length)return state;
+    const projected=familiarQuoteProjection(state,action.clientId,3);
+    if(!projected)return state;
+    delete projected.repeatQuoteV2;delete projected.repeatCadencePreview;delete projected.repeatParallelV2;
+    const next=apply(projected,{type:'PROPOSE',optionId:action.optionId});return next===projected?state:next;
+  }
+  if(['SIGN_FAMILIAR_QUOTE_V2','SIGN_FAMILIAR_QUOTE_V3'].includes(action.type)){
+    if(!isOrdinaryRepeatChoice(action.optionId))return state;
+    const projected=familiarQuoteProjection(state,action.clientId,action.type.endsWith('_V3')?3:2);
+    if(!projected)return state;
+    const next=apply(projected,{type:'PROPOSE',optionId:action.optionId});
+    if(next===projected)return state;
+    delete next.repeatQuoteV2;delete next.repeatCadencePreview;next.repeatParallelV2=state.businessRound;
+    return next;
+  }
   if(action.type==='PROPOSE_OPENING_QUOTE'){
+    if(state.phase!=='negotiating'||state.openingParallel)return state;
     const projected=firstBuyerProjection(state,action.clientId);
     if(projected===state)return state;
     const next=apply(projected,{type:'PROPOSE',optionId:action.optionId});
@@ -377,7 +512,7 @@ function apply(state,action){
       const s=copy(state);Object.assign(s.stockProcurement,q,{status:'production',signedDay:s.day,stockUsed:0});s.cash=q.cashAfterSigning;s.feedback={kind:'stock-signed',message:'已按选定报价支付制作款；只向客户承诺12盏，其余批次由工作室承担。'};return s;
     }
     if(action.type==='FULFIL_STOCK_PROCUREMENT'&&p.status==='production'){
-      const s=copy(state);s.cash+=p.revenue-p.operatingCost;s.day=p.deliveryDay;Object.assign(s.stockProcurement,{status:'paid',delivered:12,received:p.revenue});s.feedback={kind:'stock-paid',message:'12盏已交付并收款。余货是工作室库存成本，不是收入或利润。'};return s;
+      const s=copy(state);s.cash+=p.revenue-(calendar?0:p.operatingCost);s.day=p.deliveryDay;Object.assign(s.stockProcurement,{status:'paid',delivered:12,received:p.revenue});s.feedback={kind:'stock-paid',message:'12盏已交付并收款。余货是工作室库存成本，不是收入或利润。'};return s;
     }
     return state;
   }
@@ -396,12 +531,12 @@ function apply(state,action){
     const r=state.collectionRevision;
     if(action.type==='CLOSE_COLLECTION_REVISION'&&!['sampling','production'].includes(r.status)){const s=copy(state);s.phase='review';s.feedback={kind:'revision-back',message:'旧款合作照常，新版本进度保留。'};return s;}
     if(action.type==='COMMISSION_COLLECTION_REVISION'&&r.status==='draft'&&state.cash>=3320&&state.history.length<=MAX_DEAL_ACTIONS-10){const s=copy(state);s.cash-=3200;Object.assign(s.collectionRevision,{status:'sampling',investment:3200,sampleDay:s.day+4});s.feedback={kind:'revision-sampling',message:'独立波线图样与分格内托已委托开发，旧稿没有被覆盖。'};return s;}
-    if(action.type==='RECEIVE_COLLECTION_REVISION'&&r.status==='sampling'&&state.cash>=120){const s=copy(state);s.day=r.sampleDay;s.cash-=120;s.collectionRevision.investment+=120;s.collectionRevision.status='sample';s.feedback={kind:'revision-sample',message:'潮汐分格实物样已完成。先核新版本授权，再决定是否签约。'};return s;}
+    if(action.type==='RECEIVE_COLLECTION_REVISION'&&r.status==='sampling'&&(calendar||state.cash>=120)){const s=copy(state);s.day=r.sampleDay;s.cash-=calendar?0:120;s.collectionRevision.investment+=120;s.collectionRevision.status='sample';s.feedback={kind:'revision-sample',message:'潮汐分格实物样已完成。先核新版本授权，再决定是否签约。'};return s;}
     if(action.type==='SIGN_COLLECTION_REVISION'){
       const q=previewRevisionOrder(state,action);if(!q.valid)return state;const s=copy(state);s.cash+=q.deposit-q.cost;s.collectionRevision.active=q;s.collectionRevision.status='production';if(q.scope==='revision-exclusive')s.collectionRevision.exclusiveBuyer='northline';s.feedback={kind:'revision-signed',message:'只签署潮汐分格新版本的这份范围，旧版所有承诺保持。'};return s;
     }
     if(action.type==='FULFIL_COLLECTION_REVISION'&&r.status==='production'){
-      const q=r.active,s=copy(state);s.day=q.paymentDay;s.cash+=q.balanceDue-q.operatingCost;s.collectionRevision.orders.push({...q,status:'paid'});delete s.collectionRevision.active;s.collectionRevision.status=s.collectionRevision.exclusiveBuyer||s.collectionRevision.orders.length===2?'complete':'sample';s.feedback={kind:'revision-paid',message:q.buyer+' 已收到潮汐分格版并付清货款，旧版订单没有改变。'};return s;
+      const q=r.active,s=copy(state);s.day=q.paymentDay;s.cash+=q.balanceDue-(calendar?0:q.operatingCost);s.collectionRevision.orders.push({...q,status:'paid'});delete s.collectionRevision.active;s.collectionRevision.status=s.collectionRevision.exclusiveBuyer||s.collectionRevision.orders.length===2?'complete':'sample';s.feedback={kind:'revision-paid',message:q.buyer+' 已收到潮汐分格版并付清货款，旧版订单没有改变。'};return s;
     }
     return state;
   }
@@ -493,8 +628,9 @@ function apply(state,action){
   if(action.type==='ADVANCE_SUPPLY_PLAN'&&state.phase==='planning-fulfillment'){
     const s=copy(state),plan=s.supplyPlan,event=plan.events[plan.eventIndex];if(!event)return state;
     const fee=(event.day-s.day)*DAY_COST;
+    const allocated=calendar?(event.day-(plan.events[plan.eventIndex-1]?.day??plan.signedDay))*DAY_COST:fee;
     if(s.cash-fee+event.income-event.cost<0)return state;
-    s.day=event.day;s.cash+=event.income-event.cost-fee;plan.operatingCostPaid+=fee;plan.eventIndex++;plan.nextEventDay=plan.events[plan.eventIndex]?.day??null;
+    s.day=event.day;s.cash+=event.income-event.cost-fee;plan.operatingCostPaid+=allocated;plan.eventIndex++;plan.nextEventDay=plan.events[plan.eventIndex]?.day??null;
     s.feedback={kind:'supply-progress',message:event.kind==='start'?`第二批已开工，生产支出 ${event.cost}，本次日常费用 ${fee}。`:`${event.kind==='payment'?'尾款到账':'按约交货'}，本次收款 ${event.income}，日常费用 ${fee}。`};
     if(plan.eventIndex===plan.events.length){plan.status='paid';plan.completed=true;s.phase='review';s.careerMilestone=true;
       s.supplyPlanHistory=[...(s.supplyPlanHistory||[]),copy(plan)];
@@ -509,7 +645,8 @@ function apply(state,action){
     if(!['private','own'].includes(action.model)||!Object.hasOwn(COLLECTION_STYLES,action.style)||(action.model==='private'&&action.style==='botanical'))return state;
     const q=collectionQuote(state,'private');if(action.model==='own'?state.cash<2490:!q.valid)return state;
     const s=copy(state),c=s.collection;Object.assign(c,{model:action.model,style:action.style});
-    if(c.model==='own'){s.cash-=2490;s.day+=3;c.sampleCost=2490;c.status='sample';s.feedback={kind:'collection-sample',message:'工作室自己的样品做好了。外观与署名保留，可以向不同买手提案。'};}
+    if(c.model==='own'&&calendar){s.cash-=2400;c.sampleCost=2490;c.sampleDay=s.day+3;c.status='sampling';s.feedback={kind:'collection-sampling',message:'出样费已付。第 '+c.sampleDay+' 天验收样品。'};}
+    else if(c.model==='own'){s.cash-=2490;s.day+=3;c.sampleCost=2490;c.status='sample';s.feedback={kind:'collection-sample',message:'工作室自己的样品做好了。外观与署名保留，可以向不同买手提案。'};}
     else{c.sampleCost=0;c.active=q;c.status='production';s.cash+=q.deposit-q.cost;s.feedback={kind:'collection-signed',message:'Northline 的专用包装与订单已确认，出样费用包含在这份合作中。'};}return s;
   }
   if(action.type==='OPEN_COLLECTION_PITCH'&&state.phase==='collection'&&['sample','complete'].includes(state.collection?.status)&&collectionPitchOffers(state.collection).includes(action.buyerId)&&canStartDeal(state)){
@@ -525,7 +662,7 @@ function apply(state,action){
     const s=copy(state);s.collection.active=q;s.collection.status='production';s.cash+=q.deposit-q.cost;s.feedback={kind:'collection-signed',message:`${q.buyer} 接受了工作室这份设计，定金已收。`};return s;
   }
   if(action.type==='FULFIL_COLLECTION'&&state.phase==='collection'&&state.collection?.status==='production'){
-    const s=copy(state),c=s.collection,q=c.active;s.cash+=q.balanceDue-q.operatingCost;s.day=q.paymentDay;c.orders.push({...q,status:'paid'});delete c.active;c.status=q.negotiated?(collectionPitchOffers(c).length?'sample':'complete'):(c.model==='private'||c.orders.length===2?'complete':'sample');s.feedback={kind:'collection-paid',message:`${q.buyer} 的系列已交付，货款收齐。`};return s;
+    const s=copy(state),c=s.collection,q=c.active;s.cash+=q.balanceDue-(calendar?0:q.operatingCost);s.day=q.paymentDay;c.orders.push({...q,status:'paid'});delete c.active;c.status=q.negotiated?(collectionPitchOffers(c).length?'sample':'complete'):(c.model==='private'||c.orders.length===2?'complete':'sample');s.feedback={kind:'collection-paid',message:`${q.buyer} 的系列已交付，货款收齐。`};return s;
   }
   if(action.type==='CLOSE_COLLECTION'&&state.phase==='collection'&&['sample','complete'].includes(state.collection?.status)){const s=copy(state);s.phase='review';return s;}
   if(action.type==='OPEN_COLLECTION'&&['review','complete'].includes(state.phase)&&['sample','complete'].includes(state.collection?.status)){const s=copy(state);s.phase='collection';s.feedback={kind:'collection-review',message:state.collection.model==='own'?'看看工作室自己的系列，或继续向买手提案。':'Northline 的这份专用系列已交付。'};return s;}
@@ -606,7 +743,7 @@ function apply(state,action){
     const s=copy(state);s.caseGrowth={status:'production',referrerId:q.referrerId,agreement:q.agreement,active:{...q,signedDay:s.day}};s.cash=q.cashAfterSigning;s.feedback={kind:'case-growth-signed',message:q.agreement==='private'?'匿名供货约定已签；该客户身份不用于新的工作室案例展示。产品与设计原有权利不变。':'工作室署名案例约定已签，新采购采用你选择的搭配。产品与设计原有权利不变。'};return s;
   }
   if(action.type==='FULFIL_CASE_GROWTH'&&state.phase==='case-growth'&&state.caseGrowth?.status==='production'){
-    const s=copy(state),q=s.caseGrowth.active;s.cash+=q.balanceDue-q.operatingCost;s.day=q.paymentDay;s.caseGrowth.status='paid';s.caseGrowthHistory=[...(s.caseGrowthHistory||[]),{...copy(q),status:'paid'}];s.feedback={kind:'case-growth-paid',message:`${q.buyer} 已按约收货，净赚 ${q.netProfit}。案例展示约定保留，原商品销售权不变。`};return s;
+    const s=copy(state),q=s.caseGrowth.active;s.cash+=q.balanceDue-(calendar?0:q.operatingCost);s.day=q.paymentDay;s.caseGrowth.status='paid';s.caseGrowthHistory=[...(s.caseGrowthHistory||[]),{...copy(q),status:'paid'}];s.feedback={kind:'case-growth-paid',message:`${q.buyer} 已按约收货，净赚 ${q.netProfit}。案例展示约定保留，原商品销售权不变。`};return s;
   }
   if(action.type==='START_OPENING_CURATION'){
     const brief=openingCurationOffers(state).find(p=>p.id===action.clientId);if(!brief)return state;
@@ -623,13 +760,13 @@ function apply(state,action){
     s.feedback={kind:'curating',message:`${brief.referrerName.split(' · ')[0]} 把你的合作案例介绍给了 ${brief.buyer}。`};return s;
   }
   if(action.type==='BACK_FROM_CURATION'&&state.phase==='curating'){const s=copy(state);delete s.curation;s.phase='review';s.feedback={kind:'referrals',message:'还没有签约，可以换一位客户的引荐。'};return s;}
-  if(['SIGN_CURATION','SIGN_CURATION_SAMPLE'].includes(action.type)&&state.phase==='curating'){
-    const q=previewCuration(state,action);if(!q.valid)return state;
+  if(CURATION_SIGN_TYPES.includes(action.type)&&state.phase==='curating'){
+    const q=previewCuration(state,action,{cadence:action.type.endsWith('_V2')});if(!q.valid)return state;
     const s=copy(state);Object.assign(s.curation,q,{status:'fulfilling',signedDay:s.day});s.cash=q.cashAfterSigning;s.phase='curation-fulfillment';
     s.feedback={kind:'curation-signed',message:`组合已确认，定金 ${q.deposit} 到账。整组 ${q.quantity} 套，第 ${q.deliveryDay} 天交付。`};return s;
   }
   if(action.type==='FULFIL_CURATION'&&state.phase==='curation-fulfillment'){
-    const s=copy(state),c=s.curation;s.day=c.paymentDay;s.cash+=c.balanceDue-c.operatingCost;c.status='paid';s.curationHistory=[...(s.curationHistory||[]),copy(c)];s.phase='review';
+    const s=copy(state),c=s.curation;s.day=c.paymentDay;s.cash+=c.balanceDue-(calendar?0:c.operatingCost);c.status='paid';s.curationHistory=[...(s.curationHistory||[]),copy(c)];s.phase='review';
     s.feedback={kind:'curation-paid',message:`${c.buyer} 已收到你搭配的 ${c.quantity} 套产品，货款收齐。`};return s;
   }
   if(action.type==='START_CLIENT_PROJECTS'&&['complete','review'].includes(state.phase)&&state.supplyPlanHistory?.length&&!state.clientProjectSeason&&canStartDeal(state)){
@@ -643,7 +780,7 @@ function apply(state,action){
     const s=copy(state);s.clientProjectActive=true;s.phase='portfolio';s.feedback={kind:'projects',message:'继续看未完成的客户计划，仍按原来的专题日期谈用途。'};return s;
   }
   if(action.type==='START_RETAIL_PLANNING'&&['review','complete'].includes(state.phase)&&state.supplyPlanHistory?.length&&!state.retailPlanning){const s=copy(state);s.retailPlanning=true;s.feedback={kind:'retail-planning',message:'熟客会按门店余货安排新采购。刚补过的门店不重复进货；别的业务照常可谈。'};return s;}
-  if(action.type==='BACK_FROM_CLIENTS'&&state.phase==='portfolio'&&!state.clientProjectActive){const s=copy(state);s.phase='review';s.feedback={kind:'review',message:'尚未签约，回工作室看看其他业务。'};return s;}
+  if(action.type==='BACK_FROM_CLIENTS'&&state.phase==='portfolio'&&!state.clientProjectActive&&!(repeatParallelScope(state)&&repeatActiveOrders(state).length)){const s=copy(state);s.phase='review';s.feedback={kind:'review',message:'尚未签约，回工作室看看其他业务。'};return graduateOpeningMarket(s);}
   if(action.type==='PAUSE_FOR_BUYER'){
     const pause=retailPause(state,action.clientId);if(!pause)return state;
     const s=copy(state);s.day=pause.day;s.feedback={kind:'portfolio',message:'工作室暂停营业至第 '+s.day+' 天。期间没有收入，也没有工作室日费；客户只消化原有库存。'};return s;
@@ -667,9 +804,11 @@ function apply(state,action){
     const s=copy(state);s.phase='portfolio';s.feedback={kind:'portfolio',message:'尚未签约，可以换一位客户。'};return s;
   }
   if(action.type==='PROPOSE'){
+    if(state.openingParallel&&openingFlow(state)&&state.openingQuoteV2!==true||repeatParallelScope(state)&&repeatActiveOrders(state).length&&state.repeatQuoteV2!==true)return state;
     const q=previewOffer(state,action.optionId);if(!q.valid)return state;
     const s=copy(state),c=currentClient(s);
     if(!q.accepted){s.feedback={kind:'counter',message:q.reason};return s;}
+    if(s.repeatParallelV2===s.businessRound&&s.repeatQuoteV2!==true&&s.businessRound)delete s.repeatParallelV2;
     s.cash=q.cashAfterSigning;s.phase='fulfilling';if(s.businessRound&&!s.clientProjectActive)s.businessSigned++;
     s.contracts.push({clientId:c.id,clientName:c.name,product:c.product,optionId:q.id,quantity:q.quantity,revenue:q.revenue,cost:q.cost,deposit:q.deposit,balanceDue:q.balanceDue,profit:q.profit,operatingCost:q.operatingCost,netProfit:q.netProfit,signedDay:s.day,deliveryDay:q.deliveryDay,paymentDay:q.paymentDay,status:'fulfilling'});
     if(s.businessRound){s.contracts.at(-1).businessRound=s.businessRound;s.contracts.at(-1).specification=q.specification;}
@@ -683,32 +822,58 @@ function apply(state,action){
     s.feedback={kind:'accepted',message:q.deposit?`成交。定金 ${q.deposit} 已到账，尾款 ${q.balanceDue} 在第 ${q.paymentDay} 天收齐。`:`成交。第 ${q.deliveryDay} 天交货，第 ${q.paymentDay} 天收款。`};return s;
   }
   if(action.type==='ADVANCE'&&state.phase==='fulfilling'){
+    if(state.openingParallel&&openingFlow(state)||repeatParallelScope(state)&&repeatActiveOrders(state).length)return state;
     const dated=openingContractMilestone(state)||repeatContractMilestone(state);
     if(dated&&(!dated.delivery||state.day!==dated.contract.signedDay))return state;
     const s=copy(state),c=s.contracts.at(-1);
-    s.day=c.paymentDay;s.cash+=c.balanceDue-c.operatingCost;c.status='paid';s.phase='paid';
+    s.day=c.paymentDay;s.cash+=c.balanceDue-(calendar?0:c.operatingCost);c.status='paid';s.phase='paid';
     s.feedback={kind:'paid',message:`${c.clientName.split(' · ')[0]} 的货款已收齐，这单净赚 ${c.netProfit}。`};return s;
   }
   if(action.type==='NEXT_CLIENT'&&state.phase==='paid'){
     const s=copy(state);
     if(s.clientProjectActive){const done=clientProjects(s).every(p=>p.completed);s.phase=done?'review':'portfolio';if(done)s.clientProjectActive=false;s.feedback={kind:done?'projects-complete':'projects',message:done?'三份客户计划已收齐。看看哪些货赶上了专题，哪些转成了常规补货。':'这位客户的计划已交付，其他专题日期不会随之延后。'};return s;}
+    if(repeatParallelScope(s)){
+      const active=repeatActiveOrders(s);s.phase=active.length?'fulfilling':'portfolio';
+      if(active.length)s.clientIndex=CLIENTS.findIndex(c=>c.id===active[0].clientId);
+      return s;
+    }
     if(s.businessRound){s.phase=s.businessSigned>=s.businessTarget?'review':'portfolio';s.feedback={kind:s.phase,message:s.phase==='review'?'本次两笔经营已结清，可以查看账目并继续经营。':'这笔已结清，下一笔继续同客或换客由你决定。'};return s;}
-    if(s.openingOrderChosen){
+    if(s.openingParallel){
+      const pending=CLIENTS.findIndex(c=>!openingOrders(s).some(o=>o.clientId===c.id));
+      const active=openingOrders(s).filter(c=>c.status!=='paid');
+      if(active.length){s.phase='fulfilling';s.clientIndex=CLIENTS.findIndex(c=>c.id===active[0].clientId);return s;}
+      s.clientIndex=pending<0?CLIENTS.length:pending;
+    }else if(s.openingOrderChosen){
       const pending=CLIENTS.findIndex(c=>!s.contracts.some(o=>o.clientId===c.id&&o.status==='paid'&&!o.businessRound&&!o.projectId));
       s.clientIndex=pending<0?CLIENTS.length:pending;
     }else s.clientIndex++;
     s.phase=s.clientIndex<CLIENTS.length?'negotiating':'complete';
-    s.feedback={kind:s.phase==='complete'?'complete':'new-client',message:s.phase==='complete'?'三位客户的生意已收齐。':'新询盘到了，先看这位客户在意什么。'};return s;
+    s.feedback={kind:s.phase==='complete'?'complete':'new-client',message:s.phase==='complete'?'三位客户的生意已收齐。':'新询盘到了，先看这位客户在意什么。'};return s.phase==='complete'?graduateOpeningMarket(s):s;
   }
   return state;
 }
-const actionKeys={SIGN_OWN_COLLECTION_FROM_CASE:['type','referrerId','style'],PROPOSE_OPENING_QUOTE:['type','clientId','optionId'],CONTINUE_RETAIL_BUSINESS:['type'],OPEN_STOCK_PROCUREMENT:['type'],CLOSE_STOCK_PROCUREMENT:['type'],SIGN_STOCK_PROCUREMENT:['type','factoryMode'],FULFIL_STOCK_PROCUREMENT:['type'],SIGN_STUDIO_PROJECT_FROM_STOCK:['type'],SET_ACCOUNT_EXPANSION_BASIS:['type','basisId'],START_ACCOUNT_FROM_REVISION:['type'],SET_ACCOUNT_VERSION:['type','versionId'],OPEN_COLLECTION_REVISION:['type'],CLOSE_COLLECTION_REVISION:['type'],COMMISSION_COLLECTION_REVISION:['type'],RECEIVE_COLLECTION_REVISION:['type'],SIGN_COLLECTION_REVISION:['type','buyerId','scope'],FULFIL_COLLECTION_REVISION:['type'],START_CASE_DEVELOPMENT:['type'],OPEN_STUDIO_READING_PAIR:['type'],CLOSE_SETTLED_ROUND:['type'],CANCEL_ROUND_RECEIVABLES:['type'],ENABLE_ROUND_RECEIVABLES:['type'],DELIVER_ROUND_ORDER:['type'],WAIT_ROUND_RECEIPT:['type'],FINISH_ROUND_RECEIVABLES:['type'],SIGN_FIRST_CATALOGUE_ORDER:['type','referrerId','lampVersion'],START_OPENING_CURATION:['type','clientId'],SIGN_STUDIO_ALLOCATION:['type','allocation'],WAIT_STUDIO_ALLOCATION:['type','allocation'],START_ACCOUNT_FROM_COLLECTION:['type'],PAUSE_CLIENT_PROJECTS:['type'],RESUME_CLIENT_PROJECTS:['type'],OPEN_LAUNCH_PROJECT:['type'],CLOSE_LAUNCH_PROJECT:['type'],SET_LAUNCH:['type','field','value'],REVIEW_LAUNCH:['type'],REVISE_LAUNCH:['type'],HAND_OVER_LAUNCH:['type'],PROPOSE_GROUP_CHANGE:['type'],RESTORE_GROUP_SPEC:['type','briefId'],KEEP_STUDIO_PROJECT:['type'],REVISE_STUDIO_PROJECT:['type'],OPEN_STUDIO_PROJECT:['type','direction'],CLOSE_STUDIO_PROJECT:['type'],SET_STUDIO_PROJECT:['type','field','value'],REVIEW_STUDIO_PROJECT:['type'],SIGN_STUDIO_PROJECT_ORDER:['type'],WAIT_STUDIO_PROJECT:['type'],SIGN_CATALOGUE_ORDER:['type','lampVersion'],APPROVE_CASE_LAMP:['type','model'],SIGN_APPROVED_CASE_LAMP:['type','terms'],OPEN_ACCOUNT_EXPANSION:['type'],SIGN_ACCOUNT_EXPANSION:['type'],FULFIL_ACCOUNT_EXPANSION:['type'],DELIVER_ACCOUNT_V1:['type'],COLLECT_ACCOUNT_V1:['type'],WAIT_CASE_CALLOFF:['type','products'],SIGN_CASE_CALLOFF:['type','agreement','products','packaging','terms'],WAIT_CASE_GROWTH:['type','products'],OPEN_CASE_GROWTH:['type','referrerId'],CLOSE_CASE_GROWTH:['type'],SIGN_CASE_GROWTH:['type','agreement','products','packaging','terms'],FULFIL_CASE_GROWTH:['type'],SIGN_CURATION_SAMPLE:['type','products','quantity','packaging','lampVersion'],VIEW_DEVELOPMENT:['type'],CLOSE_SAMPLE:['type'],START_DEVELOPMENT:['type'],CLOSE_DEVELOPMENT:['type'],COMMISSION_SAMPLE:['type','factory'],RECEIVE_SAMPLE:['type'],ACCEPT_SAMPLE:['type'],PAUSE_FOR_BUYER:['type','clientId'],WAIT_FOR_BUYER:['type','clientId'],START_RETAIL_PLANNING:['type'],BACK_FROM_CLIENTS:['type'],WAIT_FOR_RETAIL:['type'],OPEN_COLLECTION_PITCH:['type','buyerId'],BACK_COLLECTION_PITCH:['type'],SIGN_COLLECTION_PITCH:['type','optionId'],START_COLLECTION:['type'],BACK_FROM_COLLECTION:['type'],SIGN_COLLECTION:['type','model','style'],SIGN_COLLECTION_ORDER:['type','buyerId'],FULFIL_COLLECTION:['type'],CLOSE_COLLECTION:['type'],OPEN_COLLECTION:['type'],START_ACCOUNT:['type','referrerId'],BACK_FROM_ACCOUNT:['type'],SIGN_ACCOUNT:['type','optionId'],FULFIL_ACCOUNT:['type'],CLOSE_ACCOUNT:['type'],BACK_FROM_CURATION:['type'],START_CURATION:['type','clientId'],SIGN_CURATION:['type','products','quantity','packaging'],FULFIL_CURATION:['type'],START_CLIENT_PROJECTS:['type'],PROPOSE:['type','optionId'],ADVANCE:['type'],NEXT_CLIENT:['type'],CONTINUE_BUSINESS:['type'],SELECT_CLIENT:['type','clientId'],BACK_TO_CLIENTS:['type'],START_SUPPLY_PLAN:['type','clientId','firstBatch','payment'],ADVANCE_SUPPLY_PLAN:['type'],FULFIL_SUPPLY_PLAN:['type']};
+const CURATION_SIGN_TYPES=['SIGN_CURATION','SIGN_CURATION_SAMPLE','SIGN_CURATION_V2','SIGN_CURATION_SAMPLE_V2'];
+const actionKeys={RECEIVE_OWN_COLLECTION_V1:['type'],SIGN_CURATION_V2:['type','products','quantity','packaging'],SIGN_CURATION_SAMPLE_V2:['type','products','quantity','packaging','lampVersion'],SIGN_OWN_COLLECTION_FROM_CASE:['type','referrerId','style'],PROPOSE_OPENING_QUOTE:['type','clientId','optionId'],CONTINUE_RETAIL_BUSINESS:['type'],OPEN_STOCK_PROCUREMENT:['type'],CLOSE_STOCK_PROCUREMENT:['type'],SIGN_STOCK_PROCUREMENT:['type','factoryMode'],FULFIL_STOCK_PROCUREMENT:['type'],SIGN_STUDIO_PROJECT_FROM_STOCK:['type'],SET_ACCOUNT_EXPANSION_BASIS:['type','basisId'],START_ACCOUNT_FROM_REVISION:['type'],SET_ACCOUNT_VERSION:['type','versionId'],OPEN_COLLECTION_REVISION:['type'],CLOSE_COLLECTION_REVISION:['type'],COMMISSION_COLLECTION_REVISION:['type'],RECEIVE_COLLECTION_REVISION:['type'],SIGN_COLLECTION_REVISION:['type','buyerId','scope'],FULFIL_COLLECTION_REVISION:['type'],START_CASE_DEVELOPMENT:['type'],OPEN_STUDIO_READING_PAIR:['type'],CLOSE_SETTLED_ROUND:['type'],CANCEL_ROUND_RECEIVABLES:['type'],ENABLE_ROUND_RECEIVABLES:['type'],DELIVER_ROUND_ORDER:['type'],WAIT_ROUND_RECEIPT:['type'],FINISH_ROUND_RECEIVABLES:['type'],SIGN_FIRST_CATALOGUE_ORDER:['type','referrerId','lampVersion'],START_OPENING_CURATION:['type','clientId'],SIGN_STUDIO_ALLOCATION:['type','allocation'],WAIT_STUDIO_ALLOCATION:['type','allocation'],START_ACCOUNT_FROM_COLLECTION:['type'],PAUSE_CLIENT_PROJECTS:['type'],RESUME_CLIENT_PROJECTS:['type'],OPEN_LAUNCH_PROJECT:['type'],CLOSE_LAUNCH_PROJECT:['type'],SET_LAUNCH:['type','field','value'],REVIEW_LAUNCH:['type'],REVISE_LAUNCH:['type'],HAND_OVER_LAUNCH:['type'],PROPOSE_GROUP_CHANGE:['type'],RESTORE_GROUP_SPEC:['type','briefId'],KEEP_STUDIO_PROJECT:['type'],REVISE_STUDIO_PROJECT:['type'],OPEN_STUDIO_PROJECT:['type','direction'],CLOSE_STUDIO_PROJECT:['type'],SET_STUDIO_PROJECT:['type','field','value'],REVIEW_STUDIO_PROJECT:['type'],SIGN_STUDIO_PROJECT_ORDER:['type'],WAIT_STUDIO_PROJECT:['type'],SIGN_CATALOGUE_ORDER:['type','lampVersion'],APPROVE_CASE_LAMP:['type','model'],SIGN_APPROVED_CASE_LAMP:['type','terms'],OPEN_ACCOUNT_EXPANSION:['type'],SIGN_ACCOUNT_EXPANSION:['type'],FULFIL_ACCOUNT_EXPANSION:['type'],DELIVER_ACCOUNT_V1:['type'],COLLECT_ACCOUNT_V1:['type'],WAIT_CASE_CALLOFF:['type','products'],SIGN_CASE_CALLOFF:['type','agreement','products','packaging','terms'],WAIT_CASE_GROWTH:['type','products'],OPEN_CASE_GROWTH:['type','referrerId'],CLOSE_CASE_GROWTH:['type'],SIGN_CASE_GROWTH:['type','agreement','products','packaging','terms'],FULFIL_CASE_GROWTH:['type'],SIGN_CURATION_SAMPLE:['type','products','quantity','packaging','lampVersion'],VIEW_DEVELOPMENT:['type'],CLOSE_SAMPLE:['type'],START_DEVELOPMENT:['type'],CLOSE_DEVELOPMENT:['type'],COMMISSION_SAMPLE:['type','factory'],RECEIVE_SAMPLE:['type'],ACCEPT_SAMPLE:['type'],PAUSE_FOR_BUYER:['type','clientId'],WAIT_FOR_BUYER:['type','clientId'],START_RETAIL_PLANNING:['type'],BACK_FROM_CLIENTS:['type'],WAIT_FOR_RETAIL:['type'],OPEN_COLLECTION_PITCH:['type','buyerId'],BACK_COLLECTION_PITCH:['type'],SIGN_COLLECTION_PITCH:['type','optionId'],START_COLLECTION:['type'],BACK_FROM_COLLECTION:['type'],SIGN_COLLECTION:['type','model','style'],SIGN_COLLECTION_ORDER:['type','buyerId'],FULFIL_COLLECTION:['type'],CLOSE_COLLECTION:['type'],OPEN_COLLECTION:['type'],START_ACCOUNT:['type','referrerId'],BACK_FROM_ACCOUNT:['type'],SIGN_ACCOUNT:['type','optionId'],FULFIL_ACCOUNT:['type'],CLOSE_ACCOUNT:['type'],BACK_FROM_CURATION:['type'],START_CURATION:['type','clientId'],SIGN_CURATION:['type','products','quantity','packaging'],FULFIL_CURATION:['type'],START_CLIENT_PROJECTS:['type'],PROPOSE:['type','optionId'],ADVANCE:['type'],NEXT_CLIENT:['type'],CONTINUE_BUSINESS:['type'],SELECT_CLIENT:['type','clientId'],BACK_TO_CLIENTS:['type'],START_SUPPLY_PLAN:['type','clientId','firstBatch','payment'],ADVANCE_SUPPLY_PLAN:['type'],FULFIL_SUPPLY_PLAN:['type']};
 function canonicalAction(a){
+  if(a?.type===LIQUIDATE_ACTION)return Object.keys(a).length===3&&Number.isSafeInteger(a.checkedDay)&&a.checkedDay>0&&Number.isSafeInteger(a.expectedProceeds)&&a.expectedProceeds>0?{type:a.type,checkedDay:a.checkedDay,expectedProceeds:a.expectedProceeds}:null;
+  if(a?.type===BANKRUPTCY_ACTION)return Object.keys(a).length===2&&Number.isSafeInteger(a.checkedDay)&&a.checkedDay>0?{type:a.type,checkedDay:a.checkedDay}:null;
+  if(a?.type==='ROUND_CALENDAR_V1')return canonicalRoundCalendarAction(a);
+  if(a?.type===SPECIALTY_MILESTONE)return canonicalSpecialtyMilestone(a);
+  if(a?.type==='CORE_CALENDAR_V1'){
+    if(Object.keys(a).length!==2||!a.action||a.action.type==='CORE_CALENDAR_V1')return null;
+    const raw=a.action;
+    if(!coreCalendarActions.has(raw.type)&&raw.type!=='SIGN_OWN_COLLECTION_FROM_CASE'&&!(raw.type==='SIGN_COLLECTION'&&raw.model==='own'))return null;
+    const action=canonicalAction(raw);
+    return action?{type:a.type,action}:null;
+  }
+  if(a?.type==='OPENING_MARKET_ACTION_V1')return canonicalOpeningMarketAction(a);
+  if(['SIGN_OPENING_QUOTE_V2','SIGN_FAMILIAR_QUOTE_V2','SIGN_FAMILIAR_QUOTE_V3','SIGN_FAMILIAR_SAMPLE_V1'].includes(a?.type))return Object.keys(a).length===3&&Object.hasOwn(a,'clientId')&&Object.hasOwn(a,'optionId')&&CLIENTS.some(c=>c.id===a.clientId)&&typeof a.optionId==='string'&&a.optionId.length<=40
+    ?{type:a.type,clientId:a.clientId,optionId:a.optionId}:null;
   if(a&&Object.hasOwn(LEGACY_EQUIPMENT_ACTION_KEYS,a.type))return canonicalLegacyEquipmentAction(a);
   if(a&&Object.hasOwn(PROMOTION_ACTION_KEYS,a.type))return canonicalPromotionAction(a);
   if(a?.type==='DELIVER_OPENING_ORDER_V1'||a?.type==='COLLECT_OPENING_ORDER_V1')return canonicalOpeningCalendar(a);
   if(isRepeatCalendarAction(a?.type))return canonicalRepeatCalendar(a);
-  if(a?.type==='SLEEP_TO_NEXT_DAY')return canonicalWorkspaceSleep(a);
+  if(['SLEEP_TO_NEXT_DAY','SLEEP_TO_NEXT_DAY_V2'].includes(a?.type))return canonicalWorkspaceSleep(a);
   if(a&&Object.hasOwn(PROPERTY_ACTION_KEYS,a.type))return canonicalPropertyAction(a);
   if(a&&Object.hasOwn(OUTING_ACTION_KEYS,a.type))return canonicalOutingAction(a);
   if(a&&typeof MARKET_ACTION_KEYS!=='undefined'&&Object.hasOwn(MARKET_ACTION_KEYS,a.type))return canonicalMarketAction(a);
@@ -747,8 +912,8 @@ function canonicalAction(a){
   if(a.type==='START_ACCOUNT'&&typeof a.referrerId!=='string')return null;
   if(['PAUSE_FOR_BUYER','WAIT_FOR_BUYER','SELECT_CLIENT','START_SUPPLY_PLAN','START_CURATION','START_OPENING_CURATION'].includes(a.type)&&typeof a.clientId!=='string')return null;
   if(a.type==='START_SUPPLY_PLAN'&&(typeof a.firstBatch!=='string'||typeof a.payment!=='string'))return null;
-  if(a.type==='SIGN_CURATION_SAMPLE'&&a.lampVersion!=='developed')return null;
-  if(['SIGN_CURATION','SIGN_CURATION_SAMPLE'].includes(a.type)&&(!Array.isArray(a.products)||a.products.some(p=>typeof p!=='string')||!Number.isSafeInteger(a.quantity)||typeof a.packaging!=='string'))return null;
+  if(['SIGN_CURATION_SAMPLE','SIGN_CURATION_SAMPLE_V2'].includes(a.type)&&a.lampVersion!=='developed')return null;
+  if(CURATION_SIGN_TYPES.includes(a.type)&&(!Array.isArray(a.products)||a.products.some(p=>typeof p!=='string')||!Number.isSafeInteger(a.quantity)||typeof a.packaging!=='string'))return null;
   return Object.fromEntries(keys.map(k=>[k,k==='products'?[...a[k]].sort():a[k]]));
 }
 function reduceRecordedDeal(state,action){
@@ -813,6 +978,19 @@ export function reduceDealRoom(state,action){
  if(!compacted.historyPages&&compacted.history.length>=4000){try{compacted=normalizeDealRoom(compacted);}catch{return state;}}
  const next=applyOnJournalPage(compacted,action,reduceRecordedDeal);
  return next===compacted?state:pageJournal(next);
+}
+// UI-only entry point. History remains able to replay every historic action.
+// Neither an individual milestone nor a stale wait control may move the clock.
+export function reduceLiveDealRoom(state,input){
+ const type=input?.type;let action=input;
+ if(type==='SLEEP_TO_NEXT_DAY')action={...input,type:'SLEEP_TO_NEXT_DAY_V2'};
+ else if(type==='RECEIVE_SAMPLE'||type==='COLLECT_FIRST_SAMPLE')action={type:SPECIALTY_MILESTONE,task:'first-sample-collect',checkedDay:state.day};
+ else if(['RECEIVE_SECOND_SAMPLE','SETTLE_SHOP_TRIAL','RECEIVE_LINEN_FREIGHT','DELIVER_ATELIER_RESTOCK','COLLECT_ATELIER_RESTOCK'].includes(type))return state;
+ else if(coreCalendarActions.has(type)||type==='SIGN_OWN_COLLECTION_FROM_CASE'||type==='SIGN_COLLECTION'&&input.model==='own')action={type:'CORE_CALENDAR_V1',action:input};
+ else if(removedLiveWaits.has(type)||type==='DELIVER_ROUND_ORDER'||type==='WAIT_ROUND_RECEIPT')return state;
+ const next=reduceDealRoom(state,action);
+ const sleep=action?.type==='SLEEP_TO_NEXT_DAY_V2';
+ return next.day-state.day===(sleep?1:0)?next:state;
 }
 // Only successful, fully compared replays enter this process-local cache.
 // Serialized snapshots never alias caller-owned objects. At most four entries,

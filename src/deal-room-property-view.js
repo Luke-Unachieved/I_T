@@ -7,6 +7,7 @@ const pvTerms=Object.freeze({
   home:{title:'房产',back:'返回下班',place:'offwork',peek:'看房',use:'搬到这里住',using:'现在住在这里',keep:'保留名下的房子'},
   car:{title:'车行',back:'返回下班',place:'offwork',peek:'看车',use:'换开这辆',using:'现在开的车',keep:'保留名下的车'}
 });
+const pvCanAct=s=>['review','complete'].includes(s?.phase);
 const pvTerm = k=>typeof k==='string' && Object.hasOwn(pvTerms,k)?pvTerms[k]:null;
 const pvTitle=(k,h)=>k==='car'&&h?.owned.some(r=>PROPERTY_CATALOG.some(x=>x.kind==='car'&&x.id===r.id))?'车库':pvTerm(k)?.title;
 const pvItem=(k,id)=>PROPERTY_CATALOG.find(x=>x.kind===k&&x.id===id);
@@ -71,7 +72,9 @@ function pvMoneyFacts(s,q){
 function pvDetail(s,k,item,h,ui,art){
   const t=pvTerm(k),owned=h?.owned.find(r=>r.id===item.id);
   const q=propertyPreview(s,item.id,ui.tradeInId??null);
-  const confirm=q.valid&&ui.confirmation===pvSignature(q,s);
+  const allowed=pvCanAct(s);
+  const unavailable='<p class="pv-status" role="status">请先处理手上的订单，回工作室后再办理。</p>';
+  const confirm=allowed&&q.valid&&ui.confirmation===pvSignature(q,s);
   let out=pvTitlebar(item.name,confirm?'最后核对':pvTitle(k,h),'返回'+pvTitle(k,h),'data-pv-list')+pvArt(art,item.id);
   if(!h) return out+'<p role="status">账目暂时无法核对。</p>';
   if(owned){
@@ -79,7 +82,7 @@ function pvDetail(s,k,item,h,ui,art){
     return out+'<p class="pv-owned">'+(active?t.using:'已拥有')+'</p>'+
       (item.id==='home-starter'?'<p>这是你最初的住处，不作置换抵扣。</p>':
         '<dl class="pv-facts">'+pvFact('原实付',pvCash(owned.paid))+pvFact('购入时间','第 '+owned.day+' 天')+'</dl>')+
-      (active?'':pvBtn('data-pv-switch="'+item.id+'"',t.use+'（免费）','pv-primary'));
+      (active?'':!allowed?unavailable:pvBtn('data-pv-switch="'+item.id+'"',t.use+'（免费）','pv-primary'));
   }
   if(item.price===null) return out+'<p class="pv-owned">暂未开售</p>';
   if(confirm){
@@ -90,7 +93,7 @@ function pvDetail(s,k,item,h,ui,art){
   }
   return out+'<p class="pv-lead">可用资金 '+pvCash(s.cash)+'</p>'+pvChoice(s,item,h,q)+
     (q.tradeInId?'<p class="pv-note">按旧资产当初实付的 70% 抵扣。'+(q.tradeInAllowance>q.creditUsed?'超出新价的部分不返现。':'')+'</p>':'')+
-    pvMoneyFacts(s,q)+(q.valid?pvBtn('data-pv-review',q.tradeInId?'核对置换':'核对购买','pv-primary'):
+    pvMoneyFacts(s,q)+(!allowed?unavailable:q.valid?pvBtn('data-pv-review',q.tradeInId?'核对置换':'核对购买','pv-primary'):
       '<p class="pv-status" role="status">'+pvEsc(q.reason)+'</p>');
 }
 /** ui={kind:'office'|'home'|'car',assetId?,tradeInId?,confirmation?} is navigation state only. */
@@ -122,20 +125,21 @@ export function bindPropertyView(root,state,ui,{render,dispatch,onBack,getState=
     ui.tradeInId=id||null;delete ui.confirmation;show('[data-pv-trade]');});
   on('[data-pv-review]','click',()=>{
     const s=stateNow(),q=propertyPreview(s,ui.assetId,ui.tradeInId??null);
-    if(!q.valid||q.item?.kind!==k)return;
+    if(!pvCanAct(s)||!q.valid||q.item?.kind!==k)return;
     ui.confirmation=pvSignature(q,s);show();});
   on('[data-pv-cancel]','click',()=>{delete ui.confirmation;show('[data-pv-review]');});
   on('[data-pv-confirm]','click',()=>{
     if(committed)return;
     const s=stateNow(),q=propertyPreview(s,ui.assetId,ui.tradeInId??null);
-    if(!q.valid||q.item?.kind!==k||ui.confirmation!==pvSignature(q,s)){
+    if(!pvCanAct(s)||!q.valid||q.item?.kind!==k||ui.confirmation!==pvSignature(q,s)){
       delete ui.confirmation;show();return;
     }
     const action=q.tradeInId?{type:'TRADE_IN_PROPERTY',assetId:q.item.id,tradeInId:q.tradeInId}:{type:'BUY_PROPERTY',assetId:q.item.id};
     committed=true;reset();dispatch(action);});
   on('[data-pv-switch]','click',()=>{
     if(committed)return;
-    const h=propertyHoldings(stateNow()),id=ui.assetId;
+    const s=stateNow(),h=propertyHoldings(s),id=ui.assetId;
+    if(!pvCanAct(s))return;
     if(!pvItem(k,id)||!h?.owned.some(r=>r.id===id)||h.active[k]===id)return;
     committed=true;reset();dispatch({type:'SWITCH_PROPERTY',assetId:id});});
 }

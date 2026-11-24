@@ -1,5 +1,6 @@
-import {marketCalendarDue} from './deal-room-market-calendar.js';
-import {charterCarafe} from './deal-room-market-carafe-transport.js';
+import {marketTiming,MAX_NEW_ORDER_DAYS} from './deal-room-order-cadence.js';
+import {marketCalendarDue,isSpecialCarafe} from './deal-room-market-calendar.js';
+import {charterCarafe,keepStandardCarafe} from './deal-room-market-carafe-transport.js';
 import {NEIGHBORHOOD_BUYER,neighborhoodRequest} from './deal-room-neighborhood.js';
 import {MARKET_PRODUCTS} from './deal-room-market-data.js';
 import {prospectIdValid,prospectPlan,dismissProspect} from './deal-room-prospects.js';
@@ -7,18 +8,33 @@ import {WAREHOUSE_ACTION_KEYS,canonicalWarehouseAction,applyWarehouseAction,prev
 import {EQUIPMENT_PROJECTS,previewEquipment,advanceEquipmentShipping,rebookEquipment} from './deal-room-equipment.js';
 // One active purchase/sale at a time. The main reducer owns the replay journal.
 export const DAY_COST=30;
-export const MARKET_ACTION_KEYS=Object.freeze({...WAREHOUSE_ACTION_KEYS,CHARTER_CARAFE_V1:['type'],SIGN_EQUIPMENT:['type','projectId','shipping'],SHIP_EQUIPMENT:['type'],SHIP_EQUIPMENT_V2:['type'],REBOOK_EQUIPMENT:['type'],OPEN_MARKET:['type'],CLOSE_MARKET:['type'],REGISTER_NEIGHBORHOOD:['type'],DISMISS_PROSPECT_V1:['type','customerId','checkedDay'],SIGN_PROSPECT_VIP_LOT_V1:['type','customerId','source','unitPrice','previousPaidDay'],SIGN_PROSPECT_LOT_V1:['type','customerId','optionId','source','unitPrice'],SIGN_MARKET:['type','productId','mode','source','unitPrice'],DELIVER_MARKET:['type'],COLLECT_MARKET:['type'],DELIVER_MARKET_V2:['type'],COLLECT_MARKET_V2:['type']});
+export const MARKET_ACTION_KEYS=Object.freeze({...WAREHOUSE_ACTION_KEYS,SWITCH_MARKET_ORDER_V1:['type','orderId'],CHARTER_CARAFE_V1:['type'],CHOOSE_CARAFE_STANDARD_V1:['type'],SIGN_EQUIPMENT:['type','projectId','shipping'],SIGN_EQUIPMENT_V2:['type','projectId','shipping'],SHIP_EQUIPMENT:['type'],SHIP_EQUIPMENT_V2:['type'],REBOOK_EQUIPMENT:['type'],OPEN_MARKET:['type'],CLOSE_MARKET:['type'],REGISTER_NEIGHBORHOOD:['type'],DISMISS_PROSPECT_V1:['type','customerId','checkedDay'],SIGN_PROSPECT_VIP_LOT_V1:['type','customerId','source','unitPrice','previousPaidDay'],SIGN_PROSPECT_VIP_LOT_V2:['type','customerId','source','unitPrice','previousPaidDay'],SIGN_PROSPECT_LOT_V1:['type','customerId','optionId','source','unitPrice'],SIGN_PROSPECT_LOT_V2:['type','customerId','optionId','source','unitPrice'],SIGN_MARKET:['type','productId','mode','source','unitPrice'],SIGN_MARKET_V2:['type','productId','mode','source','unitPrice'],DELIVER_MARKET:['type'],COLLECT_MARKET:['type'],DELIVER_MARKET_V2:['type'],COLLECT_MARKET_V2:['type']});
+export const parkedMarketOrders=s=>Array.isArray(s?.marketParked)?s.marketParked:[];
+export function canParkMarketOrder(s){
+ const a=s?.market?.active;
+ if(s?.phase!=='market'||!a||isSpecialCarafe(a)||!marketCalendarDue(s)||!['transit','receivable'].includes(a.status))return false;
+ // Special shipping paths (including charter carafes and equipment) aren't interchangeable.
+ return [undefined,'prospect','neighborhood'].includes(a.kind);
+}
+export {marketParallelDue} from './deal-room-market-calendar.js';
+const quantityIsSpecialCarafe=(o,price)=>o.quantity===72&&price===51;
+const marketReservedDays=s=>Math.max(0,...parkedMarketOrders(s).map(o=>o.paymentDay-s.day),...(['opening','familiar'].includes(s.market?.returnPhase)?s.contracts.filter(c=>c.status!=='paid').map(c=>c.paymentDay-s.day):[]));
+const queueDuplicates=(s,d,plan)=>{
+ const rows=parkedMarketOrders(s);
+ return plan?rows.some(a=>a.customerId===plan.customerId):rows.some(a=>!a.customerId&&a.productId===d.productId);
+};
 const safe=n=>Number.isSafeInteger(n)&&n>=0;
 export function canonicalMarketAction(a){
  if(!a||typeof a!=='object'||Array.isArray(a)||!Object.hasOwn(MARKET_ACTION_KEYS,a.type))return null;
  if(Object.hasOwn(WAREHOUSE_ACTION_KEYS,a.type))return canonicalWarehouseAction(a);
- if(a.type==='SIGN_EQUIPMENT'&&(!EQUIPMENT_PROJECTS.some(p=>p.id===a.projectId)||!['standard','locked'].includes(a.shipping)))return null;
+ if(a.type==='SWITCH_MARKET_ORDER_V1'&&(!Number.isSafeInteger(a.orderId)||a.orderId<0))return null;
+ if(['SIGN_EQUIPMENT','SIGN_EQUIPMENT_V2'].includes(a.type)&&(!EQUIPMENT_PROJECTS.some(p=>p.id===a.projectId)||!['standard','locked'].includes(a.shipping)))return null;
  const keys=MARKET_ACTION_KEYS[a.type];
  if(Object.keys(a).length!==keys.length||!keys.every(k=>Object.hasOwn(a,k)))return null;
- if(a.type==='SIGN_MARKET'&&(!MARKET_PRODUCTS.some(p=>p.id===a.productId)||!['trial','bulk','neighborhood'].includes(a.mode)||!['stock','factory','warehouse'].includes(a.source)||!safe(a.unitPrice)||a.unitPrice<1||a.unitPrice>100000))return null;
+ if(['SIGN_MARKET','SIGN_MARKET_V2'].includes(a.type)&&(!MARKET_PRODUCTS.some(p=>p.id===a.productId)||!['trial','bulk','neighborhood'].includes(a.mode)||!['stock','factory','warehouse'].includes(a.source)||!safe(a.unitPrice)||a.unitPrice<1||a.unitPrice>100000))return null;
  if(a.type==='DISMISS_PROSPECT_V1'&&(!prospectIdValid(a.customerId)||!safe(a.checkedDay)||a.checkedDay<1))return null;
- if(a.type==='SIGN_PROSPECT_LOT_V1'&&(!prospectIdValid(a.customerId)||!['quote','concession','reorder'].includes(a.optionId)||!['stock','factory','warehouse'].includes(a.source)||!safe(a.unitPrice)||a.unitPrice<1||a.unitPrice>100000))return null;
- if(a.type==='SIGN_PROSPECT_VIP_LOT_V1'&&(!prospectIdValid(a.customerId)||!safe(a.previousPaidDay)||a.previousPaidDay<1||!['stock','factory','warehouse'].includes(a.source)||!safe(a.unitPrice)||a.unitPrice<1||a.unitPrice>100000))return null;
+ if(['SIGN_PROSPECT_LOT_V1','SIGN_PROSPECT_LOT_V2'].includes(a.type)&&(!prospectIdValid(a.customerId)||!['quote','concession','reorder'].includes(a.optionId)||!['stock','factory','warehouse'].includes(a.source)||!safe(a.unitPrice)||a.unitPrice<1||a.unitPrice>100000))return null;
+ if(['SIGN_PROSPECT_VIP_LOT_V1','SIGN_PROSPECT_VIP_LOT_V2'].includes(a.type)&&(!prospectIdValid(a.customerId)||!safe(a.previousPaidDay)||a.previousPaidDay<1||!['stock','factory','warehouse'].includes(a.source)||!safe(a.unitPrice)||a.unitPrice<1||a.unitPrice>100000))return null;
  return Object.fromEntries(keys.map(k=>[k,a[k]]));
 }
 // A fulfilled lot and an unpaid receivable are not a paid order. The active
@@ -41,7 +57,7 @@ export function marketBook(state){
 export function marketAvailable(s){
  return !!s&&['review','complete'].includes(s.phase)&&safe(s.cash)&&safe(s.day)&&(s.contracts||[]).some(c=>c.status==='paid')&&!(s.contracts||[]).some(c=>c.status!=='paid')&&(!s.market||['draft','paid'].includes(s.market.status));
 }
-export function previewMarket(s,draft){
+export function previewMarket(s,draft,{cadence=false}={}){
  const invalid=reason=>({valid:false,accepted:false,reason});
  if(!s||!safe(s.cash)||!safe(s.day)||!draft)return invalid('经营资金或日期无效。');
  const wantsProspect=Object.hasOwn(draft,'customerId'),plan=wantsProspect?prospectPlan(s,draft.customerId,draft.optionId,draft.previousPaidDay):null;
@@ -51,13 +67,20 @@ export function previewMarket(s,draft){
  const request=mode==='neighborhood'&&s.neighborhoodRegistered?neighborhoodRequest(marketBook(s).receipts):null;
  const o=plan?.offer??(mode==='neighborhood'?request?.offers[p.id]:p.offers[mode]);
  if(!o)return invalid('这款商品不在本次门店联采清单内。');
+ if(queueDuplicates(s,draft,plan))return invalid('这位客户的同一批货已经在订单里。');
+ if(parkedMarketOrders(s).length&&p.id==='carafe'&&!plan&&mode==='bulk'&&source==='stock'&&quantityIsSpecialCarafe(o,unitPrice))return invalid('请先处理并行订单，再安排这笔专车运输订单。');
  const own=source==='warehouse',quantity=o.quantity,issue=own?previewWarehouseIssue(s,p.id,quantity):null;
  if(own&&!issue.valid)return invalid(issue.reason);
  const f=own?{...p.sources.stock,name:'自有仓库',minQuantity:1,days:1}:p.sources[source];
  const revenue=quantity*unitPrice,goodsCost=own?issue.bookCost:quantity*f.unitCost,boxes=Math.ceil(quantity/f.packSize),freight=f.freightBase+boxes*f.freightPerBox,cost=goodsCost+freight;
  const payable=own?freight:cost;
- const deposit=Math.floor(revenue*o.depositPercent/100),balanceDue=revenue-deposit,deliveryDay=s.day+f.days,paymentDay=deliveryDay+o.payLag,deadlineDay=s.day+o.deadlineDays,operatingCost=(f.days+o.payLag)*DAY_COST,cashRequired=Math.max(0,payable-deposit+operatingCost),cashAfterSigning=s.cash+deposit-payable,cashAfterPayment=s.cash+revenue-payable-operatingCost;
- const q={productId:p.id,productName:p.name,category:p.category,buyer:plan?.buyer??(request?NEIGHBORHOOD_BUYER:p.buyer),...(plan?{kind:'prospect',customerId:plan.customerId,optionId:plan.optionId,prospectVoice:plan.prospectVoice,...(plan.prospectRepeat?{prospectRepeat:true,prospectPreviousPaidDay:plan.prospectPreviousPaidDay}:{})}:{}),...(request?{kind:'neighborhood',stores:request.stores,perStore:o.perStore}:{}),unit:p.unit,mode,source,sourceName:f.name,...(own?{warehouseRevision:issue.revision,cashPayable:payable,warehouseBookCost:issue.bookCost}:{}),unitPrice,maxUnitPrice:o.maxUnitPrice,quantity,minQuantity:f.minQuantity,boxes,goodsCost,freight,cost,revenue,deposit,balanceDue,operatingCost,netProfit:revenue-cost-operatingCost,cashRequired,cashAfterSigning,cashAfterPayment,signedDay:s.day,deliveryDay,paymentDay,deadlineDay,inspection:p.inspection};
+ const preserveStory=p.id==='carafe'&&!plan&&mode==='bulk'&&source==='stock'&&quantityIsSpecialCarafe(o,unitPrice);
+ const timing=marketTiming(f,o,{mode,source,optionId:draft.optionId,cadence,preserveStory});
+ const duration=timing.delivery+timing.lag;
+ if(cadence&&duration>MAX_NEW_ORDER_DAYS)return invalid('这笔订单的交付和收款安排超过新单账期上限。');
+ const priorReserve=marketReservedDays(s),sharedDays=Math.min(duration,priorReserve);
+ const deposit=Math.floor(revenue*o.depositPercent/100),balanceDue=revenue-deposit,deliveryDay=s.day+timing.delivery,paymentDay=deliveryDay+timing.lag,deadlineDay=s.day+o.deadlineDays,operatingCost=(duration-sharedDays)*DAY_COST,cashRequired=Math.max(0,payable-deposit+Math.max(duration,priorReserve)*DAY_COST),cashAfterSigning=s.cash+deposit-payable,cashAfterPayment=s.cash+revenue-payable-duration*DAY_COST;
+ const q={...(cadence&&!preserveStory?{marketCadenceVersion:1}:{}),...(sharedDays?{operatingCostStartDay:s.day+sharedDays}:{}),productId:p.id,productName:p.name,category:p.category,buyer:plan?.buyer??(request?NEIGHBORHOOD_BUYER:p.buyer),...(plan?{kind:'prospect',customerId:plan.customerId,optionId:plan.optionId,prospectVoice:plan.prospectVoice,...(plan.prospectRepeat?{prospectRepeat:true,prospectPreviousPaidDay:plan.prospectPreviousPaidDay}:{})}:{}),...(request?{kind:'neighborhood',stores:request.stores,perStore:o.perStore}:{}),unit:p.unit,mode,source,sourceName:f.name,...(own?{warehouseRevision:issue.revision,cashPayable:payable,warehouseBookCost:issue.bookCost}:{}),unitPrice,maxUnitPrice:o.maxUnitPrice,quantity,minQuantity:f.minQuantity,boxes,goodsCost,freight,cost,revenue,deposit,balanceDue,operatingCost,netProfit:revenue-cost-operatingCost,cashRequired,cashAfterSigning,cashAfterPayment,signedDay:s.day,deliveryDay,paymentDay,deadlineDay,inspection:p.inspection};
  if(![revenue,goodsCost,freight,cost,deposit,balanceDue,deliveryDay,paymentDay,deadlineDay,operatingCost,cashRequired].every(safe)||!Number.isSafeInteger(cashAfterSigning)||!Number.isSafeInteger(cashAfterPayment))return invalid('这份报价超出可记录范围。');
  let reason='';
  if(unitPrice>o.maxUnitPrice)reason=plan?'这个价客户没接受，可以重新报价。':`买方拒绝：单价高于本方案预算 ¥${o.maxUnitPrice}，请调整报价。`;
@@ -82,19 +105,36 @@ export function applyMarketAction(s,action,canStart=true){
   const n=structuredClone(s);n.market={status:'draft',returnPhase:s.phase};n.phase='market';return n;
  }
  if(s.phase!=='market'||!s.market)return s;
+ if(a.type==='SWITCH_MARKET_ORDER_V1'){
+  const rows=parkedMarketOrders(s),target=a.orderId?rows.find(o=>o.queueId===a.orderId):null;
+  const canPark=canParkMarketOrder(s);
+  if(!a.orderId&&!canPark&&!(s.market.status==='paid')||a.orderId&&!target||!canPark&&!['draft','paid'].includes(s.market.status))return s;
+  const n=structuredClone(s);n.marketParked=parkedMarketOrders(n).filter(o=>o.queueId!==a.orderId);
+  if(canPark){
+   const current=n.market.active;
+   if(!current.queueId){n.marketQueueSequence=(n.marketQueueSequence||0)+1;current.queueId=n.marketQueueSequence;}
+   n.marketParked.push(current);
+  }
+  const returnPhase=n.market.returnPhase;
+  n.market=target?{status:target.status,active:structuredClone(target),returnPhase}:{status:'draft',returnPhase};
+  return n;
+ }
  if(a.type==='REGISTER_NEIGHBORHOOD'){
   if(s.market.status!=='draft'||s.neighborhoodRegistered||!neighborhoodRequest(marketBook(s).receipts))return s;
   const n=structuredClone(s);n.neighborhoodRegistered=true;return n;
  }
  if(a.type==='CHARTER_CARAFE_V1')return charterCarafe(s);
+ if(a.type==='CHOOSE_CARAFE_STANDARD_V1')return keepStandardCarafe(s);
  if(a.type==='SHIP_EQUIPMENT'||a.type==='SHIP_EQUIPMENT_V2')return advanceEquipmentShipping(s,DAY_COST,a.type==='SHIP_EQUIPMENT_V2');
  if(a.type==='REBOOK_EQUIPMENT')return rebookEquipment(s,DAY_COST);
- if(a.type==='CLOSE_MARKET'&&['draft','paid'].includes(s.market.status)){
+ if(a.type==='CLOSE_MARKET'&&['draft','paid'].includes(s.market.status)&&!parkedMarketOrders(s).length){
   const n=structuredClone(s);n.phase=n.market.returnPhase==='complete'?'complete':'review';return n;
  }
- if(a.type==='SIGN_MARKET'||a.type==='SIGN_EQUIPMENT'||a.type==='SIGN_PROSPECT_LOT_V1'||a.type==='SIGN_PROSPECT_VIP_LOT_V1'){
-  if(!canStart)return s;
-  const q=a.type==='SIGN_EQUIPMENT'?previewEquipment(s,a.projectId,a.shipping,DAY_COST):previewMarket(s,a.type==='SIGN_PROSPECT_VIP_LOT_V1'?{...a,optionId:'vip-volume'}:a);
+ if(['SIGN_MARKET','SIGN_MARKET_V2','SIGN_EQUIPMENT','SIGN_EQUIPMENT_V2','SIGN_PROSPECT_LOT_V1','SIGN_PROSPECT_LOT_V2','SIGN_PROSPECT_VIP_LOT_V1','SIGN_PROSPECT_VIP_LOT_V2'].includes(a.type)){
+  const equipment=['SIGN_EQUIPMENT','SIGN_EQUIPMENT_V2'].includes(a.type);
+  if(!canStart||equipment&&parkedMarketOrders(s).length)return s;
+  const q=equipment?previewEquipment(s,a.projectId,a.shipping,DAY_COST,a.type.endsWith('_V2')?2:1):
+   previewMarket(s,a.type.startsWith('SIGN_PROSPECT_VIP_LOT_')?{...a,optionId:'vip-volume'}:a,{cadence:a.type.endsWith('_V2')});
   if(!q?.valid)return s;
   const n=q.source==='warehouse'?issueWarehouseStock(s,q.productId,q.quantity,q.warehouseRevision):structuredClone(s);
   if(n===s)return s;
@@ -109,6 +149,7 @@ export function applyMarketAction(s,action,canStart=true){
  }
  const p=s.market.active;
  if(!p)return s;
+ if((parkedMarketOrders(s).length||Number.isSafeInteger(p.operatingCostStartDay)||p.equipmentTermsVersion===2||p.marketCadenceVersion===1)&&['DELIVER_MARKET','COLLECT_MARKET'].includes(a.type))return s;
  const calendar=a.type==='DELIVER_MARKET_V2'||a.type==='COLLECT_MARKET_V2';
  if(calendar){
   const due=marketCalendarDue(s);
@@ -117,7 +158,7 @@ export function applyMarketAction(s,action,canStart=true){
  if((a.type==='DELIVER_MARKET'||a.type==='DELIVER_MARKET_V2')&&s.market.status==='transit'&&p.status==='transit'){
   const from=p.kind==='equipment'?p.shipDay:p.signedDay;
   if(!calendar&&s.day!==from)return s;
-  const expense=(p.deliveryDay-from)*DAY_COST;if(!safe(expense)||!calendar&&s.cash<expense)return s;
+  const expense=Math.max(0,p.deliveryDay-Math.max(from,p.operatingCostStartDay??from))*DAY_COST;if(!safe(expense)||!calendar&&s.cash<expense)return s;
   const n=structuredClone(s);if(!calendar){n.day=p.deliveryDay;n.cash-=expense;}
   n.market.active.operatingPaid+=expense;n.market.active.delivered=p.quantity;
   if(p.paymentDay===p.deliveryDay){n.cash+=p.balanceDue;n.market.active.received+=p.balanceDue;paidMarket(n);}
@@ -126,7 +167,7 @@ export function applyMarketAction(s,action,canStart=true){
  }
  if((a.type==='COLLECT_MARKET'||a.type==='COLLECT_MARKET_V2')&&s.market.status==='receivable'&&p.status==='receivable'){
   if(!calendar&&s.day!==p.deliveryDay)return s;
-  const expense=(p.paymentDay-p.deliveryDay)*DAY_COST;if(!safe(expense)||!calendar&&s.cash<expense)return s;
+  const expense=Math.max(0,p.paymentDay-Math.max(p.deliveryDay,p.operatingCostStartDay??p.deliveryDay))*DAY_COST;if(!safe(expense)||!calendar&&s.cash<expense)return s;
   const n=structuredClone(s);if(!calendar)n.day=p.paymentDay;n.cash+=p.balanceDue-(calendar?0:expense);n.market.active.received+=p.balanceDue;n.market.active.operatingPaid+=expense;paidMarket(n);return n;
  }
  return s;

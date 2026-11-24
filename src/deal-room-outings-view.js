@@ -1,3 +1,4 @@
+import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
 import {travelEpilogue} from './deal-room-outings-travel-extra.js';
 import {outingSceneArt} from './deal-room-outings-art.js';
 import {OUTING_COMPANIONS,OUTING_TRIPS,outingTrip,friendEvent,friendOutingEcho} from './deal-room-outings-content.js';
@@ -66,7 +67,7 @@ const openingComics=Object.freeze({
 });
 function friendSpeech(id,line){
  const who=friendBy(id);if(!who||!line)return '';
- return '<div class="oo-speech"><i class="oo-speaker adviser-face adviser-'+who.id+'" aria-hidden="true"></i><blockquote><b>'+e(who.name)+'</b>「'+e(line)+'」</blockquote></div>';
+ return '<div class="oo-speech"><i class="oo-speaker adviser-face adviser-'+who.id+'" aria-hidden="true"></i><blockquote><b>'+e(who.name)+'</b>'+e(openingDialogueQuote(line))+'</blockquote></div>';
 }
 function comicFrame(ev,assets,echo){
  // The rehearsal image identifies the source of the knocks. Never show it to
@@ -74,31 +75,31 @@ function comicFrame(ev,assets,echo){
  const image=ev.id==='record-shop'?comicRecord:ev.id==='chess-park'?comicChess:ev.id==='small-stage'&&echo?comicRehearsal:ev.id==='front-stoop'&&echo?comicRepair:openingComics[ev.id]||null;
  const linked=ev.id==='small-stage'||ev.id==='front-stoop';
  const injected=!linked||echo?artView(assets,'friend:'+ev.id,ev.name):'';
- if(!image&&!injected)return '<p class="oo-voiceover">'+e(ev.blurb)+'</p>';
+ if(!image&&!injected)return '<p class="oo-voiceover comic-narration">'+e(ev.blurb)+'</p>';
  const pict=image?'<img src="'+e(image)+'" alt="'+e(ev.id==='small-stage'?'排练搭档站在门边打拍，旁边的歌手照拍子接唱。':ev.name)+'">':injected.replace(/^<figure class="oo-art">|<\/figure>$/g,'');
  const caption=ev.id==='record-shop'?'打烊前最后一首。唱到一半，墙那头敲了三下。':ev.id==='small-stage'?'排练场的门开了半边。里头还没唱完。':ev.id==='chess-park'?'棋盘旁有枚蓝瓶盖。二人谁都不肯挪它。':ev.blurb;
- return '<figure class="oo-comic-frame">'+pict+'<figcaption>'+e(caption)+'</figcaption></figure>';
+ return '<figure class="oo-comic-frame">'+pict+'<figcaption class="comic-narration">'+e(caption)+'</figcaption></figure>';
 }
 function travelPanel(assets,key,label,caption){
- const art=artView(assets,key,label);if(!art)return caption?'<p class="oo-voiceover">'+e(caption)+'</p>':'';
- return '<figure class="oo-comic-frame oo-travel-frame">'+art.replace(/^<figure class="oo-art">|<\/figure>$/g,'')+(caption?'<figcaption>'+e(caption)+'</figcaption>':'')+'</figure>';
+ const art=artView(assets,key,label);if(!art)return caption?'<p class="oo-voiceover comic-narration">'+e(caption)+'</p>':'';
+ return '<figure class="oo-comic-frame oo-travel-frame">'+art.replace(/^<figure class="oo-art">|<\/figure>$/g,'')+(caption?'<figcaption class="comic-narration">'+e(caption)+'</figcaption>':'')+'</figure>';
 }
 function tripMoment(m,detail,assets){
  const extra=travelEpilogue(m.placeId,m.choiceId,m.companionId);
  if(!extra)return travelPanel(assets,'trip:'+m.placeId+':'+m.choiceId,detail.label,detail.outcome)+friendSpeech(m.companionId,detail.companionLine);
- return '<figure class="oo-comic-frame oo-travel-frame"><img alt="'+e(extra.alt)+'" src="'+e(extra.art)+'"><figcaption>'+e(extra.caption)+'</figcaption></figure>'+friendSpeech(m.companionId,extra.companionLine);
+ return '<figure class="oo-comic-frame oo-travel-frame"><img alt="'+e(extra.alt)+'" src="'+e(extra.art)+'"><figcaption class="comic-narration">'+e(extra.caption)+'</figcaption></figure>'+friendSpeech(m.companionId,extra.companionLine);
 }
 const storyHeading=(name,kicker='')=>'<header class="oo-story-title">'+(kicker?'<small>'+e(kicker)+'</small>':'')+'<h2>'+e(name)+'</h2></header>';
 function momentView(m,assets={},includeTravelArt=true){
  const detail=outingMoment(m);if(!detail)return '';
  const reveal=m.kind!=='friend'?null:m.placeId==='record-shop'&&m.choiceId==='follow-knocks'?[comicRehearsal,'不是敲门。第三下是给歌手的拍子。']:m.placeId==='chess-park'&&m.choiceId==='ask-blue-cap'?[comicRepair,'蓝盖压住的不是一张纸，是修车师傅还没下完的棋。']:null;
- if(reveal)return '<article class="oo-story oo-story-receipt"><figure class="oo-comic-frame"><img src="'+e(reveal[0])+'" alt="'+e(detail.outcome)+'"><figcaption>'+e(reveal[1])+'</figcaption></figure>'+friendSpeech(m.companionId,detail.companionLine)+'</article>';
+ if(reveal)return '<article class="oo-story oo-story-receipt"><figure class="oo-comic-frame"><img src="'+e(reveal[0])+'" alt="'+e(detail.outcome)+'"><figcaption class="comic-narration">'+e(reveal[1])+'</figcaption></figure>'+friendSpeech(m.companionId,detail.companionLine)+'</article>';
  if(m.kind==='trip'&&includeTravelArt)return '<article class="oo-story oo-story-receipt">'+tripMoment(m,detail,assets)+'</article>';
- return `<article class="oo-moment"><small>${e(detail.label)}</small><p>${e(detail.outcome)}</p>${friendSpeech(m.companionId,detail.companionLine)}</article>`;
+ return `<article class="oo-moment"><small>${e(detail.label)}</small><p class="comic-narration">${e(detail.outcome)}</p>${friendSpeech(m.companionId,detail.companionLine)}</article>`;
 }
 function memories(book,assets){
  if(!book.mementos.length)return '';
- return `<details class="oo-memories"><summary>我的出门记忆（${book.mementos.length}）</summary>${book.mementos.slice().reverse().map(m=>{const v=outingMoment(m);return v?`<details><summary>第 ${e(m.day)} 天 · ${e(v.name)} · ${e(v.label)}${v.companionName?' · '+e(v.companionName):''}</summary>${momentView(m,assets)}</details>`:'';}).join('')}</details>`;
+ return `<details class="oo-memories"><summary>出游纪念（${book.mementos.length}）</summary>${book.mementos.slice().reverse().map(m=>{const v=outingMoment(m);return v?`<details><summary>第 ${e(m.day)} 天 · ${e(v.name)} · ${e(v.label)}${v.companionName?' · '+e(v.companionName):''}</summary>${momentView(m,assets)}</details>`:'';}).join('')}</details>`;
 }
 function menu(book,assets){
  return back('← 返回下班','close')+title('收工之后','今晚去哪儿？')+`<div class="oo-menu">${button('trips',null,'<strong>旅行</strong><span>选个地方，一个人去或带位朋友。</span>')}${button('friends',null,'<strong>约朋友</strong><span>问问朋友今晚有空做什么。</span>')}</div>`+memories(book,assets);
@@ -120,13 +121,17 @@ function friendList(v,b){
  const completed=new Set(b.mementos.filter(x=>x.kind==='friend'&&x.companionId===v.friendId).map(x=>x.placeId));
  const order=ev=>ev.requires&&!completed.has(ev.id)?0:ev.companionId&&!completed.has(ev.id)?1:ev.companionId?2:3;
  const ranked=all.slice().sort((a,b)=>order(a)-order(b));
- return back('← 下班时间','menu')+title('下班 / 约朋友','找位朋友出门')+people(v.friendId,'friends')+(!who?'':`<h3>和${e(who.name)}一起</h3><div class="oo-list">${ranked.slice(page*pageSize,(page+1)*pageSize).map(ev=>button('event',ev.id,`<strong>${e(ev.name)}</strong><span>${ev.requires&&!completed.has(ev.id)?'接着上次的故事':ev.companionId?'这位朋友的故事':'有免费走法'}</span>`)).join('')}</div><div class="oo-pages">${button('prev',null,'上一页',page?'':'disabled')}<span>${page+1} / ${pages}</span>${button('next',null,'下一页',page+1<pages?'':'disabled')}</div>`);
+ const subtitle=ev=>ev.requires&&!completed.has(ev.id)?'接着上回':
+  ev.choices.length&&ev.choices.every(c=>c.cost===0)?'免费':
+  ev.choices.some(c=>c.cost===0)?'有免费选项':'';
+
+ return back('← 下班时间','menu')+title('下班 / 约朋友','找位朋友出门')+people(v.friendId,'friends')+(!who?'':`<h3>和${e(who.name)}一起</h3><div class="oo-list">${ranked.slice(page*pageSize,(page+1)*pageSize).map(ev=>{const sub=subtitle(ev);return button('event',ev.id,`<strong>${e(ev.name)}</strong>${sub?`<span>${e(sub)}</span>`:''}`);}).join('')}</div><div class="oo-pages">${button('prev',null,'上一页',page?'':'disabled')}<span>${page+1} / ${pages}</span>${button('next',null,'下一页',page+1<pages?'':'disabled')}</div>`);
 }
 function friendPreview(v,ev,assets,book){
  const id=v.friendId,echo=friendOutingEcho(ev.id,id,book.mementos),line=echo||ev.companionLines?.[id];
  return back('‹ 其他活动','friends-back')+'<article class="oo-story"><header class="oo-story-title"><h2>'+e(ev.name)+'</h2></header>'+
  comicFrame(ev,assets,echo)+friendSpeech(id,line)+
- '<section class="oo-branches"><h3>你怎么接？</h3><div>'+ev.choices.map(o=>button('friend-choice',o.id,'<strong>'+e(o.label)+'</strong><span>'+price(o.cost)+'</span><i aria-hidden="true">›</i>')).join('')+'</div></section></article>';
+ '<section class="oo-branches"><h3>你想怎么做？</h3><div>'+ev.choices.map(o=>button('friend-choice',o.id,'<strong>'+e(o.label)+'</strong><span>'+price(o.cost)+'</span><i aria-hidden="true">›</i>')).join('')+'</div></section></article>';
 }
 function currentQuote(s,v){
  if(v.confirm?.kind==='trip')return previewOutingTrip(s,{tripId:v.tripId,companionId:v.companionId??null});

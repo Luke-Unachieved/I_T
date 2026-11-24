@@ -1,7 +1,7 @@
 import {openingContractMilestone} from './deal-room-opening-calendar.js';
 
 function inspectionComic(scene,alt,caption){
- return `<figure class="ws-equipment-comic ws-opening-inspection"><img class="pv-art" src="assets/deal-client-comic-${scene}-inspection.webp" width="1440" height="720" loading="lazy" alt="${alt}"><figcaption>${caption}</figcaption></figure>`;
+ return `<figure class="ws-equipment-comic ws-opening-inspection"><img class="pv-art" src="assets/deal-client-comic-${scene}-inspection.webp" width="1440" height="720" loading="lazy" alt="${alt}"><figcaption class="comic-narration">${caption}</figcaption></figure>`;
 }
 
 export function openingInspectionView(state){
@@ -28,7 +28,7 @@ export function openingInspectionView(state){
    '萨米尔从箱里拿出一只保温杯，顺着纸套的边摸了一圈。'
   );
   return `${comic}
- <blockquote class="ws-opening-inspection-dialogue">“纸套边上没翘。这批我留着补货，收货后第三天付清。”</blockquote>`;
+ <blockquote class="ws-opening-inspection-dialogue">“纸套边上没翘。这批我留着补货，收货后 ${contract.paymentDay-contract.deliveryDay} 天付清。”</blockquote>`;
  }
  if(contract.optionId!=='branded-opening'||contract.deliveryDay>7)return '';
  const comic=inspectionComic(
@@ -37,6 +37,6 @@ export function openingInspectionView(state){
   '萨米尔从到货箱里取出套着定制纸套的保温杯，又把杯盖拧了回去。'
  );
  return `${comic}
- <blockquote class="ws-opening-inspection-dialogue">“这批是开业用的，纸套是我选的那版。杯盖我也试过了，收货后第三天我付清。”</blockquote>
+ <blockquote class="ws-opening-inspection-dialogue">“这批是开业用的，纸套是我选的那版。杯盖我也试过了，收货后 ${contract.paymentDay-contract.deliveryDay} 天我付清。”</blockquote>
  <div class="ws-signed-status"><strong>待收货款</strong><span>¥${contract.balanceDue.toLocaleString('zh-CN')}</span></div>`;
 }

@@ -142,3 +142,21 @@
 #deal-room .deal-save-restart{border-bottom:1px solid #4c4235}
 #deal-room .deal-save-body #deal-save-restart-confirm{background:#813d35;border-color:#b5695b;color:#fff1e3;font-weight:650}
 #deal-room .deal-save-body #deal-save-restart-confirm:hover{background:#984d43}
+
+#cash-risk-dialog{width:min(27rem,calc(100% - 2rem));box-sizing:border-box;max-height:85vh;padding:1.3rem;border:1px solid #665745;border-radius:12px;background:#242019;color:#f2e8d5;line-height:1.55;z-index:1000}
+#cash-risk-dialog::backdrop{background:#100d0bd9}
+#cash-risk-dialog h2{margin:0 0 .7rem;font-size:1.35rem;color:inherit}
+#cash-risk-dialog p{margin:.65rem 0}
+.cash-risk-speaker{display:block;color:#d6bf9d;font-size:.9rem}
+.cash-risk-actions{display:flex;gap:.55rem;flex-wrap:wrap;margin-top:1rem}
+.cash-risk-actions button{min-height:44px;padding:.55rem .85rem;border-radius:7px;border:1px solid #7c6b54;background:#2d2820;color:#f4e8d4;font:inherit;cursor:pointer}
+.cash-risk-actions .ws-control--main{background:#e8c484;color:#241b12;border-color:#e8c484}
+.cash-risk-actions button:focus-visible{outline:2px solid #dbae66;outline-offset:3px}
+#deal-room .cash-risk-ending{width:min(100%,40rem);margin:0 auto;padding:1.5rem;box-sizing:border-box}
+#deal-room .cash-risk-ending h1{color:#f4e8d4;margin:0 0 .65rem}
+.cash-rescue-sale>summary{min-height:44px;line-height:1.35;display:flex;align-items:center;gap:.45rem;cursor:pointer;color:#edc981}
+.cash-rescue-sale>summary::before{content:"›";font-size:1.3em}
+.cash-rescue-sale[open]>summary::before{transform:rotate(90deg)}
+.cash-risk-rescue button{min-height:44px}
+.cash-risk-voice{display:flex;align-items:center;gap:.75rem}
+.cash-risk-voice .adviser-face{flex:0 0 auto}

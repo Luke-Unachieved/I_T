@@ -1,3 +1,4 @@
+import {netProfitAmount} from './deal-room-net-profit.js';
 import {previewStudioAllocation} from './deal-room-allocation.js';
 import {groupStudioPurchaseEligibility} from './deal-room-group-use-eligibility.js';
 import {sampleSvg} from './deal-room-samples.js';
@@ -5,7 +6,7 @@ const cash=n=>`¥${Number(n||0).toLocaleString('zh-CN')}`;
 const names={mira:'调光台灯',samir:'保温杯',ines:'桌布'};
 function purchaseMoney(q){
  if(!Number.isFinite(q?.revenue)||!Number.isFinite(q?.cashAfterSigning))return '';
- return `<div class="offer"><div><small>这单货款</small><strong>${cash(q.revenue)}</strong></div><div><small>现在要付</small><strong>${cash(q.cost)}</strong></div>${q.deposit?`<div><small>客户先付定金</small><strong>${cash(q.deposit)}</strong></div>`:''}<div><small>预计本单赚到</small><strong>${cash(q.netProfit)}</strong></div></div><p class="brief">${q.deposit?`${q.cost>=q.deposit?`自己垫 ${cash(q.cost-q.deposit)}`:`定金付完制作后余 ${cash(q.deposit-q.cost)}`} · `:''}${q.cashAfterSigning<0?`现金还差 ${cash(-q.cashAfterSigning)}`:`签完还剩 ${cash(q.cashAfterSigning)}`}</p>`;
+ return `<div class="offer"><div><small>这单货款</small><strong>${cash(q.revenue)}</strong></div><div><small>现在要付</small><strong>${cash(q.cost)}</strong></div>${q.deposit?`<div><small>客户先付定金</small><strong>${cash(q.deposit)}</strong></div>`:''}<div><small>预计本单赚到</small><strong>${netProfitAmount(q.netProfit)}</strong></div></div><p class="brief">${q.deposit?`${q.cost>=q.deposit?`自己垫 ${cash(q.cost-q.deposit)}`:`定金付完制作后余 ${cash(q.deposit-q.cost)}`} · `:''}${q.cashAfterSigning<0?`现金还差 ${cash(-q.cashAfterSigning)}`:`签完还剩 ${cash(q.cashAfterSigning)}`}</p>`;
 }
 export function allocationReceipt(q,{compact=false}={}){
  if(q?.allocationVersion!==1)return '';

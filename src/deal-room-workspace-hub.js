@@ -1,3 +1,6 @@
+import {cashRescueView} from './deal-room-bankruptcy-view.js';
+import {previewBankruptcy,previewLiquidation} from './deal-room-engine.js';
+import {careerProjects,openProductReorder} from './deal-room-career-focus.js';
 import {workspaceLedgerView} from './deal-room-workspace-nav.js';
 import {bindPropertyEntries} from './deal-room-property-view.js';
 import {propertyHoldings,PROPERTY_CATALOG} from './deal-room-property.js';
@@ -5,7 +8,8 @@ import {openingCurationOffers,curationOffers,reduceDealRoom} from './deal-room-e
 import {propertySceneArt} from './deal-room-property-art.js';
 import {promotionView,bindPromotion} from './deal-room-promotion-view.js';
 import {promotionStatus} from './deal-room-promotion.js';
-import {previewWorkspaceSleep} from './deal-room-workspace-sleep.js';
+import {previewLiveWorkspaceSleep as previewWorkspaceSleep} from './deal-room-workspace-sleep.js';
+import {afterworkAdviserView} from './deal-room-afterwork-adviser.js';
 import {cooperationChapter} from './deal-room-cooperation.js';
 import {tradingChapter} from './deal-room-trading-chapter.js';
 import {prospectDisplayText} from './deal-room-prospect-locale.js';
@@ -53,7 +57,7 @@ export function workspaceSeriesRoutes(state){
  if(launch!==closed)routes.push({id:'launch',label:state.launchProject?.status==='handed'?'回看已交接的陈列':'和买手安排上市陈列',next:launch});
  return routes;
 }
-export function workspaceHubView(state,tab,lifeEnabled,sleepOpen=false,promotionUI={}){
+export function workspaceHubView(state,tab,lifeEnabled,sleepOpen=false,promotionUI={}, {adviserId=''}={}){
  const dev=tab==='development';
  if(dev&&promotionUI.ledgerDetail)return '<section class="ws-office ws-hub ws-original-hub ws-original-growth"><button type="button" class="ws-ledger-back" data-workspace-ledger-back>‹ 返回发展</button>'+workspaceLedgerView(state)+'</section>';
  const holdings=propertyHoldings(state);
@@ -72,16 +76,19 @@ export function workspaceHubView(state,tab,lifeEnabled,sleepOpen=false,promotion
  const series=dev?workspaceSeriesRoutes(state).map(route=>'<button type="button" class="ws-hub-row" data-growth-series="'+route.id+'">'+hubLabel(route.label)+'</button>').join(''):'';
  const caseLink=dev?workspaceCaseGrowthLink(state):null;
  const caseRow=caseLink?'<button type="button" class="ws-hub-row" data-hub-case-growth>'+hubLabel(caseLink.label,caseLink.type==='resume'?'回到已有合作':'工作室原稿 · 案例合作')+'</button>':'';
+ const newSample=dev&&['review','complete'].includes(state.phase)&&!state.contracts.some(c=>c.status!=='paid')
+  ?careerProjects(state).find(p=>p.id==='product')?.actions.find(a=>a.type==='OPEN_PRODUCT_REORDER'&&openProductReorder(state,a.factory).state!==state):null;
+ const sampleRow=newSample?'<button type="button" class="ws-hub-row" data-growth-new-sample="'+wsEsc(newSample.factory)+'">'+hubLabel('找米拉谈新款台灯','已验样 · 先看报价')+'</button>':'';
  const leads='<details open class="ws-hub-card ws-leads"><summary>客户机会</summary>'+ (introductions.length
   ?'<p>请合作过的客户介绍买手。先看看对方要什么，不会直接签单。</p>'+introductions.map(r=>'<button type="button" class="ws-hub-row" data-growth-referral="'+wsEsc(r.id)+'" data-growth-first="'+(r.first?'true':'false')+'">'+hubLabel(r.referrerName.split(' · ')[0]+' 的引荐',r.product)+'</button>').join('')
-  :chain||expansion||series||caseRow?'':state.curationHistory?.some(c=>c.status==='paid')?'<p>目前没有新的客户引荐。</p>':'<p>结清开场订单后，可以请合作过的客户引荐买手。</p>')+chain+expansion+series+caseRow+'</details>';
+  :chain||expansion||series||caseRow||sampleRow?'':state.curationHistory?.some(c=>c.status==='paid')?'<p>目前没有新的客户引荐。</p>':'<p>结清开场订单后，可以请合作过的客户引荐买手。</p>')+chain+expansion+series+caseRow+sampleRow+'</details>';
  const recapRows=dev?[
   workspaceCooperationRecapAvailable(state)?'<button type="button" class="ws-hub-row" data-growth-cooperation-recap>'+hubLabel('回看这段合作的收尾')+'</button>':'',
   workspaceTradingRecapAvailable(state)?'<button type="button" class="ws-hub-row" data-growth-trade-recap>'+hubLabel('回看供货工作室的这一程','六家门店已收货 · 新款台灯已收齐款')+'</button>':''
  ].join(''):'';
  const recap=recapRows?'<section class="ws-hub-card"><h3>已做成的合作</h3>'+recapRows+'</section>':'';
  const q=previewWorkspaceSleep(state);
- const confirm=sleepOpen&&q.valid?'<section id="workspace-sleep-confirmation" class="ws-hub-card" aria-labelledby="workspace-sleep-title"><h3 id="workspace-sleep-title" tabindex="-1">睡前看一眼</h3>'+(q.pending.length?'<ul>'+q.pending.map(x=>'<li>'+wsEsc(x)+'</li>').join('')+'</ul>':'')+'<p>工作室开支 ¥'+q.cost+'，确认后进入第 '+q.nextDay+' 天。</p><button type="button" data-workspace-sleep-confirm>进入第 '+q.nextDay+' 天</button><button type="button" data-workspace-sleep-cancel>先不睡</button></section>':'';
+ const confirm=sleepOpen&&q.valid?'<section id="workspace-sleep-confirmation" class="ws-hub-card" aria-labelledby="workspace-sleep-title"><h3 id="workspace-sleep-title" tabindex="-1">睡前看一眼</h3>'+(q.pending.length?'<ul>'+q.pending.map(x=>'<li>'+wsEsc(x)+'</li>').join('')+'</ul>':'')+'<p>工作室开支 ¥'+q.cost+'，确认后进入第 '+q.nextDay+' 天。</p><button type="button" class="ws-control ws-control--main" data-workspace-sleep-confirm>进入第 '+q.nextDay+' 天</button><button type="button" class="ws-control ws-control--secondary" data-workspace-sleep-cancel>先不睡</button></section>':'';
  const ledger='<button type="button" class="ws-hub-row" data-workspace-ledger>'+ledgerIcon+hubLabel('销售账本')+'</button>';
  const pendingPromotion=dev?promotionStatus(state)?.pending:null;
  const promotion='<details class="ws-hub-promotion" data-hub-promotion'+(promotionUI.hubPromotionOpen||promotionUI.promotionChannel?' open':'')+'><summary class="ws-hub-row">'+hubIcon('promo')+hubLabel('推广获客',pendingPromotion?'等第 '+pendingPromotion.replyDay+' 天回信':'选择推广渠道')+'</summary><div class="ws-hub-promotion-body">'+promotionView(state,promotionUI)+'</div></details>';
@@ -94,13 +101,14 @@ export function workspaceHubView(state,tab,lifeEnabled,sleepOpen=false,promotion
  hubRow('data-property-enter="car"',carTitle,'car')+
  hubRow('data-workspace-outing="trips"','旅行','trips')+
  hubRow('data-workspace-outing="friends"','约朋友','friends')+'</nav>';
- const day=q.valid?'<button type="button" class="ws-hub-row ws-hub-night" data-workspace-sleep aria-expanded="'+String(sleepOpen)+'"'+(sleepOpen?' aria-controls="workspace-sleep-confirmation"':'')+'>'+hubLabel('睡到明天')+'</button>':
+ const insolvency=dev?null:previewBankruptcy(state);
+ const day=insolvency?cashRescueView(insolvency,previewLiquidation(state)):q.valid?'<button type="button" class="ws-hub-row ws-hub-night" data-workspace-sleep aria-expanded="'+String(sleepOpen)+'"'+(sleepOpen?' aria-controls="workspace-sleep-confirmation"':'')+'>'+hubLabel('睡到明天')+'</button>':
  q.nextStep?'<button type="button" class="ws-hub-row ws-hub-night" data-workspace-continue data-workspace-open="'+wsEsc(q.nextStep.tab)+'">'+hubLabel(q.nextStep.label,q.reason)+'</button>':
  '<section class="ws-hub-card ws-hub-night" aria-label="休息"><p>'+wsEsc(q.reason)+'</p></section>';
  return '<section class="ws-office ws-hub ws-original-hub '+(dev?'ws-original-growth':'ws-original-evening')+'">'+
- (dev?'<h2 class="ws-hub-title">工作室的发展</h2><div class="ws-hub-growth-list">'+promotion+office+ledger+'</div>'+recap+leads:rest+day+confirm)+'</section>';
+ (dev?'<h2 class="ws-hub-title">工作室的发展</h2><div class="ws-hub-growth-list">'+promotion+office+ledger+'</div>'+recap+leads:rest+day+confirm+afterworkAdviserView(state,adviserId,q,{sleepOpen}))+'</section>';
 }
-export function bindWorkspaceHub(root,{onHome,onOuting,onProperty,onSleep,onSleepConfirm,onSleepCancel,promotion,onReferral,onAccountCase,onAccountExpansion,onSeries,onTradeRecap,onCooperationRecap,onCaseGrowth}){
+export function bindWorkspaceHub(root,{onHome,onOuting,onProperty,onSleep,onSleepConfirm,onSleepCancel,onBankruptcy,onLiquidate,promotion,onReferral,onAccountCase,onAccountExpansion,onSeries,onTradeRecap,onCooperationRecap,onCaseGrowth,onProductReorder}){
  if(promotion){
   bindPromotion(root,promotion.state,promotion.ui,promotion.render,promotion.dispatch);
   const showLedger=(open,selector)=>{promotion.ui.ledgerDetail=open;promotion.render();const el=root.querySelector(selector);el?.focus?.({preventScroll:true});el?.scrollIntoView?.({block:'nearest'});};
@@ -115,6 +123,8 @@ export function bindWorkspaceHub(root,{onHome,onOuting,onProperty,onSleep,onSlee
   el?.scrollIntoView?.({block:'nearest'});
  };
  root.querySelector('[data-workspace-sleep]')?.addEventListener('click',()=>{onSleep?.();revealFocus('#workspace-sleep-title');});
+ root.querySelector('[data-bankruptcy-liquidate]')?.addEventListener('click',e=>onLiquidate?.(Number(e.currentTarget.dataset.bankruptcyLiquidate)));
+ root.querySelector('[data-workspace-bankruptcy]')?.addEventListener('click',onBankruptcy);
  root.querySelector('[data-workspace-sleep-confirm]')?.addEventListener('click',onSleepConfirm);
  root.querySelector('[data-workspace-sleep-cancel]')?.addEventListener('click',()=>{onSleepCancel?.();revealFocus('[data-workspace-sleep]');});
  root.querySelectorAll('[data-growth-referral]').forEach(b=>b.addEventListener('click',()=>onReferral?.(b.dataset.growthReferral,b.dataset.growthFirst==='true')));
@@ -123,6 +133,7 @@ export function bindWorkspaceHub(root,{onHome,onOuting,onProperty,onSleep,onSlee
  root.querySelectorAll('[data-growth-series]').forEach(b=>b.addEventListener('click',()=>onSeries?.(b.dataset.growthSeries)));
  root.querySelector('[data-growth-trade-recap]')?.addEventListener('click',()=>onTradeRecap?.());
  root.querySelector('[data-growth-cooperation-recap]')?.addEventListener('click',()=>onCooperationRecap?.());
+ root.querySelector('[data-growth-new-sample]')?.addEventListener('click',e=>onProductReorder?.(e.currentTarget.dataset.growthNewSample));
  root.querySelector('[data-hub-case-growth]')?.addEventListener('click',()=>onCaseGrowth?.());
  bindPropertyEntries(root,onProperty);
  root.querySelector('[data-workspace-home]')?.addEventListener('click',onHome);

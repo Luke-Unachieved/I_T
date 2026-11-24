@@ -27,7 +27,11 @@ function outingBlock(s){
  if(!goodBook(b)||!uint(b.revision+1))return '出游记录无效或已达上限。';
  if(b.activeTrip)return '旅程还没结束，可以先返回下班。';
  if(!Array.isArray(s.contracts)||!['mira','samir','ines'].every(id=>s.contracts.some(c=>c?.clientId===id&&c.status==='paid'&&!c.businessRound&&!c.projectId)))return '三位开场客户的首单都收齐后，就能下班出门。';
- if(!outingAfterWorkPhase(s,s.phase))return '先把手上这段工作收好，再安排下班。';
+ if(!outingAfterWorkPhase(s,s.phase)){
+  if(s.phase==='market'&&s.market?.status==='paid'&&s.market.active?.status==='paid')
+   return '这笔订单已经结清。先点「回工作室」，再安排出门。';
+  return '先把手上这段工作收好，再安排下班。';
+ }
  if(s.contracts.some(c=>!c||c.status!=='paid'))return '先处理尚未结清的合同。';
  return '';
 }
@@ -90,7 +94,7 @@ export function outingMoment(m){
  const choice=(p?.interactions??p?.choices)?.find(x=>x.id===m.choiceId);
  if(!p||!choice)return null;
  return {name:p.name,label:choice.label,outcome:choice.outcome,companionName:companion(m.companionId)?.name??null,
-  companionLine:m.companionId?(choice.companionLines?.[m.companionId]??p.companionLines?.[m.companionId]??null):null};
+  companionLine:m.companionId?(choice.companionLines?.[m.companionId]??null):null};
 }
 export function applyOutingAction(s,action,canStart=true){
  const a=canonicalOutingAction(action),prior=bookOf(s);

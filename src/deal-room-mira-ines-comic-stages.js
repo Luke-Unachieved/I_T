@@ -1,4 +1,5 @@
-import {openingContractMilestone} from './deal-room-opening-calendar.js';
+import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
+import {openingContractMilestone,OPENING_TERMS_V2} from './deal-room-opening-calendar.js';
 
 const scenes = {
   trialPaid: {
@@ -17,13 +18,13 @@ const scenes = {
     asset: 'deal-client-comic-mira-rollout-inspection.webp',
     alt: '米拉拆箱，把新到的黄铜台灯和店里的同款样灯并排点亮',
     caption: '米拉把新到的灯和样灯并排点亮，核对两盏灯的颜色。',
-    speaker: '米拉', line: '我把新灯和样灯一起点亮看看。分到三家店的灯，光色得一样。'
+    speaker: '米拉', line: '分到三家店的灯，不能有的偏黄、有的偏白。以后补货也得是这个光色。'
   },
   rolloutPaid: {
     asset: 'deal-client-comic-mira-rollout-paid.webp',
     alt: '米拉把三家门店的文件夹排在桌上，把单据收进其中一本',
     caption: '米拉把这批铺货的单据归到三家店的文件夹里。',
-    speaker: '米拉', line: '这笔货款我已经付清。三家店的单据我分开收着，哪家想补就翻哪一份。'
+    speaker: '米拉', line: '三家店的账都在我这儿，你们对一笔就行。'
   },
   inesSeasonPaid: {
     asset: 'deal-client-comic-ines-season-paid.webp',
@@ -41,7 +42,7 @@ const scenes = {
     asset: 'deal-client-comic-ines-small-paid.webp',
     alt: '伊内斯铺平米白桌布，把两张交货单分别放进文件夹',
     caption: '伊内斯把两家店的交货单分开归档。',
-    speaker: '伊内斯', line: '试卖这单我已经付清。两家店的单据我分开收，下回补货好找。'
+    speaker: '伊内斯', line: '两家店我先各摆一点，哪家卖得快，我再找你补。'
   },
   inesSmall: {
     asset: 'deal-client-comic-ines-opening-inspection.webp',
@@ -74,7 +75,8 @@ export function openingMiraInesComicStage(state){
  if(!Object.hasOwn(format,c.clientId))return null;
  const model=format[c.clientId], timing=Object.hasOwn(model,c.optionId)&&model[c.optionId];
  if(!Array.isArray(timing)||c.product!==model.product||!day(c.signedDay)||!day(c.deliveryDay)||!day(c.paymentDay))return null;
- const [quantity,prep,lag]=timing;
+ const [quantity,legacyPrep,legacyLag]=timing;
+ const [prep,lag]=c.openingTermsVersion===2?OPENING_TERMS_V2[c.optionId]:[legacyPrep,legacyLag];
  if(c.quantity!==quantity||c.deliveryDay!==c.signedDay+prep||c.paymentDay!==c.deliveryDay+lag)return null;
  let stage, scene;
  if(state.phase==='paid'&&c.status==='paid'&&state.day>=c.paymentDay){
@@ -96,5 +98,5 @@ export function openingMiraInesComicStage(state){
 export function openingMiraInesComicView(state){
  const comic=openingMiraInesComicStage(state);
  if(!comic)return '';
- return '<div class="ws-opening-comic-stage" data-opening-comic-stage="'+comic.stage+'"><figure class="ws-equipment-comic ws-opening-'+comic.stage+'"><img class="pv-art" src="assets/'+comic.asset+'" width="1440" height="720" loading="lazy" alt="'+comic.alt+'"><figcaption>'+comic.caption+'</figcaption></figure><blockquote class="ws-opening-comic-voice"><p>'+comic.line+'</p><footer>'+comic.speaker+'</footer></blockquote></div>';
+ return '<div class="ws-opening-comic-stage" data-opening-comic-stage="'+comic.stage+'"><figure class="ws-equipment-comic ws-opening-'+comic.stage+'"><img class="pv-art" src="assets/'+comic.asset+'" width="1440" height="720" loading="lazy" alt="'+comic.alt+'"><figcaption class="comic-narration">'+comic.caption+'</figcaption></figure><blockquote class="ws-opening-comic-voice"><p>'+openingDialogueQuote(comic.line)+'</p><footer>'+comic.speaker+'</footer></blockquote></div>';
 }

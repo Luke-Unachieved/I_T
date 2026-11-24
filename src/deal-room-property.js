@@ -31,7 +31,7 @@ const propRecord = x => x!==null && typeof x==='object' && !Array.isArray(x);
 const propHas = (o,k) => Object.prototype.hasOwnProperty.call(o,k);
 const propFields = (o,ks) => propRecord(o) && Object.keys(o).length===ks.length && ks.every(k=>propHas(o,k));
 const starterReceipt = () => ({id:'home-starter',paid:0,day:0});
-const propRates = x => Number((BigInt(x)*7n)/10n);
+export const propertyTradeInAllowance = x => Number((BigInt(x)*7n)/10n);
 const propValidReceipt = x => propRecord(x) && !!propItem(x.id) && propMoney(x.paid) && propMoney(x.day)
   && (x.id!=='home-starter' || x.paid===0);
 const propValidHoldings = h => propRecord(h) && Array.isArray(h.owned) && h.owned.every(propValidReceipt)
@@ -75,7 +75,7 @@ export function propertyPreview(state,id,tradeInId=null) {
     const old=h.owned.find(r=>r.id===tradeInId);
     if(!old || old.id==='home-starter' || old.id===id || item.kind==='office' ||
       item.kind!==propItem(old.id)?.kind) return no('这项资产不能用于本次置换');
-    q.tradeInAllowance=propRates(old.paid);
+    q.tradeInAllowance=propertyTradeInAllowance(old.paid);
     q.creditUsed=Math.min(q.tradeInAllowance,item.price);
   }
   q.cashDue=item.price-q.creditUsed;

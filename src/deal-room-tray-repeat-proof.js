@@ -1,3 +1,4 @@
+import {marketTiming} from './deal-room-order-cadence.js';
 import {marketCalendarDue} from './deal-room-market-calendar.js';
 import {MARKET_PRODUCTS} from './deal-room-market-data.js';
 import {prospectInbox} from './deal-room-prospects.js';
@@ -16,10 +17,11 @@ const terms=(order,option,mode,customer)=>{
     order.productName!==product.name||order.unit!==product.unit||order.mode!==mode||!day(order.signedDay)||
     order.quantity!==option.quantity||!day(order.unitPrice)||order.unitPrice>option.maxUnitPrice)return false;
  const supply=order.source==='warehouse'?{days:1,minQuantity:1}:Object.hasOwn(product.sources,order.source)?product.sources[order.source]:null;
- if(!supply||order.quantity<supply.minQuantity||supply.days>option.deadlineDays||
+ const timing=marketTiming(supply,option,{mode,source:order.source,optionId:order.optionId,cadence:order.marketCadenceVersion===1});
+ if(!timing||order.quantity<supply.minQuantity||timing.delivery>option.deadlineDays||
     order.source==='warehouse'&&(!day(order.warehouseRevision)||!amount(order.warehouseBookCost)||order.goodsCost!==order.warehouseBookCost))return false;
- return order.deliveryDay===order.signedDay+supply.days&&order.deadlineDay===order.signedDay+option.deadlineDays&&
-  order.paymentDay===order.deliveryDay+option.payLag&&order.revenue===order.quantity*order.unitPrice&&
+ return order.deliveryDay===order.signedDay+timing.delivery&&order.deadlineDay===order.signedDay+option.deadlineDays&&
+  order.paymentDay===order.deliveryDay+timing.lag&&order.revenue===order.quantity*order.unitPrice&&
   order.deposit===Math.floor(order.revenue*option.depositPercent/100)&&order.balanceDue===order.revenue-order.deposit;
 };
 const settled=(r,maxDay)=>r.status==='paid'&&r.delivered===r.quantity&&r.received===r.revenue&&day(r.paidDay)&&r.paidDay>=r.paymentDay&&r.paidDay<=maxDay;
@@ -55,12 +57,12 @@ export function organicTrayRepeatLetter(state,row,customer){
  return {base:base.quantity,vip:vip?.quantity??null};
 }
 function matchingAction(state,a,customer){
- const isSign=x=>x?.customerId===customer&&['SIGN_PROSPECT_LOT_V1','SIGN_PROSPECT_VIP_LOT_V1'].includes(x.type);
+ const isSign=x=>x?.customerId===customer&&['SIGN_PROSPECT_LOT_V1','SIGN_PROSPECT_LOT_V2','SIGN_PROSPECT_VIP_LOT_V1','SIGN_PROSPECT_VIP_LOT_V2'].includes(x.type);
  let sign=state.history?.findLast(isSign);
  for(let i=(state.historyPages?.length??0)-1;i>=0&&!sign;i--)sign=state.historyPages[i].findLast(isSign);
  return sign?.source===a.source&&sign.unitPrice===a.unitPrice&&(a.optionId==='reorder'?
-  sign.type==='SIGN_PROSPECT_LOT_V1'&&sign.optionId==='reorder':
-  sign.type==='SIGN_PROSPECT_VIP_LOT_V1'&&sign.previousPaidDay===a.prospectPreviousPaidDay);
+  ['SIGN_PROSPECT_LOT_V1','SIGN_PROSPECT_LOT_V2'].includes(sign.type)&&sign.optionId==='reorder':
+  ['SIGN_PROSPECT_VIP_LOT_V1','SIGN_PROSPECT_VIP_LOT_V2'].includes(sign.type)&&sign.previousPaidDay===a.prospectPreviousPaidDay);
 }
 export function organicTrayRepeatOrder(state,customer){
  const a=state?.market?.active,status=state?.market?.status;

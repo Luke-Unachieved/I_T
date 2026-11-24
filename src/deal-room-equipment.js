@@ -1,3 +1,4 @@
+import {MAX_NEW_ORDER_DAYS} from './deal-room-order-cadence.js';
 // Original fictional project specifications. Costs are fixed game-contract terms in CNY.
 export const EQUIPMENT_PROJECTS = [
   {
@@ -66,6 +67,15 @@ for (const project of EQUIPMENT_PROJECTS) {
 }
 Object.freeze(EQUIPMENT_PROJECTS);
 
+// Keep the original project terms for SIGN_EQUIPMENT when replaying old journals.
+export const EQUIPMENT_SIGN_V2='SIGN_EQUIPMENT_V2';
+export {MAX_NEW_ORDER_DAYS as EQUIPMENT_MAX_DAYS} from './deal-room-order-cadence.js';
+const equipmentCadenceV2=Object.freeze({
+ 'cold-chain':Object.freeze({prepDays:2,deliveryDays:8,paymentLag:4,slipDays:3,daysSaved:2}),
+ 'automated-warehouse':Object.freeze({prepDays:3,deliveryDays:9,paymentLag:4,slipDays:4,daysSaved:2}),
+ 'filling-lines':Object.freeze({prepDays:4,deliveryDays:10,paymentLag:4,slipDays:4,daysSaved:3})
+});
+
 export function equipmentOpportunity(state) {
   const settled = (state.marketHistory || []).filter(order =>
     order.status === 'paid' && order.received === order.revenue &&
@@ -75,23 +85,27 @@ export function equipmentOpportunity(state) {
     order.kind === 'equipment' && order.productId === project.id)) || null;
 }
 
-export function previewEquipment(state, projectId, shipping, dailyCost) {
+const suspendedPurchase=state=>Array.isArray(state.marketParked)&&state.marketParked.length>0;
+export function previewEquipment(state, projectId, shipping, dailyCost, version=1) {
   const project = equipmentOpportunity(state);
   if (!project || project.id !== projectId || !['standard','locked'].includes(shipping) ||
       state.phase !== 'market' || state.market?.status !== 'draft') return null;
+  const cadence=version===1?project:version===2?equipmentCadenceV2[project.id]:null;
+  if(!cadence)return null;
   const {quantity, unit, unitPrice, goodsCost, acceptanceFee} = project;
   const revenue = quantity * unitPrice;
   const deposit = Math.floor(revenue * project.depositPercent / 100);
   const flexible = shipping === 'standard';
   const freight = project.freight + (flexible ? 0 : project.lockedPremium);
   const cost = goodsCost + freight + acceptanceFee;
-  const shipDay = state.day + project.prepDays;
-  const deliveryDay = state.day + project.deliveryDays;
-  const paymentDay = deliveryDay + project.paymentLag;
+  const shipDay = state.day + cadence.prepDays;
+  const deliveryDay = state.day + cadence.deliveryDays;
+  const paymentDay = deliveryDay + cadence.paymentLag;
   const operatingCost = (paymentDay - state.day) * dailyCost;
   const netProfit = revenue - cost - operatingCost;
   const stationFee = flexible ? project.stationFee : 0;
-  const slipDays = flexible ? project.slipDays : 0;
+  const slipDays = flexible ? cadence.slipDays : 0;
+  if(version===2&&paymentDay+slipDays-state.day>MAX_NEW_ORDER_DAYS)return null;
   const riskNetProfit = netProfit - stationFee - slipDays * dailyCost;
   const cashRequired = Math.max(0, cost - deposit + operatingCost + stationFee + slipDays * dailyCost);
   const cashAfterSigning = state.cash - cost + deposit;
@@ -105,9 +119,10 @@ export function previewEquipment(state, projectId, shipping, dailyCost) {
     sourceName: project.supplier, inspection: project.inspection, quantity, unit, unitPrice,
     revenue, goodsCost, freight, acceptanceFee, cost, operatingCost, deposit,
     balanceDue: revenue - deposit, netProfit, riskNetProfit, stationFee, slipDays,
-    rebookFee: flexible ? project.rebookFee : 0, daysSaved: flexible ? project.daysSaved : 0,
-    cashRequired, cashAfterSigning, cashAfterPayment, signedDay: state.day, shipDay,
-    plannedDeliveryDay: deliveryDay, deliveryDay, paymentDay, valid: state.cash >= cashRequired
+    rebookFee: flexible ? project.rebookFee : 0, daysSaved: flexible ? cadence.daysSaved : 0,
+    ...(version===2?{equipmentTermsVersion:2}:{}),
+    cashRequired, cashAfterSigning, cashAfterPayment, ...(version===2&&suspendedPurchase(state)?{reason:'先处理订单里暂存的采购，再签这笔设备合同。'}:{}), signedDay: state.day, shipDay,
+    plannedDeliveryDay: deliveryDay, deliveryDay, paymentDay, valid: state.cash >= cashRequired && (version!==2||!suspendedPurchase(state))
   };
 }
 
@@ -116,7 +131,8 @@ export function previewEquipment(state, projectId, shipping, dailyCost) {
 export function advanceEquipmentShipping(state, dailyCost, calendar = false) {
   const a = state.market?.active;
   if (state.phase !== 'market' || state.market.status !== 'preparing' ||
-      a?.kind !== 'equipment' || a.status !== 'preparing' || (calendar ? state.day !== a.shipDay : state.day !== a.signedDay)) return state;
+      a?.kind !== 'equipment' || a.status !== 'preparing' || a.equipmentTermsVersion===2&&!calendar ||
+      (calendar ? state.day !== a.shipDay : state.day !== a.signedDay)) return state;
   const transfer = a.shipping === 'standard' && a.shipDay % 3 === 0;
   const delay = transfer ? a.slipDays : 0;
   const stationPaid = transfer ? a.stationFee : 0;

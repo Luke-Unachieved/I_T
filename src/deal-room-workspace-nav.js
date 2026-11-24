@@ -1,9 +1,14 @@
+import {roundCalendarDue} from './deal-room-round-receivables.js';
+import {coreCalendarMilestone} from './deal-room-core-calendar.js';
+import {specialtyMilestone} from './deal-room-specialty-calendar.js';
+import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
+import {openingMarketOrders,openingMarketProjection} from './deal-room-opening-market.js';
 import {openingContractMilestone} from './deal-room-opening-calendar.js';
 import {repeatContractMilestone} from './deal-room-repeat-calendar.js';
-import {marketCalendarDue} from './deal-room-market-calendar.js';
+import {marketParallelDue,parkedMarketOrders} from './deal-room-market.js';
 import {companyRenameView,companyTitleText} from './deal-room-company.js';
 import {orderFooterAdvice} from './deal-room-adviser.js';
-import {previewWorkspaceSleep} from './deal-room-workspace-sleep.js';
+import {previewLiveWorkspaceSleep as previewWorkspaceSleep} from './deal-room-workspace-sleep.js';
 import {officeWeatherView} from './deal-room-workspace-office-weather.js';
 import {officeIntroView} from './deal-room-workspace-intro.js';
 import {prospectDisplayText} from './deal-room-prospect-locale.js';
@@ -34,10 +39,14 @@ function defaultPending(s){
   const next=status==='preparing'?['待出运',active.shipDay]:status==='transit'?['待交货',active.deliveryDay]:['待收尾款',active.paymentDay];
   jobs.push({title:next[0]+' · '+(active.productName||'采购台合同'),detail:day(next[1])+' · '+(active.buyer||'采购台客户')+(status==='receivable'&&valid(active.balanceDue)?' · 尾款 '+money(active.balanceDue):''),tab:'orders'});
  }
+ for(const a of [...parkedMarketOrders(s),...openingMarketOrders(s)]){
+  jobs.push({title:(a.status==='transit'?'待交货':'待收尾款')+' · '+a.productName,detail:day(a.status==='transit'?a.deliveryDay:a.paymentDay)+' · '+a.buyer,tab:'orders'});
+ }
  for(const c of s.contracts||[]){
   if(!c||c.status==='paid'||!['fulfilling','receivable','production','transit'].includes(c.status))continue;
   const unpaid=c.status==='receivable';jobs.push({title:(unpaid?'待收尾款':'待交付')+' · '+(c.product||'已签订单'),detail:day(unpaid?c.paymentDay:c.deliveryDay)+' · '+(c.clientName||'已签客户')+(unpaid&&valid(c.balanceDue)?' · '+money(c.balanceDue):''),tab:'orders'});
  }
+ for(const r of prospectInbox(openingMarketProjection(s,0)))jobs.push({title:r.person.displayName,detail:r.product.name,when:'推广来信',tab:'inbox'});
  if(s.phase==='negotiating')jobs.push({title:'有询盘要回复',detail:'先读客户要的货、数量和交期，再决定要不要报价。',tab:'inbox'});
  // Read the same outstanding mail as the inbox, including dismissed-letter filtering.
  if(['review','complete'].includes(s.phase)||s.phase==='market'&&status==='draft'){
@@ -72,7 +81,7 @@ function ledgerRows(s,ledger){
   add(order,nameCombo(order.products,order.lampVersion),order.buyer);
  for(const order of s.collection?.orders??[])if(paid(order))
   add(order,nameCombo(s.collection.products,s.collection.lampVersion),order.buyer);
- return {scope:'已结清的常规订单、选品、连锁和系列采购；组合按整单统计',rows};
+ return {scope:'只算已收齐款的常规订单、选品、连锁和系列采购。成套卖的商品合起来算',rows};
 }
 const magnitude=n=>n<0n?-n:n;
 const maxAmount=(amounts)=>amounts.reduce((m,n)=>m>magnitude(n)?m:magnitude(n),0n);
@@ -101,7 +110,7 @@ export function workspaceLedgerView(s,input){
  return '<section class="ws-ledger ws-chart-ledger" aria-labelledby="ws-chart-ledger-title"><h2 id="ws-chart-ledger-title" tabindex="-1">销售账本</h2><div class="ws-chart-ledger-body">'+
  (rows.length?'<figure><figcaption><strong>历史销售</strong><span>毛利率 <b>'+margin(gross,sales)+'</b></span></figcaption><ul>'+
  chartBar('销售总额',sales,max,'sales')+chartBar('直接成本',cost,max,'cost')+chartBar('销售毛利',gross,max,'gross')+
- '</ul></figure><details><summary>按商品</summary>'+breakdown(rows,'product')+'</details><details><summary>按客户</summary>'+breakdown(rows,'customer')+'</details><p class="ws-muted">'+esc(scope)+'。毛利未扣日常开支。</p>':
+ '</ul></figure><details><summary>按商品</summary>'+breakdown(rows,'product')+'</details><details><summary>按客户</summary>'+breakdown(rows,'customer')+'</details><p class="ws-muted">'+esc(scope)+'。毛利还没扣日常开支。</p>':
  '<p class="ws-muted">还没有已收齐的订单。</p>')+'</div></section>';
 }
 /** OFFICE ONLY: put the navigation and any existing partner controls alongside
@@ -127,7 +136,7 @@ export function workspaceOfficeView(state,model={}){
  return '<section class="ws-office ws-original-office" aria-labelledby="ws-office-title"><div class="ws-tabletop"><header class="ws-desk'+(improved?' ws-desk-window':'')+'" data-weather="'+weather+'">'+room+(introArt?'':officeWeatherView(model.officeId,weather))+'<h2 id="ws-office-title" class="ws-offscreen" tabindex="-1">'+esc(office)+(model.weather?' · '+esc(model.weather):'')+'</h2>'+officeIntroView(model.intro,who)+'</header>'+
  '<section class="ws-agenda" aria-label="今日待办"><div class="ws-agenda-top"><h3>未完成 <small>'+jobs.length+'</small></h3></div>'+(jobs.length?rows(jobs.slice(0,2)):'<p>今天没有待办。</p>')+
  (jobs.length>2?'<details><summary>其余 '+(jobs.length-2)+' 件</summary>'+rows(jobs.slice(2))+'</details>':'')+'</section></div>'+
- '<section class="ws-original-note" aria-label="工作建议"><h3>助理建议</h3>'+(note?'<div>'+portrait+'<div><p>'+esc(lead)+'</p>'+itemList([{title:note.title,tab:note.tab,ref:note.ref}])+'</div></div>':'<p>暂无额外建议。</p>')+'</section>'+companyRenameView(model.companyName)+'</section>';
+ (note?'<section class="ws-original-note" aria-label="工作建议"><h3>助理建议</h3><div>'+portrait+'<div><p>'+esc(who?openingDialogueQuote(lead):lead)+'</p>'+itemList([{title:note.title,tab:note.tab,ref:note.ref}])+'</div></div></section>':'')+companyRenameView(model.companyName)+'</section>';
 }
 export function canEndOrderDay(s){
  // A settled Northline receipt is already in the ledger. Explicitly leaving it only closes the screen.
@@ -144,9 +153,11 @@ export function showWarehouseShortcut(root,tab){
  else root.insertAdjacentHTML('beforeend',shortcut);
 }
 export function showOrdersEnd(root,state,adviserId){
- const advice=orderFooterAdvice(state,adviserId);
+ // Only a list owns generic advice. Individual orders render any useful
+ // advice next to the specific action (e.g. an equipment freight decision).
+ const advice=root.querySelector('[data-workspace-order-list]')?orderFooterAdvice(state,adviserId):'';
  const account=state.phase==='account'&&state.account;
- const due=openingContractMilestone(state)?.day??repeatContractMilestone(state)?.day??(account?.status==='fulfilling'?account.deliveryDay:account?.status==='receivable'?account.paymentDay:marketCalendarDue(state)?.day);
+ const due=Math.min(...[openingContractMilestone(state)?.day,repeatContractMilestone(state)?.day,account?.status==='fulfilling'?account.deliveryDay:account?.status==='receivable'?account.paymentDay:null,marketParallelDue(state)?.day,coreCalendarMilestone(state)?.day,specialtyMilestone(state)?.day,roundCalendarDue(state)?.day].filter(Number.isSafeInteger));
  const message=Number.isSafeInteger(due)&&due>state.day?'今天没有到期的订单':'今天的订单已全部完成';
  const done=canEndOrderDay(state)?'<footer class="ws-orders-end"><p>'+message+'</p><button type="button" data-workspace-open="afterwork" data-workspace-ref="orders-end">去下班</button></footer>':'';
  if(!advice&&!done)return;

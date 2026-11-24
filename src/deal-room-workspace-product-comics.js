@@ -4,10 +4,10 @@ const directions=Object.freeze({
  ines:['small','棉麻桌布','linen-small','两家店各铺了一张。桌边垂下来的，都是同一道浅绿包边。','棉麻桌布在两家门店铺上试卖展示桌。']
 });
 const marketDirections=Object.freeze({
- tray:['可叠放餐盘托盘','tray','湿手托得稳不稳、叠起来会不会卡，试一遍就知道。','店员先托起装有杯盘的托盘，再从叠盘中抽出一只。'],
+ tray:['可叠放餐盘托盘','tray','店员托起装着杯盘的托盘，又从摞里抽出一只。','店员先托起装有杯盘的托盘，再从叠盘中抽出一只。'],
  dripper:['陶瓷手冲滤杯','dripper','滤纸贴着杯壁，从玻璃接壶的一侧就能看到水往哪儿落。','陶瓷手冲滤杯在咖啡吧台上，店员用热水检查滤纸与滴落位置。'],
- 'luggage-tag':['行李挂牌','luggage-tag','翻盖遮住资料卡。提起箱子再看一眼，确认挂牌的带子没有滑脱。','样箱挂牌合上资料盖，店员提起样箱检查绑带。'],
- 'serving-tongs':['不锈钢餐夹','serving-tongs','薄片夹得住，收台也好收。手一松，再看看锁扣有没有卡牢。','店员夹起一片黄瓜，合拢餐夹后松手检查锁扣。'],
+ 'luggage-tag':['行李挂牌','luggage-tag','资料盖合上了。店员提起样箱检查挂牌绑带。','样箱挂牌合上资料盖，店员提起样箱检查绑带。'],
+ 'serving-tongs':['不锈钢餐夹','serving-tongs','试夹的是一片黄瓜。放下以后，店员合上餐夹检查锁扣。','店员夹起一片黄瓜，合拢餐夹后松手检查锁扣。'],
  'pepper-mill':['手摇胡椒研磨器','pepper-mill','同一个磨罐，先粗磨，再细磨。两撮放在白碟上，不用凑近也分得清。','厨师在白碟上试磨粗细两档，并检查研磨器底部。'],
  'knock-box':['咖啡粉渣盒','knock-box','粉饼敲下来，顺手提起内盒一冲。横杆跟着内盒出来，不用伸进底座去抠。','咖啡师敲落粉饼之后，提起带横杆的内盒清洗。'],
  "salad-bowl":["沙拉碗","salad-bowl","先把样碗叠起来，再把洗过的碗倒扣，看看碗底会不会留水。","备菜台上的叠碗和倒扣样碗底部。"],
@@ -20,19 +20,19 @@ const marketDirections=Object.freeze({
  "pillowcase":["枕套","pillowcase","放进样枕，翻过来看搭口能遮住枕芯多少。","客房人员装入枕芯并从背面检查搭口。"],
  "bookend":["书立","bookend","把压斜的一排书扶起来，再低头看书立脚垫贴不贴架面。","书立顶住样书，近处可见底部与架面。"],
  "laptop-stand":["折叠笔记本支架","laptop-stand","展开卡稳再摆样机；拿走样机，收回支臂看看脚垫。","展开的银色支架与收拢后露出的脚垫。"],
- "display-board":["桌面展示板","display-board","换一张样纸试试。先找准侧槽，再看纸边和底座稳不稳。","从透明展示板边槽装入、抽换纸样。"],
+ "display-board":["桌面展示板","display-board","旧纸样从侧槽抽出来，新纸样沿着同一道槽换进去。","从透明展示板边槽装入、抽换纸样。"],
  "file-box":["文件收纳盒","file-box","把样夹插进去，再扣住提孔抬一抬，看看两个盒子叠在哪儿受力。","文件夹放进纸盒，手扣住提孔抬至另一纸盒上方。"],
  "stapler":["桌面订书机","stapler","把约好厚度的样纸推进去，按完翻过来看看钉脚怎么折。","订书机咬住样纸，近景查看纸背的折脚。"],
  "passport-cover":["护照夹","passport-cover","拿一本空白尺寸样册试插试抽，留意袋口有没有蹭到纸边。","空白样册插入护照夹，随后抽出观察纸边。"],
  "neck-pillow":["旅行颈枕","neck-pillow","拆开压缩袋先等枕身松开，再翻到贴颈的一面看内缝。","颈枕从压缩袋取出，随后靠近内侧接缝观察。"],
- "umbrella":["折叠雨伞","umbrella","撑开看看伸缩杆卡在哪儿。收回伞布，再试试随伞的套子。","门廊里检查伞杆并试把收好的伞装入套内。"],
+ "umbrella":["折叠雨伞","umbrella","店员在门廊下检查伞杆，把伞收起来试装进伞套。","门廊里检查伞杆并试把收好的伞装入套内。"],
  "packing-cube":["行李分装袋","packing-cube","隔着网面找衣物。装到约定厚度，再把拉链拉过转角。","网面分装袋里叠着衣物，手在袋角试拉拉链。"],
  "vase":["窄口花瓶","vase","往细颈瓶里加一点水，放进一枝花，再低头看底部和台面交界。","细颈瓶试水插花与瓶底贴住台面的近景。"],
  "planter":["带接水碟花盆","planter","给花盆浇一点水，顺着排水口看接水碟和盆底怎么搭。","窗台上给样盆试水，近处查看底孔和接水碟。"],
  "coat-hook":["壁挂衣帽钩","coat-hook","先在样板墙对齐孔位，再用一段织带看看挂钩边缘怎么接触。","样板墙上的挂钩底座与钩缘上的蓝色织带。"],
  "clock":["壁钟","clock","正面和参考钟比一比，再贴近表盘看看两根针在轴上隔多远。","正面比对两只钟并从侧面查看壁钟针轴。"],
  "basket":["编织收纳篮","basket","提起装着布巾的样篮，抽一条出来看看篮沿会不会挂到布边。","提起布巾篮并从篮沿抽出一条布巾。"],
- "lint-refill":["粘毛器替换卷","lint-refill","换上新卷滚过布样，沿斜口揭一层，再看看底下那圈贴得怎样。","粘毛卷试滚有毛絮的深布，随后沿斜口揭起旧层。"],
+ "lint-refill":["粘毛器替换卷","lint-refill","粘毛卷滚过深色布样，用过的一层从斜口揭开。","粘毛卷试滚有毛絮的深布，随后沿斜口揭起旧层。"],
  "napkin":["可机洗棉餐巾","napkin","洗以前先比一下边线；洗过再把同一块布的四角摆回原处，看差多少。","洗前与洗后的同一块棉餐巾，手把四角沿边线对齐。"],
  "ratchet-set":["棘轮套筒工具组","ratchet-set","挑一只合适的套筒。贴近换向拨钮，试试受力行程和回程。","维修工选好套筒，近看棘轮拨钮与样件。"],
  "lever-lock":["室内执手门锁","lever-lock","先对齐样板门上的锁体和面板，装妥后轻压执手，看锁舌收放。","样板门上试装执手锁，再从门侧观察锁舌。"],
@@ -89,11 +89,11 @@ export function marketProductComicFor(row,status){
  if(row.productName!==product||!Object.hasOwn(workProductArt,scene))return null;
  return {art:workProductArt[scene],caption,alt};
 }
-function storyMarkup(comic,label='看看交货那天'){
+function storyMarkup(comic,label='看看交货那天',isNarration=true){
  if(!comic)return '';
- return '<details class="ws-work-story"><summary>'+label+'</summary><figure><img src="'+comic.art+'" alt="'+comic.alt+'" loading="lazy"><figcaption>'+comic.caption+'</figcaption></figure></details>';
+ return '<details class="ws-work-story"><summary>'+label+'</summary><figure><img src="'+comic.art+'" alt="'+comic.alt+'" loading="lazy"><figcaption'+(isNarration?' class="comic-narration"':'')+'>'+comic.caption+'</figcaption></figure></details>';
 }
 export function workProductComicView(row){return storyMarkup(workProductComicFor(row));}
 export function marketProductComicView(row,status,{categoryDemo=false}={}){
- return storyMarkup(marketProductComicFor(row,status),categoryDemo?'托盘验货示意':'验货示意');
+ return storyMarkup(marketProductComicFor(row,status),categoryDemo?'托盘怎么验':'看看怎么验货',false);
 }

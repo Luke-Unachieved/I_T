@@ -1,4 +1,8 @@
-import {inquiryOpening,inquirySpeech,inquiryOption,inquiryActions,inquiryDetails,inquiryFacts,revealQuoteReply} from './deal-room-inquiry-layout.js';
+import {marketInspectionText} from './deal-room-market-data.js';
+import {marketTiming} from './deal-room-order-cadence.js';
+import {openingDialogueQuote} from './deal-room-opening-dialogue.js';
+import {polishProspectCopy} from './deal-room-prospect-copy-polish.js';
+import {inquiryBuyerHeading,inquiryOpening,inquirySpeech,inquiryOption,inquiryActions,inquiryDetails,inquiryFacts,revealQuoteReply} from './deal-room-inquiry-layout.js';
 import {bindQuotePriceSteps,quoteAdviserProjection,quoteDraftWarning,quotePriceControls,quotePriceGuide,quotePriceRejected,quoteUnitPriceValid} from './deal-room-quote-price.js';
 import {displayProspectCopy036To045} from './deal-room-prospect-copy-036-045.js';
 import {displayProspectCopy036To045Handover} from './deal-room-prospect-copy-036-045-handover.js';
@@ -24,17 +28,18 @@ import {PROSPECT_CONTENT,prospectFallbackDialogue} from './deal-room-prospect-co
 import {prospectDisplayText,prospectMarketLabel} from './deal-room-prospect-locale.js';
 import {previewWarehouseIssue,warehouseSummary} from './deal-room-warehouse.js';
 import {prospectInbox,prospectContentById,prospectRelationship} from './deal-room-prospects.js';
-import {previewMarket} from './deal-room-market.js';
+import {previewMarket as projectMarket} from './deal-room-market.js';
 import {prospectAvatar} from './deal-room-prospect-avatar.js';
 
 const esc = value => String(prospectDisplayText(value) ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const cash = n => Number.isSafeInteger(n) ? '¥' + n.toLocaleString('zh-CN') : '—';
 const day = n => Number.isSafeInteger(n) ? '第 ' + n + ' 天' : '待确认';
 const fact = (label,value) => '<div><dt>'+esc(label)+'</dt><dd>'+esc(value)+'</dd></div>';
-const optionName = id => ({quote:'按常规条件报',concession:'让一点价，争取早点补货',reorder:'按原数量补货','vip-volume':'加量补货'})[id] || '按来信报价';
+const optionName = id => ({quote:'按常规条件报',concession:'让一点价，争取早点补货',reorder:'常规补货','vip-volume':'加量补货'})[id] || '按来信报价';
 const sourceName = k => k==='warehouse'?'自有仓库':k==='factory'?'工厂排产':'现货采购';
 const pack = (n,u) => (Number.isSafeInteger(n) ? n.toLocaleString('zh-CN') : '—') + u;
-const payment = o => (o.depositPercent ? '定金 '+o.depositPercent+'%' : '不付定金')+'，'+(o.payLag?'验收后 '+o.payLag+' 天付余款':o.depositPercent?'验收当日付清余款':'验收当日付清');
+const previewMarket=(s,d)=>projectMarket(s,d,{cadence:true});
+const payment = (o,lag=o.payLag) => (o.depositPercent ? '定金 '+o.depositPercent+'%' : '不付定金')+'，'+(lag?'验收后 '+lag+' 天付余款':o.depositPercent?'验收当日付清余款':'验收当日付清');
 const perPage = 5;
 const inDraft = s => s?.phase === 'market' && s.market?.status === 'draft';
 const firstLetter = row => !row.isRepeat && !row.promotion;
@@ -48,7 +53,7 @@ function face(person) {
 }
 function card(row) {
  const {person:p,product,isRepeat}=row;
- return '<button type="button" class="prospect-letter" data-prospect-open="'+esc(p.id)+'">'+face(p)+'<span><small>'+esc(isRepeat?'熟客补货':'初次来信')+' · '+esc(prospectMarketLabel(p))+'</small><strong>'+esc(p.displayName)+' · '+esc(product.name)+'</strong><span>'+esc(p.organization)+'</span><small>'+esc(Number.isSafeInteger(row.replyBy)?'最晚'+day(row.replyBy)+'回复':'查看这次补货条件')+' →</small></span></button>';
+ return '<button type="button" class="prospect-letter" data-prospect-open="'+esc(p.id)+'">'+face(p)+'<span><small>'+esc(isRepeat?'熟客补货':'初次来信')+' · '+esc(prospectMarketLabel(p))+'</small><strong>'+esc(p.displayName)+' · '+esc(product.name)+'</strong><span>'+esc(p.organization)+'</span><small>'+esc(Number.isSafeInteger(row.replyBy)?'最晚'+day(row.replyBy)+'回复':isRepeat?'查看补货条件':'看看客户要什么')+' →</small></span></button>';
 }
 function inbox(rows,ui,today) {
  const end=rows.find(r=>!r.isRepeat&&Number.isSafeInteger(r.replyBy))?.replyBy;
@@ -65,7 +70,8 @@ function inbox(rows,ui,today) {
  (!shown.length&&rows.length?'<p>这一栏暂时没有来信。</p>':'')+
  (pages>1?'<nav class="prospect-pages" aria-label="客户来信翻页"><button type="button" data-prospect-page="'+(page-1)+'" '+(page?'':'disabled')+'>上一页</button><span>'+ (page+1)+' / '+pages+'</span><button type="button" data-prospect-page="'+(page+1)+'" '+(page+1<pages?'':'disabled')+'>下一页</button></nav>':'')+'</section>';
 }
-const supplierFits=(f,o)=>o.quantity>=f.minQuantity&&f.days<=o.deadlineDays;
+const timing=(f,o,source)=>marketTiming(f,o,{source,cadence:true});
+const supplierFits=(f,o,source)=>o.quantity>=f.minQuantity&&timing(f,o,source).delivery<=o.deadlineDays;
 function draftContext(state,ui) {
  if(!inDraft(state)||!ui.prospectId)return null;
  const row=prospectInbox(state).find(x=>x.person.id===ui.prospectId);
@@ -73,7 +79,7 @@ function draftContext(state,ui) {
  const o=row.options.find(x=>x.id===ui.prospectOption)||row.options[0];
  if(!o)return null;
  const warehouseIssue=previewWarehouseIssue(state,row.product.id,o.quantity);
- const usable=['stock','factory'].filter(k=>supplierFits(row.product.sources[k],o));
+ const usable=['stock','factory'].filter(k=>supplierFits(row.product.sources[k],o,k));
  if(warehouseIssue.valid)usable.push('warehouse');
  const source=usable.includes(ui.prospectSource)?ui.prospectSource:(row.isRepeat&&usable.includes('factory')?'factory':usable[0]??'stock');
  const fields={customerId:row.person.id,optionId:o.id,source,...(o.id==='vip-volume'?{previousPaidDay:row.previous.paidDay}:{})};
@@ -91,18 +97,19 @@ const rejectedAdvice=Object.freeze({
  fang:['方文斌','交期这会儿不用动。要是想让点价，我可以陪你把运费摊到每件上，看看还有多少余地。'],
  liang:['梁佳音','对方嫌这个价高，倒没说不要货。咱们把降价后的利润算一遍，再回也来得及。'],
  tao:['陶乐','货源还是刚才那个，没必要重选。要是你还想谈，咱们只换个价问一句就行。'],
- xu:['许明珊','就算单价降了，尾款也不会早到。要不要算一下，手上的钱能不能撑到那天？']
+ xu:['许明珊','降价也不会让回款提前。要不要算算手头的钱能不能撑到那天？']
 });
 function response(c,repeatReply) {
  if(!c.asked)return '';
  const person=c.row.person;
  const bubble=(line,price='')=>inquirySpeech(prospectDisplayText(line),{reply:true,extra:price});
- if(quotePriceRejected(c.q)){const note=Object.hasOwn(rejectedAdvice,c.adviserId)?rejectedAdvice[c.adviserId]:null;return bubble('这个单价我这边接不了。你能再报一个价吗？')+(note?'<aside class="market-note" aria-label="助理便笺"><strong>'+esc(note[0])+'：</strong>'+esc(note[1])+'</aside>':'');}
+ if(quotePriceRejected(c.q)){const note=Object.hasOwn(rejectedAdvice,c.adviserId)?rejectedAdvice[c.adviserId]:null;return bubble('这个单价我这边接不了。你能再报一个价吗？')+(note?'<aside class="market-note" aria-label="助理便笺"><strong>'+esc(note[0])+'：</strong>'+esc(openingDialogueQuote(note[1]))+'</aside>':'');}
  if(!c.q?.accepted)return '';
  const agreement=c.row.isRepeat?'':prospectSceneLine(person.id,'agreed',c.o.id,c.row.product.id);
  const stagedReply=!c.row.isRepeat&&Number(person.id)>=46?displayProspectCopy(person.id,'bargain',c.q.prospectVoice?.bargain||''):'';
- const line=repeatReply||agreement||stagedReply||(c.row.isRepeat?'好，这次补货就按这份报价来。':'可以，照这份报价和交货日期来。');
- return bubble(line,cash(c.draft.unitPrice)+'/'+c.row.product.unit);
+ const line=repeatReply||agreement||stagedReply;
+ const price=cash(c.draft.unitPrice)+'/'+c.row.product.unit;
+ return line?bubble(line,price):'<div class="inquiry-facts quote-accepted-price" role="status" tabindex="-1" data-prospect-reply><span>客户接受的单价</span> <strong>'+esc(price)+'</strong></div>';
 }
 const prospectCopyEditors=[
  displayProspectCopy001To005,displayProspectCopy006To015,displayProspectCopy016To025,displayProspectCopy016To025Late,
@@ -111,9 +118,10 @@ const prospectCopyEditors=[
  displayProspectCopy066To075,displayProspectCopy066To075Handover,displayProspectCopy076To085,displayProspectCopy086To095,displayProspectCopy086To095Followups,
  displayProspectCopy096To100,displayProspectCopy096To100Followups
 ];
-function displayProspectCopy(id,stage,line){
+export function displayProspectCopy(id,stage,line){
  const edited=prospectCopyEditors.reduce((current,edit)=>edit(id,stage,current),line);
- return edited===line?prospectFallbackDialogue(id,stage,line):edited;
+ const displayed=edited===line?prospectFallbackDialogue(id,stage,line):edited;
+ return polishProspectCopy(id,stage,displayed,line);
 }
 const gcd=(a,b)=>b?gcd(b,a%b):a;
 // prospectInbox advances five buyers a week. For letters whose variant count is
@@ -158,10 +166,10 @@ function sourceOptions(state,c) {
  const rows=['stock','factory'].map(key=>{
   const f=product.sources[key];
   const boxCount=Math.ceil(o.quantity/f.packSize);
-  const title=sourceName(key),notes=[f.name];
+  const title=sourceName(key),notes=[f.name],delivery=timing(f,o,key).delivery;
   if(asksAboutCartons)notes.push('每箱 '+pack(f.packSize,unit)+'，本批需 '+boxCount+' 箱');
-  return {key,title,notes,unitCost:f.unitCost,available:usable.includes(key),amount:o.quantity*f.unitCost+f.freightBase+boxCount*f.freightPerBox,deliveryDay:state.day+f.days,
-   reason:title+'：'+pack(f.minQuantity,' '+unit)+'起订，'+(key==='factory'?'排产 '+f.days+' 天':f.days+' 天到货')+'；本单 '+pack(o.quantity,' '+unit)+'，'+o.deadlineDays+' 天内收货。'};
+  return {key,title,notes,unitCost:f.unitCost,available:usable.includes(key),amount:o.quantity*f.unitCost+f.freightBase+boxCount*f.freightPerBox,deliveryDay:state.day+delivery,
+   reason:title+'：'+pack(f.minQuantity,' '+unit)+'起订，'+(key==='factory'?'排产 '+delivery+' 天':delivery+' 天到货')+'；本单 '+pack(o.quantity,' '+unit)+'，'+o.deadlineDays+' 天内收货。'};
  });
  if(warehouseIssue.valid){
   const q=source==='warehouse'&&Number.isSafeInteger(c.q.deliveryDay)?c.q:previewMarket(state,{...draft,source:'warehouse',unitPrice:1});
@@ -177,30 +185,30 @@ function quote(state,c) {
  const {row,o,draft:d,source,q,guide,asked}=c,{person:p,product}=row,unit=product.unit;
  const old=row.previous,repeat=lukaRepeatLetter(state,row),evaRepeat=evaRepeatLetter(state,row);
  const repeatReply=repeat?lukaRepeatAcceptedLine(repeat,o.id):evaRepeat?evaRepeatAcceptedLine(evaRepeat,o.id):'';
- const opening=row.promotion?'我是在《'+row.promotion.channelName+'》上看到你的。'+(o.mode==='bulk'?'我想问问整批铺货怎么报。':'我想先问一批试货。'):
-  (row.isRepeat?prospectSceneLine(p.id,'repeat',null,product.id):'')||displayProspectCopy(p.id,row.isRepeat?'reorder':'inquiry',row.isRepeat?row.opening:displayOrganicOpening(row));
+ const opening=(row.isRepeat?prospectSceneLine(p.id,'repeat',null,product.id):'')||
+  displayProspectCopy(p.id,row.isRepeat?'reorder':'inquiry',row.isRepeat||row.promotion?row.opening:displayOrganicOpening(row));
  const choices='<fieldset class="inquiry-choices"><legend>'+esc(row.isRepeat?'这批货怎么补？':'这批货怎么谈？')+'</legend>'+row.options.map(v=>
-  inquiryOption((repeat||p.id==='001'&&row.isRepeat&&product.id==='tray')&&v.id==='reorder'?'常规补货':optionName(v.id),[['订购量',pack(v.quantity,unit)],['最迟收货',day(state.day+v.deadlineDays)],['付款',payment(v)],['最早补货',Number.isSafeInteger(v.followupDays)?'回款后 '+v.followupDays+' 天':'']],
+  inquiryOption((repeat||p.id==='001'&&row.isRepeat&&product.id==='tray')&&v.id==='reorder'?'常规补货':optionName(v.id),[['订购量',pack(v.quantity,unit)],['最迟收货',day(state.day+v.deadlineDays)],['付款方式',payment(v,timing(source==='warehouse'?{days:1}:product.sources[source],v,source).lag)],['客户最快再询价',Number.isSafeInteger(v.followupDays)?'收齐货款 '+v.followupDays+' 天后':'']],
     {hook:'data-prospect-option',value:v.id,active:v.id===o.id})).join('')+'</fieldset>';
  const showSettlement=!asked||q.accepted;
  const reason=asked?(quotePriceRejected(q)?'':q.reason):quoteDraftWarning(q,state.cash);
- return '<section class="market-quote prospect-panel" aria-label="客户来信报价"><div class="prospect-quote-top"><button type="button" class="quiet" data-prospect-back>← 收件箱</button></div>'+
- '<div class="prospect-byline">'+face(p)+'<div><div class="prospect-identity"><h3 tabindex="-1" data-prospect-heading>'+esc(p.displayName)+'</h3><span class="prospect-quote-status" data-prospect-quote-status>'+(asked?(q.accepted?'报价已接受':'待重新报价'):'待报价')+'</span></div><span class="prospect-origin">'+esc(p.organization)+'</span><span class="prospect-region">'+esc(product.name)+'</span></div></div>'+
+ return '<section class="market-quote prospect-panel inquiry-read" aria-label="客户来信报价"><div class="prospect-quote-top"><button type="button" class="quiet ws-control ws-control--back" data-prospect-back>← 收件箱</button></div>'+
+ inquiryBuyerHeading({avatar:face(p),name:prospectDisplayText(p.displayName),organization:prospectDisplayText(p.organization),product:prospectDisplayText(product.name),status:asked?(q.accepted?'报价已接受':'待重新报价'):'待报价',focusHook:'data-prospect-heading'})+
  '<div class="prospect-contact-meta"><span>合作关系：'+esc(prospectRelationship(row))+'</span>'+
- (Number.isSafeInteger(row.replyBy)?'<span>'+esc(day(row.replyBy))+'前可回复</span>':'')+'</div>'+
+ (row.promotion?'<span>来自'+esc(row.promotion.channelName)+'的推广来信</span>':'')+(Number.isSafeInteger(row.replyBy)?'<span>'+esc(day(row.replyBy))+'前可回复</span>':'')+'</div>'+
  (repeat?lukaRepeatInquiryView(repeat):evaRepeat?evaRepeatInquiryView(evaRepeat):inquiryOpening(prospectDisplayText(opening),{kind:firstLetter(row)?'prospect':'',customerId:p.id,product:product.id}))+
  choices+inquiryDetails('客户要求',
  (row.isRepeat&&old?'<p>上次采购 '+esc(pack(old.quantity,old.unit||unit))+'，成交单价 '+esc(cash(old.unitPrice))+'，'+esc(day(old.paidDay))+'收齐。</p>':'')+
- '<p>'+esc(product.inspection)+'</p>',{kind:'prospect-request'})+
+ '<p>'+esc(marketInspectionText(product.inspection))+'</p>',{kind:'prospect-request'})+
  '<fieldset class="prospect-source-list"><legend>货源</legend>'+sourceOptions(state,c)+'</fieldset>'+
  '<form data-prospect-form>'+quotePriceControls({key:'prospect',unit,price:d.unitPrice,guide,q,sent:asked,canSend:c.usable.length>0})+'</form>'+
  '<div data-prospect-terms>'+response(c,repeatReply)+
  (showSettlement&&(asked||q.paymentDay!==q.deliveryDay)?inquiryFacts([
-  ...(asked?[[q.netProfit<0?'预计亏损':'预计净利',Number.isSafeInteger(q.netProfit)?cash(Math.abs(q.netProfit)):'']]:[]),
+  ...(asked?[[q.netProfit<0?'预计亏损':'预计净利',q.netProfit,'net-profit']]:[]),
   ...(Number.isSafeInteger(q.deliveryDay)?(asked?(q.paymentDay===q.deliveryDay?[['交货并收款',day(q.deliveryDay)]]:[['交货日期',day(q.deliveryDay)],['收款',day(q.paymentDay)]]):q.paymentDay!==q.deliveryDay?[['预计收款',day(q.paymentDay)]]:[]):[])
  ],asked?'inquiry-decision-facts':'quote-draft-schedule'):'')+
  (reason?'<p class="market-warning" role="status"'+(asked&&!q.accepted?' tabindex="-1" data-prospect-reply':'')+'>'+esc(reason)+'</p>':'')+
- (showSettlement?inquiryDetails('收支明细',inquiryFacts([['总货款',cash(q.revenue)],['定金',q.deposit>0?cash(q.deposit):''],['尾款',q.deposit>0?cash(q.balanceDue):''],[source==='warehouse'?'库存成本（已付）':'付给货源',cash(q.goodsCost)],['运费',q.freight>0?cash(q.freight):''],['回款前日常开支',q.operatingCost>0?cash(q.operatingCost):''],['至少要备的周转金',cash(q.cashRequired)],['签后手头现金',cash(q.cashAfterSigning)],['收齐后的可用资金',cash(q.cashAfterPayment)]])):'')+
+ (showSettlement?inquiryDetails('收支明细',inquiryFacts([['总货款',cash(q.revenue)],['定金',q.deposit>0?cash(q.deposit):''],['尾款',q.deposit>0?cash(q.balanceDue):''],[source==='warehouse'?'库存成本（已付）':'采购货款',cash(q.goodsCost)],['运费',q.freight>0?cash(q.freight):''],['回款前日常开支',q.operatingCost>0?cash(q.operatingCost):''],['所需周转金',cash(q.cashRequired)],['签约后可用现金',cash(q.cashAfterSigning)],['收齐货款后预计可用现金',cash(q.cashAfterPayment)]])):'')+
  '</div>'+inquiryActions({backHook:'data-prospect-dismiss',signHook:'data-prospect-sign',canSign:asked&&q.accepted&&q.valid})+
  '</section>';
 }
@@ -208,7 +216,7 @@ export function prospectInboxView(state,ui={}) {
  if(!inDraft(state))return '';
  const c=draftContext(state,ui);
  if(c)return quote(state,c);
- return (ui.prospectId?'<p role="status">这封来信目前不能报价。<button type="button" class="quiet" data-prospect-back>回到采购台</button></p>':'')+inbox(prospectInbox(state),ui,state.day);
+ return (ui.prospectId?'<p role="status">这封来信目前不能报价。<button type="button" class="quiet ws-control ws-control--back" data-prospect-back>回收件箱</button></p>':'')+inbox(prospectInbox(state),ui,state.day);
 }
 export function prospectReceiptContact(state,{lukaMoment=lukaTrayStoryMoment(state),repeat=lukaRepeatOrder(state),evaMoment=evaTrayStoryMoment(state),evaRepeat=evaRepeatOrder(state)}={}) {
  const a=state?.market?.active,status=state?.market?.status;
@@ -217,14 +225,17 @@ export function prospectReceiptContact(state,{lukaMoment=lukaTrayStoryMoment(sta
  const repeatScene=repeat||evaRepeat;
  if(repeatScene?.stage==='inspection')return '';
  const repeatComic=repeat?lukaRepeatPaidView(repeat):evaRepeatPaidView(evaRepeat);
+ const receiptComic=repeatComic||prospectComicView(a,status,{lukaMoment,evaMoment});
+ const legacyEvaHasSpeech=!repeatComic&&a.customerId==='001'&&a.prospectRepeat===true&&
+  receiptComic.startsWith('<figure class="ws-work-story ws-repeat-story">');
  // The delivery line is an instruction for the carrier, so show it before
  // handover, not after the shipment has already been signed for or paid.
  // Scene prose belongs to the comic; do not append it as a second buyer message.
  const speech=repeatScene&&repeatScene.stage!=='paid'?(repeat?lukaRepeatOrderSpeech(repeat):evaRepeatSpeech(evaRepeat)):
-  status==='paid'&&lukaMoment!=='paid'&&evaMoment!=='paid'&&!repeatComic?displayProspectCopy(a.customerId,'settlement',a.prospectVoice.settlement):status==='transit'?displayProspectCopy(a.customerId,'delivery',a.prospectVoice.delivery):'';
+  status==='paid'&&lukaMoment!=='paid'&&evaMoment!=='paid'&&!repeatComic&&!legacyEvaHasSpeech?displayProspectCopy(a.customerId,'settlement',a.prospectVoice.settlement):status==='transit'?displayProspectCopy(a.customerId,'delivery',a.prospectVoice.delivery):'';
  const stage=status==='paid'?'已结清':status==='receivable'?'已验收':'已签约';
  return '<aside class="prospect-panel prospect-receipt"><div class="prospect-byline">'+face(p)+'<div><small>'+esc(repeatScene?.option==='vip-volume'?'VIP 加量':a.prospectRepeat?'熟客补货':'首单合作')+' · '+stage+'</small><strong>'+esc(p.displayName)+'</strong><span>'+esc(p.organization)+'</span></div></div>'+
- (speech?'<blockquote class="prospect-message" aria-label="'+esc(p.displayName)+'">'+esc(speech)+'</blockquote>':'')+(repeatComic||prospectComicView(a,status,{lukaMoment,evaMoment}))+'</aside>';
+ (speech?'<blockquote class="prospect-message" aria-label="'+esc(p.displayName)+'">'+esc(openingDialogueQuote(speech))+'</blockquote>':'')+receiptComic+'</aside>';
 }
 export function bindProspectInbox(root,state,ui,rerender,dispatch,options) {
  if(!inDraft(state))return;
@@ -254,7 +265,7 @@ export function bindProspectInbox(root,state,ui,rerender,dispatch,options) {
  root.querySelector('[data-prospect-sign]')?.addEventListener('click',()=>{
   const c=draftContext(state,ui);if(!c||!c.asked||!c.q.accepted||!c.q.valid)return;
   const {optionId,...fields}=c.draft;
-  if(optionId==='vip-volume') dispatch({type:'SIGN_PROSPECT_VIP_LOT_V1',...fields});
-  else dispatch({type:'SIGN_PROSPECT_LOT_V1',...c.draft});
+  if(optionId==='vip-volume') dispatch({type:'SIGN_PROSPECT_VIP_LOT_V2',...fields});
+  else dispatch({type:'SIGN_PROSPECT_LOT_V2',...c.draft});
  });
 }

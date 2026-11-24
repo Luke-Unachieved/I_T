@@ -1405,3 +1405,13 @@ const products = [
 ];
 function freezeMarketData(value){if(value && typeof value === 'object'){Object.values(value).forEach(freezeMarketData);Object.freeze(value);}return value;}
 export const MARKET_PRODUCTS=freezeMarketData(products);
+
+// Preserve canonical inspection text inside historic order journals.
+const inspectionDisplay=new Map([
+ ['湿手握持，满载抽叠后不咬边。','湿手拿托盘时不打滑。把装满的托盘从一摞里抽出来时，边缘不能卡住。'],
+ ['冷热样轮换后注水；隔挡箱里把手不相碰。','冷热交替测试后试倒水。装箱时用隔挡把壶分开，壶柄不能碰到一起。'],
+ ['核样砝码复测归零与去皮；无电池出货。','用标准砝码复查归零和去皮。出货不配电池。'],
+ ['插拔纸页不撕边，满幅展示在桌面立稳。','纸页能插进去、抽出来，不会撕坏边。整张纸都要看得见，展示板放在桌上不能晃。'],
+ ['网面透视，满装时拉链可顺畅绕过拐角。','透过网面能看清袋里的衣物。装满后，拉链过拐角也不卡。'],
+]);
+export const marketInspectionText=text=>inspectionDisplay.get(text)??text;
