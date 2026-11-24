@@ -70,7 +70,10 @@ const verifiedFriendResultFrames=Object.freeze({
  'old-cinema:first':['old-cinema','旧影院的木售票窗，旁边是褪色的电影海报。'],
  'library-shelf:first':['library-shelf','图书馆旧藏里翻开的报纸。'],
  'rice-roll:first':['rice-roll','粉皮摊掀开蒸屉，热气从屉口升起来。'],
- 'covered-market:first':['covered-market','收摊后的菜场通道，地面还带着雨水。']
+ 'covered-market:first':['covered-market','收摊后的菜场通道，地面还带着雨水。'],
+ 'bag-mending:first':['assets/deal-outing-result-bag-mending-stitched.webp','旧帆布包的提带缝上了新针脚，提起来也没再扯开。'],
+ 'night-bus:second':['assets/deal-outing-result-night-bus-rear-window.webp','从夜班公交的后窗望出去，街灯一盏盏远了。'],
+ 'flower-market:first':['assets/deal-outing-result-flower-market-leaking-bucket.webp','摊主接过漏水的花桶，把鞋尖的花瓣拂掉。']
 });
 function friendSpeech(id,line){
  const who=friendBy(id);if(!who||!line)return '';
@@ -104,7 +107,7 @@ function momentView(m,assets={},includeTravelArt=true){
  const verified=m.kind==='friend'?verifiedFriendResultFrames[m.placeId+':'+m.choiceId]:null;
  if(verified){
   const [art,alt]=verified;
-  return '<article class="oo-story oo-story-receipt"><figure class="oo-comic-frame"><img src="'+e(openingComics[art])+'" alt="'+e(alt)+'"><figcaption class="comic-narration">'+e(detail.outcome)+'</figcaption></figure>'+friendSpeech(m.companionId,detail.companionLine)+'</article>';
+  return '<article class="oo-story oo-story-receipt"><figure class="oo-comic-frame"><img src="'+e(openingComics[art]??art)+'" alt="'+e(alt)+'"><figcaption class="comic-narration">'+e(detail.outcome)+'</figcaption></figure>'+friendSpeech(m.companionId,detail.companionLine)+'</article>';
  }
  if(m.kind==='trip'&&includeTravelArt)return '<article class="oo-story oo-story-receipt">'+tripMoment(m,detail,assets)+'</article>';
  return `<article class="oo-moment"><small>${e(detail.label)}</small><p class="comic-narration">${e(detail.outcome)}</p>${friendSpeech(m.companionId,detail.companionLine)}</article>`;

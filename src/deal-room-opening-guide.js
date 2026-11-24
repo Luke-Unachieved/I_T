@@ -111,8 +111,8 @@ export function createOpeningGuide({storage,key,saveStatus}){
  };
  return {update,reset:({fresh=false}={})=>{
   auto=fresh;
-  if(preference==='done'||preference==='off')return;
-  // Reload resumes a running tutorial; intentionally replacing its game ends it.
-  if(!fresh||preference==='running')set('off');
+  // Only a confirmed restart begins a different game. Refreshing the same
+  // save preserves its current guide state, and importing a save skips it.
+  set(fresh?'':'off');
  }};
 }

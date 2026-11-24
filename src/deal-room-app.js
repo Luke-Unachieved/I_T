@@ -7,7 +7,7 @@ import {netProfitAmount} from './deal-room-net-profit.js';
 import {emptyMarketDesk,settledMarketDesk} from './deal-room-market-calendar.js';
 import {inquiryBuyerHeading} from './deal-room-inquiry-layout.js';
 import {orderReadSummary,orderReadReceipt,orderReadNext,openingOrderUnits} from './deal-room-order-read.js';
-import {createOpeningGuide} from './deal-room-opening-guide.js?v=34';
+import {createOpeningGuide} from './deal-room-opening-guide.js?v=35';
 import {prepareGameImages} from './deal-room-image-loading.js?v=28';
 import {readCompanyName,bindCompanyName,companyNameView,companyTitleText} from './deal-room-company.js';
 import {openingMarketProjection,openingMarketOrders} from './deal-room-opening-market.js';
@@ -36,7 +36,7 @@ import {PROPERTY_SCENE_ART,PROPERTY_CATALOGUE_ART,propertySceneArt} from './deal
 import {CAR_ART_BY_ID} from './deal-room-car-art.js';
 import {workspaceOpeningInbox,workspaceActiveOrders,workspaceCurrentMarketOrder,workspaceMarketQueue,workspaceFamiliarInbox,workspaceInboxIndex,workspaceOrdersIndex,workspaceInquiryFromRef} from './deal-room-workspace-index.js?v=34';
 import {PROPERTY_CATALOG,propertyHoldings} from './deal-room-property.js';
-import {outingsView,bindOutings,openOutings} from './deal-room-outings-view.js?v=33';
+import {outingsView,bindOutings,openOutings} from './deal-room-outings-view.js?v=35';
 let workspaceOverride=null,propertyUI=null,outingsOpen=false,outingsUI={},sleepOpen=false,promotionUI={};
 import {openProductReorder} from './deal-room-career-focus.js';
 import {shopTrialView,shopShelfScene} from './deal-room-shop-trial.js';

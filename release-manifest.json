@@ -139,17 +139,17 @@
     "dialogue": "spoken-lines-and-transaction-context"
   },
   "flowPatch": {
-    "name": "stage34-order-navigation-adviser-and-first-play",
+    "name": "stage35-restart-tutorial-and-three-friend-scenes",
     "basePagesCommit": "d61642fe28a8cbb6824a7610b4d0fbc32be4c8e8",
-    "entryVersion": 34,
+    "entryVersion": 35,
     "files": {
-      "deal-room.html": "43d8edb872e72b1cc81d1c296be4d7b7114f454399390c99e2c3f294b95952e6",
-      "index.html": "43d8edb872e72b1cc81d1c296be4d7b7114f454399390c99e2c3f294b95952e6",
+      "deal-room.html": "46fbb3938a6a5e820a922ba79c48c8d6ecb54e721f2fbf20b8c19a8372cd82f6",
+      "index.html": "46fbb3938a6a5e820a922ba79c48c8d6ecb54e721f2fbf20b8c19a8372cd82f6",
       "src/deal-room-account.js": "5194067a5d594765c85bc3445c90478c71441a36429e5a869a134da3d5654cae",
       "src/deal-room-adviser.js": "c80f77af3fc96a6609bcb9fd5e73ae044dc87754d9e8176fabbcaa1c24c5c1d3",
       "src/deal-room-afterwork-adviser.js": "85dc9d4441986e61a119120b7a5c185241149bf01c26b225e21c0965898c0ddc",
       "src/deal-room-allocation-view.js": "95a0559ca8e43a6a2f3172dfe5d87cbb9ffd8c43fec6eacc57b83c7fdeb2144f",
-      "src/deal-room-app.js": "6b8ab8f77fd831e421114fbbaf3da935b9c148c27dc2c00f1d244096ed3d1092",
+      "src/deal-room-app.js": "73904c33dc7abd4af9d3c051e1087a068c879f703187d23c3b793143ab05effe",
       "src/deal-room-atelier-restock.js": "382f044c7085133a7f0aa043da5f02751d071e9684ba38fd0d2aa476528ab292",
       "src/deal-room-bankruptcy-view.js": "451efe6b3c8b30abe87da0c9db2f4b6665ddc7c19824ef0ba77ecd739789dbe2",
       "src/deal-room-career-focus.js": "185bd58eb09e2e7ac463c2c457982bf82236572289c1f9fdb2a7867de2622914",
@@ -187,13 +187,13 @@
       "src/deal-room-opening-calendar.js": "cedf544f3faec35375320b99d9a44e7c8ab2edadec1eb7831bac721fc912da4f",
       "src/deal-room-opening-dialogue.js": "56ddc4c6548c3513351f093539a1f751d8037b3640135a645438ef6d5e8d2df5",
       "src/deal-room-opening-guide.css": "2d34b84d781cb2d565bf1b3fb9148395939eaf7e7ac3ba13411ddd213671a575",
-      "src/deal-room-opening-guide.js": "b2582cc594cc9ad0f3a712a265c66fb3165a758a707cf327f95508cbf49a9d93",
+      "src/deal-room-opening-guide.js": "3f0c281a702806b20b709635faec75acfb482df32d6b69f76e0da0618eb2a445",
       "src/deal-room-opening-inspection-view.js": "b2daf2bd4c4f52d3f995fe6a53e5edb13d2a1f6f79fa560fa7219565755f960c",
       "src/deal-room-opening-market.js": "ae139dfb818f3b5e3aa30a44821efbcb9990f0c40b217be8d5320847bc062745",
       "src/deal-room-opening-repeat-comics.js": "6129de4e2fcc1e6377d16037cf946960e7ef63ebf2c5422ddd1129fc609d8a27",
       "src/deal-room-order-cadence.js": "632cf86a21b13542e05f88714c64ec77d6c6e0156dd64bad6d9f54f6e6fd0b13",
       "src/deal-room-order-read.js": "7243dc467e8cd811f4d25abe02cb1c3a441222f497868cb2ee7af5b662db7f24",
-      "src/deal-room-outings-view.js": "226b7a2fec48991adcc3b07a3d081537f1696e4a759172a8831a2864e16706a7",
+      "src/deal-room-outings-view.js": "c14acf9a2a8b5a3144966bc2c20187233f772a5d143f9011e0e2ba9503e8cffd",
       "src/deal-room-outings.js": "ea5a73c889c4f82d941c62a19d1582c64d552aa1cc2e239f1745928e96f0c00c",
       "src/deal-room-promotion-view.js": "ae04a1b05b175a36d022b8e2f413b1f554eeb145db79273ddb9ea4ce949aeca0",
       "src/deal-room-promotion.js": "045ac80f8e5a5dcc5fc5e94bffa2efb151ee5eceddc57097c6d600491914c6a3",
@@ -237,7 +237,10 @@
       "src/deal-room-workspace-nav.js": "c36a36d0364bc9f6a8916d88ee30905d865295b70fcc84675b8ea64807366572",
       "src/deal-room-workspace-product-comics.js": "d0e0bd01b169670cc9d87361200dd5afca229cf2738372d39d0f427fc456ee20",
       "src/deal-room-workspace-sleep.js": "99bd4780e9d8ec361a5d8a530ab92fe122a98bc4316bb919ebdefbcfb90577f6",
-      "src/deal-room.css": "c87a223796518af966aade857395e7e549f0fa4bf41bc52590e869281bcf661c"
+      "src/deal-room.css": "c87a223796518af966aade857395e7e549f0fa4bf41bc52590e869281bcf661c",
+      "assets/deal-outing-result-bag-mending-stitched.webp": "9b110d1af28b91d6af2ed6d95862cda00d396cdf0c77d8564c3a2379cd9ecba8",
+      "assets/deal-outing-result-flower-market-leaking-bucket.webp": "f05b797172a4c18d0d8fca55605b960e05e1a74600b97f57173bd07189f85dc7",
+      "assets/deal-outing-result-night-bus-rear-window.webp": "6dd2bc9cca1665bb994db93aa6ec96bfc52e126057c9bb4f5e73db416caeb7ca"
     }
   }
 }
