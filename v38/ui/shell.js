@@ -324,7 +324,7 @@ function summaryCash(weeks) {
   };
 }
 
-function summaryContent(summary, tutorial) {
+function summaryContent(summary, tutorial, firstOrder) {
   const multiWeek = (summary.weeks?.length ?? 0) > 1;
   const weeks = multiWeek ? summary.weeks : [summary];
   const won = weeks.flatMap(row => row.won);
@@ -339,6 +339,7 @@ function summaryContent(summary, tutorial) {
     <div class="summary-scroll"><div class="dialog-body"><dl class="key-values summary-totals"><div><dt>中单</dt><dd>${count(won.length)} 笔</dd></div><div><dt>交付</dt><dd>${count(delivered)} 笔</dd></div><div><dt>现金流入</dt><dd class="positive">+${yuan(inflow)}</dd></div><div><dt>现金支出</dt><dd class="negative">−${yuan(outflow)}</dd></div></dl>
     ${cash.borrowing ? `<p>现金流入中含银行借款 ${yuan(cash.borrowing)}。</p>` : ''}${cash.breakdown}
     ${won.length ? `<h3>中单通知</h3>${table(['买家', '成交价'], won.map(bid => [buyerName(bid), contractPrice(bid)]))}` : ''}
+    ${firstOrder ? '<p>每周结算会自动推进备货、运输和交付。到「订单」可以查看交期和预计回款。</p>' : ''}
     ${lost.length ? `<h3>未中单</h3>${table(['买家', '胜出同行', '成交价'], lost.map(bid => [buyerName(bid), bid.winner, contractPrice(bid)]))}` : ''}
     ${messages.length ? `<ul class="summary-messages">${messages.map(message => `<li>${esc(message)}</li>`).join('')}</ul>` : ''}
     ${summary.annual ? `<section class="annual-summary"><h3>年度结算 · 第 ${count(summary.annual.number)} 年</h3><p>营收 ${yuan(summary.annual.revenue)} · 净利 ${yuan(summary.annual.profit)} · 交付 ${count(summary.annual.deliveries)} 单 · 逾期 ${count(summary.annual.late)} 单</p>${annualGoalResult(summary.annual.goal)}</section>` : ''}
@@ -371,7 +372,15 @@ function eventContent(state, event, notice) {
 
 export function dialogContent(state, ui, quote) {
   if (ui.dialog === 'quote') return `${quote}${tutorialNote(state, true)}`;
-  if (ui.dialog === 'summary' && state.summary) return `${summaryContent(state.summary, tutorialNote(state, true))}<footer class="dialog-footer"><button type="button" class="button primary" data-ui="close-dialog">继续经营</button></footer>`;
+  if (ui.dialog === 'summary' && state.summary) {
+    const firstOrder = state.orders[0];
+    const weeks = state.summary.weeks ?? [state.summary];
+    const wonFirstOrder = firstOrder && weeks.some(week => week.won.some(bid => bid.orderId === firstOrder.id));
+    return `${summaryContent(state.summary, tutorialNote(state, true), wonFirstOrder)}<footer class="dialog-footer">
+      <button type="button" class="button ${wonFirstOrder ? 'secondary' : 'primary'}" data-ui="close-dialog">继续经营</button>
+      ${wonFirstOrder ? '<button type="button" class="button primary" data-ui="view-first-order">查看订单</button>' : ''}
+    </footer>`;
+  }
   if (ui.dialog === 'event' && state.events.length) return eventContent(state, state.events[0], ui.notice);
   if (ui.dialog === 'bankruptcy') return `<header class="dialog-header"><div><p class="eyebrow">${weekLabel(state.week - 1)} · 本局结束</p><h2 id="modal-title" tabindex="-1">公司破产</h2></div></header><div class="dialog-body"><p>连续两周资金为负，授信已无法覆盖到期支出。</p><p>期末现金 <strong class="negative">${yuan(state.cash)}</strong></p></div><footer class="dialog-footer"><button type="button" class="button primary" data-ui="restart">重新开局</button></footer>`;
   if (ui.dialog === 'restart') return '<header class="dialog-header"><h2 id="modal-title" tabindex="-1">重新开局？</h2></header><div class="dialog-body"><p data-session-warning="restart">重新开局会结束本局，当前进度无法恢复。</p></div><footer class="dialog-footer"><button type="button" class="button secondary" data-ui="close-dialog">继续本局</button><button type="button" class="button primary" data-ui="restart">重新开局</button></footer>';

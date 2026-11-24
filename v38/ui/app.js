@@ -197,7 +197,7 @@ function retainDraft() {
   return changed;
 }
 
-function dismissDialog({ weeklyTarget = false } = {}) {
+function dismissDialog({ weeklyTarget = false, viewOrders = false } = {}) {
   if (ui.dialog === 'bankruptcy') return;
   ui.notice = '';
   const wasQuote = ui.dialog === 'quote';
@@ -209,12 +209,18 @@ function dismissDialog({ weeklyTarget = false } = {}) {
     if (state.tutorial.step === 4) advanceTutorial(4, true);
     state = act(state, { type: 'dismiss-summary' }).state;
     ui.dialog = modalAfterAction();
+    if (viewOrders) {
+      ui.page = 'orders';
+      focusAfterDialog = undefined;
+    }
   } else {
     ui.dialog = '';
   }
   render();
+  if (viewOrders) window.scrollTo(0, 0);
   if (!ui.dialog) {
     if (wasQuote) returnFromQuote(weeklyTarget);
+    else if (viewOrders) mount.querySelector('#page-title')?.focus({ preventScroll: true });
     else restoreFocus(focusAfterDialog);
     focusAfterDialog = undefined;
   }
@@ -298,6 +304,9 @@ function click(event) {
     case 'page': selectPage(control.dataset.page); break;
     case 'quote-open': openQuote(control); break;
     case 'close-dialog': dismissDialog(); break;
+    case 'view-first-order':
+      if (ui.dialog === 'summary') dismissDialog({ viewOrders: true });
+      break;
     case 'skip-tutorial':
     case 'finish-tutorial':
       advanceTutorial(state.tutorial.step, true);

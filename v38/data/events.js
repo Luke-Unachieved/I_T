@@ -8,7 +8,7 @@ export const TRADE_EVENTS = [
     ] },
   { id: 'port-backlog', when: 'overseas-transit', title: '港区排队', text: '原订航次少了泊位，集装箱还在等装船。',
     choices: [{ id: 'reroute', label: '改走备用航线 · ¥950', cost: 950 }, { id: 'wait', label: '等下一班 · 延后 1 周', delay: 1 }] },
-  { id: 'add-order', when: 'delivery', title: '买家还想补一批', text: '上一批卖得快。买家问下周能不能再报一个小批量。',
+  { id: 'add-order', when: 'delivery', title: '买家还想补一批', text: '买家来信：“上一批卖得挺快，下周方便再报一批吗？”',
     choices: [{ id: 'accept', label: '请买家发来复购询盘', lead: true, relationship: 4 }, { id: 'pass', label: '这周先不承诺' }] },
   { id: 'materials', when: 'always', title: '供应商调价通知', text: '原料商发布涨价预告，采购可以先约一小段固定价保护。',
     choices: [{ id: 'reserve', label: '锁定采购价 · ¥700', cost: 700, policy: { weeks: 5, materialDelta: -12 } }, { id: 'open', label: '按现价采购', macro: { materials: 7 } }] },

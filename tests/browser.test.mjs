@@ -54,11 +54,19 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 
       assert.match(await page.evaluate('document.querySelector("dialog .tutorial").innerText'), /5 \/ 5/);
       const summary = await page.evaluate('document.querySelector("dialog").innerText');
       assert.match(summary, /米拉/);
+      assert.match(summary, /每周结算会自动推进备货、运输和交付/);
       assert.doesNotMatch(summary, /\[object Object\]|NaN|undefined/);
       await noOverflow(page, 'summary');
       await page.click('[data-ui="finish-tutorial"]');
       assert.equal(await page.evaluate('document.querySelector(".tutorial") !== null'), false);
-      await page.click('dialog [data-ui="close-dialog"]');
+      if (viewport.mobile) {
+        await page.click('dialog [data-ui="view-first-order"]');
+        assert.equal(await page.evaluate('document.activeElement.id'), 'page-title');
+        assert.match(await page.evaluate('document.querySelector("#page-title").textContent'), /订单/);
+        assert.match(await page.evaluate(content), /米拉/);
+      } else {
+        await page.click('dialog [data-ui="close-dialog"]');
+      }
       for (const id of ['office', 'inquiries', 'orders', 'company', 'offwork']) {
         await page.click(`[data-ui="page"][data-page="${id}"]`);
         await page.waitFor(present('#page-title'));
