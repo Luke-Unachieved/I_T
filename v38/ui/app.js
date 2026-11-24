@@ -1,8 +1,10 @@
 import { act, newGame } from '../engine/game.js';
 import { quote } from '../engine/quotes.js';
-import { inquiriesPage, ordersPage, quoteDialog } from './trade.js';
+import { inquiriesPage, ordersPage, quoteDialog, stockPurchasePreview } from './trade.js';
 import { growthPanel } from './growth.js';
+import { lifePanel, officeFeatures, optionDescription, scenarioFields } from './life-view.js';
 import { companyPage, dialogContent, esc, officePage, offworkPage, opening, shell, tourTarget } from './shell.js';
+import { strategyPanel } from './strategy.js';
 
 const mount = document.querySelector('#v38-root');
 const dialog = document.createElement('dialog');
@@ -20,26 +22,29 @@ function freshUi() {
 }
 
 const pageViews = {
-  office: officePage,
+  office: current => officePage(current, officeFeatures(current)),
   inquiries: inquiriesPage,
   orders: ordersPage,
-  company: (current, model) => companyPage(current, growthPanel(current, model)),
-  offwork: offworkPage,
+  company: (current, model) => companyPage(current, `${growthPanel(current, model)}${strategyPanel(current)}`),
+  offwork: current => offworkPage(current, lifePanel(current)),
 };
 const notices = {
   bid: '报价已提交，本周末开结果。', 'withdraw-bid': '已撤回报价。', borrow: '借款已到账。', repay: '已还款。',
   expedite: '加急已安排，船期提前一周。', collect: '已发出催款提醒。', sue: '已付诉讼费，等待追回。', liquidate: '库存已清仓。',
   hire: '已办理入职。', 'dismiss-staff': '已办理离职。', 'buy-cert': '已取得认证。', 'open-market': '已进入新市场。',
   exhibit: '已报名参展。', referral: '已请客户引荐。', factor: '保理款已到账。',
+  'invest-venture': '产业投资已完成。', 'strategic-investment': '战略投资款已到账。', restructure: '已完成股份制改造。', ipo: '成功上市。可以继续经营。',
+  'purchase-stock': '采购已入库。', 'buy-property': '已买入房产。', 'sell-property': '房产出售款已到账。', mortgage: '已办理抵押，授信额度提高。',
+  unmortgage: '已解除房产抵押。', 'buy-car': '已买入车辆。', 'sell-car': '卖车款已到账。', outing: '已结束这次活动。',
 };
 
 function render() {
   if (!state) {
-    mount.innerHTML = opening(ui.notice);
+    mount.innerHTML = opening(ui.notice, scenarioFields());
   } else {
     ui.tutorialStep = state.tutorial.done ? -1 : state.tutorial.step;
     const view = pageViews[ui.page];
-    mount.innerHTML = shell(state, ui, view(state, ui.page !== 'office' && ui.page !== 'offwork' ? ui : undefined));
+    mount.innerHTML = shell(state, ui, view(state, ui));
   }
   renderDialog();
   highlightTutorial();
@@ -81,6 +86,8 @@ function modalAfterAction() {
 }
 
 function perform(action, trigger) {
+  const beforeWeek = state.week;
+  const beforeEvents = state.events.length;
   const result = act(state, action);
   if (result.error) {
     ui.notice = result.error;
@@ -105,6 +112,10 @@ function perform(action, trigger) {
       ui.dialog = modalAfterAction();
       break;
     default:
+      if (state.week !== beforeWeek || state.bankrupt || state.events.length > beforeEvents) {
+        focusAfterDialog = focusKey(trigger);
+        ui.dialog = modalAfterAction();
+      }
       break;
   }
   render();
@@ -147,7 +158,7 @@ function openQuote(button) {
   const inquiry = state.inquiries.find(item => item.id === button.dataset.id);
   if (!inquiry) return;
   const choices = ['stock', 'factory', 'inventory'];
-  const proposal = { ratio: 100, extraTerms: 0, staffId: null, financing: 'standard' };
+  const proposal = { ratio: 100, extraTerms: 0, staffId: null, financing: 'standard', branded: false, brandUnitPrice: inquiry.targetPrice };
   proposal.source = choices.find(source => !quote(state, inquiry, { ...proposal, source }).error) ?? 'stock';
   ui.quoteId = inquiry.id;
   ui.quote = proposal;
@@ -159,11 +170,12 @@ function openQuote(button) {
   highlightTutorial();
 }
 
-function refreshQuote() {
+function refreshQuote(updatePriceControl = false) {
   const next = document.createElement('template');
   next.innerHTML = quoteDialog(state, ui);
   for (const output of dialog.querySelectorAll('[data-quote-preview]')) {
     const key = output.dataset.quotePreview;
+    if (key === 'price-control' && !updatePriceControl) continue;
     const replacement = next.content.querySelector(`[data-quote-preview="${key}"]`);
     if (replacement) output.replaceWith(replacement);
   }
@@ -264,6 +276,8 @@ function submit(event) {
     const proposal = { ...ui.quote, ...data };
     proposal.ratio = Number(proposal.ratio);
     proposal.extraTerms = Number(proposal.extraTerms);
+    proposal.branded = form.elements.branded?.checked ?? false;
+    proposal.brandUnitPrice = Number(proposal.brandUnitPrice);
     const submitted = perform({ type: 'bid', inquiryId: ui.quoteId, ...proposal });
     if (submitted) {
       restoreFocus(focusAfterDialog);
@@ -277,15 +291,28 @@ function submit(event) {
 function input(event) {
   const control = event.target;
   if (control.name === 'name') control.setCustomValidity('');
-  if (!state || control.dataset.ui !== 'quote-input') return;
-  if (!['source', 'ratio', 'extraTerms', 'staffId', 'financing'].includes(control.name)) return;
+  if (!state || !control.dataset.ui) return;
+  if (control.dataset.ui === 'stock-input') {
+    const form = control.closest('form[data-form="purchase-stock"]');
+    const output = form?.querySelector('[data-stock-preview]');
+    if (output) output.innerHTML = stockPurchasePreview(state, form.elements.productId.value, Number(form.elements.quantity.value));
+    return;
+  }
+  if (control.dataset.ui !== 'quote-input') return;
+  if (!['source', 'ratio', 'extraTerms', 'staffId', 'financing', 'branded', 'brandUnitPrice'].includes(control.name)) return;
   if (control.type === 'radio' && !control.checked) return;
-  ui.quote[control.name] = ['ratio', 'extraTerms'].includes(control.name) ? Number(control.value) : control.value;
-  refreshQuote();
+  if (control.name === 'branded') ui.quote.branded = control.checked;
+  else ui.quote[control.name] = ['ratio', 'extraTerms', 'brandUnitPrice'].includes(control.name) ? Number(control.value) : control.value;
+  refreshQuote(control.name === 'branded');
 }
 
 function change(event) {
   const control = event.target;
+  if (control.dataset.ui === 'scenario-option') {
+    const description = document.getElementById(control.getAttribute('aria-describedby'));
+    if (description) description.textContent = optionDescription(control.name, control.value) ?? '';
+    return;
+  }
   if (!state || control.dataset.ui !== 'inquiry-filter' || !Object.hasOwn(ui.filters, control.name)) return;
   ui.filters[control.name] = control.value;
   render();

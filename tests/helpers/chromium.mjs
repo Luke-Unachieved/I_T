@@ -45,7 +45,7 @@ export async function launchBrowser(root, { scenarios = false } = {}) {
       });
     });
   } catch (error) {
-    chrome.kill(); server.close(); await rm(profile, { recursive: true, force: true }); throw error;
+    chrome.kill(); server.close(); await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); throw error;
   }
   const pages = [];
   return {
@@ -120,7 +120,7 @@ export async function launchBrowser(root, { scenarios = false } = {}) {
       for (const ws of pages) ws.close();
       const exited = once(chrome, 'exit'); chrome.kill('SIGTERM'); await exited;
       await new Promise(resolve => server.close(resolve));
-      await rm(profile, { recursive: true, force: true });
+      await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
     },
   };
 }

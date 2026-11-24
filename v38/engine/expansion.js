@@ -1,6 +1,7 @@
 import { ASSISTANTS, RIVAL_COMPANIES } from '../data/core.js';
 import { CERTIFICATIONS, DEFAULT_MACRO, MARKETS, STAFF_ROLES, clientComic, currencyRate } from '../data/expansion.js';
 import { TRADE_EVENTS } from '../data/events.js';
+import { ERAS } from '../data/strategy.js';
 import { random } from './rng.js';
 
 const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
@@ -75,11 +76,13 @@ function certReqs(s, cert, assets) {
 }
 
 export function certProgress(s, assets = s.cash - s.loan) {
+  const feeMultiplier = ERAS.find(era => era.id === s.era)?.certFeeMultiplier ?? 1;
   return CERTIFICATIONS.map(cert => {
     const requirements = certReqs(s, cert, assets);
     const owned = s.company.certs.includes(cert.id);
-    return { ...cert, requirements, owned, eligible: requirements.every(item => item.met),
-      available: !owned && s.cash >= cert.fee && requirements.every(item => item.met) };
+    const fee = Math.round(cert.fee * feeMultiplier);
+    const eligible = requirements.every(item => item.met);
+    return { ...cert, fee, requirements, owned, eligible, available: !owned && s.cash >= fee && eligible };
   });
 }
 

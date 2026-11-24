@@ -51,7 +51,8 @@ export const FINANCING = Object.freeze({
 export const EXPORT_REBATE_RATE = 0.04;
 
 export function tradePolicy(state, marketId) {
-  return (state.policies ?? []).filter(item => item.untilWeek >= state.week && (!item.market || item.market === marketId))
+  return (state.policies ?? []).filter(item => item.untilWeek >= state.week &&
+      (!item.overseasOnly || marketId !== 'domestic') && (!item.market || item.market === marketId))
     .reduce((changes, item) => ({
       tariffDelta: changes.tariffDelta + (item.tariffDelta ?? 0),
       delayWeeks: changes.delayWeeks + (item.delayWeeks ?? 0),

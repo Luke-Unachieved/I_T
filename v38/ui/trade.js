@@ -2,6 +2,7 @@ import { CATEGORIES, PRODUCTS } from '../data/core.js';
 import { CERTIFICATION_BY_ID, FINANCING, MARKET_BY_ID, STAFF_ROLES } from '../data/expansion.js';
 import { expediteFee, factorValue, forecast, lawsuitFee, liquidationValue } from '../engine/game.js';
 import { quote } from '../engine/quotes.js';
+import { stockPurchaseQuote } from '../engine/strategy.js';
 
 const sources = {
   stock: { name: '现货仓', hint: '启动快，采购时付全款。' },
@@ -110,7 +111,9 @@ function inquiryTable(rows, state) {
     const full = state.bids.length >= 3;
     const tour = !hasTutorialAnchor && canQuote && !alreadyBid && !full ? 'data-tour="quote"' : '';
     if (tour) hasTutorialAnchor = true;
-    const flags = [inquiry.tutorial && badge('开场客户'), marketName(inquiry), inquiry.framework && badge('年度框架'), inquiry.repeat && badge('熟客复购')].filter(Boolean);
+    const flags = [inquiry.tutorial && badge('开场客户'), marketName(inquiry),
+      inquiry.landmark ? badge('地标订单', 'pending') : inquiry.framework && badge('年度框架'),
+      inquiry.repeat && badge('熟客复购'), inquiry.brandDemand && badge('偏好品牌'), inquiry.localRestock && badge('海外仓补货')].filter(Boolean);
     const quotesAction = alreadyBid ? badge('已报价', 'pending') : `<button type="button" class="button${tour ? ' primary' : ''}"
       data-ui="quote-open" data-id="${escapeHtml(inquiry.id)}" ${tour}>${canQuote && !full ? '算价' : '查看条款'}</button>`;
     return `<tr role="row">${cell('商品', `${productCell(inquiry.productName, inquiry.category, inquiry.asset)}${flags.length ? `<small class="trade-flags">${flags.join(' ')}</small>` : ''}`)}
@@ -134,7 +137,7 @@ function bidTable(state) {
   return table('已提交报价', headers, state.bids.map(bid => {
     const inquiry = state.inquiries.find(item => item.id === bid.inquiryId);
     const label = inquiry ? `${inquiry.productName} · ${inquiry.buyer.name}` : productIndex.get(bid.productId)?.name;
-    return `<tr role="row">${cell('询盘', `${escapeHtml(label || '待揭晓报价')}${marketName(inquiry ?? bid)}`)}${cell('货源', `${escapeHtml(sources[bid.source]?.name ?? bid.source)}${bid.financing && bid.financing !== 'standard' ? `<small>${escapeHtml(FINANCING[bid.financing]?.label)}</small>` : ''}`)}
+    return `<tr role="row">${cell('询盘', `${escapeHtml(label || '待揭晓报价')}${marketName(inquiry ?? bid)}${bid.branded ? badge('自有品牌') : ''}`)}${cell('货源', `${escapeHtml(sources[bid.source]?.name ?? bid.source)}${bid.financing && bid.financing !== 'standard' ? `<small>${escapeHtml(FINANCING[bid.financing]?.label)}</small>` : ''}`)}
       ${cell('报价', `${money(bid.unitPrice, bid.currency)}<small>总货款 ${money(bid.foreignTotal ?? bid.total, bid.currency)}</small>`, 'number')}
       ${cell('中单率', percent(bid.probability), 'number')}${cell('垫资峰值', money(bid.workingCapital ?? bid.upfront), 'number')}
       ${cell('操作', button('withdraw-bid', bid.inquiryId, '撤回'), 'trade-actions')}</tr>`;
@@ -189,7 +192,7 @@ function orderTable(rows, state, name) {
     }
     return `<tr role="row">${cell('订单', `<strong>${escapeHtml(order.productName ?? product?.name ?? '商品订单')}</strong>
         <small>${escapeHtml(buyer)} · ${number(order.quantity)} ${escapeHtml(product?.unit ?? '件')}</small>
-        ${marketName(order)}${staff ? `<small>负责人 ${escapeHtml(staff.name)}</small>` : ''}`)}
+        ${marketName(order)}${order.branded ? badge('自有品牌') : ''}${order.warehouseLocal ? badge('海外仓交付') : ''}${staff ? `<small>负责人 ${escapeHtml(staff.name)}</small>` : ''}`)}
       ${cell('状态', `${badge(orderStatus[order.status] ?? order.status, late ? 'negative' : '')}
         ${late ? badge(`逾期 ${state.week - order.dueWeek} 周`, 'negative') : ''}<small>${timeline(order)}</small>`)}
       ${cell('约定交期', week(order.dueWeek))}${cell('预计回款', `${week(order.expectedPayWeek)}${order.currency && order.currency !== 'CNY' ? `<small>合同额 ${money(order.foreignTotal, order.currency)}</small>` : ''}${order.financing && order.financing !== 'standard' ? `<small>${escapeHtml(FINANCING[order.financing]?.label)}</small>` : ''}`)}
@@ -268,6 +271,25 @@ function inventoryTable(state) {
   }));
 }
 
+export function stockPurchasePreview(state, productId, quantity) {
+  const purchase = stockPurchaseQuote(state, productId, Number(quantity));
+  const unit = escapeHtml(productIndex.get(productId)?.unit ?? '件');
+  return `<p class="trade-note${purchase.error ? ' negative' : ''}" role="status">${purchase.error ? escapeHtml(purchase.error) :
+    `采购 ${money(purchase.unitPrice)}／${unit} · 运费 ${money(purchase.shipping)} · 本次支付 <strong>${money(purchase.cost)}</strong> · 当前可用仓位 ${number(purchase.available)}／${number(purchase.capacity)}`}</p>
+    <button type="submit" class="button primary"${purchase.error ? ' disabled' : ''}>采购入库</button>`;
+}
+
+function stockPurchaseForm(state) {
+  if (!(state.ventures?.warehouse > 0)) return '';
+  const firstProduct = PRODUCTS[0];
+  const startingQuantity = firstProduct.sources.stock.minQuantity;
+  return `<form class="stock-purchase" data-form="purchase-stock"><h3>备货入库</h3>
+    <div class="stock-purchase-row"><label>商品<select name="productId" data-ui="stock-input">
+      ${PRODUCTS.map(product => `<option value="${escapeHtml(product.id)}">${escapeHtml(product.name)}（${escapeHtml(product.unit)}）</option>`).join('')}
+    </select></label><label>备货数量<input type="number" min="1" step="1" name="quantity" data-ui="stock-input" value="${startingQuantity}" required inputmode="numeric"></label>
+    <div data-stock-preview>${stockPurchasePreview(state, firstProduct.id, startingQuantity)}</div></div></form>`;
+}
+
 export function ordersPage(state) {
   const activeOrders = state.orders.filter(order => activeOrderStates.has(order.status));
   const pastOrders = state.orders.filter(order => !activeOrderStates.has(order.status));
@@ -280,8 +302,8 @@ export function ordersPage(state) {
     ${panel('应收账款', `${receivables.length ? receivablesTable(receivables, '未结应收账款', state) : empty('暂时没有应收账款。')}
       ${settled.length ? `<details><summary>最近回款（${Math.min(settled.length, 12)} 笔）</summary>${receivablesTable(settled.slice(-12).reverse(), '最近回款', state)}</details>` : ''}`)}
     ${scheduledReceipts(state)}
-    ${panel('库存', state.inventory.some(item => item.quantity > 0) ? inventoryTable(state) : empty('仓库暂无待处置库存。'),
-    '<span class="trade-note">库存可用于同款询盘，也可清仓回笼现金</span>')}
+    ${panel('库存', `${state.inventory.some(item => item.quantity > 0) ? inventoryTable(state) : empty('仓库暂无待处置库存。')}${stockPurchaseForm(state)}`,
+    `<span class="trade-note">库存可用于同款询盘，也可清仓回笼现金${state.ventures?.warehouse > 0 ? '' : '。建成自有仓库后可主动备货'}</span>`)}
   </div>`;
 }
 
@@ -331,12 +353,15 @@ function quoteNumbers(state, proposal, inquiry) {
   return `<div class="quote-metrics"><div class="quote-probability">
     <span>预计中单率 <strong>${probability}%</strong></span>
     <progress aria-label="预计中单率" max="100" value="${probability}">${probability}%</progress>
-    ${proposal.unitPrice > inquiry.targetPrice ? '<small class="negative">报价超过买家目标价，无法中单。</small>' : ''}
+    ${proposal.unitPrice > inquiry.targetPrice && !proposal.branded ? '<small class="negative">报价超过买家目标价，无法中单。</small>' : ''}
+    ${proposal.branded ? `<small>自有品牌 ${number(proposal.brandLevel)} 级 · 由定价与品牌吸引力决定中单率。</small>` : ''}
     </div><dl class="money-list">${rows.map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('')}</dl>
     ${lowest && Number.isFinite(lowest.hypothetical) ? `<p class="quote-risk${lowest.hypothetical < 0 ? ' negative' : ''}" data-tour="cash-forecast">
       <strong>若中标 · 未来 12 周最低现金 ${money(lowest.hypothetical)}</strong>（${week(lowest.week)}）
       ${lowest.hypothetical < 0 ? '<small>预计现金出现缺口，检查授信和到期款后再提交。</small>' : ''}</p>` : ''}
-    ${inquiry.currency && inquiry.currency !== 'CNY' ? '<p class="trade-note">货款以合同币种结算。毛利、垫资和现金预测按人民币列示，最终回款按到账周汇率折算。</p>' : ''}</div>`;
+    ${inquiry.currency && inquiry.currency !== 'CNY' ? '<p class="trade-note">货款以合同币种结算。毛利、垫资和现金预测按人民币列示，最终回款按到账周汇率折算。</p>' : ''}
+    ${proposal.warehouseLocal ? '<p class="trade-note">本地海外仓直接交付，本单省去跨境船期。</p>' : ''}
+    ${proposal.factoryLevel ? `<p class="trade-note">已计入 ${number(proposal.factoryLevel)} 级自有工厂的采购和排产优惠。</p>` : ''}</div>`;
 }
 
 function staffField(state, model) {
@@ -359,6 +384,16 @@ function financingField(inquiry, model) {
     <small data-quote-preview="financing-hint">${escapeHtml(FINANCING[selected]?.text)}</small></label>`;
 }
 
+function priceControl(inquiry, { branded, brandUnitPrice, ratio }) {
+  const content = branded ? `<label class="brand-price"><span>自有品牌单价（${escapeHtml(inquiry.currency ?? 'CNY')}／${escapeHtml(inquiry.unit)}）</span>
+    <input type="number" name="brandUnitPrice" min="1" step="1" required inputmode="numeric" value="${Number.isFinite(brandUnitPrice) && brandUnitPrice > 0 ? brandUnitPrice : ''}" data-ui="quote-input">
+    <small>普通货物参考价 ${money(inquiry.targetPrice, inquiry.currency)}。自有品牌可自主定价。</small></label>` :
+    `<label class="price-slider"><span>报价占目标价 <output data-quote-preview="ratio">${number(ratio)}%</output></span>
+    <input type="range" name="ratio" min="80" max="105" step="1" value="${ratio}" data-ui="quote-input">
+    <small>目标单价 ${money(inquiry.targetPrice, inquiry.currency)} · 可报 80%–105%</small></label>`;
+  return `<div data-quote-preview="price-control">${content}</div>`;
+}
+
 export function quoteDialog(state, ui) {
   const inquiry = state.inquiries.find(item => item.id === ui.quoteId);
   const close = '<button type="button" class="button" data-ui="close-dialog">关闭</button>';
@@ -366,11 +401,14 @@ export function quoteDialog(state, ui) {
   const model = ui.quote ?? {};
   const ratio = Number.isFinite(Number(model.ratio)) ? Math.max(80, Math.min(105, Math.round(Number(model.ratio)))) : 100;
   const extraTerms = Number(model.extraTerms) || 0;
+  const canBrand = state.ventures?.brand > 0 && state.company.certs.includes('brand');
+  const branded = canBrand && model.branded === true;
+  const brandUnitPrice = branded ? Number(model.brandUnitPrice ?? inquiry.targetPrice) : undefined;
   const sourcesAvailable = availableSources(state, inquiry).map(source => ({
     source, proposal: quote(state, inquiry, { source, ratio, extraTerms }),
   }));
   const selected = sourcesAvailable.find(item => model.source === item.source) ?? sourcesAvailable[0];
-  const proposal = quote(state, inquiry, { ...model, source: selected.source, ratio, extraTerms });
+  const proposal = quote(state, inquiry, { ...model, source: selected.source, ratio, extraTerms, branded, brandUnitPrice });
   const alreadyBid = state.bids.some(bid => bid.inquiryId === inquiry.id);
   const disabled = proposal.error || alreadyBid || state.bids.length >= 3;
   return `<header class="trade-header"><div><h2 id="quote-title">算价与报价</h2><p class="trade-note">${escapeHtml(inquiry.buyer.name)} · ${escapeHtml(inquiry.productName)}</p></div>${close}</header>
@@ -379,13 +417,12 @@ export function quoteDialog(state, ui) {
         <fieldset><legend>货源</legend><div class="source-options">${sourcesAvailable.map(({ source, proposal: option }) => {
           const selectedAttr = selected.source === source ? ' checked' : '';
           const disabledAttr = option.error ? ' disabled' : '';
-          const hint = option.error ?? `${sources[source].hint} 采购 ${money(option.cost)} · 周期 ${number(option.productionWeeks + option.shippingWeeks)} 周`;
+          const hint = option.error ?? `${sources[source].hint} 采购 ${money(option.cost)} · 周期 ${number(Math.max(1, option.productionWeeks + option.shippingWeeks))} 周`;
           return `<label class="source-option"><input type="radio" name="source" value="${source}" data-ui="quote-input"${selectedAttr}${disabledAttr}>
             <span><strong>${sources[source].name}</strong><small>${escapeHtml(hint)}</small></span></label>`;
         }).join('')}</div></fieldset>
-        <label class="price-slider"><span>报价占目标价 <output data-quote-preview="ratio">${number(ratio)}%</output></span>
-          <input type="range" name="ratio" min="80" max="105" step="1" value="${ratio}" data-ui="quote-input">
-          <small>目标单价 ${money(inquiry.targetPrice, inquiry.currency)} · 可报 80%–105%</small></label>
+        ${canBrand ? `<label class="brand-toggle"><input type="checkbox" name="branded" data-ui="quote-input"${branded ? ' checked' : ''}>以自有品牌报价</label>` : ''}
+        ${priceControl(inquiry, { branded, brandUnitPrice, ratio })}
         <label>账期让步<select name="extraTerms" data-ui="quote-input">
           ${[0, 1, 2, 3, 4].map(terms => `<option value="${terms}"${terms === extraTerms ? ' selected' : ''}>${terms ? `延长 ${terms} 周` : '按买家原账期'}</option>`).join('')}
         </select><small>账期更长可能提高中单率，也会延后现金回流。</small></label>

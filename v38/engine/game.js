@@ -1,8 +1,10 @@
 import { ASSISTANTS } from '../data/core.js';
 import { tradePolicy } from '../data/expansion.js';
 import { growthAction, growthEvent, growthWeek, initGrowth } from './expansion.js';
+import { collateral, initLife, lifeAction, lifeAssets, lifeWeek } from './life.js';
 import { generateInquiries, quote, resolveBid } from './quotes.js';
 import { random } from './rng.js';
+import { finalizeGoal, initAnnualGoal, initStrategy, nationalRank, strategyAction, strategyAssets, strategyMilestones, strategyWeek, valuation } from './strategy.js';
 import { amount, factorValue, OPEN_RECEIVABLE, receivableValue, staffAbility } from './treasury.js';
 
 export { factorValue } from './treasury.js';
@@ -33,6 +35,9 @@ export function newGame({ name = '我的贸易工作室', assistant = ASSISTANTS
     period: emptyFlow(), sequence: 0,
   };
   initGrowth(s);
+  initStrategy(s);
+  initLife(s);
+  s.creditLine = creditLimit(s);
   s.inquiries = generateInquiries(s);
   return s;
 }
@@ -42,14 +47,14 @@ export function netAssets(s) {
   const due = s.receivables.reduce((sum, item) => sum + (OPEN_RECEIVABLE.has(item.status) ? receivableValue(s, item) : 0), 0);
   const unpaid = s.payables.reduce((sum, item) => sum + (item.paid ? 0 : item.amount), 0);
   const work = s.orders.reduce((sum, item) => sum + (ACTIVE_ORDER.has(item.status) ? item.costPaid - item.deposit : 0), 0);
-  return s.cash + stock + due + work - unpaid - s.loan;
+  return s.cash + stock + due + work + strategyAssets(s) + lifeAssets(s) - unpaid - s.loan;
 }
 
 export function creditLimit(s) {
   const quality = s.receivables.reduce((sum, item) => (
     sum + (OPEN_RECEIVABLE.has(item.status) && STRONG_CREDIT.has(item.buyer.credit) ? receivableValue(s, item) : 0)
   ), 0);
-  return amount(Math.max(0, netAssets(s)) * (0.22 + s.company.rep * 0.003) + quality * 0.22);
+  return amount(Math.max(0, netAssets(s)) * (0.22 + s.company.rep * 0.003) + quality * 0.22 + collateral(s));
 }
 
 export const expediteFee = (order) => Math.max(250, amount(order.shipping * 0.25));
@@ -97,6 +102,11 @@ function spend(s, flow, value) {
 function operations(s, flow) {
   return {
     receive: (value) => receive(s, flow, value),
+    receiveCapital: (value) => {
+      const paid = receive(s, flow, value);
+      flow.financing += paid;
+      return paid;
+    },
     spend: (value) => spend(s, flow, value),
     log: (type, message) => log(s, type, message, flow),
     changeRep: (delta) => changeRep(s, delta),
@@ -263,7 +273,8 @@ function progressOrders(s, flow, projecting) {
     if (order.status === 'production') {
       if (!order.disruptionChecked && order.source === 'factory') {
         order.disruptionChecked = true;
-        if (random(s) < 0.13 - staffAbility(s, 'operations', order.staffId) * 0.009) {
+        const risk = Math.max(0.01, 0.13 - staffAbility(s, 'operations', order.staffId) * 0.009 - (order.factoryLevel ?? 0) * 0.026);
+        if (random(s) < risk) {
           const delay = 1 + Math.floor(random(s) * 2);
           const fee = Math.max(300, amount(order.cost * 0.06));
           order.productionLeft += delay;
@@ -315,10 +326,12 @@ function progressReceivables(s, flow) {
     const protectedTerms = item.financing === 'letter-of-credit';
     const [onTime, defaultRisk] = protectedTerms ? [0.995, 0.001] : (CREDIT[item.buyer.credit] ?? CREDIT.BBB);
     const financeAbility = staffAbility(s, 'finance');
+    const risk = protectedTerms ? defaultRisk : Math.min(0.8, defaultRisk * s.riskMultiplier);
     const roll = random(s);
-    if (roll < defaultRisk) {
+    if (roll < risk) {
       item.status = 'bad-debt';
       item.defaultWeek = s.week;
+      s.year.badDebts += 1;
       flow.profit -= item.amount;
       const order = s.orders.find((candidate) => candidate.id === item.orderId);
       if (order) {
@@ -396,7 +409,7 @@ function finance(s, flow) {
   } else if (s.cash < 0) log(s, 'cash', '资金链告急。可清仓变卖库存，或通过催款争取及时回款。', flow);
 }
 
-function closeWeek(state, { assumeWins = false, projecting = false } = {}) {
+function closeWeek(state, { assumeWins = false, projecting = false, fast = false } = {}) {
   if (state.bankrupt || (!projecting && state.events.length)) return state;
   // Forecast owns disposable working copies, so its 24 possible week steps need
   // not clone years of company history again at every point on the chart.
@@ -407,15 +420,21 @@ function closeWeek(state, { assumeWins = false, projecting = false } = {}) {
   progressReceivables(s, flow);
   progressScheduledReceipts(s, flow);
   payBills(s, flow);
-  growthWeek(s, flow, operations(s, flow), { projecting });
-  finance(s, flow);
+  const ops = operations(s, flow);
+  strategyWeek(s, flow, ops);
+  growthWeek(s, flow, ops, { projecting });
+  lifeWeek(s, { fast });
   s.year.revenue += flow.revenue;
   s.year.profit += flow.profit;
+  s.year.quality = s.qualityIncidents - s.year.qualityStart;
   if (s.week % 52 === 0) {
-    const { records, ...annual } = s.year;
+    const { records, qualityStart, ...annual } = s.year;
+    annual.goal = finalizeGoal(s, annual, ops);
     flow.annual = annual;
     s.year = emptyYear(s.year.number + 1, [...records, annual]);
+    initAnnualGoal(s, s.year.number);
   }
+  finance(s, flow);
   s.history.push({
     week: s.week, cash: s.cash, loan: s.loan,
     receivables: s.receivables.reduce((sum, item) => sum + (OPEN_RECEIVABLE.has(item.status) ? receivableValue(s, item) : 0), 0),
@@ -423,6 +442,10 @@ function closeWeek(state, { assumeWins = false, projecting = false } = {}) {
     revenue: flow.revenue, profit: flow.profit, inflow: flow.inflow, outflow: flow.outflow, rep: s.company.rep,
     macro: { ...s.macro },
   });
+  const entry = s.history.at(-1);
+  entry.rank = nationalRank(s);
+  entry.valuation = valuation(s, netAssets(s));
+  if (!projecting) strategyMilestones(s, ops, flow);
   s.summary = flow;
   s.period = emptyFlow();
   s.week += 1;
@@ -459,7 +482,7 @@ function advanceFour(state) {
   let s = state;
   const weeks = [];
   for (let i = 0; i < 4; i += 1) {
-    const next = endWeek(s);
+    const next = closeWeek(s, { fast: true });
     if (next === s) break;
     s = next;
     weeks.push(s.summary);
@@ -565,11 +588,12 @@ export function act(state, action = {}) {
         order.expectedPayWeek = Math.max(s.week, order.expectedPayWeek - event.delay);
         order.extraCost += spend(s, s.period, event.fee);
       }
-      if (event.type !== 'factory-delay') {
+      if (!['factory-delay', 'ipo-celebration'].includes(event.type)) {
         const result = growthEvent(s, event, action.choice, operations(s, s.period));
         if (result?.error) return fail(result.error);
       }
       s.events.splice(index, 1);
+      s.year.quality = s.qualityIncidents - s.year.qualityStart;
       break;
     }
     case 'borrow':
@@ -604,10 +628,15 @@ export function act(state, action = {}) {
       break;
     }
     default: {
-      const result = growthAction(s, action, operations(s, s.period));
+      const ops = operations(s, s.period);
+      const result = growthAction(s, action, ops) ?? strategyAction(s, action, ops) ?? lifeAction(s, action, ops);
       if (!result) return fail('未知操作。');
       if (result.error) return fail(result.error);
+      if (['mortgage', 'unmortgage', 'sell-property', 'sell-car', 'strategic-investment', 'ipo'].includes(action.type)) {
+        s.creditLine = creditLimit(s);
+      }
     }
   }
+  strategyMilestones(s, operations(s, s.period));
   return { state: s };
 }

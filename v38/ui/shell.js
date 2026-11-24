@@ -1,5 +1,6 @@
 import { ASSISTANTS } from '../data/core.js';
 import { forecast, creditLimit, netAssets } from '../engine/game.js';
+import { nationalRank, valuation } from '../engine/strategy.js';
 
 const fmt = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 0 });
 export const count = value => fmt.format(Number.isFinite(value) ? value : 0);
@@ -61,10 +62,11 @@ function sparkline(series) {
   return `<svg class="sparkline" viewBox="0 0 78 28" aria-hidden="true"><polyline points="${coords}" fill="none" vector-effect="non-scaling-stroke"></polyline></svg>`;
 }
 
-function kpi(title, value, previous, series, format = count) {
+function kpi(title, value, previous, series, format = count, lowerBetter = false) {
   const delta = Number.isFinite(previous) ? value - previous : 0;
-  const trend = !Number.isFinite(previous) ? '待首周结算' : delta ? `${delta > 0 ? '▲' : '▼'} ${format(Math.abs(delta))}` : '持平';
-  return `<article class="kpi-card"><span>${esc(title)}</span><strong class="kpi-value">${format(value)}</strong><small class="kpi-trend ${delta > 0 ? 'positive' : delta < 0 ? 'negative' : ''}">${trend}</small>${sparkline(series)}</article>`;
+  const change = lowerBetter ? -delta : delta;
+  const trend = !Number.isFinite(previous) ? '暂无周比' : change ? `${change > 0 ? '▲' : '▼'} ${format(Math.abs(change))}` : '持平';
+  return `<article class="kpi-card"><span>${esc(title)}</span><strong class="kpi-value">${format(value)}</strong><small class="kpi-trend ${change > 0 ? 'positive' : change < 0 ? 'negative' : ''}">${trend}</small>${sparkline(series)}</article>`;
 }
 
 function indicators(state) {
@@ -91,10 +93,13 @@ function macroIndicators(state, ui) {
     ['海运运价', 'freight'], ['原料价格', 'materials'], ['消费景气', 'consumer'],
   ].filter(([, key]) => Number.isFinite(state.macro[key]));
   if (!metrics.length) return '';
-  return `<details class="macro-disclosure" data-ui="macro-disclosure"${ui.showMacro ? ' open' : ''}><summary>市场指数</summary><div class="kpi-grid" aria-label="市场指数">${metrics.map(([title, key, format]) => {
+  const rankSeries = state.history.map(row => row.rank).filter(Number.isFinite).slice(-11);
+  const valuesSeries = state.history.map(row => row.valuation).filter(Number.isFinite).slice(-11);
+  const rank = nationalRank(state), value = valuation(state, netAssets(state));
+  return `<details class="macro-disclosure" data-ui="macro-disclosure"${ui.showMacro ? ' open' : ''}><summary>市场指数与公司地位</summary><div class="kpi-grid" aria-label="市场指数与公司地位">${metrics.map(([title, key, format]) => {
     const values = state.history.slice(-11).map(row => row.macro?.[key]).filter(Number.isFinite);
     return kpi(title, state.macro[key], values.at(-2), [...values, state.macro[key]], format);
-  }).join('')}</div></details>`;
+  }).join('')}${kpi('全国排名', rank, rankSeries.at(-2), [...rankSeries, rank], count, true)}${kpi('企业估值', value, valuesSeries.at(-2), [...valuesSeries, value], yuan)}</div></details>`;
 }
 
 function weekControls(state) {
@@ -226,7 +231,7 @@ export function officePage(state, feature = {}) {
   const person = assistantFor(state.assistant);
   const open = openOrders(state).length;
   const due = state.receivables.filter(item => openInvoice(item) && item.dueWeek <= state.week).length;
-  return `<section class="hero panel"><img src="${esc(feature.officeImage ?? person.office)}" alt="" fetchpriority="high"><div class="hero-copy"><p>${yearWeek(state.week)} · ${['晴间多云', '晴', '微风', '阵雨'][state.week % 4]}</p><h2>${esc(state.company.name)}</h2><p>${esc(person.name)}已就位。把本周的生意一单一单理清。</p></div>${feature.port ?? ''}</section>
+  return `<section class="hero panel"><img src="${esc(feature.officeImage ?? person.office)}" alt="" fetchpriority="high"><div class="hero-copy"><p>${Number.isSafeInteger(feature.year) ? `${feature.year} 年 · ` : ''}${yearWeek(state.week)} · ${['晴间多云', '晴', '微风', '阵雨'][state.week % 4]}</p><h2>${esc(state.company.name)}</h2><p>${esc(person.name)}已就位。把本周的生意一单一单理清。</p></div>${feature.port ?? ''}</section>
     <div class="office-grid"><section class="panel"><header class="panel-heading"><div><h2>本周待办</h2><p>结算前看一下手上的事。</p></div></header><div class="todo-list">
       <button type="button" data-ui="page" data-page="inquiries"><span><strong>${count(state.inquiries.length)} 条询盘</strong><small>已提交 ${count(state.bids.length)} / 3 个报价</small></span><span aria-hidden="true">→</span></button>
       <button type="button" data-ui="page" data-page="orders"><span><strong>${count(open)} 笔在手订单</strong><small>${due ? `本周 ${count(due)} 笔待收款` : '查看履约、回款与库存'}</small></span><span aria-hidden="true">→</span></button>
@@ -281,8 +286,14 @@ function summaryContent(summary) {
     ${won.length ? `<h3>中单通知</h3>${table(['买家', '成交价'], won.map(bid => [buyerName(bid), contractPrice(bid)]))}` : ''}
     ${lost.length ? `<h3>未中单</h3>${table(['买家', '胜出同行', '成交价'], lost.map(bid => [buyerName(bid), bid.winner, contractPrice(bid)]))}` : ''}
     ${messages.length ? `<ul class="summary-messages">${messages.map(message => `<li>${esc(message)}</li>`).join('')}</ul>` : ''}
-    ${summary.annual ? `<section class="annual-summary"><h3>年度结算 · 第 ${count(summary.annual.number)} 年</h3><p>营收 ${yuan(summary.annual.revenue)} · 净利 ${yuan(summary.annual.profit)} · 交付 ${count(summary.annual.deliveries)} 单 · 逾期 ${count(summary.annual.late)} 单</p>${summary.annual.result ? `<p>${esc(summary.annual.result)}</p>` : ''}</section>` : ''}
+    ${summary.annual ? `<section class="annual-summary"><h3>年度结算 · 第 ${count(summary.annual.number)} 年</h3><p>营收 ${yuan(summary.annual.revenue)} · 净利 ${yuan(summary.annual.profit)} · 交付 ${count(summary.annual.deliveries)} 单 · 逾期 ${count(summary.annual.late)} 单</p>${annualGoalResult(summary.annual.goal)}</section>` : ''}
     </div>`;
+}
+
+function annualGoalResult(goal) {
+  if (!goal) return '';
+  return `<h4>年度目标</h4><ul>${goal.criteria.map(item => `<li>${item.met ? '✓' : '○'} ${esc(item.text)}</li>`).join('')}</ul>
+  ${goal.met ? `<p class="positive">全部达成。现金 +${yuan(goal.bonusCash)}，信誉 +${count(goal.bonusRep)}。</p>` : '<p>本年度的部分目标还未达成。</p>'}`;
 }
 
 export function dialogContent(state, ui, quote) {

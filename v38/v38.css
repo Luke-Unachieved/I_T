@@ -517,6 +517,7 @@ dialog.dialog::backdrop { background: #0b0907bf; }
 /* Company growth: staff, certifications, markets and key customers. */
 .macro-disclosure { margin-bottom: var(--space); }
 .macro-disclosure > summary { padding-inline: .28rem; font-weight: 700; }
+.macro-disclosure .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.1rem), 1fr)); }
 .growth-shortcuts { padding-inline: .25rem; }
 .growth-section, .market-card { scroll-margin: var(--gutter); }
 .market-card:target, .growth-section:target { border-color: var(--ws-mark); }
@@ -566,6 +567,54 @@ dialog.dialog::backdrop { background: #0b0907bf; }
 .rival-own { color: var(--ws-mark-bright); }
 .event-comic, .growth-comic { width: min(100%, 30rem); max-height: 60dvh; object-fit: contain; object-position: left center; border-radius: .45rem; }
 
+/* Long-term operations and life outside the workshop. */
+.strategy-section { scroll-margin: var(--gutter); }
+.strategy-section:target { border-color: var(--ws-mark); }
+.goal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: .64rem; list-style: none; padding: 0; margin: 0; }
+.goal-grid li { display: grid; align-content: start; gap: .45rem; min-width: 0; padding: .64rem; border: 1px solid var(--ws-rule); border-radius: .55rem; background: var(--ws-well); }
+.goal-grid li > div { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: .32rem; }
+.goal-grid progress, .life-energy progress { width: 100%; height: .66rem; accent-color: var(--ws-up); }
+.strategy-cards { grid-template-columns: repeat(auto-fit, minmax(min(100%, 16.5rem), 1fr)); }
+.venture-image { width: 100%; height: 7.8rem; object-fit: cover; object-position: center 45%; border-radius: .37rem; }
+.venture-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: .45rem; }
+.venture-form select { width: 100%; }
+.venture-card > details { border-top: 1px solid var(--ws-rule); }
+.strategy-finance { margin-bottom: .68rem; }
+.strategy-win { margin-bottom: .68rem; color: var(--ws-mark-bright); }
+.listing-cards { grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); }
+.strategy-details { border-top: 1px solid var(--ws-rule); padding-bottom: .45rem; }
+.strategy-details > summary { font-weight: 675; }
+.achievement-cards { grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr)); }
+.achievement p { font-size: .84rem; }
+.biography { display: grid; gap: .55rem; max-width: 45rem; }
+.scenario-settings { padding: .65rem .68rem; border: 1px solid var(--ws-rule); border-radius: .55rem; background: var(--ws-card); }
+.opening-card .scenario-settings legend { margin: 0; padding: 0 .25rem; }
+.scenario-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .48rem; }
+.scenario-fields .form-field { align-content: start; }
+.scenario-fields small { color: var(--ws-secondary); font-size: .79rem; }
+.scenario-fields select { width: 100%; }
+.hero:has(.port-overlay) .hero-copy { position: relative; z-index: 1; max-width: 63%; }
+.port-overlay { position: absolute; right: 0; bottom: 0; width: min(54%, 43rem); color: #ffe5be; }
+.port-art { width: 100%; height: auto; }
+.port-caption { padding: .38rem .65rem; border-top: 1px solid #b6906e8a; background: #252018d9; text-align: right; font-size: .79rem; }
+.life-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15.8rem), 1fr)); gap: .7rem; }
+.life-card { display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--ws-rule); border-radius: .55rem; overflow: hidden; background: var(--ws-well); }
+.life-art { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+.life-card-copy { display: grid; align-content: start; gap: .4rem; flex: 1; padding: .65rem; }
+.life-card-copy .panel-heading { align-items: start; }
+.life-card-copy > p { color: var(--ws-secondary); }
+.life-card-copy .toolbar { padding-top: .28rem; }
+.life-energy { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: .64rem; margin-bottom: .68rem; padding: .68rem; border: 1px solid var(--ws-rule); border-radius: .55rem; background: var(--ws-well); }
+.life-energy label { color: var(--ws-mark-bright); font-weight: 700; }
+.life-energy p { color: var(--ws-secondary); }
+.outing-note { display: grid; gap: .4rem; margin-bottom: .7rem; padding: .6rem; border: 1px solid var(--ws-rule); border-radius: .55rem; background: var(--ws-well); }
+.outing-art { width: min(100%, 33rem); max-height: 19rem; object-fit: contain; object-position: left center; border-radius: .37rem; }
+.stock-purchase { margin-block: .68rem; padding: .63rem; border: 1px solid var(--ws-rule); border-radius: .55rem; background: var(--ws-well); }
+.stock-purchase-row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(6rem, .55fr) auto; align-items: end; gap: .47rem; }
+.stock-purchase-row label { display: grid; gap: .22rem; }
+.stock-purchase-row input, .stock-purchase-row select { width: 100%; }
+.quote-controls > label.brand-toggle { display: flex; align-items: center; gap: .5rem; min-height: 44px; }
+
 @media (max-width: 1140px) {
   .app-shell { grid-template-columns: 12.4rem minmax(0, 1fr); }
   .kpi-card :is(.sparkline, .spark) { width: 2.2rem; }
@@ -575,6 +624,7 @@ dialog.dialog::backdrop { background: #0b0907bf; }
 @media (max-width: 900px) {
   .office-grid, .company-grid { grid-template-columns: minmax(0, 1fr); }
   .opening { grid-template-columns: minmax(0, 1fr) minmax(19rem, .85fr); }
+  .scenario-fields { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 760px) {
@@ -614,6 +664,7 @@ dialog.dialog::backdrop { background: #0b0907bf; }
     scroll-snap-type: x proximity;
     scrollbar-width: thin;
   }
+  .macro-disclosure .kpi-grid { grid-template-columns: none; }
   .kpi-card { grid-template-columns: minmax(0, 1fr) auto; min-height: 4.3rem; padding: .54rem .63rem; scroll-snap-align: start; }
   .kpi-card :is(dd, .kpi-value, strong) { font-size: 1.15rem; }
   .hero { min-height: 12rem; }
@@ -652,6 +703,16 @@ dialog.dialog::backdrop { background: #0b0907bf; }
   .map-marker text { font-size: 20px; }
   .market-links a { flex: 1 1 22%; }
   .growth-cards, .market-cards { grid-template-columns: minmax(0, 1fr); }
+  .goal-grid, .life-energy { grid-template-columns: minmax(0, 1fr); }
+  .life-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 10.5rem), 1fr)); }
+  .life-card-copy .panel-heading { flex-wrap: wrap; }
+  .life-card-copy .toolbar > * { min-width: 0; width: 100%; }
+  .hero:has(.port-overlay) .hero-copy { max-width: 100%; min-height: 11rem; align-content: end; }
+  .port-overlay { position: relative; width: 100%; }
+  .port-art { max-height: 6.8rem; }
+  .port-caption { text-align: left; }
+  .stock-purchase-row { grid-template-columns: minmax(0, 1fr) minmax(5.5rem, .55fr); }
+  .stock-purchase-row button, .stock-purchase-row .stock-purchase-note { grid-column: 1 / -1; }
   input:not([type=checkbox], [type=radio], [type=range]), select, textarea { font-size: 1rem; }
 }
 
