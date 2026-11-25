@@ -63,8 +63,8 @@ function badge(label, variant = '') {
   return `<span class="badge${variant ? ` ${variant}` : ''}">${escapeHtml(label)}</span>`;
 }
 
-function table(label, headers, rows) {
-  return `<div class="table-wrap"><table class="data-table" role="table" aria-label="${escapeHtml(label)}">
+function table(label, headers, rows, className = '') {
+  return `<div class="table-wrap"><table class="data-table${className ? ` ${className}` : ''}" role="table" aria-label="${escapeHtml(label)}">
     <thead role="rowgroup"><tr role="row">${headers.map(header => `<th scope="col" role="columnheader">${escapeHtml(header)}</th>`).join('')}</tr></thead>
     <tbody role="rowgroup">${rows.join('')}</tbody></table></div>`;
 }
@@ -97,10 +97,11 @@ function eligible(state, inquiry) {
   return availableSources(state, inquiry).some(source => !quote(state, inquiry, { source, ratio: 100, extraTerms: 0 }).error);
 }
 
-function productCell(name, category, asset) {
+function productCell(name, category, asset, flags = []) {
   const art = imageFrame(asset, { className: 'product-thumb', fallback: '无图' });
   return `<div class="trade-product">${art}<span><strong>${escapeHtml(name)}</strong>
-    ${category ? `<small>${escapeHtml(category)}</small>` : ''}</span></div>`;
+    ${category ? `<small>${escapeHtml(category)}</small>` : ''}
+    ${flags.length ? `<small class="trade-flags">${flags.join(' ')}</small>` : ''}</span></div>`;
 }
 
 function inquiryTable(rows, state) {
@@ -118,7 +119,7 @@ function inquiryTable(rows, state) {
       inquiry.repeat && badge('熟客复购'), inquiry.brandDemand && badge('偏好品牌'), inquiry.localRestock && badge('海外仓补货')].filter(Boolean);
     const quotesAction = alreadyBid ? badge('已报价', 'pending') : `<button type="button" class="button${tour ? ' primary' : ''}"
       data-ui="quote-open" data-id="${escapeHtml(inquiry.id)}" ${tour}>${canQuote && !full ? '算价' : '查看条款'}</button>`;
-    return `<tr role="row" data-inquiry-id="${escapeHtml(inquiry.id)}">${cell('商品', `${productCell(inquiry.productName, inquiry.category, inquiry.asset)}${flags.length ? `<small class="trade-flags">${flags.join(' ')}</small>` : ''}`)}
+    return `<tr role="row" data-inquiry-id="${escapeHtml(inquiry.id)}">${cell('商品', productCell(inquiry.productName, inquiry.category, inquiry.asset, flags), 'inquiry-product')}
       ${cell('买家与信用', `<strong>${escapeHtml(buyer.name)}</strong> ${badge(buyer.credit)}<small>${escapeHtml(buyer.type)}</small>`)}
       ${cell('数量', `${number(inquiry.quantity)} ${escapeHtml(inquiry.unit)}`, 'number')}
       ${cell('目标单价', unitPrice(inquiry.targetPrice, inquiry.currency, inquiry.unit), 'number')}
@@ -126,7 +127,7 @@ function inquiryTable(rows, state) {
       ${cell('付款条件', `${number(inquiry.depositRate)}% 定金<small>${inquiry.terms ? `账期 ${number(inquiry.terms)} 周` : '交货当周应付'}</small>`)}
       ${cell('竞争', `${number(inquiry.rivals.length)} 家<small>${inquiry.rivals.slice(0, 2).map(rival => escapeHtml(rival.name)).join('、')}</small>`)}
       ${cell('操作', quotesAction, 'trade-actions')}</tr>`;
-  }));
+  }), 'inquiry-sheet');
 }
 
 function marketName(inquiry) {

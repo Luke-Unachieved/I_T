@@ -29,7 +29,6 @@ const icon = path => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none
 const portrait = person => `<span class="portrait" aria-hidden="true" style="background-image:url('${esc(person.portrait)}');background-position:${esc(person.portraitPosition)}"></span>`;
 const weekLabel = week => `第 ${count(week)} 周`;
 const yearWeek = week => `第 ${Math.floor((week - 1) / 52) + 1} 年 · 第 ${(week - 1) % 52 + 1} 周`;
-const classicLinks = () => `<div class="classic-links"><a href="classic.html">玩经典版（V37）</a><a href="legacy-game.html">玩旧版</a></div>`;
 const openOrders = state => state.orders.filter(order => !['settled', 'cancelled', 'bad-debt', 'closed', 'paid', 'delivered'].includes(order.stage ?? order.status));
 const openInvoice = bill => bill.status === 'open' || bill.status === 'overdue';
 const moneyDue = state => state.receivables.reduce((sum, bill) => sum + (openInvoice(bill) ? bill.remaining ?? bill.amount : 0), 0);
@@ -52,7 +51,6 @@ export function opening(notice = '', settings = '') {
         ${settings}
         <button class="button primary" type="submit">创立工作室</button>
       </form>
-      ${classicLinks()}
     </section>
   </main>`;
 }
@@ -139,6 +137,7 @@ function tutorialNote(state, inDialog = false) {
 
 export function shell(state, ui, content, extraIndicators = '') {
   const [, title] = pages.find(([key]) => key === ui.page) ?? pages[0];
+  const overview = ui.page === 'office';
   return `<div class="app-shell">
     <aside class="sidebar" aria-label="工作室导航">
       <div class="brand"><span>贸易工作室</span><strong>再开一单就下班</strong></div>
@@ -147,9 +146,9 @@ export function shell(state, ui, content, extraIndicators = '') {
       ${weekControls(state)}
     </aside>
     <main class="workspace" id="work-area" aria-labelledby="page-title">
-      <header class="page-header"><div><p class="eyebrow">${esc(state.company.name)} · ${yearWeek(state.week)}</p><h1 id="page-title" tabindex="-1">${title}</h1><p>${captions[ui.page]}</p></div><span class="badge">V38</span></header>
+      <header class="page-header"><div><p class="eyebrow">${esc(state.company.name)} · ${yearWeek(state.week)}</p><h1 id="page-title" tabindex="-1">${title}</h1><p>${captions[ui.page]}</p>${overview ? '' : `<p class="compact-cash">可用资金 <strong class="${state.cash < 0 ? 'negative' : ''}">${yuan(state.cash)}</strong></p>`}</div><span class="badge">V38</span></header>
       <div class="app-notices" aria-live="polite" aria-atomic="true">${ui.notice ? `<p class="notice" role="status">${esc(ui.notice)}</p>` : ''}${state.cash < 0 && !state.bankrupt ? `<div class="notice negative" role="alert"><strong>资金链告急</strong><p>还差 ${yuan(-state.cash)}。可以到订单页清仓，或到公司页借款。连续两周资金为负会破产。</p></div>` : ''}${state.events.length ? `<p class="notice">有 ${count(state.events.length)} 件事需要你决定。<button type="button" class="button quiet" data-ui="show-event">查看事项</button></p>` : ''}</div>
-      ${indicators(state)}${macroIndicators(state, ui)}${extraIndicators}
+      ${overview ? `${indicators(state)}${macroIndicators(state, ui)}` : ''}${extraIndicators}
       ${tutorialNote(state)}
       <div class="page-content">${content}</div>
     </main>
@@ -285,7 +284,7 @@ function recentTrends(history) {
 export function offworkPage(state, extra = '') {
   const pending = state.bids.length ? `还有 ${count(state.bids.length)} 笔报价等本周结算。` : '这周没有待出结果的报价。';
   return `<section class="panel"><header class="panel-heading"><div><h2>收好这周的账本</h2><p>${pending}</p></div></header><p>结算会推进生产、运输和回款，同时扣除本周开支。</p><div class="toolbar"><button type="button" class="button primary" data-action="end-week"${state.events.length || state.bankrupt ? ' disabled' : ''}>结束本周 →</button><button type="button" class="button secondary" data-action="advance-four"${state.events.length || state.bankrupt ? ' disabled' : ''}>连推四周</button></div></section>
-  ${extra}<section class="panel"><header class="panel-heading"><h2>离开本局</h2></header><p class="session-warning" data-session-warning="leaving">进入经典版或重新开局会结束本局。刷新或关闭页面也会结束本局。</p>${classicLinks()}<button type="button" class="button quiet" data-ui="request-restart">重新开局</button></section>`;
+  ${extra}<section class="panel"><header class="panel-heading"><h2>离开本局</h2></header><p class="session-warning" data-session-warning="leaving">重新开局、刷新或关闭页面都会结束本局。</p><button type="button" class="button quiet" data-ui="request-restart">重新开局</button></section>`;
 }
 
 const cashLabels = {

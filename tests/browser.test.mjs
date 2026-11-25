@@ -18,8 +18,7 @@ async function noOverflow(page, label) {
 async function createCompany(page, name) {
   await page.goto();
   await page.waitFor(present('[data-form="new-game"]'));
-  assert.equal(await page.evaluate('document.querySelector("a[href=\\"classic.html\\"]")?.textContent'), '玩经典版（V37）');
-  assert.ok(await page.evaluate(present('a[href="legacy-game.html"]')));
+  assert.equal(await page.evaluate(present('a[href="classic.html"], a[href="deal-room.html"], a[href="legacy-game.html"]')), false);
   await noOverflow(page, 'opening');
   await page.fill('[data-form="new-game"] [name="name"]', name);
   await page.click('[data-form="new-game"] button[type="submit"]');
@@ -37,6 +36,8 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 
       await page.click('[data-ui="page"][data-page="inquiries"]');
       assert.match(await page.evaluate('document.querySelector(".tutorial").innerText'), /2 \/ 5/);
       await page.waitFor(present('[data-ui="quote-open"]'));
+      const productFrame = await page.evaluate('(() => { const {width, height} = document.querySelector(".inquiry-product .product-thumb").getBoundingClientRect(); return {width, height}; })()');
+      assert.ok(productFrame.width >= 110 && productFrame.height >= 70, `Inquiry artwork is too small: ${JSON.stringify(productFrame)}`);
       await page.click('[data-ui="quote-open"]');
       await page.waitFor(present('dialog[open] [data-form="quote"]'));
       assert.match(await page.evaluate('document.querySelector("dialog .tutorial").innerText'), /3 \/ 5/);
@@ -71,6 +72,13 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 
         await page.click(`[data-ui="page"][data-page="${id}"]`);
         await page.waitFor(present('#page-title'));
         await noOverflow(page, id);
+        assert.equal(await page.evaluate(present('a[href="classic.html"], a[href="deal-room.html"], a[href="legacy-game.html"]')), false);
+        assert.equal(await page.evaluate(present('[aria-label="经营指标"]')), id === 'office');
+        assert.equal(await page.evaluate(present('[data-ui="macro-disclosure"]')), id === 'office');
+        if (id !== 'office' && viewport.mobile) {
+          assert.match(await page.evaluate('document.querySelector(".compact-cash").innerText'), /可用资金.*¥/);
+          assert.equal(await page.evaluate('document.querySelector(".compact-cash").getClientRects().length > 0'), true);
+        }
         assert.doesNotMatch(await page.evaluate(content), /\[object Object\]|NaN|undefined/);
       }
       const controls = await page.evaluate(`Array.from(document.querySelectorAll('nav button,.week-controls button')).filter(e=>e.getClientRects().length).map(e=>({text:e.textContent.trim(),height:e.getBoundingClientRect().height,width:e.getBoundingClientRect().width}))`);
