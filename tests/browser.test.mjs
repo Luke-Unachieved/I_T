@@ -52,6 +52,9 @@ async function createCompany(page, name) {
   assert.equal(portraits.sizes.length, 4);
   if (portraits.mobile) assert.ok(portraits.sizes.every(size => size.width >= 120 && Math.abs(size.height - size.width * 773 / 680) <= 2), JSON.stringify(portraits));
   await noOverflow(page, 'opening');
+  // These existing scenarios exercise the independent five-step standard
+  // tutorial; new openings now default to the ongoing simple-mode assistant.
+  await page.evaluate(`(()=>{const difficulty=document.querySelector('[name=difficulty]');difficulty.value='normal';difficulty.dispatchEvent(new Event('change',{bubbles:true}));})()`);
   await page.fill('[data-form="new-game"] [name="name"]', name);
   await page.click('[data-form="new-game"] button[type="submit"]');
   await page.waitFor(present('#page-title'));

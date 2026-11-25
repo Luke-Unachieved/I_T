@@ -8,7 +8,7 @@ import { quotedSpeech } from './dialogue.js';
 const choices = {
   era: { label: '时代剧本', rows: ERAS, defaultId: '2026' },
   origin: { label: '出身', rows: ORIGINS, defaultId: 'self-made' },
-  difficulty: { label: '难度', rows: DIFFICULTIES, defaultId: 'normal' },
+  difficulty: { label: '难度', rows: DIFFICULTIES, defaultId: 'casual' },
 };
 
 export function optionDescription(type, id) {

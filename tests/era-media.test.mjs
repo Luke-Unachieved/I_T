@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { launchBrowser } from './helpers/chromium.mjs';
+import { SAVE_KEY } from '../v38/ui/save.js';
+import { newGame } from '../v38/engine/game.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const options = { skip: process.env.V38_BROWSER !== '1', timeout: 30_000 };
@@ -19,6 +21,8 @@ test('difficulty descriptions explain the difference between full assistant guid
       const page = await browser.page({width,height:width===320?568:844,mobile:true});
       await page.goto();
       await page.waitFor(present(form));
+      assert.equal(await page.evaluate('document.querySelector("[name=difficulty]").value'), 'casual');
+      assert.match(await page.evaluate('document.querySelector("#opening-difficulty-note").innerText'), /^推荐新手：助理会全程手把手带你经营。.*报价.*资金周转.*发展.*休息.*接下来几周.*根据你的选择.*启动资金更多.*回款风险更低。$/s);
       for (const [id,expect] of [['casual',/手把手.*接下来几周.*根据你的选择/],['normal',/基础入门提示.*自己掌握/],['hard',/启动资金更少.*坏账风险更高.*压价.*亲自判断/]]) {
         await select(page,'difficulty',id);
         const note = await page.evaluate('document.querySelector("#opening-difficulty-note").innerText');
@@ -30,6 +34,51 @@ test('difficulty descriptions explain the difference between full assistant guid
       assert.deepEqual(page.errors,[]);
     }
   } finally { await browser.close(); }
+});
+
+test('engine API still defaults to standard, independently of the opening form choice', () => {
+  assert.equal(newGame().difficulty, 'normal');
+});
+
+test('fresh opening defaults to simple with the assistant, explicit standard and hard remain selected after reopening', options, async () => {
+  const record = `JSON.parse(localStorage.getItem(${JSON.stringify(SAVE_KEY)}))`;
+  for (const [selected, expected, width, cash] of [
+    [null, 'casual', 320, 78000], ['normal', 'normal', 390, 50000], ['hard', 'hard', 390, 38000],
+  ]) {
+    const browser = await launchBrowser(root);
+    try {
+      const page = await browser.page({ width, height: width === 320 ? 568 : 844, mobile: true });
+      await page.goto();
+      await page.waitFor(present(form));
+      assert.equal(await page.evaluate('document.querySelector("[name=difficulty]").value'), 'casual');
+      assert.equal(await page.evaluate('document.querySelector("[name=difficulty] option:checked").innerText'), '简单');
+      assert.match(await page.evaluate('document.querySelector("#opening-difficulty-note").innerText'), /^推荐新手：助理会全程手把手带你经营。/);
+      assert.ok(await page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'));
+      await page.evaluate('document.querySelector("#opening-difficulty-note").scrollIntoView({block:"center"})');
+      if (!selected) await page.screenshot('/tmp/v38-opening-default-easy-320.png');
+      if (selected) await select(page, 'difficulty', selected);
+      assert.equal(await page.evaluate('document.querySelector("[name=difficulty]").value'), expected);
+      await page.fill(`${form} [name=name]`, `开局难度验收-${expected}`);
+      // The casual path has not touched the difficulty selector at all.
+      await page.click(`${form} button[type=submit]`);
+      await page.waitFor(present('#page-title'));
+      const before = await page.evaluate(record);
+      assert.equal(before.state.difficulty, expected);
+      assert.equal(before.state.cash, cash);
+      assert.equal(await page.evaluate(present('.workspace > .coach-card')), expected === 'casual');
+      assert.equal(await page.evaluate(present('.workspace > .tutorial')), expected !== 'casual');
+      if (!selected) await page.screenshot('/tmp/v38-opening-default-easy-assistant-320.png');
+      // A new browser document resumes the saved difficulty rather than
+      // replacing it with the form's changed default.
+      await page.goto();
+      await page.waitFor(present('[data-ui=resume-save]'));
+      await page.click('[data-ui=resume-save]');
+      assert.equal((await page.evaluate(record)).state.difficulty, expected);
+      assert.equal((await page.evaluate(record)).state.cash, cash);
+      assert.equal(await page.evaluate(present('.workspace > .coach-card')), expected === 'casual');
+      assert.deepEqual(page.errors, []);
+    } finally { await browser.close(); }
+  }
 });
 
 async function waitUntil(predicate, timeout = 5000) {

@@ -23,9 +23,12 @@ async function settleWeek(page) {
   await page.click('#week-controls [data-action="end-week"]');
 }
 
+const chooseStandard = page => page.evaluate(`(()=>{const difficulty=document.querySelector('[name=difficulty]');difficulty.value='normal';difficulty.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+
 async function createCompany(page, name = '体验问题回归') {
   await page.goto();
   await page.waitFor(present('[data-form="new-game"]'));
+  await chooseStandard(page);
   await page.fill('[data-form="new-game"] [name="name"]', name);
   await page.click('[data-form="new-game"] button[type="submit"]');
   await page.waitFor(present('#page-title'));
@@ -80,6 +83,7 @@ test('E01/E10: real double banking submits once, corrected Chinese forms remain 
     const page = await browser.page();
     await page.goto();
     await page.waitFor(present('[data-form="new-game"]'));
+    await chooseStandard(page);
     await page.click('[data-form="new-game"] button[type="submit"]');
     await page.waitFor('document.querySelector("[data-form=new-game] [data-field-error]")?.textContent.trim().length>0');
     assert.match(await page.evaluate('document.querySelector("[data-form=new-game] [data-field-error]").innerText'), /公司.*名|名字/);
@@ -234,6 +238,7 @@ test('E04: auto-save restores a pending quote, weekly summary and pending event,
     await page.goto();
     await page.waitFor(present('[data-session-warning="opening"]'));
     assert.match(await page.evaluate('document.querySelector("[data-session-warning=opening]").innerText'), /自动存档.*继续经营/);
+    await chooseStandard(page);
     await page.fill('[name="name"]', '自动存档验收');
     await page.click('[data-form="new-game"] button[type="submit"]');
     await page.waitFor(present('#page-title'));
@@ -294,11 +299,13 @@ test('E04: auto-save restores a pending quote, weekly summary and pending event,
     await opened.click('[data-ui="request-restart"]');
     await opened.click('dialog [data-ui="restart"]');
     await opened.waitFor(present('[data-form="new-game"]'));
+    assert.equal(await opened.evaluate('document.querySelector("[name=difficulty]").value'), 'casual');
     assert.equal((await opened.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SAVE_KEY)})).state.company.name`)), original.company.name);
     await opened.fill('[name="name"]', '新的独立工作室');
     await opened.click('[data-form="new-game"] button[type="submit"]');
     assert.equal((await currentState(opened)).company.name, '新的独立工作室');
     assert.equal((await currentState(opened)).week, 1);
+    assert.equal((await currentState(opened)).difficulty, 'casual');
     assert.deepEqual(opened.errors, []);
   } finally { await browser.close(); }
 });
@@ -332,6 +339,7 @@ test('save recovery: damaged records stay intact, failed writes can retry and a 
     assert.equal(await page.evaluate(read), '破损记录');
     await page.click('[data-ui="prepare-new-game"]');
     await page.click('[data-ui="confirm-new-game"]');
+    await chooseStandard(page);
     await page.evaluate(`(()=>{const write=Storage.prototype.setItem;window.restoreStorage=()=>{Storage.prototype.setItem=write};Storage.prototype.setItem=function(k,v){if(k===${keyName})throw new DOMException('full','QuotaExceededError');return write.call(this,k,v)}})()`);
     await page.fill('[name="name"]', '存档恢复验收');
     await page.click('[data-form="new-game"] button[type="submit"]');
