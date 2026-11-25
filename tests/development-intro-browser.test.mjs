@@ -71,10 +71,8 @@ async function startFreshFirstOrder(page) {
   assert.ok((await saved(page)).state.orders.length>=1);
   await page.click('dialog [data-ui=view-first-order]');
   assert.equal((await saved(page)).view.page,'orders');
-  assert.equal((await saved(page)).view.coachLearning,false);
-  assert.deepEqual((await saved(page)).view.coachTour.visited,[],'viewing actual first order is not an automatic lesson');
-  await clickCoach(page,'[data-ui=coach-start-learning]');
-  assert.equal((await saved(page)).view.coachLearning,true);
+  assert.equal((await saved(page)).view.coachLearning,true,'a genuinely new simple game starts its one-time introduction');
+  assert.deepEqual((await saved(page)).view.coachTour.visited,['orders']);
 }
 
 async function checkDevelopmentVisit(page, key, viewport, baseline) {
@@ -219,7 +217,7 @@ test('skipping the development introduction never invents visits, expenses or re
   }finally{await browser.close();}
 });
 
-test('ordinary business does not force a development tour; explicit learning can pause and resume without changing the company', {skip:!enabled,timeout:120_000}, async()=>{
+test('paused or older ordinary business does not restart a development tour; learning can pause and resume without changing the company', {skip:!enabled,timeout:120_000}, async()=>{
   const browser=await launchBrowser(root,{scenarios:true});
   try{
     const page=await browser.page({width:320,height:568,mobile:true});

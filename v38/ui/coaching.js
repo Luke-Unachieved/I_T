@@ -170,7 +170,6 @@ export function recordCoachVisit(state, ui) {
     const index = coachPrepIndex(ui.coachPrep);
     if (!state.bids.length || !introMatches(ui, preparation[index])) return false;
     ui.coachPrep = index + 1;
-    if (ui.coachPrep >= preparation.length) ui.coachLearning=false;
     return true;
   }
   const tour=coachTourRecord(ui.coachTour,ui.coachIntro);
@@ -1038,10 +1037,10 @@ function pageAdvice(state, ui) {
 
   const local=ui.page==='company'?(ui.developmentOverview?developmentOverviewAdvice(state,ui):developmentAdvice(state,ui.developmentTab,ui)):
     ui.page==='orders'?orderStatusAdvice(state,ui):ui.page==='offwork'?offworkStatusAdvice(state):null;
-  // Learning is a separate, voluntary activity. Ordinary coaching follows
-  // actual current work, even when some educational pages remain unvisited.
-  // A player who explicitly asks to learn can still work through every lesson,
-  // and urgent decisions above always take precedence.
+  // The first-time lesson sequence is separate from normal operating advice.
+  // New simple games start it once; the player can pause/skip or voluntarily
+  // resume, and urgent decisions above always take precedence. After the
+  // lesson is finished, ordinary coaching follows only actual current work.
   if (ui.coachLearning === true) {
     const prep=preparationAdvice(state,ui,local);
     if (prep) return prep;
@@ -1080,7 +1079,7 @@ export function pageCoach(state, ui) {
   let extra = advice?.preparation ? (advice.nextAction?.ui === 'coach-skip-prep' ? '' : actionButton(skipPreparation())) : advice?.introduction ? '<button type="button" class="button quiet" data-ui="coach-skip-intro">跳过介绍</button>' : step ? '<button type="button" class="button quiet" data-ui="skip-tutorial">跳过基础流程提示</button>' : '';
   const tour=coachTourRecord(ui.coachTour,ui.coachIntro);
   const canLearn=state.orders.length ? !tour.skipped&&(tour.visited.length<coachTourIds.length||tour.active) : state.bids.length&&coachPrepIndex(ui.coachPrep)<preparation.length;
-  if (ui.coachLearning===true && (advice?.preparation||advice?.introduction)) {
+  if (ui.coachLearning===true && advice && !advice.urgent) {
     extra+='<button type="button" class="button quiet" data-ui="coach-pause-learning">先继续经营</button>';
   } else if (ui.coachLearning!==true && canLearn && advice && !advice.urgent && (state.orders.length ? ['office','orders','company'].includes(ui.page) : ['office','inquiries'].includes(ui.page))) {
     const label=state.orders.length?'认识游戏功能（可选）':'了解报价与资金（可选）';

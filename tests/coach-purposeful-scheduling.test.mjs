@@ -20,7 +20,7 @@ async function actualQuote(page){
 }
 
 for(const viewport of [{width:320,height:568,mobile:true},{width:390,height:844,mobile:true}]){
-  test(`ordinary simple-mode coaching pursues actual business without forced educational detours at ${viewport.width}px`,{skip:!enabled,timeout:120_000},async()=>{
+  test(`first-round learning can pause and ordinary coaching pursues actual business without forced educational detours at ${viewport.width}px`,{skip:!enabled,timeout:120_000},async()=>{
     const browser=await launchBrowser(root);
     try{
       const page=await browser.page(viewport);
@@ -31,8 +31,10 @@ for(const viewport of [{width:320,height:568,mobile:true},{width:390,height:844,
       assert.equal((await saved(page)).state.difficulty,'casual');
       await c(page,'[data-page=inquiries]');await c(page,'[data-ui=quote-open]');await actualQuote(page);
       const first=await saved(page);
-      assert.equal(first.state.bids.length,1);assert.equal(first.view.coachLearning,false);assert.equal(first.view.coachPrep,0);
-      assert.ok(await page.evaluate(exists(`${coach} .coach-action[data-ui=quote-open]`)), 'continue a useful next bid rather than tour unrelated pages');
+      assert.equal(first.state.bids.length,1);assert.equal(first.view.coachLearning,true);assert.equal(first.view.coachPrep,0);
+      assert.ok(await page.evaluate(exists(`${coach} .coach-action[data-coach-tab=cash-forecast]`)), 'the very first quote introduces its funding implications once');
+      await c(page,'[data-ui=coach-pause-learning]');assert.equal((await saved(page)).view.coachLearning,false);
+      assert.ok(await page.evaluate(exists(`${coach} .coach-action[data-ui=quote-open]`)), 'after pausing, continue a useful next bid rather than tour unrelated pages');
       assert.ok(await page.evaluate(exists(`${coach} [data-ui=coach-start-learning].quiet`)), 'learning remains explicitly available');
       assert.equal(await page.evaluate(exists(`${coach} [data-coach-tab=cash-forecast]`)),false);
       await c(page,'[data-ui=coach-start-learning]');assert.equal((await saved(page)).view.coachLearning,true);

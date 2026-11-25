@@ -166,9 +166,7 @@ for(const [seed,viewport] of [[17,{width:320,height:568,mobile:true}],[2026,{wid
       const page=await browser.page(viewport);
       await startActualCompany(page,seed);
       await firstContractThroughCoach(page);
-      assert.equal((await saved(page)).view.coachLearning,false);
-      assert.deepEqual((await saved(page)).view.coachTour.visited,[]);
-      await beginLearning(page);
+      assert.equal((await saved(page)).view.coachLearning,true,'the initial teaching round continues through the first genuine contract');
       const seen=new Set();
       // New seed routes include an intentional out-of-order/manual visit.
       await observeLesson(page,seen);

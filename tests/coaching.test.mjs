@@ -367,6 +367,7 @@ for (const viewport of [{ width: 320, height: 568, mobile: true }, { width: 390,
       assert.equal((await currentState(page)).loan, 0);
       await page.click(`${coach} [data-page="offwork"]`);
       assert.equal(await page.evaluate(`JSON.parse(localStorage.getItem('trade-tycoon:weekly:v38:v1')).view.coachPrep`), 3);
+      assert.equal(await page.evaluate(`JSON.parse(localStorage.getItem('trade-tycoon:weekly:v38:v1')).view.coachLearning`), true,'the requested first teaching round remains active through the first contract');
       await page.click(`${coach} [data-page="inquiries"]`);
       assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`), /建议再报 2 笔.*估算收益.*最低余额/s);
       await page.screenshot(`/tmp/v38-coach-multi-quote-${viewport.width}.png`);
@@ -393,7 +394,6 @@ for (const viewport of [{ width: 320, height: 568, mobile: true }, { width: 390,
       assert.ok((await currentState(page)).orders.length > 0);
       await page.click('dialog [data-ui="view-first-order"]');
       assert.match(await page.evaluate('document.querySelector("#page-title").innerText'), /订单/);
-      await page.click(`${coach} [data-ui="coach-start-learning"]`);
       await page.click(`${coach} [data-coach-tab="finance"]`);
       await page.waitFor(present(`${coach} [data-coach-tab="team"]`));
       await page.click(`${coach} [data-coach-tab="team"]`);

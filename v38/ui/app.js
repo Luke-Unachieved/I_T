@@ -1049,6 +1049,9 @@ function submit(event) {
     crypto.getRandomValues(seed);
     state = newGame({ ...data, seed: seed[0] });
     ui = freshUi();
+    // The first new-player lesson sequence is intentional; it may be paused
+    // or skipped and is never restarted once completed.
+    ui.coachLearning = state.difficulty === 'casual';
     saveProgress();
     render();
     mount.querySelector('#page-title')?.focus({ preventScroll: true });

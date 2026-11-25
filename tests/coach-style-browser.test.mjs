@@ -114,7 +114,6 @@ for(const viewport of [{width:320,height:568,mobile:true},{width:390,height:844,
       await assertCoach(page,'dialog [data-ui=view-first-order]',reference);
       await assertGuide(page,'dialog [data-ui=view-first-order]');
       await page.click('dialog [data-ui=view-first-order]');
-      await c('[data-ui=coach-start-learning]');
       await assertCoach(page,`${coach} [data-page=company][data-coach-tab=finance]`,reference);
       await c('[data-page=company][data-coach-tab=finance]');
       await assertCoach(page,`${coach} [data-page=company][data-coach-tab=team]`,reference);
