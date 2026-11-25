@@ -250,7 +250,7 @@ function verifyRecommendation(state, recommendation) {
   if (!recommendation) return null;
   if (recommendation.scenarioFloor === undefined) recommendation.scenarioFloor = Math.min(...plannerForecast(state, recommendation.offer).map(row => row.hypothetical));
   if (recommendation.cashFloor === undefined) recommendation.cashFloor = Math.min(...forecast(state, recommendation.offer).map(row => row.hypothetical));
-  return Math.min(recommendation.scenarioFloor, recommendation.cashFloor) < estimates(state).reserve ? null : recommendation;
+  return [recommendation.scenarioFloor,recommendation.cashFloor].every(Number.isFinite)&&Math.min(recommendation.scenarioFloor, recommendation.cashFloor)>=estimates(state).reserve ? recommendation : null;
 }
 
 function quoteBundle(state, filter = {}) {
@@ -270,7 +270,7 @@ export function quoteRecommendation(state, inquiry, filter) {
   if (!easy(state) || !inquiry || state.bids.length >= 3 || state.bids.some(item => item.inquiryId === inquiry.id)) return null;
   // The recommended thread and its actual proposal must match, even after a filter change.
   const planned = quoteBundle(state, filter).steps[0];
-  if (planned?.inquiry.id === inquiry.id) return planned.recommendation;
+  if (planned?.inquiry.id === inquiry.id) return verifyRecommendation(state,planned.recommendation);
   return quoteCandidates(state, inquiry).find(item => verifyRecommendation(state, item)) ?? null;
 }
 
@@ -711,29 +711,38 @@ function introductionAdvice(state,ui,local) {
   const current=introduction.find(step=>introMatches(ui,step));
   const next=introduction.find(step=>!tour.visited.includes(step.id));
   const active=introduction.find(step=>step.id===tour.active);
+  if(!next&&!active)return local;
   const progress={introduction:true,introProgress:tour.visited.length};
+  const continuation={...(next?page(next.page,next.label,next.tab):current?.id===active?.id
+    ?{ui:'coach-finish-intro',label:'继续本周经营'}:page(active.page,active.label,active.tab)),introNext:true};
+  // An optional local opportunity must never remove the way back to the
+  // unfinished tour. Keep its own defer control as well as the real action,
+  // so teaching neither requires a purchase nor changes a weekly preference.
+  const withLocalAction=(lesson=null)=>{
+    const action=local.action;
+    const sameDestination=action.ui==='page'&&continuation.ui==='page'&&action.page===continuation.page&&action.tab===continuation.tab;
+    const text=lesson
+      ?`${lesson.text} 本周还有实际建议：${local.title}。${local.text}`
+      :`${local.text} ${next?`也可以先继续认识${next.name}，不用为了介绍立即办理这项业务。`:'也可以先完成剩余介绍。'}`;
+    return {...local,title:lesson?.title??local.title,text,
+      action:sameDestination?{...action,label:`${continuation.label}并查看建议`,introNext:true}:action,
+      nextAction:sameDestination?null:continuation,
+      additionalActions:[...(local.additionalActions??[]),local.nextAction].filter(Boolean),...progress};
+  };
   if(active&&current?.id===active.id) {
     const lesson=introductionLesson(state,active,local);
-    const action=next?page(next.page,next.label,next.tab):{ui:'coach-finish-intro',label:'继续本周经营'};
-    if(ui.page==='company'&&local?.action) {
-      // A genuine current development opportunity must remain actionable on
-      // its page. Teach what the page is for and let this real decision take
-      // precedence, with the tour still available without any purchase.
-      return {...note(lesson.title,`${lesson.text.split('。')[0]}。${local.title}。${local.text}`,local.action),nextAction:action,...progress};
-    }
-    return {...note(lesson.title,lesson.text,action),...progress};
+    if(ui.page==='company'&&local?.action)return withLocalAction(lesson);
+    return {...note(lesson.title,lesson.text,continuation),...progress};
   }
-  if(ui.page==='company'&&local?.action)return local;
+  if(ui.page==='company'&&local?.action)return withLocalAction();
   if(!next) {
-    if(active)return {...note('继续认识游戏',`还有${active.name}的介绍没确认结束，回去看一眼即可。`,page(active.page,active.label,active.tab)),...progress};
-    return local;
+    return {...note('继续认识游戏',`还有${active.name}的介绍没确认结束，回去看一眼即可。`,continuation),...progress};
   }
   // A deliberate visit to a previously taught page with a useful real action
-  // takes priority over the optional remaining tour.
-  if(current&&tour.visited.includes(current.id)&&local?.action)return local;
-  const action=page(next.page,next.label,next.tab);
-  if(local&&current&&tour.visited.includes(current.id))return {...note(local.title,`${local.text} 下一步认识${next.name}，看看它什么时候派得上用场。`,action),...progress};
-  return {...note(next.id==='orders'?'第一张订单到手了':'继续认识游戏',next.id==='orders'?'中单只是开始。先去订单页看看合同交期和预计回款。':`接下来认识${next.name}。不需要为了介绍办理或消费，可以看过再继续经营。`,action),...progress};
+  // stays actionable, but also retains the way onward without doing it.
+  if(current&&tour.visited.includes(current.id)&&local?.action)return withLocalAction();
+  if(local&&current&&tour.visited.includes(current.id))return {...note(local.title,`${local.text} 下一步认识${next.name}，看看它什么时候派得上用场。`,continuation),...progress};
+  return {...note(next.id==='orders'?'第一张订单到手了':'继续认识游戏',next.id==='orders'?'中单只是开始。先去订单页看看合同交期和预计回款。':`接下来认识${next.name}。不需要为了介绍办理或消费，可以看过再继续经营。`,continuation),...progress};
 }
 
 const developmentPriorities = [
@@ -897,16 +906,17 @@ function pageAdvice(state, ui) {
 function actionButton(action) {
   if (!action) return '';
   if (action.command === 'end-week') return `<button type="button" class="button ${action.quiet ? 'quiet' : 'coach-action'}" data-ui="coach-settlement">${esc(action.label)}</button>`;
-  return `<button type="button" class="button ${action.quiet ? 'quiet' : 'coach-action'}" data-ui="${action.ui}"${action.page ? ` data-page="${action.page}"` : ''}${action.tab ? ` data-coach-tab="${action.tab}"` : ''}${action.id != null ? ` data-id="${esc(action.id)}"` : ''}${action.choice ? ` data-choice="${esc(action.choice)}"` : ''}${action.action ? ` data-coach-action="${esc(action.action)}"` : ''}${action.form ? ` data-coach-form="${esc(action.form)}"` : ''}${Number.isSafeInteger(action.amount) ? ` data-coach-amount="${action.amount}"` : ''}>${esc(action.label)}</button>`;
+  return `<button type="button" class="button ${action.quiet ? 'quiet' : 'coach-action'}" data-ui="${action.ui}"${action.introNext ? ' data-coach-intro-next' : ''}${action.page ? ` data-page="${action.page}"` : ''}${action.tab ? ` data-coach-tab="${action.tab}"` : ''}${action.id != null ? ` data-id="${esc(action.id)}"` : ''}${action.choice ? ` data-choice="${esc(action.choice)}"` : ''}${action.action ? ` data-coach-action="${esc(action.action)}"` : ''}${action.form ? ` data-coach-form="${esc(action.form)}"` : ''}${Number.isSafeInteger(action.amount) ? ` data-coach-amount="${action.amount}"` : ''}>${esc(action.label)}</button>`;
 }
 
 function card(state, advice, { extra = '', preview = false, progress = false, overview = false, introProgress = null, equal = false } = {}) {
   if (!advice) return '';
   const person = ASSISTANTS.find(item => item.id === state.assistant) ?? ASSISTANTS[0];
+  const actions=[advice.action,advice.nextAction,...(advice.additionalActions??[])].map(actionButton).join('');
   return `<aside class="coach-card" aria-label="助理带教"${equal?' data-coach-equal="true"':''}${preview ? ' data-quote-preview="coach" tabindex="-1"' : ''}>
     <span class="portrait headshot coach-portrait" data-assistant-id="${esc(person.id)}" aria-hidden="true" style="background-image:url('${esc(person.portrait)}')"></span>
-    <div class="coach-copy"><small class="coach-label">${esc(person.name)}的带教建议${Number.isInteger(introProgress)?`（认识游戏 ${introProgress}/${coachTourIds.length}）`:overview ? '（发展总览）' : progress ? `（入门 ${state.tutorial.step + 1}/5）` : ''}</small><h3>${esc(advice.title)}</h3><p>${esc(advice.text)}</p>
-    ${advice.action || advice.nextAction || extra ? `<div class="coach-actions">${actionButton(advice.action)}${actionButton(advice.nextAction)}${extra}</div>` : ''}</div></aside>`;
+    <div class="coach-copy"><small class="coach-label">${esc(person.name)}的带教建议${Number.isInteger(introProgress)?`（${overview?'发展总览，':''}认识游戏 ${introProgress}/${coachTourIds.length}）`:overview ? '（发展总览）' : progress ? `（入门 ${state.tutorial.step + 1}/5）` : ''}</small><h3>${esc(advice.title)}</h3><p>${esc(advice.text)}</p>
+    ${actions || extra ? `<div class="coach-actions">${actions}${extra}</div>` : ''}</div></aside>`;
 }
 
 export function pageCoach(state, ui) {
@@ -937,7 +947,7 @@ function manualQuoteAdvice(state,inquiry,model,selected) {
 export function quoteCoach(state, inquiry, model, filter, initial={}) {
   if (!easy(state)) return '';
   if (state.bids.some(item => item.inquiryId === inquiry.id) || state.bids.length >= 3) return card(state, note('本周暂时无法再提交这笔报价', '待本周结算后再选择新机会，也可以先在询盘页撤回不再合适的报价。'), { preview: true });
-  const recommended = verifyRecommendation(state, quoteRecommendation(state, inquiry, filter));
+  const recommended = quoteRecommendation(state, inquiry, filter);
   const applied=recommended&&Object.entries(recommended.config).every(([name,value])=>name==='brandUnitPrice'&&!recommended.config.branded||String(model[name]??'')===String(value));
   const edited=Object.keys(initial).length>0&&Object.entries(initial).some(([name,value])=>!(name==='brandUnitPrice'&&!model.branded)&&String(model[name]??'')!==String(value??''));
   if(edited&&!applied)return card(state,manualQuoteAdvice(state,inquiry,model,recommended),{preview:true});
@@ -948,7 +958,7 @@ export function quoteCoach(state, inquiry, model, filter, initial={}) {
   const terms = offer.extraTerms ? `在原账期基础上延长 ${offer.extraTerms} 周` : '沿用买家原账期';
   const financing = offer.financing === 'standard' ? '' : `，采用${financingNames[offer.financing] ?? '当前回款方式'}`;
   const staff = state.staff.find(person => person.id === offer.staffId);
-  const text = `${price}，采用${sourceNames[offer.source]}，${terms}${financing}，${staff ? `由${staff.name}跟进` : '由你亲自跟进'}。预计中单率 ${percent(offer.probability)}，订单利润 ${cash(offer.profit)}，最低预测余额 ${cash(cashFloor)}。采用后仍需你确认提交。`;
+  const text = `${price}，采用${sourceNames[offer.source]}，${terms}${financing}，${staff ? `由${staff.name}跟进` : '由你亲自跟进'}。预计中单率 ${percent(offer.probability)}，订单利润 ${cash(offer.profit)}，最低预测余额 ${cash(cashFloor)}。${applied?'报价表已填入，尚未提交。':'采用后仍需你确认提交。'}`;
   return card(state, note(applied ? '已采用当前建议方案' : '建议先用这套报价方案', text, applied ? { ui: 'coach-review-submit', label: '向下查看明细与提交 ↓' } : { ui: 'coach-apply-quote', label: '采用助理方案' }), { preview: true });
 }
 

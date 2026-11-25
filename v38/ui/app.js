@@ -225,8 +225,11 @@ function normalizeProposal(value) {
     if (typeof value[key] === 'string' || (key === 'staffId' && value[key] === null)) proposal[key] = value[key];
   }
   if (typeof value.branded === 'boolean') proposal.branded = value.branded;
+  if (!proposal.branded&&Number.isFinite(proposal.ratio)) proposal.ratio=ordinaryQuoteRatio(proposal.ratio);
   return proposal;
 }
+
+const ordinaryQuoteRatio=ratio=>Math.max(80,Math.min(105,Math.round(Number.isFinite(ratio)?ratio:100)));
 
 function resumeSaved() {
   stored = readSave();
@@ -500,11 +503,30 @@ function applyRecommendedQuote() {
   if (state.difficulty !== 'casual' || ui.dialog !== 'quote') return;
   const inquiry = state.inquiries.find(item => item.id === ui.quoteId);
   const recommendation = quoteRecommendation(state, inquiry, coachQuoteFilters(state,ui));
-  if (!recommendation || recommendation.cashFloor == null || recommendation.cashFloor < 0) return;
+  const proposed=recommendation&&quote(state,inquiry,recommendation.config);
+  if (!recommendation || proposed.error) {
+    ui.notice='当前助理方案已无法采用，请核对这条询盘或返回询盘页重新选择。';
+    renderDialog();
+    dialog.scrollTop=0;
+    return;
+  }
+  ui.notice='';
   ui.quote = { ...ui.quote, ...recommendation.config };
   saveProgress();
   renderDialog();
-  dialog.querySelector('[data-quote-preview="coach"] .coach-action:not(:disabled)')?.focus({ preventScroll: true });
+  // An edited draft can have a taller explanation than the adopted plan.
+  // Retaining its prior scroll offset then hides the entire new receipt
+  // behind the sticky buyer header. Return to the newly adopted plan and
+  // ensure its next, non-submitting confirmation route is actually visible.
+  dialog.scrollTop=0;
+  const next=dialog.querySelector('[data-ui="coach-review-submit"]:not(:disabled)');
+  if(next){
+    const boundary=dialog.getBoundingClientRect();
+    const header=dialog.querySelector('.trade-header')?.getBoundingClientRect();
+    const rect=next.getBoundingClientRect();
+    if(rect.bottom>Math.min(boundary.bottom,window.innerHeight)-8||rect.top<(header?.bottom??boundary.top)) next.scrollIntoView({block:'center',behavior:'instant'});
+    next.focus({preventScroll:true});
+  }
 }
 
 // A genuine confirmation control reached through assistant guidance uses the
@@ -773,7 +795,7 @@ function performGuarded(action, trigger, pointer) {
   return accepted;
 }
 
-const coachNavigation = new Set(['coach-target','coach-apply-quote','coach-review-submit','coach-select-outing','coach-all-inquiries','coach-review-orders','coach-review-cash','coach-review-next','coach-focus-forecast','coach-leisure-menu','coach-settlement']);
+const coachNavigation = new Set(['coach-target','coach-apply-quote','coach-review-submit','coach-select-outing','coach-all-inquiries','coach-review-orders','coach-review-cash','coach-review-next','coach-focus-forecast','coach-leisure-menu','coach-settlement','coach-finish-intro']);
 
 function assistantNavigation(control) {
   if (!control || control.disabled || control.dataset.action) return false;
@@ -1068,7 +1090,13 @@ function input(event) {
   if (control.dataset.ui !== 'quote-input') return;
   if (!['source', 'ratio', 'extraTerms', 'staffId', 'financing', 'branded', 'brandUnitPrice'].includes(control.name)) return;
   if (control.type === 'radio' && !control.checked) return;
-  if (control.name === 'branded') ui.quote.branded = control.checked;
+  if (control.name === 'branded') {
+    ui.quote.branded = control.checked;
+    // A brand-specific ratio can legitimately exceed the ordinary slider's
+    // maximum. On returning to an ordinary quote, use the same valid ratio
+    // in the saved draft, advice, displayed controls and actual submission.
+    if(!control.checked)ui.quote.ratio=ordinaryQuoteRatio(ui.quote.ratio);
+  }
   else ui.quote[control.name] = ['ratio', 'extraTerms', 'brandUnitPrice'].includes(control.name) ? Number(control.value) : control.value;
   saveProgress();
   refreshQuote(control.name === 'branded');

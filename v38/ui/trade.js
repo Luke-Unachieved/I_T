@@ -437,13 +437,14 @@ function quoteNumbers(state, proposal, inquiry) {
 }
 
 function staffField(state, model) {
-  if (!state.staff.length) return '';
+  if (!state.staff.length&&!model.staffId) return '';
   const options = state.staff.map(person => {
     const load = state.orders.filter(item => item.staffId === person.id && activeOrderStates.has(item.status)).length +
       state.bids.filter(item => item.staffId === person.id).length;
     const role = STAFF_ROLES[person.role]?.label ?? '员工';
     return `<option value="${escapeHtml(person.id)}"${person.id === model.staffId ? ' selected' : ''}${load >= 3 ? ' disabled' : ''}>${escapeHtml(person.name)} · ${role} · 能力 ${number(person.ability)} · ${load}/3 单</option>`;
   });
+  if(model.staffId&&!state.staff.some(person=>person.id===model.staffId)) options.push(`<option value="${escapeHtml(model.staffId)}" selected disabled>原负责人已不在团队，请重新选择</option>`);
   return `<label>负责人<select name="staffId" data-ui="quote-input"><option value="">亲自跟进</option>${options.join('')}</select>
     <small>员工同时最多跟进 3 笔报价或订单。业务员提高中单率，跟单员减少履约风险。</small></label>`;
 }
@@ -476,7 +477,12 @@ export function quoteDialog(state, ui) {
   const canBrand = state.ventures?.brand > 0 && state.company.certs.includes('brand');
   const branded = canBrand && model.branded === true;
   const brandUnitPrice = branded ? Number(model.brandUnitPrice ?? inquiry.targetPrice) : undefined;
-  const sourcesAvailable = availableSources(state, inquiry).map(source => ({
+  const sourceIds=availableSources(state,inquiry);
+  // A saved draft may still be using inventory that was sold or allocated
+  // while the quote was closed. Preserve that selection visibly as invalid,
+  // rather than silently showing/submitting a different supplier.
+  if(model.source==='inventory'&&!sourceIds.includes('inventory'))sourceIds.push('inventory');
+  const sourcesAvailable = sourceIds.map(source => ({
     source, proposal: quote(state, inquiry, { source, ratio, extraTerms }),
   }));
   const selected = sourcesAvailable.find(item => model.source === item.source) ?? sourcesAvailable[0];
