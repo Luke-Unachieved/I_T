@@ -509,7 +509,7 @@ function focusCashForecast() {
 function reviewNextLink(container) {
   if (state.difficulty!=='casual'||!container||container.querySelector('[data-ui="coach-review-next"]')||!mount.querySelector('.workspace > .coach-card .coach-action')) return;
   const link=document.createElement('button');
-  link.type='button';link.className='button secondary';link.dataset.ui='coach-review-next';link.textContent='下一项助理安排 ↑';
+  link.type='button';link.className='button coach-action';link.dataset.ui='coach-review-next';link.textContent='下一项助理安排 ↑';
   const toolbar=document.createElement('div');toolbar.className='toolbar coach-review-return';toolbar.append(link);
   container.prepend(toolbar);
 }

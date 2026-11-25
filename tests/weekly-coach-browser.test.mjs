@@ -52,6 +52,14 @@ async function reviewTask(page, selector) {
   return after;
 }
 
+async function assertCoachReturnStyle(page, selector) {
+  const colors = await page.evaluate(`(()=>{const button=document.querySelector(${JSON.stringify(selector)});const reference=document.querySelector('${coach} .coach-action');if(!button||!reference)return null;const style=el=>{const css=getComputedStyle(el);return {color:css.color,brightness:el.classList.contains('coach-action'),secondary:el.classList.contains('secondary')};};return {button:style(button),reference:style(reference)};})()`);
+  assert.ok(colors, 'the contextual return and next recommendation must both exist');
+  assert.deepEqual(colors.button, colors.reference, 'the contextual return must use the same gold assistant-action styling');
+  assert.equal(colors.button.brightness, true);
+  assert.equal(colors.button.secondary, false);
+}
+
 async function reviewPending(page, max = 10) {
   // Follow only passive information-review actions, never auto-submit,
   // borrow, hire, pay, settle or accept a recommendation.
@@ -64,6 +72,7 @@ async function reviewPending(page, max = 10) {
     const returnSelector=current.id?`#${current.id} .order-section-body [data-ui=coach-review-next]`:'.forecast-panel [data-ui=coach-review-next]';
     const visibleReturn=await page.evaluate(`(()=>{const button=document.querySelector(${JSON.stringify(returnSelector)});const dock=document.querySelector('.week-controls').getBoundingClientRect();const r=button?.getBoundingClientRect();return Boolean(r&&r.width>0&&r.height>0&&r.top>=0&&r.bottom<dock.top);})()`);
     assert.ok(visibleReturn, `return to next recommendation must be visible beside the reviewed ${current.id??'cash forecast'}`);
+    await assertCoachReturnStyle(page,returnSelector);
     await page.screenshot(`/tmp/v38-weekly-review-${current.id??'cash'}-${await page.evaluate('innerWidth')}.png`);
     await page.click(returnSelector);
     assert.ok(await page.evaluate(`document.activeElement.matches('${coach} .coach-action')`), 'the contextual return button focuses the next current suggestion');
@@ -327,6 +336,7 @@ test('weekly coach preserves quiet-week player choice and does not demand repeat
     assert.ok(await page.evaluate(exists(`${coach} [data-action=end-week]`)));
     assert.equal(await page.evaluate(exists(`${coach} [data-ui=coach-select-outing],${coach} [data-coach-action=outing]`)),false);
     const rested=(await saved(page)).state;
+    await assertCoachReturnStyle(page,'#latest-outing [data-ui=coach-review-next]');
     await page.click('#latest-outing [data-ui=coach-review-next]');
     assert.ok(await page.evaluate(`document.activeElement.matches('${coach} [data-action=end-week]')`));
     assert.deepEqual((await saved(page)).state,rested,'the leisure result return control must not execute settlement');
