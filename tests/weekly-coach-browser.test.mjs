@@ -100,6 +100,7 @@ for (const viewport of [{ width: 390, height: 844, mobile: true }, { width: 320,
       assert.ok(first);
       const beforeDecline = await currentState(page);
       await coachButton(page, `[data-ui="coach-skip-inquiry"][data-id="${first}"]`);
+      assert.match(await page.evaluate('document.querySelector(".action-feedback")?.textContent??""'),/这条询盘本周先略过/);
       assert.deepEqual(await currentState(page), beforeDecline);
       const next = await readRecommendation(page);
       assert.ok(next && next !== first, 'replace the recommendation instead of repeating the rejected inquiry');
@@ -232,6 +233,7 @@ test(`weekly coach follows outstanding invoices, deferred work and cash reviews 
     // Do not collect; choose the next suggested task instead.
     const tag = `order:collect:${bill.id}`;
     await reviewTask(page,`[data-ui="coach-defer-task"][data-id="${tag}"]`);
+    assert.match(await page.evaluate('document.querySelector(".action-feedback")?.textContent??""'),/这项本周暂缓/);
     assert.ok((await saved(page)).view.coachDeclined.tasks.includes(tag));
     assert.equal((await saved(page)).state.receivables.find(item=>item.id===bill.id).reminderWeek,bill.reminderWeek);
     assert.equal(await page.evaluate(exists(`${coach} [data-coach-action="collect"][data-id="${bill.id}"]`)),false);

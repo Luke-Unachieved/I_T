@@ -438,8 +438,19 @@ function dismissDialog({ weeklyTarget = false, viewOrders = false, receiptView =
       const receiptSection = receiptView ? mount.querySelector('#orders-receivables') : null;
       const recent = receiptView === 'paid' ? receiptSection?.querySelector('details:has(table[aria-label="最近回款"])') : null;
       if (recent) recent.open = true;
+      if (recent) {
+        // The paid record may be far below the main assistant card. Keep
+        // the return directly beside its actual expanded record.
+        const heading=recent.querySelector('summary');
+        reviewNextLink(recent);
+        const helper=recent.querySelector('.coach-review-return');
+        if (heading&&helper) heading.after(helper);
+      } else if (receiptSection) reviewNextLink(receiptSection.querySelector('.order-section-body'));
       const target = (recent || receiptSection)?.querySelector('summary') || mount.querySelector('#page-title');
-      target?.focus({ preventScroll: true });
+      const records=state.difficulty==='casual'&&receiptSection?(recent??receiptSection).querySelector('table'):null;
+      if(records&&!records.closest('details:not([open])')) {
+        records.tabIndex=-1;records.focus({preventScroll:true});setGuideTarget(records);
+      }else target?.focus({ preventScroll: true });
       if (receiptSection) target?.scrollIntoView({ block: 'center', behavior: 'instant' });
     }
     else {
@@ -601,13 +612,17 @@ function reviewOrderSection(id,guided=false) {
   selectPage('orders');
   const section=mount.querySelector(`#${id}`);
   reviewNextLink(section?.querySelector('.order-section-body'));
-  section?.scrollIntoView({block:'start',behavior:'instant'});
   if(guided&&state.difficulty==='casual') {
-    const records=section?.querySelector('.order-section-body table');
-    if(records){records.tabIndex=-1;records.focus({preventScroll:true});}
+    const tables=[...section?.querySelectorAll('.order-section-body table')??[]];
+    const records=tables.find(table=>!table.closest('details:not([open])'))??tables[0];
+    // Recently completed orders or paid invoices can be the only records in
+    // this section, nested inside a second collapsed disclosure. Open that
+    // disclosure before focusing its table; a hidden table cannot be reviewed.
+    if(records){revealParentDetails(records);records.tabIndex=-1;records.focus({preventScroll:true});}
     else section?.querySelector('summary')?.focus({preventScroll:true});
     setGuideTarget(records);
   }else section?.querySelector('summary')?.focus({preventScroll:true});
+  section?.scrollIntoView({block:'start',behavior:'instant'});
 }
 
 function revealRecommendedOuting(control) {
@@ -758,12 +773,42 @@ function performGuarded(action, trigger, pointer) {
   return accepted;
 }
 
+const coachNavigation = new Set(['coach-target','coach-apply-quote','coach-review-submit','coach-select-outing','coach-all-inquiries','coach-review-orders','coach-review-cash','coach-review-next','coach-focus-forecast','coach-leisure-menu','coach-settlement']);
+
+function assistantNavigation(control) {
+  if (!control || control.disabled || control.dataset.action) return false;
+  const route=control.dataset.ui;
+  return coachNavigation.has(route)||control.classList.contains('coach-action')&&['page','quote-open','show-event'].includes(route);
+}
+
+function repeatedGestureFeedback(root,control) {
+  if(!control||control.disabled)return;
+  // Do not silently discard a click on another real choice exposed by a
+  // just-completed operation. A transient notice explains why it is guarded,
+  // without moving the button or spending anything on behalf of the player.
+  root.querySelector('.gesture-feedback')?.remove();
+  const feedback=document.createElement('p');
+  feedback.className='notice action-feedback gesture-feedback';
+  feedback.setAttribute('role','status');
+  feedback.textContent='上一项已处理，请稍候再确认这一项。';
+  root.append(feedback);
+  setTimeout(()=>feedback.remove(),2800);
+}
+
 function click(event) {
+  const control = event.target.closest('button[data-ui],button[data-action]');
+  const submitter = event.target.closest('button[type="submit"]');
+  // Navigation/review can never submit an economic action. Let the player
+  // immediately follow a newly exposed assistant route, even if the previous
+  // action positioned it under the old gesture, while guarding all real
+  // business confirmations, deferrals, and ordinary double-tap operations.
+  const navigate=assistantNavigation(control);
   // A modal can disappear between two taps, revealing an unrelated action at
   // the same screen point. Ignore only the immediate repeated pointer gesture.
   if (event.currentTarget === mount && !dialog.open && dismissedPointer && event.detail > 0) {
-    if (repeatedPoint(event, dismissedPointer)) {
+    if (!navigate&&repeatedPoint(event, dismissedPointer)) {
       event.preventDefault();
+      repeatedGestureFeedback(event.currentTarget,control??submitter);
       return;
     }
     dismissedPointer = undefined;
@@ -772,17 +817,16 @@ function click(event) {
   if (event.detail > 0 && prior && Number.isFinite(prior.x) && Number.isFinite(prior.y)) {
     // Successful operations can remove a row or expose a different button
     // before the second tap. Scrolling to another control is a separate action.
-    if (repeatedPoint(event, prior)) {
+    if (!navigate&&repeatedPoint(event, prior)) {
       event.preventDefault();
+      repeatedGestureFeedback(event.currentTarget,control??submitter);
       return;
     }
     prior.x = undefined;
     prior.y = undefined;
   }
   const pointer = event.detail > 0 ? { clientX: event.clientX, clientY: event.clientY } : undefined;
-  const submitter = event.target.closest('button[type="submit"]');
   formPointer = pointer && submitter?.form ? { ...pointer, form: submitter.form, at: performance.now() } : undefined;
-  const control = event.target.closest('button[data-ui],button[data-action]');
   if (!control || control.disabled) return;
   if (!state) {
     switch (control.dataset.ui) {
@@ -846,6 +890,7 @@ function click(event) {
     case 'coach-skip-inquiry':
       if (recordCoachDecline(state,ui,control.dataset.ui==='coach-defer-task'?'tasks':'inquiries',control.dataset.id)) {
         recordCoachVisit(state,ui);
+        ui.notice=control.dataset.ui==='coach-skip-inquiry'?'这条询盘本周先略过，助理会重新安排。':'这项本周暂缓，仍可自行办理。';
         saveProgress();render();mount.querySelector('.workspace > .coach-card .coach-action')?.focus({preventScroll:true});
       }
       break;
@@ -879,6 +924,7 @@ function click(event) {
     case 'skip-tutorial':
     case 'finish-tutorial':
       advanceTutorial(state.tutorial.step, true);
+      if(control.dataset.ui==='skip-tutorial')ui.notice=state.difficulty==='casual'?'基础流程提示已跳过，助理仍会继续提供经营建议。':'基础流程提示已跳过，可以按自己的节奏经营。';
       saveProgress();
       render();
       break;

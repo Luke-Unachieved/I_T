@@ -188,10 +188,27 @@ test('insurance payout does not display a customer-payment reward', options, asy
   } finally { await browser.close(); }
 });
 
-test('simple mode first delivery and first customer payment guide the player to the actual receivable ledger', options, async () => {
+async function returnFromReceipt(page, selector) {
+  const before = await currentState(page);
+  const target = await page.evaluate(`(()=>{
+    const button=document.querySelector(${JSON.stringify(selector)});
+    if(!button)return null;
+    const rect=button.getBoundingClientRect(),x=rect.x+rect.width/2,y=rect.y+rect.height/2;
+    return {x,y,top:rect.top,bottom:rect.bottom,dock:document.querySelector('.nav').getBoundingClientRect().top,height:rect.height,hit:document.elementFromPoint(x,y)?.closest('button')===button,styled:button.classList.contains('coach-action')};
+  })()`);
+  assert.ok(target?.hit && target.styled && target.height >= 44 && target.top >= 0 && target.bottom <= target.dock, `Receipt review must provide a visible next assistant action without scrolling: ${JSON.stringify(target)}`);
+  // Tap the already-visible control at the player's actual screen coordinates.
+  await page.send('Input.dispatchMouseEvent', { type:'mousePressed', x:target.x, y:target.y, button:'left', clickCount:1 });
+  await page.send('Input.dispatchMouseEvent', { type:'mouseReleased', x:target.x, y:target.y, button:'left', clickCount:1 });
+  assert.ok(await page.evaluate(`(()=>{const button=document.activeElement,r=button.getBoundingClientRect();return button.matches('.workspace > .coach-card .coach-action')&&r.top>=0&&r.bottom<=document.querySelector('.nav').getBoundingClientRect().top&&document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('button')===button;})()`), 'Returning to the assistant must focus its next visible action');
+  assert.deepEqual(await currentState(page), before, 'Review navigation must not perform a business action');
+}
+
+for (const viewport of [{ width: 320, height: 568, mobile: true }, { width: 390, height: 844, mobile: true }]) {
+test(`simple mode first delivery and first customer payment guide the player to the actual receivable ledger at ${viewport.width}px`, options, async () => {
   const browser = await launchBrowser(root, { scenarios: true });
   try {
-    const page = await browser.page({ width: 390, height: 844, mobile: true });
+    const page = await browser.page(viewport);
     await ready(page);
     await loadScenario(page, `game=>{let state=game.newGame({name:'回款带教验收',assistant:'fang',seed:381,difficulty:'casual'});state.tutorial.done=true;state=game.act(state,{type:'bid',inquiryId:state.inquiries[0].id,source:'stock',ratio:80}).state;return state;}`);
     const won = await settle(page);
@@ -205,12 +222,15 @@ test('simple mode first delivery and first customer payment guide the player to 
     await page.click('dialog [data-ui="view-order-receivables"][data-receipt-view="pending"]');
     assert.ok(await page.evaluate('!document.querySelector("dialog").open && document.querySelector("#orders-receivables").open'));
     assert.equal(await page.evaluate('document.activeElement.closest("#orders-receivables")?.id'), 'orders-receivables');
+    await returnFromReceipt(page, '#orders-receivables [data-ui="coach-review-next"]');
     const paid = await settle(page);
     assert.ok(paid.summary.cashBreakdown.inflow.customerPayment > 0);
     await visibleFooter(page);
     await page.click('dialog [data-ui="view-order-receivables"][data-receipt-view="paid"]');
     assert.ok(await page.evaluate('!document.querySelector("dialog").open && document.querySelector("#orders-receivables details:has(table[aria-label=最近回款])").open'));
     assert.match(await page.evaluate('document.querySelector("table[aria-label=最近回款]").innerText'), /实际到账/);
+    await returnFromReceipt(page, '#orders-receivables details:has(table[aria-label="最近回款"]) [data-ui="coach-review-next"]');
     assert.deepEqual(page.errors, []);
   } finally { await browser.close(); }
 });
+}
