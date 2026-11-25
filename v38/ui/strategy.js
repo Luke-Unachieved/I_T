@@ -97,7 +97,7 @@ function venturesSection(state) {
       return `<article class="growth-card venture-card">${imageFrame(venture.asset, { className: 'venture-image', fallback: '产业插画暂时无法显示', retry: true })}<h3>${esc(venture.label)}</h3><p class="muted">${esc(venture.description)}</p>
         <p class="trade-note">每级每周维护 ${yuan(venture.upkeep)}</p>
         ${single ? singletonInvestment(venture, venture.options[0]) : targetedInvestment(venture, state.cash)}
-        ${warehouse ? '<div><button type="button" class="button quiet" data-ui="page" data-page="orders">去订单页采购库存 →</button></div>' : ''}</article>`;
+        ${warehouse ? '<div><button type="button" class="button quiet" data-ui="page" data-page="orders" data-order-sections="orders-inventory">去订单页采购库存 →</button></div>' : ''}</article>`;
     }).join('')}</div>`);
 }
 

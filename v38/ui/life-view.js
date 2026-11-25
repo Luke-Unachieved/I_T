@@ -139,9 +139,9 @@ function detailedOutingCard(state, activity) {
     }).join('')}</div></fieldset>
     <button class="button primary" type="submit"${resting || !available ? ' disabled' : ''}>${resting ? '本周已安排休息' : available ? '安排这次出行' : '现金不足'}</button>
     </form>`;
-  const prices = activity.choices.map(choice => choice.price);
-  const low = Math.min(...prices), high = Math.max(...prices);
-  const fee = high === 0 ? '免费' : low === high ? yuan(low) : `${low ? yuan(low) : '免费'}–${yuan(high)}`;
+  const prices = [...new Set(activity.choices.map(choice => choice.price))].sort((a, b) => a - b);
+  const priceLabels = prices.map(price => price ? yuan(price) : '免费');
+  const fee = priceLabels.length === 1 ? priceLabels[0] : `${priceLabels.slice(0, -1).join('、')}或 ${priceLabels.at(-1)}`;
   const caption = `${fee}${activity.duration ? ` · ${activity.duration}` : ''}`;
   const header = `${media(activity.asset, 'outing-thumb')}
     <span class="outing-card-label"><strong>${esc(activity.label)}</strong><small>${locked ? '尚未开放' : esc(caption)}</small>${locked ? `<small class="life-locked">${esc(locked)}</small>` : ''}</span>`;
@@ -155,6 +155,7 @@ const friendGroups = [
 ];
 
 export const lifeDisclosureIds = ['life-rest', 'life-quick', 'life-travel', 'life-friends', ...friendGroups.map(([key]) => `life-friends-${key}`), 'life-property', 'life-car'];
+export const defaultLifeCollapsed = lifeDisclosureIds.filter(id => !['life-rest', 'life-property', 'life-car'].includes(id));
 
 function activityDetails(id, label, content, collapsed) {
   return `<details id="${id}" class="life-catalog-group" data-life-disclosure="${id}"${collapsed.includes(id) ? '' : ' open'}><summary>${esc(label)}</summary>${content}</details>`;
@@ -170,7 +171,7 @@ function extendedOutings(state, collapsed) {
   const friends = LIFE_CATALOG.outings.filter(item => item.kind === 'friend');
   const open = friends.filter(item => !outingLockHint(state, item)).length;
   return `${activityGroup('life-travel', '旅行目的地', travel, state, collapsed)}
-    ${activityDetails('life-friends', `约朋友 · ${count(friends.length)} 项（${count(open)} 项已开放）`, `<div class="life-friend-groups">
+    ${activityDetails('life-friends', `约朋友 · ${count(friends.length)} 项（${count(open)} 项已开放）`, `${open < friends.length ? `<p class="muted">另外 ${count(friends.length - open)} 段故事，和朋友相处后会陆续遇到。</p>` : ''}<div class="life-friend-groups">
       ${friendGroups.map(([key, label]) => activityGroup(`life-friends-${key}`, label, friends.filter(item => item.group === key), state, collapsed)).join('')}
     </div>`, collapsed)}`;
 }
@@ -195,13 +196,12 @@ function outingResult(recent) {
     ${recent.restored ? `<p class="positive">精力 +${count(recent.restored)}</p>` : '<p>精力已满。</p>'}</article>`;
 }
 
-export function lifePanel(state, collapsed = []) {
+export function lifePanel(state, collapsed = defaultLifeCollapsed) {
   if (!state.life) return '';
   const energy = `<div class="life-energy"><div><label for="life-energy">精力 ${count(state.energy)} / 100</label><progress id="life-energy" max="100" value="${state.energy}"></progress></div><p>${state.energy < 35 ? '精力偏低，本周报价的中单率略降。出门走走可以恢复。' : '连周经营会消耗精力；旅行或约朋友可以恢复。'}</p></div>`;
   const last = outingResult(state.life.latestOuting);
-  const shortcuts = `<nav class="toolbar life-shortcuts" aria-label="生活菜单"><button class="button quiet" type="button" data-ui="life-anchor" data-id="life-rest">旅行与好友</button><button class="button quiet" type="button" data-ui="life-anchor" data-id="life-property">房产</button><button class="button quiet" type="button" data-ui="life-anchor" data-id="life-car">车行</button></nav>`;
   const quick = activityDetails('life-quick', '周末快速安排 · 3 项', `<div class="life-grid">${quickOutingCards(state)}</div>`, collapsed);
-  return `${shortcuts}${panel('life-rest', '旅行与好友', '每周可安排一次休息。确认后立即扣款、恢复精力并显示这次经历。', `${energy}${last}${quick}${extendedOutings(state, collapsed)}`, collapsed)}
+  return `${panel('life-rest', '旅行与好友', '每周可以休息一次，恢复精力。', `${energy}${last}${quick}${extendedOutings(state, collapsed)}`, collapsed)}
     ${panel('life-property', '房产', `生活资产 ${yuan(lifeAssets(state))}。房产抵押当前增加授信 ${yuan(collateral(state))}。`, `<div class="life-grid">${propertyCards(state)}</div>`, collapsed)}
     ${panel('life-car', '车行', '买喜欢的车，手头吃紧时也可以卖掉。', `<div class="life-grid">${carCards(state)}</div>`, collapsed)}`;
 }

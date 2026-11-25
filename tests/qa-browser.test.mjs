@@ -351,12 +351,18 @@ test('E05: held product and comic requests cannot shift the mobile price control
     await page.click('[data-ui="quote-open"]');
     await page.click('dialog details:has(.buyer-comic) > summary');
     await waitUntil(() => held.size >= 2);
+    await pause(250);
+    assert.equal(await page.evaluate('getComputedStyle(document.querySelector("dialog .quote-product-image")).animationName'), 'media-wait');
+    assert.equal(await page.evaluate('document.querySelector("dialog .quote-product-image").dataset.mediaState'), 'loading');
+    await page.screenshot('/tmp/trade-v38-image-transition-wait.png');
     const measure = `(()=>{const rect=s=>{const r=document.querySelector(s).getBoundingClientRect();return {top:r.top,height:r.height}};return {product:rect('dialog .media-frame.quote-product-image'),comic:rect('dialog .media-frame.buyer-comic'),slider:rect('dialog input[name=ratio]')}})()`;
     const before = await page.evaluate(measure);
     assert.ok(before.product.height > 100 && before.comic.height > 100);
     for (const requestId of held.keys()) await page.send('Fetch.continueRequest', { requestId });
     await page.send('Fetch.disable');
     await page.waitFor(`['.quote-product-image','.buyer-comic'].every(s=>document.querySelector('dialog .media-frame'+s)?.dataset.mediaState==='loaded')`);
+    assert.ok(await page.evaluate(`['.quote-product-image','.buyer-comic'].every(s=>document.querySelector('dialog .media-frame'+s)?.dataset.mediaReveal==='true')`));
+    assert.equal(await page.evaluate('getComputedStyle(document.querySelector("dialog .quote-product-image img")).animationName'), 'media-reveal');
     const after = await page.evaluate(measure);
     for (const key of ['product', 'comic', 'slider']) {
       assert.ok(Math.abs(after[key].height - before[key].height) < 2, `${key}: reserved height changed`);
@@ -390,7 +396,7 @@ test('E06: failed optional comic explains the failure, retries, and keeps the qu
   } finally { await browser.close(); }
 });
 
-test('E07/E08: 320px summary opens on results and long company names wrap away from the version badge', options, async () => {
+test('E07/E08: 320px summary opens on results and long company names wrap away from the calendar', options, async () => {
   const browser = await launchBrowser(root);
   try {
     const page = await browser.page({ width: 320, height: 568, mobile: true });
@@ -398,11 +404,12 @@ test('E07/E08: 320px summary opens on results and long company names wrap away f
     await createCompany(page, company);
     for (const tab of ['office', 'inquiries', 'company']) {
       await page.click(`[data-ui="page"][data-page="${tab}"]`);
-      const header = await page.evaluate(`(()=>{const e=document.querySelector('.page-header .eyebrow'),b=document.querySelector('.page-header>.badge');const er=e.getBoundingClientRect(),br=b.getBoundingClientRect(),range=document.createRange();range.selectNodeContents(e);return {text:e.textContent,box:{left:er.left,right:er.right},badge:{left:br.left,right:br.right,top:br.top,bottom:br.bottom},runs:[...range.getClientRects()].map(r=>({left:r.left,right:r.right,top:r.top,bottom:r.bottom}))}})()`);
+      const header = await page.evaluate(`(()=>{const e=document.querySelector('.page-header .eyebrow'),b=document.querySelector('.page-header>.current-time');const er=e.getBoundingClientRect(),br=b.getBoundingClientRect(),range=document.createRange();range.selectNodeContents(e);return {text:e.textContent,calendar:b.innerText,box:{left:er.left,right:er.right},badge:{left:br.left,right:br.right,top:br.top,bottom:br.bottom},runs:[...range.getClientRects()].map(r=>({left:r.left,right:r.right,top:r.top,bottom:r.bottom}))}})()`);
       assert.ok(header.text.includes(company));
+      assert.match(header.calendar, /2026 年[\s\S]*第 1 周/);
       for (const run of header.runs) {
         assert.ok(run.left >= -1 && run.right <= 321, `Text outside viewport: ${JSON.stringify(run)}`);
-        assert.ok(run.right <= header.badge.left + 1 || run.left >= header.badge.right - 1 || run.bottom <= header.badge.top + 1 || run.top >= header.badge.bottom - 1, 'Company text overlaps version badge');
+        assert.ok(run.right <= header.badge.left + 1 || run.left >= header.badge.right - 1 || run.bottom <= header.badge.top + 1 || run.top >= header.badge.bottom - 1, 'Company text overlaps calendar');
       }
       await noOverflow(page, tab);
     }
@@ -413,6 +420,26 @@ test('E07/E08: 320px summary opens on results and long company names wrap away f
     assert.ok(opening.titleTop >= 0 && opening.titleBottom < opening.height);
     assert.ok(opening.totalsTop >= 0 && opening.totalsBottom < opening.height, 'First cash results should be in view');
     assert.equal(await page.evaluate('document.activeElement.id'), 'modal-title');
+  } finally { await browser.close(); }
+});
+
+test('calendar shows the selected era and advances across a year boundary on all pages', options, async () => {
+  const browser = await launchBrowser(root, { scenarios: true });
+  try {
+    const page = await browser.page({ width: 390, height: 844, mobile: true });
+    await page.goto();
+    await page.waitFor(present('[data-form="new-game"]'));
+    await loadScenario(page, `(game)=>{const s=game.newGame({name:'港湾贸易',era:'2008',seed:381});s.week=52;s.cash=1000000;s.tutorial.done=true;return s;}`);
+    assert.match(await page.evaluate('document.querySelector(".current-time").innerText'), /2008 年[\s\S]*第 52 周/);
+    await page.click('[data-action="end-week"]');
+    await dismissDecisions(page);
+    for (const tab of ['office', 'inquiries', 'orders', 'company', 'offwork']) {
+      await page.click(`[data-ui="page"][data-page="${tab}"]`);
+      assert.match(await page.evaluate('document.querySelector(".current-time").innerText'), /2009 年[\s\S]*第 1 周[\s\S]*经营第 53 周/);
+      await noOverflow(page, tab);
+    }
+    assert.doesNotMatch(await page.evaluate(body), /结束这一周，安排接下来的经营|收好这周的账本/);
+    await page.screenshot('/tmp/v38-current-time-390.png');
   } finally { await browser.close(); }
 });
 
@@ -479,5 +506,34 @@ test('event illustration failure reserves its frame, retries, and leaves the dec
     await page.click('dialog [data-action="resolve-event"][data-choice="open"]');
     assert.equal((await currentState(page)).events.length, 0);
     assert.deepEqual(page.errors, []);
+  } finally { await browser.close(); }
+});
+
+test('product frames reserve the original artwork ratio for every catalog item', options, async () => {
+  const browser = await launchBrowser(root, { scenarios: true });
+  try {
+    const page = await browser.page({ width: 390, height: 844, mobile: true });
+    await page.goto();
+    await page.waitFor(present('[data-form="new-game"]'));
+    await loadScenario(page, `async(game)=>{const {PRODUCTS}=await import('/v38/data/core.js');const s=game.newGame({name:'图片比例验收',seed:381});s.tutorial.done=true;const base=s.inquiries[0];s.inquiries=PRODUCTS.map(p=>({...base,id:'layout-'+p.id,productId:p.id,productName:p.name,category:p.category,unit:p.unit,asset:p.asset,quantity:p.sources.stock.minQuantity, dueWeek:10}));return s;}`);
+    await page.click('[data-ui="page"][data-page="inquiries"]');
+    const shapes = await page.evaluate(`Array.from(document.querySelectorAll('.inquiry-product .product-thumb'),frame=>{
+      const img=frame.querySelector('img'),r=frame.getBoundingClientRect();
+      return {src:img.dataset.mediaSrc,width:r.width,height:r.height,expected: r.width*Number(img.getAttribute('height'))/Number(img.getAttribute('width'))};
+    })`);
+    assert.equal(shapes.length,37);
+    for (const shape of shapes) {
+      assert.ok(shape.width > 0 && Math.abs(shape.height-shape.expected) <= 2, JSON.stringify(shape));
+    }
+    assert.ok(await page.evaluate('document.documentElement.scrollWidth <= innerWidth+1'));
+    for (const id of ['apron','clock','lamp-trial']) {
+      await page.click(`[data-ui="quote-open"][data-id="layout-${id}"]`);
+      await page.waitFor('document.querySelector("dialog .quote-product-image img")?.naturalWidth>0');
+      const shape=await page.evaluate(`(()=>{const f=document.querySelector('dialog .quote-product-image'),i=f.querySelector('img'),r=f.getBoundingClientRect();return {height:r.height,expected:r.width*i.naturalHeight/i.naturalWidth}})()`);
+      assert.ok(Math.abs(shape.height-shape.expected)<=2, JSON.stringify(shape));
+      await page.click('dialog [data-ui="close-dialog"]');
+      await pause(450);
+    }
+    assert.deepEqual(page.errors,[]);
   } finally { await browser.close(); }
 });

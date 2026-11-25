@@ -1,0 +1,109 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { fileURLToPath } from 'node:url';
+import { launchBrowser } from './helpers/chromium.mjs';
+import { currentState, dismissDecisions, loadScenario } from './helpers/scenarios.mjs';
+import { SAVE_KEY } from '../v38/ui/save.js';
+import { stockPurchaseQuote } from '../v38/engine/strategy.js';
+
+const root = fileURLToPath(new URL('../', import.meta.url));
+const enabled = process.env.V38_BROWSER === '1';
+const disclosure = '[data-order-disclosure]';
+const savedCollapsed = id => `JSON.parse(localStorage.getItem(${JSON.stringify(SAVE_KEY)}))?.view.ordersCollapsed?.includes(${JSON.stringify(id)})`;
+const open = (page, id) => page.evaluate(`document.getElementById(${JSON.stringify(id)}).open`);
+
+for (const width of [320, 390, 1440]) {
+  test(`order categories default open, fold independently and retain their saved view at ${width}px`, { skip: !enabled, timeout: 120_000 }, async () => {
+    const browser = await launchBrowser(root, { scenarios: true });
+    try {
+      const page = await browser.page({ width, height: 800, mobile: width < 500 });
+      const nav = id => page.click(`.nav [data-page="${id}"]`);
+      const toggle = id => page.click(`#${id} > summary`);
+      const summaryIds = () => page.evaluate(`Array.from(document.querySelectorAll('${disclosure}')).map(e=>[e.id,e.open])`);
+      const checkWidth = async () => {
+        assert.ok(await page.evaluate('document.documentElement.scrollWidth <= innerWidth + 1'));
+        const widths = await page.evaluate(`Array.from(document.querySelectorAll('${disclosure} > summary')).map(e=>e.offsetHeight)`);
+        assert.ok(widths.every(height => height >= 44));
+      };
+      await page.goto();
+      await page.waitFor('!!document.querySelector("[data-form=new-game]")');
+      await loadScenario(page, `game => {const s=game.newGame({seed:381});s.tutorial.done=true;return s;}`);
+      await nav('orders');
+      assert.deepEqual(await summaryIds(), [['orders-delivery', true], ['orders-receivables', true], ['orders-inventory', true]]);
+      await toggle('orders-delivery');
+      await page.waitFor(savedCollapsed('orders-delivery'));
+      await toggle('orders-receivables');
+      await page.waitFor(savedCollapsed('orders-receivables'));
+      assert.deepEqual(await summaryIds(), [['orders-delivery', false], ['orders-receivables', false], ['orders-inventory', true]]);
+      await nav('office'); await nav('orders');
+      assert.equal(await open(page, 'orders-delivery'), false);
+      assert.equal(await open(page, 'orders-receivables'), false);
+      await page.send('Page.reload');
+      await page.waitFor('!!document.querySelector("[data-ui=resume-save]")');
+      await page.click('[data-ui=resume-save]');
+      assert.equal(await open(page, 'orders-delivery'), false);
+      assert.equal(await open(page, 'orders-receivables'), false);
+      await checkWidth();
+      await page.screenshot(`/tmp/v38-orders-fold-${width}.png`);
+      await nav('office');
+      await page.click('[data-order-sections=orders-delivery]');
+      assert.equal(await open(page, 'orders-delivery'), true);
+      assert.equal(await open(page, 'orders-receivables'), false);
+      await toggle('orders-delivery');
+      await page.waitFor(savedCollapsed('orders-delivery'));
+
+      await nav('inquiries');
+      await page.click('[data-ui=quote-open]');
+      await page.evaluate(`(()=>{const e=document.querySelector('dialog input[name=ratio]');e.value='80';e.dispatchEvent(new Event('input',{bubbles:true}));})()`);
+      await page.click('dialog [data-form=quote] button[type=submit]');
+      await page.click('[data-action=end-week]');
+      await page.waitFor('!!document.querySelector("dialog [data-ui=view-first-order]")');
+      await page.click('dialog [data-ui=view-first-order]');
+      await dismissDecisions(page);
+      assert.equal(await open(page, 'orders-delivery'), true);
+      assert.equal(await open(page, 'orders-receivables'), false);
+
+      await loadScenario(page, `(game)=>{let s=game.newGame({seed:381,difficulty:'casual'});s.tutorial.done=true;s.cash=200000;s.ventures.warehouse=1;s.creditLine=game.creditLimit(s);const inquiry=s.inquiries[0];s=game.act(s,{type:'bid',inquiryId:inquiry.id,source:'stock',ratio:80}).state;for(let i=0;i<8&&!s.receivables.length;i++){s=game.endWeek(s);for(const e of s.events.slice())s=game.act(s,{type:'resolve-event',id:e.id,choice:e.choices.at(-1).id}).state;}const invoice=s.receivables[0];invoice.status='overdue';invoice.dueWeek=s.week;s.summary=null;s.events=[];s.queue.push({id:'test-funding',type:'export-refund',amount:1200,dueWeek:s.week+2,orderId:s.orders[0].id});return s;}`);
+      await nav('orders');
+      assert.deepEqual(await summaryIds(), [['orders-delivery', true], ['orders-receivables', true], ['orders-funding', true], ['orders-inventory', true]]);
+      await toggle('orders-funding'); await page.waitFor(savedCollapsed('orders-funding'));
+      await toggle('orders-inventory'); await page.waitFor(savedCollapsed('orders-inventory'));
+      await toggle('orders-receivables'); await page.waitFor(savedCollapsed('orders-receivables'));
+      await nav('office');
+      await page.click('[data-ui=page][data-page=orders][data-coach-tab=orders-receivables]');
+      assert.equal(await open(page, 'orders-receivables'), true);
+      assert.equal(await open(page, 'orders-inventory'), false);
+      await toggle('orders-receivables');
+      await page.waitFor(savedCollapsed('orders-receivables'));
+      const coach = '[data-ui=coach-target][data-coach-action=collect]';
+      await page.waitFor(`!!document.querySelector(${JSON.stringify(coach)})`);
+      await page.click(coach);
+      assert.equal(await open(page, 'orders-receivables'), true);
+      const invoice = (await currentState(page)).receivables[0];
+      await page.click(`[data-action=collect][data-id="${invoice.id}"]`);
+      assert.equal((await currentState(page)).receivables[0].reminderWeek, (await currentState(page)).week);
+      assert.equal(await open(page, 'orders-funding'), false);
+      assert.equal(await open(page, 'orders-inventory'), false);
+      await nav('company');
+      await page.click('[data-ui=development-tab][data-id=ventures]');
+      await page.click('[data-order-sections=orders-inventory]');
+      assert.equal(await open(page, 'orders-inventory'), true);
+      assert.equal(await open(page, 'orders-funding'), false);
+      const form = 'form[data-form=purchase-stock]';
+      const selected = await page.evaluate(`(()=>{const f=document.querySelector('${form}');return{product:f.elements.productId.value,quantity:Number(f.elements.quantity.value)}})()`);
+      const before = await currentState(page);
+      const purchase = stockPurchaseQuote(before, selected.product, selected.quantity);
+      assert.equal(purchase.error, undefined);
+      await page.click(`${form} button[type=submit]`);
+      const after = await currentState(page);
+      assert.equal(before.cash - after.cash, purchase.cost);
+      assert.ok(after.inventory.some(item => item.productId === selected.product && item.quantity > 0));
+      assert.equal(await open(page, 'orders-funding'), false);
+      await toggle('orders-funding');
+      assert.equal(await open(page, 'orders-funding'), true);
+      await checkWidth();
+      await page.screenshot(`/tmp/v38-orders-fold-${width}-funding.png`);
+      assert.deepEqual(page.errors, []);
+    } finally { await browser.close(); }
+  });
+}

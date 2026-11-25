@@ -3,6 +3,7 @@ import { CERTIFICATION_BY_ID, FINANCING, MARKET_BY_ID, STAFF_ROLES } from '../da
 import { canExpedite, expediteFee, factorValue, forecast, lawsuitFee, liquidationValue } from '../engine/game.js';
 import { quote } from '../engine/quotes.js';
 import { stockPurchaseQuote } from '../engine/strategy.js';
+import { receivableValue } from '../engine/treasury.js';
 import { imageFrame } from './media.js';
 import { buyerPortrait } from './buyer-portrait.js';
 import { quoteCoach } from './coaching.js';
@@ -81,6 +82,15 @@ function button(type, id, label, extra = '') {
 
 function panel(title, inner, note = '') {
   return `<section class="panel"><header class="trade-header"><h2>${title}</h2>${note}</header>${inner}</section>`;
+}
+
+export const orderDisclosureIds = ['orders-delivery', 'orders-receivables', 'orders-funding', 'orders-inventory'];
+
+function orderSection(id, title, countText, note, inner, collapsed) {
+  return `<details id="${id}" class="panel order-section" data-order-disclosure="${id}"${collapsed.includes(id) ? '' : ' open'}>
+    <summary><span class="order-section-title">${title}</span> <span class="badge">${escapeHtml(countText)}</span><small>${escapeHtml(note)}</small></summary>
+    <div class="order-section-body">${inner}</div>
+  </details>`;
 }
 
 function empty(message) {
@@ -235,7 +245,7 @@ function receivablesTable(rows, name, state) {
     if (item.status === 'open' || item.status === 'overdue') {
       const reminder = item.reminderWeek === state.week ? badge('本周已催款') :
         `${button('collect', item.id, '催款')}<small>提高回款机会，略降客户关系</small>`;
-      action = `${reminder}${payout > 0 ? `<div class="trade-factor">${button('factor', item.id, `保理 · ${money(payout)}`)}<small>立即收款，银行接手剩余应收</small></div>` : ''}`;
+      action = `${reminder}${payout > 0 ? `<div class="trade-factor">${button('factor', item.id, '保理')}<small>提前到账 ${money(payout)}，比当前应收少收 ${money(Math.max(0, receivableValue(state, item) - payout))}。之后由银行收款。</small></div>` : ''}`;
     } else if (waitingForInsurance) {
       action = `<small>预计 ${week(item.insuranceDueWeek)}保险赔付</small>`;
     } else if (item.status === 'bad-debt') {
@@ -252,7 +262,7 @@ function receivablesTable(rows, name, state) {
   }));
 }
 
-function scheduledReceipts(state) {
+function scheduledReceipts(state, collapsed) {
   const records = state.queue.filter(item => item.type === 'export-refund' || item.type === 'insurance')
     .sort((a, b) => a.dueWeek - b.dueWeek);
   if (!records.length) return '';
@@ -262,8 +272,8 @@ function scheduledReceipts(state) {
       ${cell('相关订单', escapeHtml(order?.productName ?? '海外订单'))}
       ${cell('预计金额', money(item.amount), 'number')}${cell('到账周', week(item.dueWeek))}</tr>`;
   });
-  return panel('预计到账的退税与理赔', table('预计到账的退税与理赔', ['款项', '相关订单', '预计金额', '到账周'], rows),
-    '<span class="trade-note">这些款项已计入现金预测</span>');
+  return orderSection('orders-funding', '预计到账的退税与理赔', `${number(records.length)} 笔`, '这些款项已计入现金预测。',
+    table('预计到账的退税与理赔', ['款项', '相关订单', '预计金额', '到账周'], rows), collapsed);
 }
 
 function inventoryTable(state) {
@@ -310,22 +320,28 @@ function stockPurchaseForm(state) {
     <div data-stock-preview>${stockPurchasePreview(state, firstProduct.id, startingQuantity)}</div></div></form>`;
 }
 
-export function ordersPage(state) {
+export function ordersPage(state, ui = {}) {
+  const collapsed = ui.ordersCollapsed ?? [];
   const activeOrders = state.orders.filter(order => deliveryOrderStates.has(order.status));
   const deliveredOrders = state.orders.filter(order => order.status === 'delivered');
   const pastOrders = state.orders.filter(order => !activeOrderStates.has(order.status));
   const receivables = state.receivables.filter(item => activeReceivableStates.has(item.status));
   const settled = state.receivables.filter(item => !activeReceivableStates.has(item.status));
+  const inventoryKinds = new Set(state.inventory.filter(item => item.quantity > 0).map(item => item.productId)).size;
+  const deliveryNote = '生产、发运和交付随周结算推进。' + (deliveredOrders.length ? `已交货待结清 ${number(deliveredOrders.length)} 笔。` : '') +
+    (pastOrders.length ? `最近结束的 ${number(Math.min(pastOrders.length, 12))} 笔订单可查。` : '');
+  const receivableNote = '跟进回款、催款和坏账处理。' + (settled.length ? `最近 ${number(Math.min(settled.length, 12))} 笔回款可查。` : '');
   return `<div class="trade-stack">
-    ${panel('待交付订单', `${activeOrders.length ? orderTable(activeOrders, state, '待交付订单') : empty('这会儿没有待交付的订单。中单后，可以在这里跟进备货和发货。')}
+    ${orderSection('orders-delivery', '待交付订单', `${number(activeOrders.length)} 笔`, deliveryNote,
+      `${activeOrders.length ? orderTable(activeOrders, state, '待交付订单') : empty('这会儿没有待交付的订单。中单后，可以在这里跟进备货和发货。')}
       ${deliveredOrders.length ? `<details open><summary>已交货，待结清（${number(deliveredOrders.length)} 笔）</summary>${orderTable(deliveredOrders, state, '已交货，待结清')}</details>` : ''}
-      ${pastOrders.length ? `<details><summary>最近已结束订单（${Math.min(pastOrders.length, 12)} 笔）</summary>${orderTable(pastOrders.slice(-12).reverse(), state, '已结束订单')}</details>` : ''}`,
-    '<span class="trade-note">生产、发运和交付随周结算推进</span>')}
-    ${panel('应收账款', `${receivables.length ? receivablesTable(receivables, '未结应收账款', state) : empty('暂时没有待收货款。交货后，可以在这里查看回款时间。')}
-      ${settled.length ? `<details><summary>最近回款（${Math.min(settled.length, 12)} 笔）</summary>${receivablesTable(settled.slice(-12).reverse(), '最近回款', state)}</details>` : ''}`)}
-    ${scheduledReceipts(state)}
-    ${panel('库存', `${state.inventory.some(item => item.quantity > 0) ? inventoryTable(state) : empty('仓库里还没有库存。')}${stockPurchaseForm(state)}`,
-    `<span class="trade-note">库存可用于同款询盘，也可清仓回笼现金${state.ventures?.warehouse > 0 ? '' : '。建成自有仓库后可主动备货'}</span>`)}
+      ${pastOrders.length ? `<details><summary>最近已结束订单（${Math.min(pastOrders.length, 12)} 笔）</summary>${orderTable(pastOrders.slice(-12).reverse(), state, '已结束订单')}</details>` : ''}`, collapsed)}
+    ${orderSection('orders-receivables', '应收账款', `未结 ${number(receivables.length)} 笔`, receivableNote,
+      `${receivables.length ? receivablesTable(receivables, '未结应收账款', state) : empty('暂时没有待收货款。交货后，可以在这里查看回款时间。')}
+      ${settled.length ? `<details><summary>最近回款（${Math.min(settled.length, 12)} 笔）</summary>${receivablesTable(settled.slice(-12).reverse(), '最近回款', state)}</details>` : ''}`, collapsed)}
+    ${scheduledReceipts(state, collapsed)}
+    ${orderSection('orders-inventory', '库存', `${number(inventoryKinds)} 种货品`, `库存可用于同款询盘，也可清仓回笼现金。${state.ventures?.warehouse > 0 ? '' : '建成自有仓库后可主动备货。'}`,
+      `${inventoryKinds ? inventoryTable(state) : empty('仓库里还没有库存。')}${stockPurchaseForm(state)}`, collapsed)}
   </div>`;
 }
 

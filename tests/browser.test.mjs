@@ -284,6 +284,7 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 
       await page.click('[data-action="buy-car"][data-id="hatch"]');
       assert.ok((await currentState(page)).life.cars.includes('hatch'));
       const tired = (await currentState(page)).energy;
+      await page.click('#life-quick > summary');
       await page.click('[data-action="outing"][data-id="flower-market"]');
       assert.ok((await currentState(page)).energy > tired);
       await page.waitFor('document.querySelector(".outing-note img")?.naturalWidth>0');
@@ -436,8 +437,9 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 
       const factored = await currentState(page);
       assert.equal(factored.receivables.find(item => item.id === invoice.id).status, 'factored');
       assert.ok(factored.cash > before.cash);
-      await page.click('details:has(table[aria-label="最近回款"]) > summary');
-      assert.match(await page.evaluate(content), /保理到账/);
+      assert.match(await page.evaluate(content), /保理款已到账/);
+      await page.click('#orders-receivables details:has(table[aria-label="最近回款"]) > summary');
+      assert.match(await page.evaluate('document.querySelector("table[aria-label=最近回款]").innerText'), /保理到账/);
       await noOverflow(page, 'export orders and factoring');
       await page.screenshot(`/tmp/trade-v38-phase2-${viewport.name}-orders.png`);
       assert.deepEqual(page.errors, []);

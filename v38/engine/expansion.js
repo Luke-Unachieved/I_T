@@ -228,7 +228,7 @@ function rivalsWeek(s, ops, projecting) {
       if (!projecting) {
         const fee = rival.scale * 2600;
         offerEvent(s, ops, 'rival-sale', { title: `${rival.name}停止经营`, text: '可以接手对方的老客户和待售库存。',
-          rivalId: rival.id, fee, choices: [{ id: 'acquire', label: `接手业务 · ¥${fee.toLocaleString('zh-CN')}` }, { id: 'pass', label: '放弃收购' }] });
+          rivalId: rival.id, fee, choices: [{ id: 'acquire', label: `接手业务（¥${fee.toLocaleString('zh-CN')}）` }, { id: 'pass', label: '放弃收购' }] });
       }
     }
   }

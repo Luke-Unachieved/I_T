@@ -1,12 +1,12 @@
 import { act, newGame } from '../engine/game.js';
 import { quote } from '../engine/quotes.js';
-import { inquiriesPage, ordersPage, quoteDialog, stockPurchasePreview } from './trade.js';
+import { inquiriesPage, orderDisclosureIds, ordersPage, quoteDialog, stockPurchasePreview } from './trade.js';
 import { growthSections } from './growth.js';
-import { eraIllustration, lifeDisclosureIds, lifePanel, officeFeatures, optionDescription, scenarioFields } from './life-view.js';
+import { defaultLifeCollapsed, eraIllustration, lifeDisclosureIds, lifePanel, officeFeatures, optionDescription, scenarioFields } from './life-view.js';
 import { companyPage, developmentTabs, dialogContent, esc, officePage, offworkPage, opening, saveWarning, saveWarningMessage, shell, tourTarget, yuan } from './shell.js';
 import { strategySections } from './strategy.js';
 import { readSave, SAVE_KEY, writeSave } from './save.js';
-import { quoteRecommendation } from './coaching.js';
+import { coachIntroIndex, quoteRecommendation, recordCoachVisit } from './coaching.js';
 
 const mount = document.querySelector('#v38-root');
 const dialog = document.createElement('dialog');
@@ -27,13 +27,14 @@ let formPointer;
 let ui = freshUi();
 let stored = readSave();
 let openingMode = stored.status === 'empty' ? 'form' : 'saved';
+const lifeDisclosureVersion = 1;
 
 function freshUi() {
   return {
     page: 'office', dialog: '', quoteId: '', quote: {}, quoteDefault: {}, quoteOrigin: null,
     quoteDrafts: new Map(), quoteDraftRestored: false, bankGuard: new Map(), actionGesture: null,
     filters: { category: '', availability: 'all' }, notice: '', tutorialStep: 0, showMacro: false,
-    saveStatus: 'ready', developmentTab: 'finance', lifeCollapsed: [],
+    saveStatus: 'ready', developmentTab: 'finance', developmentOverview: false, lifeCollapsed: [...defaultLifeCollapsed], ordersCollapsed: [], coachIntro: 0, coachDeferredWeek: 0,
   };
 }
 
@@ -135,7 +136,8 @@ function savedView() {
   const active = new Set(state.inquiries.filter(inquiry => !state.bids.some(bid => bid.inquiryId === inquiry.id)).map(inquiry => inquiry.id));
   ui.quoteDrafts = new Map([...ui.quoteDrafts].filter(([id]) => active.has(id)));
   return {
-    page: ui.page, filters: ui.filters, showMacro: ui.showMacro, developmentTab: ui.developmentTab, lifeCollapsed: ui.lifeCollapsed,
+    page: ui.page, filters: ui.filters, showMacro: ui.showMacro, developmentTab: ui.developmentTab, developmentOverview: ui.developmentOverview, lifeCollapsed: ui.lifeCollapsed, lifeDisclosureVersion, ordersCollapsed: ui.ordersCollapsed,
+    coachIntro: coachIntroIndex(ui.coachIntro), coachDeferredWeek: ui.coachDeferredWeek,
     drafts: [...ui.quoteDrafts],
     quote: ui.dialog === 'quote' && active.has(ui.quoteId) ? { id: ui.quoteId, proposal: ui.quote } : null,
   };
@@ -199,7 +201,14 @@ function resumeSaved() {
     ui = freshUi();
     if (Object.hasOwn(pageViews, view.page)) ui.page = view.page;
     if (validDevelopmentTab(view.developmentTab)) ui.developmentTab = view.developmentTab;
-    if (Array.isArray(view.lifeCollapsed)) ui.lifeCollapsed = lifeDisclosureIds.filter(id => view.lifeCollapsed.includes(id));
+    ui.developmentOverview = view.developmentOverview === true;
+    ui.coachIntro = coachIntroIndex(view.coachIntro);
+    if (Number.isInteger(view.coachDeferredWeek)) ui.coachDeferredWeek = view.coachDeferredWeek;
+    if (Array.isArray(view.lifeCollapsed)) {
+      ui.lifeCollapsed = lifeDisclosureIds.filter(id =>
+        view.lifeCollapsed.includes(id) || (view.lifeDisclosureVersion !== lifeDisclosureVersion && defaultLifeCollapsed.includes(id)));
+    }
+    if (Array.isArray(view.ordersCollapsed)) ui.ordersCollapsed = orderDisclosureIds.filter(id => view.ordersCollapsed.includes(id));
     if (typeof view.filters?.category === 'string') ui.filters.category = view.filters.category;
     if (typeof view.filters?.availability === 'string') ui.filters.availability = view.filters.availability;
     ui.showMacro = view.showMacro === true;
@@ -221,6 +230,7 @@ function resumeSaved() {
         ui.quoteDraftRestored = true;
       }
     }
+    if (!ui.dialog && recordCoachVisit(state, ui)) saveProgress();
     render();
     if (!ui.dialog) mount.querySelector('#page-title')?.focus({ preventScroll: true });
     window.scrollTo(0, 0);
@@ -274,6 +284,7 @@ function perform(action, trigger, onError) {
       }
       break;
   }
+  if (!ui.dialog) recordCoachVisit(state, ui);
   saveProgress();
   render();
   if (finance) bankStatus.textContent = finance;
@@ -351,11 +362,13 @@ function dismissDialog({ weeklyTarget = false, viewOrders = false } = {}) {
     ui.dialog = modalAfterAction();
     if (viewOrders) {
       ui.page = 'orders';
+      revealOrderSections(['orders-delivery']);
       focusAfterDialog = undefined;
     }
   } else {
     ui.dialog = '';
   }
+  if (!ui.dialog) recordCoachVisit(state, ui);
   saveProgress();
   render();
   if (viewOrders) window.scrollTo(0, 0);
@@ -412,14 +425,39 @@ function applyRecommendedQuote() {
 }
 
 function revealCoachTarget(control) {
-  const { coachAction, coachForm, id } = control.dataset;
+  const { coachAction, coachForm, id, choice } = control.dataset;
+  const targetForm = coachForm && [...mount.querySelectorAll('form[data-form]')].find(item => item.dataset.form === coachForm && (!id || item.elements.id?.value === id));
+  if (targetForm && choice) {
+    const selector = targetForm.elements.target;
+    if (!selector || ![...selector.options].some(option => option.value === choice && !option.disabled)) return;
+    selector.value = choice;
+  }
   const target = coachForm
-    ? [...mount.querySelectorAll('form[data-form]')].find(item => item.dataset.form === coachForm)?.querySelector('[name="amount"],button[type="submit"]')
+    ? targetForm?.querySelector('[name="amount"],[name="target"],button[type="submit"]')
     : [...mount.querySelectorAll('button[data-action]')].find(item => item.dataset.action === coachAction && (!id || item.dataset.id === id) && !item.disabled);
   if (!target || target.disabled) return;
-  for (let section = target.closest('details'); section; section = section.parentElement?.closest('details')) section.open = true;
+  revealParentDetails(target);
   target.focus({ preventScroll: true });
   target.scrollIntoView({ block: 'center' });
+}
+
+function reviewRecommendedQuote() {
+  if (ui.dialog !== 'quote') return;
+  const submit = dialog.querySelector('form[data-form="quote"] button[type="submit"]');
+  if (!submit || submit.disabled) return;
+  submit.focus({ preventScroll: true });
+  submit.scrollIntoView({ block: 'center' });
+}
+
+function revealRecommendedOuting(control) {
+  if (ui.page !== 'offwork') return;
+  const outing = [...mount.querySelectorAll('form[data-form="outing"]')].find(item => item.dataset.outingId === control.dataset.id);
+  const choice = outing && [...outing.querySelectorAll('input[name="choiceId"]')].find(item => item.value === control.dataset.choice && !item.disabled);
+  if (!choice) return;
+  revealParentDetails(choice);
+  choice.checked = true;
+  choice.focus({ preventScroll: true });
+  choice.scrollIntoView({ block: 'center' });
 }
 
 function selectPage(page) {
@@ -427,6 +465,7 @@ function selectPage(page) {
   ui.page = page;
   ui.notice = '';
   if (page === 'inquiries' && state.tutorial.step === 0) advanceTutorial(1);
+  recordCoachVisit(state, ui);
   saveProgress();
   render();
   mount.querySelector('#page-title')?.focus({ preventScroll: true });
@@ -434,26 +473,34 @@ function selectPage(page) {
 }
 
 function selectDevelopmentTab(id) {
-  if (ui.page !== 'company' || !validDevelopmentTab(id) || ui.developmentTab === id) return;
+  if (ui.page !== 'company' || !validDevelopmentTab(id) || (ui.developmentTab === id && !ui.developmentOverview)) return;
   ui.developmentTab = id;
+  ui.developmentOverview = false;
   ui.notice = '';
+  recordCoachVisit(state, ui);
   saveProgress();
   render();
   mount.querySelector(`[data-ui="development-tab"][data-id="${id}"]`)?.focus({ preventScroll: true });
   window.scrollTo(0, 0);
 }
 
-function showLifeSection(id) {
-  if (ui.page !== 'offwork' || !['life-rest', 'life-property', 'life-car'].includes(id)) return;
-  const section = document.getElementById(id);
-  if (!section) return;
-  section.open = true;
-  if (ui.lifeCollapsed.includes(id)) {
-    ui.lifeCollapsed = ui.lifeCollapsed.filter(key => key !== id);
-    saveProgress();
+function revealOrderSections(ids) {
+  const count = ui.ordersCollapsed.length;
+  ui.ordersCollapsed = ui.ordersCollapsed.filter(id => !ids.includes(id));
+  return ui.ordersCollapsed.length !== count;
+}
+
+function revealParentDetails(target) {
+  const revealedOrders = [], revealedLife = [];
+  for (let section = target.closest('details'); section; section = section.parentElement?.closest('details')) {
+    section.open = true;
+    if (section.dataset.orderDisclosure) revealedOrders.push(section.dataset.orderDisclosure);
+    if (section.dataset.lifeDisclosure) revealedLife.push(section.dataset.lifeDisclosure);
   }
-  section.scrollIntoView({ block: 'start', behavior: 'instant' });
-  section.querySelector('summary')?.focus({ preventScroll: true });
+  const lifeCount = ui.lifeCollapsed.length;
+  ui.lifeCollapsed = ui.lifeCollapsed.filter(id => !revealedLife.includes(id));
+  const ordersChanged = revealOrderSections(revealedOrders);
+  if (ordersChanged || ui.lifeCollapsed.length !== lifeCount) saveProgress();
 }
 
 function restart() {
@@ -555,14 +602,43 @@ function click(event) {
     return;
   }
   switch (control.dataset.ui) {
-    case 'page':
-      if (control.dataset.page === 'company' && validDevelopmentTab(control.dataset.coachTab)) ui.developmentTab = control.dataset.coachTab;
+    case 'page': {
+      if (control.dataset.page === 'company') {
+        const targeted = validDevelopmentTab(control.dataset.coachTab);
+        if (targeted) ui.developmentTab = control.dataset.coachTab;
+        ui.developmentOverview = !targeted;
+      }
+      const directOrder = control.dataset.page === 'orders' && control.dataset.orderSections;
+      if (control.dataset.page === 'orders') {
+        const directed = directOrder || control.dataset.coachTab || (control.classList.contains('coach-action') ? 'orders-delivery' : '');
+        revealOrderSections(directed.split(' '));
+      }
       selectPage(control.dataset.page);
+      if (directOrder) {
+        const section = document.getElementById(directOrder);
+        section?.scrollIntoView({ block: 'start', behavior: 'instant' });
+        section?.querySelector('summary')?.focus({ preventScroll: true });
+      }
       break;
+    }
     case 'coach-target': revealCoachTarget(control); break;
     case 'coach-apply-quote': applyRecommendedQuote(); break;
+    case 'coach-review-submit': reviewRecommendedQuote(); break;
+    case 'coach-select-outing': revealRecommendedOuting(control); break;
+    case 'coach-all-inquiries':
+      if (ui.page === 'inquiries') { ui.filters.category = ''; ui.filters.availability = 'all'; saveProgress(); render(); }
+      break;
+    case 'coach-defer-growth':
+      if (state.difficulty === 'casual') { ui.coachDeferredWeek = state.week; selectPage('inquiries'); }
+      break;
+    case 'coach-skip-intro':
+      if (state.difficulty === 'casual') {
+        ui.coachIntro = 4;
+        saveProgress();
+        render();
+      }
+      break;
     case 'development-tab': selectDevelopmentTab(control.dataset.id); break;
-    case 'life-anchor': showLifeSection(control.dataset.id); break;
     case 'quote-open': openQuote(control); break;
     case 'close-dialog': dismissDialog(); break;
     case 'view-first-order':
@@ -754,6 +830,14 @@ mount.addEventListener('toggle', event => {
     const collapsed = !event.target.open;
     if (ui.lifeCollapsed.includes(id) !== collapsed) {
       ui.lifeCollapsed = collapsed ? [...ui.lifeCollapsed, id] : ui.lifeCollapsed.filter(key => key !== id);
+      saveProgress();
+    }
+  }
+  const orderId = event.target.dataset.orderDisclosure;
+  if (state && orderDisclosureIds.includes(orderId)) {
+    const collapsed = !event.target.open;
+    if (ui.ordersCollapsed.includes(orderId) !== collapsed) {
+      ui.ordersCollapsed = collapsed ? [...ui.ordersCollapsed, orderId] : ui.ordersCollapsed.filter(key => key !== orderId);
       saveProgress();
     }
   }

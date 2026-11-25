@@ -22,7 +22,7 @@ const pages = [
 ];
 const captions = {
   office: '本周经营与现金安排', inquiries: '挑选询盘，并比较报价的利润和风险', orders: '跟进生产、交付、收款和库存',
-  company: '管理团队、拓展市场与规划企业成长', offwork: '结束这一周，安排接下来的经营',
+  company: '管理团队、拓展市场与规划企业成长',
 };
 
 export const developmentTabs = [
@@ -36,6 +36,12 @@ const icon = path => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none
 const openingPortrait = person => `<span class="portrait" aria-hidden="true" style="background-image:url('${esc(person.portrait)}');background-position:${esc(person.portraitPosition)}"></span>`;
 const weekLabel = week => `第 ${count(week)} 周`;
 const yearWeek = week => `第 ${Math.floor((week - 1) / 52) + 1} 年 · 第 ${(week - 1) % 52 + 1} 周`;
+function currentTime(state) {
+  const elapsedYears = Math.floor((state.week - 1) / 52);
+  const calendarYear = (state.startYear ?? 2026) + elapsedYears;
+  const calendarWeek = (state.week - 1) % 52 + 1;
+  return `<div class="current-time" aria-label="当前经营时间"><div class="current-time-top"><span>${calendarYear} 年</span><span class="current-time-version">V38</span></div><strong>第 ${calendarWeek} 周</strong>${elapsedYears ? `<small>经营第 ${count(state.week)} 周</small>` : ''}</div>`;
+}
 const openOrders = state => state.orders.filter(order => !['settled', 'cancelled', 'bad-debt', 'closed', 'paid', 'delivered'].includes(order.stage ?? order.status));
 const openInvoice = bill => bill.status === 'open' || bill.status === 'overdue';
 const moneyDue = state => state.receivables.reduce((sum, bill) => sum + (openInvoice(bill) ? bill.remaining ?? bill.amount : 0), 0);
@@ -187,7 +193,7 @@ export function shell(state, ui, content, extraIndicators = '') {
       ${weekControls(state)}
     </aside>
     <main class="workspace" id="work-area" aria-labelledby="page-title">
-      <header class="page-header"><div><p class="eyebrow">${esc(state.company.name)} · ${yearWeek(state.week)}</p><h1 id="page-title" tabindex="-1">${title}</h1><p>${captions[ui.page]}</p>${overview ? '' : `<p class="compact-cash">可用资金 <strong class="${state.cash < 0 ? 'negative' : ''}">${yuan(state.cash)}</strong></p>`}</div><span class="badge">V38</span></header>
+      <header class="page-header"><div><p class="eyebrow">${esc(state.company.name)}</p><h1 id="page-title" tabindex="-1">${title}</h1>${captions[ui.page] ? `<p>${captions[ui.page]}</p>` : ''}${overview ? '' : `<p class="compact-cash">可用资金 <strong class="${state.cash < 0 ? 'negative' : ''}">${yuan(state.cash)}</strong></p>`}</div>${currentTime(state)}</header>
       <div class="app-notices" aria-live="polite" aria-atomic="true">${state.cash < 0 && !state.bankrupt ? `<div class="notice negative" role="alert"><strong>资金链告急</strong><p>还差 ${yuan(-state.cash)}。可以到订单页清仓，或到发展页的「财务」借款。连续两周资金为负会破产。</p></div>` : ''}${state.events.length ? `<p class="notice">有 ${count(state.events.length)} 件事需要你决定。<button type="button" class="button quiet" data-ui="show-event">查看事项</button></p>` : ''}</div>
       ${ui.notice ? `<p class="notice action-feedback" role="status">${esc(ui.notice)}</p>` : ''}
       ${saveWarning(ui.saveStatus)}
@@ -196,12 +202,6 @@ export function shell(state, ui, content, extraIndicators = '') {
       <div class="page-content">${content}</div>
     </main>
   </div>`;
-}
-
-function shortYuan(n) {
-  const magnitude = Math.abs(n);
-  if (magnitude >= 100_000_000) return `${n < 0 ? '−' : ''}${Number((magnitude / 100_000_000).toFixed(1))} 亿`;
-  return magnitude >= 10_000 ? `${n < 0 ? '−' : ''}${Number((magnitude / 10_000).toFixed(1))} 万` : `${n < 0 ? '−' : ''}${count(magnitude)}`;
 }
 
 function cashScale(high, floor) {
@@ -213,37 +213,95 @@ function cashScale(high, floor) {
   return Array.from({ length: upper - lower + 1 }, (_, index) => (lower + index) * step).reverse();
 }
 
-export function forecastPanel(rows, state) {
-  const totalLow = rows.reduce((low, row) => (row.hypothetical ?? row.cash) < (low.hypothetical ?? low.cash) ? row : low, rows[0]);
-  const low = totalLow.hypothetical ?? totalLow.cash;
-  const width = 680, height = 300, left = 102, right = 32, top = 34, bottom = 58;
-  const span = width - left - right;
-  const guides = cashScale(
-    Math.max(1, ...rows.flatMap(row => [row.inflow, row.cash, row.hypothetical ?? row.cash])),
-    Math.min(0, ...rows.flatMap(row => [-row.outflow, row.cash, row.hypothetical ?? row.cash])),
-  );
+const forecastPlotSize = 1000;
+const axisNumberFormat = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 2, useGrouping: false });
+
+function forecastAxes(rows, amounts) {
+  const guides = cashScale(Math.max(1, ...amounts), Math.min(0, ...amounts));
   const high = guides[0], floor = guides.at(-1);
-  const x = i => left + (i + .5) * span / rows.length;
-  const y = n => top + (high - n) * (height - top - bottom) / (high - floor);
-  const path = get => rows.map((row, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(2)} ${y(get(row)).toFixed(2)}`).join(' ');
+  const magnitude = Math.max(Math.abs(high), Math.abs(floor));
+  const [divisor, unit] = magnitude >= 1e12 ? [1e12, '万亿元']
+    : magnitude >= 1e8 ? [1e8, '亿元'] : magnitude >= 10000 ? [10000, '万元'] : [1, '元'];
+  const x = i => (i + 0.5) * forecastPlotSize / rows.length;
+  const y = value => (high - value) * forecastPlotSize / (high - floor);
+  const tick = value => axisNumberFormat.format(value / divisor).replace(/^-/, '−');
+  return { guides, floor, unit, x, y, tick };
+}
+
+function forecastLegend(label, tone) {
+  return `<span class="forecast-legend-key"><i class="forecast-swatch forecast-swatch-${tone}" aria-hidden="true"></i>${label}</span>`;
+}
+
+function forecastChart(rows, axes, kind, title, accessibleLabel, art, legend, overlay = '') {
+  const { guides, unit, x, y, tick } = axes;
+  const shownWeeks = new Set([0, Math.floor(rows.length / 3), Math.floor(rows.length * 2 / 3), rows.length - 1]);
+  return `<figure class="chart forecast-chart forecast-chart-${kind}" aria-label="${esc(title)}">
+    <div class="forecast-chart-heading"><h3>${title}</h3><small>人民币 · ${unit}</small></div>
+    <div class="forecast-plot">
+      <div class="forecast-y-axis" aria-hidden="true">${guides.map(value => `<span style="top:${y(value) / 10}%">${tick(value)}</span>`).join('')}</div>
+      <div class="forecast-drawing"><svg viewBox="0 0 ${forecastPlotSize} ${forecastPlotSize}" preserveAspectRatio="none" role="img" aria-label="${esc(accessibleLabel)}">
+        ${kind === 'balance' && axes.floor < 0 ? `<rect class="forecast-risk-band" x="0" y="${y(0)}" width="${forecastPlotSize}" height="${forecastPlotSize - y(0)}"></rect>` : ''}
+        ${guides.map(value => `<line class="chart-grid${value === 0 ? ' forecast-zero-line' : ''}" x1="0" y1="${y(value)}" x2="${forecastPlotSize}" y2="${y(value)}"></line>`).join('')}
+        ${rows.map((row, i) => `<line class="forecast-week-line" x1="${x(i)}" x2="${x(i)}" y1="0" y2="${forecastPlotSize}"></line>`).join('')}
+        ${art}
+      </svg>${overlay}</div>
+      <span class="forecast-axis-caption" aria-hidden="true">周次</span>
+      <div class="forecast-x-axis" aria-hidden="true">${rows.map((row, i) => shownWeeks.has(i) ? `<span style="--week-x:${x(i) / 10}%"${i === 0 ? ' class="first"' : i === rows.length - 1 ? ' class="last"' : ''}>${count(row.week)}</span>` : '').join('')}</div>
+    </div>
+    <figcaption class="chart-legend forecast-legend">${legend}</figcaption>
+  </figure>`;
+}
+
+function balanceProjection(rows, label, tone, read) {
+  const lowest = rows.reduce((low, row) => read(row) < read(low) ? row : low);
+  return { label, tone, lowest, low: read(lowest), end: read(rows.at(-1)), read };
+}
+
+function projectionSummary(projection, finalWeek) {
+  const { label, tone, lowest, low, end } = projection;
+  const minimumAmount = yuan(Math.abs(low)), endAmount = yuan(end);
+  const longAmount = Math.max(minimumAmount.length, endAmount.length) > 12;
+  return `<article class="forecast-scenario${low < 0 ? ' forecast-scenario-risk' : ''}${longAmount ? ' forecast-scenario-long' : ''}">
+    <h3>${forecastLegend(label, tone)}</h3>
+    <dl><div><dt>${low < 0 ? '预计资金缺口' : '最低余额'}</dt><dd class="${low < 0 ? 'negative' : ''}">${minimumAmount}<small>${weekLabel(lowest.week)}末</small></dd></div>
+      <div><dt>${weekLabel(finalWeek)}预计余额</dt><dd class="${end < 0 ? 'negative' : ''}">${endAmount}<small>预测期末</small></dd></div></dl></article>`;
+}
+
+function balanceChart(rows, projections) {
+  const axes = forecastAxes(rows, projections.flatMap(projection => rows.map(projection.read)));
+  const { x, y } = axes;
+  const paths = projections.map(({ tone, read }) => {
+    const path = rows.map((row, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(2)} ${y(read(row)).toFixed(2)}`).join(' ');
+    return `<path class="${tone === 'balance' ? 'chart-cash' : 'chart-hypothesis'}" d="${path}"></path>`;
+  }).join('');
+  const markers = projections.map(({ tone, lowest, low }) => `<span class="forecast-marker forecast-marker-${tone}${low < 0 ? ' forecast-marker-risk' : ''}" style="left:${x(rows.indexOf(lowest)) / 10}%;top:${y(low) / 10}%" aria-hidden="true"></span>`).join('');
+  const labels = projections.map(({ label, low, lowest }) => `${label}最低余额 ${yuan(low)}，出现在${weekLabel(lowest.week)}`).join('；');
+  const legend = projections.map(({ label, tone }) => forecastLegend(label, tone)).join('') + (axes.floor < 0 ? '<span class="forecast-risk-key">红色区域表示现金不足</span>' : '');
+  return forecastChart(rows, axes, 'balance', '预计周末现金余额', labels, paths, legend, markers);
+}
+
+function flowChart(rows) {
+  const axes = forecastAxes(rows, rows.flatMap(row => [row.inflow, -row.outflow]));
+  const { x, y } = axes, zero = y(0);
+  const barWidth = Math.min(42, forecastPlotSize / rows.length * .65);
+  const bars = rows.map((row, i) => `<rect class="chart-income" x="${x(i) - barWidth / 2}" y="${y(row.inflow)}" width="${barWidth}" height="${Math.max(0, zero - y(row.inflow))}"></rect><rect class="chart-expense" x="${x(i) - barWidth / 2}" y="${zero}" width="${barWidth}" height="${Math.max(0, y(-row.outflow) - zero)}"></rect>`).join('');
+  return forecastChart(rows, axes, 'flow', '现有业务每周收支', '未来十二周预计每周现金流入和支出，准确金额可查看逐周明细。', bars,
+    forecastLegend('现金流入（含融资）', 'income') + forecastLegend('现金支出', 'expense'));
+}
+
+export function forecastPanel(rows, state) {
   const line = row => row.cash;
   const hypothetical = row => row.hypothetical ?? row.cash;
-  const showHypothesis = rows.some(row => hypothetical(row) !== line(row));
-  const zero = y(0);
-  const lowX = x(rows.indexOf(totalLow)), lowY = y(low);
-  const assumption = showHypothesis ? ' 虚线假设已提交的报价全部中单。' : '';
-  return `<section class="panel forecast-panel" data-tour="cash-forecast"><header class="panel-heading"><div><h2>未来 12 周现金预测</h2><p>根据手头的订单、报价和开支推算，不计还未报价的新单。${assumption}</p></div><span class="badge${low < 0 ? ' negative' : ''}">${low < 0 ? '预计资金缺口' : '最低余额'} ${yuan(Math.abs(low))} · ${weekLabel(totalLow.week)}</span></header>
-    <figure class="chart forecast-chart" aria-label="未来十二周现金收支图">
-      <svg class="forecast-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="最低现金 ${yuan(low)}，出现在${weekLabel(totalLow.week)}">
-        ${guides.map(value => `<line class="chart-grid${value === 0 ? ' chart-axis' : ''}" x1="${left}" y1="${y(value)}" x2="${width - right}" y2="${y(value)}"></line><text class="chart-label chart-label-y" x="${left - 12}" y="${y(value)}" dominant-baseline="middle" text-anchor="end">${shortYuan(value)}</text>`).join('')}
-        ${rows.map((row, i) => `<rect class="chart-income" x="${x(i) - 11}" y="${y(row.inflow)}" width="9" height="${Math.max(0, zero - y(row.inflow))}" rx="1.5"></rect><rect class="chart-expense" x="${x(i) + 2}" y="${zero}" width="9" height="${Math.max(0, y(-row.outflow) - zero)}" rx="1.5"></rect>${i % 3 === 0 || i === rows.length - 1 ? `<text class="chart-label chart-label-x" x="${x(i)}" y="${height - 19}" text-anchor="middle">${count(row.week)}</text>` : ''}`).join('')}
-        <path d="${path(line)}" class="chart-cash" fill="none"></path>${showHypothesis ? `<path d="${path(hypothetical)}" class="chart-hypothesis" fill="none" stroke-dasharray="5 4"></path>` : ''}
-        <circle class="chart-point${low < 0 ? ' chart-low' : ''}" cx="${lowX}" cy="${lowY}" r="4"></circle>
-      </svg>
-      <figcaption class="chart-legend"><span class="positive">▉ ＋现金流入</span><span class="negative">▉ −支出</span><span>━ 预计余额</span>${showHypothesis ? '<span class="pending">┄ 若中单</span>' : ''}</figcaption>
-    </figure>
-    <details class="forecast-details"><summary>查看逐周明细</summary>${table(['周次', '现金流入', '支出', '周末现金', ...(showHypothesis ? ['若中单'] : [])], rows.map(row => [weekLabel(row.week), yuan(row.inflow), yuan(row.outflow), yuan(row.cash), ...(showHypothesis ? [yuan(hypothetical(row))] : [])]))}</details>
-    ${state ? fundingSchedule(state, rows.at(-1).week) : ''}
+  const showHypothesis = Boolean(state?.bids?.length) || rows.some(row => hypothetical(row) !== line(row));
+  const projections = [balanceProjection(rows, '现有业务', 'balance', line)];
+  if (showHypothesis) projections.push(balanceProjection(rows, '已提交报价全部中单', 'hypothesis', hypothetical));
+  const finalWeek = rows.at(-1).week;
+  return `<section class="panel forecast-panel" data-tour="cash-forecast"><header class="panel-heading"><div><h2>未来 12 周现金预测</h2><p>按手头已接订单及收支推算，不计以后新报价。${showHypothesis ? '另外展示当前已提交报价全部中单的情况。' : ''}</p></div></header>
+    <div class="forecast-scenarios">${projections.map(projection => projectionSummary(projection, finalWeek)).join('')}</div>
+    ${balanceChart(rows, projections)}
+    ${flowChart(rows)}
+    <details class="forecast-details"><summary>查看逐周明细</summary>${table(['周次', '现金流入', '支出', '周末现金', ...(showHypothesis ? ['若全中单'] : [])], rows.map(row => [weekLabel(row.week), yuan(row.inflow), yuan(row.outflow), yuan(row.cash), ...(showHypothesis ? [yuan(hypothetical(row))] : [])]))}</details>
+    ${state ? fundingSchedule(state, finalWeek) : ''}
   </section>`;
 }
 
@@ -295,7 +353,7 @@ export function officePage(state, feature = {}) {
     <div class="office-picture-note adviser"><header class="panel-heading"><div><h2>${state.difficulty === 'casual' ? '办公室助理' : '助理建议'}</h2><p class="muted">${esc(person.name)}</p></div>${Number.isSafeInteger(feature.year) ? `<p class="muted">${feature.year} 年</p>` : ''}</header>${state.difficulty === 'casual' ? '' : `<p class="adviser-note">${adviserTip(state, rows)}</p>`}</div></section>
     <div class="office-activity">${feature.port ?? ''}<section class="panel"><header class="panel-heading"><div><h2>本周待办</h2><p>结算前看一下手上的事。</p></div></header><div class="todo-list">
       <button type="button" data-ui="page" data-page="inquiries"><span><strong>${count(state.inquiries.length)} 条询盘</strong><small>已提交 ${count(state.bids.length)} / 3 个报价</small></span><span aria-hidden="true">→</span></button>
-      <button type="button" data-ui="page" data-page="orders"><span><strong>${count(open)} 笔待交付订单</strong><small>${due ? `本周 ${count(due)} 笔待收款` : '查看交付、回款与库存'}</small></span><span aria-hidden="true">→</span></button>
+      <button type="button" data-ui="page" data-page="orders" data-order-sections="orders-delivery"><span><strong>${count(open)} 笔待交付订单</strong><small>${due ? `本周 ${count(due)} 笔待收款` : '查看交付、回款与库存'}</small></span><span aria-hidden="true">→</span></button>
     </div></section></div></div>
     ${forecastPanel(rows, state)}
     <section class="panel"><header class="panel-heading"><h2>经营动态</h2></header>${state.log.length ? `<ol class="activity-list">${state.log.slice(0, 10).map(item => `<li><span class="badge">${weekLabel(item.week)}</span><p>${esc(item.text)}</p></li>`).join('')}</ol>` : '<p class="empty">开张第一周，等你发出首笔报价。</p>'}</section>`;
@@ -344,9 +402,7 @@ function recentTrends(history) {
 }
 
 export function offworkPage(state, extra = '', saveStatus = 'ready') {
-  const pending = state.bids.length ? `还有 ${count(state.bids.length)} 笔报价等本周结算。` : '这周没有待出结果的报价。';
-  return `<section class="panel"><header class="panel-heading"><div><h2>收好这周的账本</h2><p>${pending}</p></div></header><p>结算会推进生产、运输和回款，同时扣除本周开支。</p><div class="toolbar"><button type="button" class="button primary" data-action="end-week"${state.events.length || state.bankrupt ? ' disabled' : ''}>结束本周 →</button><button type="button" class="button secondary" data-action="advance-four"${state.events.length || state.bankrupt ? ' disabled' : ''}>连推四周</button></div></section>
-  ${extra}<section class="panel"><header class="panel-heading"><h2>离开本局</h2></header><p class="session-warning" data-session-warning="leaving">经营进度自动保存到当前浏览器，刷新或关页后可以继续经营。</p><p class="muted" data-save-indicator role="status">${saveStatus === 'ready' ? '已自动存档' : '当前进度尚未存档'}</p><button type="button" class="button quiet" data-ui="request-restart">重新开局</button></section>`;
+  return `${extra}<section class="panel"><header class="panel-heading"><h2>离开本局</h2></header><p class="session-warning" data-session-warning="leaving">经营进度自动保存到当前浏览器，刷新或关页后可以继续经营。</p><p class="muted" data-save-indicator role="status">${saveStatus === 'ready' ? '已自动存档' : '当前进度尚未存档'}</p><button type="button" class="button quiet" data-ui="request-restart">重新开局</button></section>`;
 }
 
 const cashLabels = {
@@ -382,6 +438,8 @@ function summaryCash(weeks) {
   return {
     breakdown: rows.length ? `<details class="forecast-details summary-breakdown"><summary>查看现金收支明细</summary>${table(['方向', '项目', '金额'], rows)}</details>` : '',
     borrowing: amounts.inflow.borrowing,
+    deposit: amounts.inflow.deposit ?? 0,
+    customerPayment: amounts.inflow.customerPayment ?? 0,
   };
 }
 
@@ -390,12 +448,72 @@ export function milestoneGallery(milestoneIds) {
   return illustrated.length ? `<div class="growth-cards milestone-gallery" aria-label="已达成的里程碑">${illustrated.map(item => `<figure class="milestone-card">${imageFrame(item.asset, { className: 'milestone-image', alt: item.alt, fallback: '纪念插画暂时无法显示', retry: true })}<figcaption>${esc(item.label)}</figcaption></figure>`).join('')}</div>` : '';
 }
 
-function summaryContent(summary, tutorial, firstOrder) {
+const summaryFeedbackArt = {
+  won: ['assets/v38-feedback-order-won.webp', '与客户签下订单'],
+  delivered: ['assets/v38-feedback-delivered.webp', '货物送达客户'],
+  paid: ['assets/v38-feedback-paid.webp', '收到客户货款'],
+};
+
+function feedbackCard(kind, title, context, value, detail, first = false) {
+  const [asset, alt] = summaryFeedbackArt[kind];
+  return `<article class="summary-feedback-card${first ? ' summary-feedback-first' : ''}" data-summary-feedback="${kind}">
+    ${imageFrame(asset, { className: 'summary-feedback-art', alt, fallback: '插画未加载', retry: first })}
+    <div class="summary-feedback-copy"><h3>${esc(title)}</h3>${context ? `<p>${esc(context)}</p>` : ''}${value ? `<strong class="summary-feedback-value">${esc(value)}</strong>` : ''}${detail ? `<p class="summary-feedback-detail">${esc(detail)}</p>` : ''}</div></article>`;
+}
+
+function summaryFeedback(state, weeks, won, delivered, cash, firstOrder) {
+  const orders = new Map(state.orders.map(order => [order.id, order]));
+  const invoices = new Map(state.receivables.map(invoice => [invoice.id, invoice]));
+  const invoicesByOrder = new Map(state.receivables.map(invoice => [invoice.orderId, invoice]));
+  const describeOrder = order => [order?.buyer?.name, order?.productName].filter(Boolean).join(' · ');
+  const cards = [];
+  let focalShown = Boolean(firstOrder);
+  if (won.length) {
+    const contracts = won.map(bid => orders.get(bid.orderId)).filter(Boolean);
+    const total = contracts.length === won.length && contracts.every(order => Number.isFinite(order.total))
+      ? contracts.reduce((sum, order) => sum + order.total, 0) : null;
+    const foreign = contracts.some(order => order.currency && order.currency !== 'CNY');
+    cards.push(feedbackCard('won', firstOrder ? '第一单，拿下！' : `拿下 ${count(won.length)} 笔新订单`,
+      won.length === 1 ? describeOrder(contracts[0]) : `本次签下 ${count(won.length)} 笔合同`,
+      total === null ? '' : `合同货款${foreign ? '（折合）' : ''} ${yuan(total)}`,
+      cash.deposit > 0 ? `客户定金已到账 ${yuan(cash.deposit)}。` : '合同已签下，接下来安排交货。', firstOrder));
+  }
+  if (delivered.length) {
+    const deliveredOrders = delivered.map(id => orders.get(id)).filter(Boolean);
+    const deliveredIds = new Set(delivered);
+    const firstDelivery = deliveredOrders.length > 0 && state.orders.every(order => !order.deliveredWeek || deliveredIds.has(order.id));
+    const pending = delivered.map(id => invoicesByOrder.get(id)).filter(invoice => invoice && ['open', 'overdue'].includes(invoice.status));
+    const settled = deliveredOrders.filter(order => order.status === 'settled').length;
+    const notes = [];
+    if (pending.length) {
+      const balance = pending.reduce((sum, invoice) => sum + invoice.amount, 0);
+      notes.push(`${count(pending.length)} 笔待收${pending.some(invoice => invoice.currency && invoice.currency !== 'CNY') ? '账面' : ''}尾款 ${yuan(balance)}`);
+    }
+    if (settled) notes.push(`${count(settled)} 笔款项已结清`);
+    if (delivered.length > pending.length + settled) notes.push('其余回款进展见订单页');
+    cards.push(feedbackCard('delivered', firstDelivery ? '第一批货送到了！' : `完成 ${count(delivered.length)} 笔交付`,
+      delivered.length === 1 ? describeOrder(deliveredOrders[0]) : firstDelivery ? `本次完成 ${count(delivered.length)} 笔交付` : '', '', notes.length ? `${notes.join('。')}。` : '', firstDelivery && !focalShown));
+    focalShown ||= firstDelivery;
+  }
+  if (cash.customerPayment > 0) {
+    const paid = weeks.flatMap(week => (week.collected ?? []).map(item => invoices.get(item.id))
+      .filter(invoice => invoice?.status === 'paid' && invoice.paidWeek === week.week));
+    const paidIds = new Set(paid.map(invoice => invoice.id));
+    const firstPayment = paid.length > 0 && state.receivables.every(invoice => invoice.status !== 'paid' || paidIds.has(invoice.id));
+    const title = firstPayment ? (paid.length === 1 ? '第一笔客户尾款到账！' : '首次收到客户尾款') : paid.length ? `收到 ${count(paid.length)} 笔客户尾款` : '客户货款到账';
+    cards.push(feedbackCard('paid', title,
+      paid.length === 1 ? paid[0].buyer?.name ?? '' : firstPayment ? `本次到账 ${count(paid.length)} 笔` : '', `+${yuan(cash.customerPayment)}`, '回款已计入可用资金。', firstPayment && !focalShown));
+  }
+  return cards.length ? `<div class="summary-feedback" aria-label="本次订单进展">${cards.join('')}</div>` : '';
+}
+
+function summaryContent(state, tutorial, firstOrder) {
+  const summary = state.summary;
   const multiWeek = (summary.weeks?.length ?? 0) > 1;
   const weeks = multiWeek ? summary.weeks : [summary];
   const won = weeks.flatMap(row => row.won);
   const lost = weeks.flatMap(row => row.lost);
-  const delivered = weeks.flatMap(row => row.delivered).length;
+  const delivered = weeks.flatMap(row => row.delivered);
   const inflow = weeks.reduce((sum, row) => sum + row.inflow, 0);
   const outflow = weeks.reduce((sum, row) => sum + row.outflow, 0);
   const messages = weeks.flatMap(row => row.messages ?? []);
@@ -403,7 +521,7 @@ function summaryContent(summary, tutorial, firstOrder) {
   const buyerName = bid => bid.buyer?.name ?? bid.buyer;
   const cash = summaryCash(weeks);
   return `<header class="dialog-header"><div><p class="eyebrow">${multiWeek ? `${weekLabel(weeks[0].week)}至${weekLabel(summary.week)}` : weekLabel(summary.week)}</p><h2 id="modal-title" tabindex="-1">${multiWeek ? '经营小结' : '本周小结'}</h2></div></header>
-    <div class="summary-scroll"><div class="dialog-body"><dl class="key-values summary-totals"><div><dt>中单</dt><dd>${count(won.length)} 笔</dd></div><div><dt>交付</dt><dd>${count(delivered)} 笔</dd></div><div><dt>现金流入</dt><dd class="positive">+${yuan(inflow)}</dd></div><div><dt>现金支出</dt><dd class="negative">−${yuan(outflow)}</dd></div></dl>
+    <div class="summary-scroll"><div class="dialog-body">${summaryFeedback(state, weeks, won, delivered, cash, firstOrder)}<dl class="key-values summary-totals"><div><dt>中单</dt><dd>${count(won.length)} 笔</dd></div><div><dt>交付</dt><dd>${count(delivered.length)} 笔</dd></div><div><dt>现金流入</dt><dd class="positive">+${yuan(inflow)}</dd></div><div><dt>现金支出</dt><dd class="negative">−${yuan(outflow)}</dd></div></dl>
     ${cash.borrowing ? `<p>现金流入中含银行借款 ${yuan(cash.borrowing)}。</p>` : ''}${cash.breakdown}
     ${won.length ? `<h3>中单通知</h3>${table(['买家', '成交价'], won.map(bid => [buyerName(bid), contractPrice(bid)]))}` : ''}
     ${firstOrder ? '<p>每周结算会自动推进备货、运输和交付。到「订单」可以查看交期和预计回款。</p>' : ''}
@@ -425,7 +543,7 @@ function eventContent(state, event, notice) {
   const recommendation = eventCoach(state, event, choices);
   const celebration = event.type === 'ipo-celebration';
   const comic = imageFrame(event.comic, { className: 'event-comic', alt: event.comicAlt ?? '经营场景插画', fallback: '插画暂时无法显示', retry: true });
-  const button = (choice, description = '') => `<button type="button" class="button ${celebration || recommendation?.id === choice.id ? 'primary' : 'secondary'}" data-action="resolve-event" data-id="${esc(event.id)}" data-choice="${esc(choice.id)}"${description}${choice.disabled ? ' disabled' : ''}>${esc(choice.label)}${recommendation?.id === choice.id ? ' · 助理推荐' : ''}</button>`;
+  const button = (choice, description = '') => `<button type="button" class="button ${celebration || recommendation?.id === choice.id ? 'primary' : 'secondary'}" data-action="resolve-event" data-id="${esc(event.id)}" data-choice="${esc(choice.id)}"${description}${choice.disabled ? ' disabled' : ''}>${esc(choice.label)}${recommendation?.id === choice.id ? '（助理推荐）' : ''}</button>`;
   const explained = choices.some(choice => choice.details.length);
   const decisionList = explained ? `<ul class="decision-choices" aria-label="处理方式">${choices.map((choice, i) => {
     const descriptionId = `decision-option-${i + 1}`;
@@ -445,7 +563,7 @@ export function dialogContent(state, ui, quote) {
     const firstOrder = state.orders[0];
     const weeks = state.summary.weeks ?? [state.summary];
     const wonFirstOrder = firstOrder && weeks.some(week => week.won.some(bid => bid.orderId === firstOrder.id));
-    return `${summaryContent(state.summary, tutorialNote(state, true), wonFirstOrder)}<footer class="dialog-footer">
+    return `${summaryContent(state, tutorialNote(state, true), wonFirstOrder)}<footer class="dialog-footer">
       <button type="button" class="button ${wonFirstOrder ? 'secondary' : 'primary'}" data-ui="close-dialog">继续经营</button>
       ${wonFirstOrder ? '<button type="button" class="button primary" data-ui="view-first-order">查看订单</button>' : ''}
     </footer>`;

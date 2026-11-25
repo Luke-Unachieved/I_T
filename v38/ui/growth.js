@@ -40,15 +40,10 @@ function button(action, id, label, variant = 'secondary', disabled = false) {
   return `<button type="button" class="button ${variant}" data-action="${action}" data-id="${esc(id)}"${disabled ? ' disabled' : ''}>${esc(label)}</button>`;
 }
 
-function picture(src, className = '') {
-  return typeof src === 'string' && /^assets\/[\w.-]+\.(?:webp|png|jpe?g|svg)$/i.test(src)
-    ? `<img class="${className}" src="${esc(src)}" alt="" loading="lazy" decoding="async">` : '';
-}
-
 function staffPortrait(person) {
   if (typeof person.portrait === 'string' && /^assets\/[\w.-]+\.(?:webp|png|jpe?g|svg)$/i.test(person.portrait) &&
       /^\d+(?:\.\d+)?% \d+(?:\.\d+)?%$/.test(person.portraitPosition ?? '')) {
-    return `<span class="portrait" aria-hidden="true" style="background-image:url('${esc(person.portrait)}');background-position:${esc(person.portraitPosition)}"></span>`;
+    return `<span class="portrait headshot" data-assistant-id="${esc(person.id)}" aria-hidden="true" style="background-image:url('${esc(person.portrait)}')"></span>`;
   }
   const initial = [...person.name][0];
   return imageFrame(person.portrait, { className: 'growth-headshot', fallback: initial }) || `<span class="growth-headshot placeholder-headshot" aria-hidden="true">${esc(initial)}</span>`;
@@ -161,7 +156,7 @@ function relationshipsSection(state) {
   return section('partners', '重点客户', '同一买家完成三次交付后成为重点客户。关系越好，越可能带来复购和更好的账期。',
     partners.length ? `<div class="growth-cards">${partners.map(partner => {
       const buyer = partner.buyer ?? {};
-      const artwork = picture(partner.comic ?? buyer.comic, 'growth-comic');
+      const artwork = imageFrame(partner.comic ?? buyer.comic, { className: 'growth-comic', fallback: '客户插画暂时无法显示', retry: true });
       return `<article class="growth-card"><header class="growth-person">${buyerPortrait(buyer, 'growth-headshot')}<div><h3>${esc(buyer.name ?? partner.name ?? '重点客户')}</h3><p>${esc(buyer.type ?? '')}</p></div></header>
         <dl class="key-values growth-metrics">${stat('累计交付', `${count(partner.deliveries)} 笔`)}${stat('关系', `${count(partner.rep)} / 100`)}</dl>
         ${artwork ? `<details><summary>查看合作漫画</summary>${artwork}</details>` : ''}</article>`;
