@@ -3,7 +3,7 @@
   "entryVersion": 38,
   "mode": "weekly-trade",
   "title": "再开一单就下班",
-  "sourceCommit": "03e58faa60c2f89e9406778fe3351dca89edd82d",
+  "sourceCommit": "623df1498a18a887f5e625680af214c0f2c52d49",
   "entry": "index.html",
   "saveMode": "session-memory",
   "sha256": "c964f884a99512af8021181deb576576cb66a661c7d604f2be5bf8765ee1dba9",
@@ -25,10 +25,10 @@
     "v38/ui/growth.js": "375ee60c898ec0cd74f594e57501e80084f8915f881e3fefd76f9e7f5011facf",
     "v38/ui/life-view.js": "508edfc0e73a45165cb604859ca9930175a648825860daafbfbea10af48c6576",
     "v38/ui/media.js": "8eed906e723b66ce85be965a5a403c69e543f62690121d82629c4a15bb4f3ab0",
-    "v38/ui/shell.js": "3780d4eea3457f12057b55b3cb8ca7beb98b41a84efdc2eacf9ae0d19e3e4c6d",
+    "v38/ui/shell.js": "bc1c3b783071d949b12189ab87437a40da795fe8dc3668234b80c9719093a6d6",
     "v38/ui/strategy.js": "278092e7ec1a70ac3e6c1284b77f812d1fbde9c747d32e085a3ae297b7c09c09",
-    "v38/ui/trade.js": "b575cd3465ad3ea0a9ea18d54cb5c71df4851e4d66eadf715248a6ed33342639",
-    "v38/v38.css": "687919205209cac8e7ef6413dc52f67008c5e1fd5017f79e8f263f11be1c0b8f"
+    "v38/ui/trade.js": "38219adc47f456acf103b55a94b0da6e5849ccc010002ecd435494cd90c7abd2",
+    "v38/v38.css": "7f39acc23c27bf5d513763fb0ae75fe1284c02e4f60afe46eef83c2223ca9efc"
   },
   "classic": {
     "entryVersion": 37,
