@@ -7,7 +7,7 @@ import { receivableValue } from '../engine/treasury.js';
 import { imageFrame } from './media.js';
 import { quotedSpeech } from './dialogue.js';
 import { buyerPortrait } from './buyer-portrait.js';
-import { quoteCoach } from './coaching.js';
+import { coachQuoteFilters, quoteCoach } from './coaching.js';
 
 const sources = {
   stock: { name: '现货仓', hint: '备货较快，中单时付清采购款。' },
@@ -485,7 +485,7 @@ export function quoteDialog(state, ui) {
   const disabled = proposal.error || alreadyBid || state.bids.length >= 3;
   return `<header class="trade-header"><div><h2 id="quote-title" tabindex="-1">${escapeHtml(inquiry.buyer.name)}的询盘</h2><p class="trade-note">${escapeHtml(inquiry.productName)}（算价与报价）</p>
     ${ui.quoteDraftRestored ? '<small class="trade-note">已恢复这条询盘的未提交报价。</small>' : ''}</div>${close}</header>
-    ${quoteCoach(state, inquiry, model, ui.filters)}
+    ${quoteCoach(state, inquiry, model, coachQuoteFilters(state,ui),ui.quoteDefault)}
     <div class="quote-grid">${quoteArtwork(inquiry)}
       <form class="quote-controls inquiry-reply" data-form="quote" data-id="${escapeHtml(inquiry.id)}">
         <h3 class="inquiry-reply-title">我的报价</h3><fieldset><legend>货源</legend><div class="source-options">${sourcesAvailable.map(({ source, proposal: option }) => {

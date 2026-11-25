@@ -6,7 +6,7 @@ import { defaultLifeCollapsed, eraIllustration, lifeAppForOuting, lifeAppIds, li
 import { companyPage, developmentTabs, dialogContent, esc, officePage, offworkPage, opening, saveWarning, saveWarningMessage, shell, tourTarget, yuan } from './shell.js';
 import { strategySections } from './strategy.js';
 import { readSave, SAVE_KEY, writeSave } from './save.js';
-import { coachIntroIndex, coachPrepIndex, quoteRecommendation, recordCoachVisit } from './coaching.js';
+import { coachDeclinedRecord, coachIntroIndex, coachPrepIndex, coachQuoteFilters, coachReviewRecord, pageCoach, quoteRecommendation, recordCoachDecline, recordCoachReview, recordCoachVisit } from './coaching.js';
 
 const mount = document.querySelector('#v38-root');
 const dialog = document.createElement('dialog');
@@ -34,7 +34,7 @@ function freshUi() {
     page: 'office', dialog: '', quoteId: '', quote: {}, quoteDefault: {}, quoteOrigin: null,
     quoteDrafts: new Map(), quoteDraftRestored: false, bankGuard: new Map(), actionGesture: null,
     filters: { category: '', availability: 'all' }, notice: '', tutorialStep: 0, showMacro: false,
-    saveStatus: 'ready', developmentTab: 'finance', developmentOverview: false, lifeApp: 'home', lifeCollapsed: [...defaultLifeCollapsed], ordersCollapsed: [], coachPrep: 0, coachIntro: 0, coachDeferredWeek: 0,
+    saveStatus: 'ready', developmentTab: 'finance', developmentOverview: false, lifeApp: 'home', lifeCollapsed: [...defaultLifeCollapsed], ordersCollapsed: [], coachPrep: 0, coachIntro: 0, coachDeferredWeek: 0, coachReview:{}, coachDeclined:null,
   };
 }
 
@@ -141,7 +141,7 @@ function savedView() {
   ui.quoteDrafts = new Map([...ui.quoteDrafts].filter(([id]) => active.has(id)));
   return {
     page: ui.page, filters: ui.filters, showMacro: ui.showMacro, developmentTab: ui.developmentTab, developmentOverview: ui.developmentOverview, lifeApp: ui.lifeApp, lifeCollapsed: ui.lifeCollapsed, lifeDisclosureVersion, ordersCollapsed: ui.ordersCollapsed,
-    coachPrep: coachPrepIndex(ui.coachPrep), coachIntro: coachIntroIndex(ui.coachIntro), coachDeferredWeek: ui.coachDeferredWeek,
+    coachPrep: coachPrepIndex(ui.coachPrep), coachIntro: coachIntroIndex(ui.coachIntro), coachDeferredWeek: ui.coachDeferredWeek, coachReview:coachReviewRecord(ui.coachReview), coachDeclined:coachDeclinedRecord(ui.coachDeclined,state.week),
     drafts: [...ui.quoteDrafts],
     quote: ui.dialog === 'quote' && active.has(ui.quoteId) ? { id: ui.quoteId, proposal: ui.quote } : null,
   };
@@ -208,6 +208,8 @@ function resumeSaved() {
     ui.developmentOverview = view.developmentOverview === true;
     ui.coachPrep = coachPrepIndex(view.coachPrep);
     ui.coachIntro = coachIntroIndex(view.coachIntro);
+    ui.coachReview = coachReviewRecord(view.coachReview);
+    ui.coachDeclined = coachDeclinedRecord(view.coachDeclined,state.week);
     if (Number.isInteger(view.coachDeferredWeek)) ui.coachDeferredWeek = view.coachDeferredWeek;
     if (lifeAppIds.includes(view.lifeApp)) ui.lifeApp = view.lifeApp;
     if (Array.isArray(view.lifeCollapsed)) {
@@ -266,6 +268,9 @@ function perform(action, trigger, onError) {
     return false;
   }
   state = result.state;
+  if (action.type==='withdraw-bid') recordCoachDecline(state,ui,'inquiries',action.inquiryId ?? action.id);
+  const reviewedSection={expedite:'orders-delivery',collect:'orders-receivables',sue:'orders-receivables',factor:'orders-receivables',liquidate:'orders-inventory','purchase-stock':'orders-inventory'}[action.type];
+  if (reviewedSection && ui.page==='orders') recordCoachReview(state,ui,reviewedSection);
   const finance = bankConfirmation(action);
   ui.notice = finance || notices[action.type] || '';
   switch (action.type) {
@@ -298,7 +303,13 @@ function perform(action, trigger, onError) {
     const result = mount.querySelector('#latest-outing');
     result?.scrollIntoView({ block: 'start', behavior: 'instant' });
     result?.querySelector('h3')?.focus({ preventScroll: true });
-  } else if (!ui.dialog) restoreFocus(focusKey(trigger));
+    if (result) {reviewNextLink(result);const helper=result.querySelector('.coach-review-return');if(helper)result.append(helper);}
+  } else if (!ui.dialog) {
+    const guided=state.difficulty==='casual'&&['withdraw-bid','expedite','collect','sue','factor','liquidate','purchase-stock','borrow','repay','hire','dismiss-staff','buy-cert','open-market','referral','exhibit','invest-venture','strategic-investment','restructure','ipo','resolve-event'].includes(action.type);
+    const next=guided&&mount.querySelector('.workspace > .coach-card .coach-action');
+    if (next) {next.focus({preventScroll:true});next.scrollIntoView({block:'center',behavior:'instant'});}
+    else restoreFocus(focusKey(trigger));
+  }
   return true;
 }
 
@@ -369,6 +380,7 @@ function dismissDialog({ weeklyTarget = false, viewOrders = false, receiptView =
     if (viewOrders) {
       ui.page = 'orders';
       revealOrderSections([receiptView ? 'orders-receivables' : 'orders-delivery']);
+      recordCoachReview(state,ui,receiptView?'orders-receivables':'orders-delivery');
       focusAfterDialog = undefined;
     }
   } else {
@@ -429,7 +441,7 @@ function refreshQuote(updatePriceControl = false) {
 function applyRecommendedQuote() {
   if (state.difficulty !== 'casual' || ui.dialog !== 'quote') return;
   const inquiry = state.inquiries.find(item => item.id === ui.quoteId);
-  const recommendation = quoteRecommendation(state, inquiry, ui.filters);
+  const recommendation = quoteRecommendation(state, inquiry, coachQuoteFilters(state,ui));
   if (!recommendation || recommendation.cashFloor == null || recommendation.cashFloor < 0) return;
   ui.quote = { ...ui.quote, ...recommendation.config };
   saveProgress();
@@ -464,8 +476,18 @@ function revealCoachTarget(control) {
     : [...mount.querySelectorAll('button[data-action]')].find(item => item.dataset.action === coachAction && (!id || item.dataset.id === id) && !item.disabled);
   if (!target || target.disabled) return;
   revealParentDetails(target);
+  const section=target.closest('details[data-order-disclosure]')?.dataset.orderDisclosure;
+  if (section && recordCoachReview(state,ui,section)) {saveProgress();refreshPageCoach();}
   target.focus({ preventScroll: true });
   target.scrollIntoView({ block: 'center' });
+}
+
+function refreshPageCoach() {
+  const previous=mount.querySelector('.workspace > .coach-card');
+  if (!previous || state.difficulty!=='casual') return;
+  const next=document.createElement('template');
+  next.innerHTML=pageCoach(state,ui);
+  if (next.content.firstElementChild) previous.replaceWith(next.content.firstElementChild);
 }
 
 function reviewRecommendedQuote() {
@@ -482,6 +504,39 @@ function focusCashForecast() {
   forecast.tabIndex = -1;
   forecast.focus({ preventScroll: true });
   forecast.scrollIntoView({ block: 'start', behavior: 'instant' });
+}
+
+function reviewNextLink(container) {
+  if (state.difficulty!=='casual'||!container||container.querySelector('[data-ui="coach-review-next"]')||!mount.querySelector('.workspace > .coach-card .coach-action')) return;
+  const link=document.createElement('button');
+  link.type='button';link.className='button secondary';link.dataset.ui='coach-review-next';link.textContent='下一项助理安排 ↑';
+  const toolbar=document.createElement('div');toolbar.className='toolbar coach-review-return';toolbar.append(link);
+  container.prepend(toolbar);
+}
+
+function reviewCashForecast() {
+  const changed=recordCoachReview(state,ui,'cash');
+  if (ui.page!=='office') selectPage('office');
+  else if (changed) {saveProgress();refreshPageCoach();}
+  const panel=mount.querySelector('.forecast-panel');
+  const heading=panel?.querySelector('.panel-heading');
+  if (panel && heading && state.difficulty==='casual') {
+    reviewNextLink(panel);
+    const helper=panel.querySelector('.coach-review-return');
+    if (helper) heading.after(helper);
+  }
+  focusCashForecast();
+}
+
+function reviewOrderSection(id) {
+  if (!orderDisclosureIds.includes(id)) return;
+  revealOrderSections([id]);
+  recordCoachReview(state,ui,id);
+  selectPage('orders');
+  const section=mount.querySelector(`#${id}`);
+  reviewNextLink(section?.querySelector('.order-section-body'));
+  section?.scrollIntoView({block:'start',behavior:'instant'});
+  section?.querySelector('summary')?.focus({preventScroll:true});
 }
 
 function revealRecommendedOuting(control) {
@@ -664,13 +719,9 @@ function click(event) {
         const directed = directOrder || control.dataset.coachTab || (control.classList.contains('coach-action') ? 'orders-delivery' : '');
         revealOrderSections(directed.split(' '));
       }
+      if (control.dataset.page === 'office' && control.dataset.coachTab === 'cash-forecast') {reviewCashForecast();break;}
+      if (directOrder) {reviewOrderSection(directOrder);break;}
       selectPage(control.dataset.page);
-      if (control.dataset.page === 'office' && control.dataset.coachTab === 'cash-forecast') focusCashForecast();
-      if (directOrder) {
-        const section = document.getElementById(directOrder);
-        section?.scrollIntoView({ block: 'start', behavior: 'instant' });
-        section?.querySelector('summary')?.focus({ preventScroll: true });
-      }
       break;
     }
     case 'life-app': selectLifeApp(control.dataset.id); break;
@@ -680,6 +731,22 @@ function click(event) {
     case 'coach-select-outing': revealRecommendedOuting(control); break;
     case 'coach-all-inquiries':
       if (ui.page === 'inquiries') { ui.filters.category = ''; ui.filters.availability = 'all'; saveProgress(); render(); }
+      break;
+    case 'coach-review-orders': reviewOrderSection(control.dataset.id); break;
+    case 'coach-review-cash': reviewCashForecast(); break;
+    case 'coach-review-next': {
+      const coach=mount.querySelector('.workspace > .coach-card');
+      const next=coach?.querySelector('.coach-action');
+      coach?.scrollIntoView({block:'start',behavior:'instant'});
+      next?.focus({preventScroll:true});
+      next?.scrollIntoView({block:'nearest',behavior:'instant'});
+      break;
+    }
+    case 'coach-defer-task':
+    case 'coach-skip-inquiry':
+      if (recordCoachDecline(state,ui,control.dataset.ui==='coach-defer-task'?'tasks':'inquiries',control.dataset.id)) {
+        saveProgress();render();mount.querySelector('.workspace > .coach-card .coach-action')?.focus({preventScroll:true});
+      }
       break;
     case 'coach-defer-growth':
       if (state.difficulty === 'casual') { ui.coachDeferredWeek = state.week; selectPage('inquiries'); }
@@ -694,7 +761,7 @@ function click(event) {
     case 'coach-skip-prep':
       if (state.difficulty === 'casual') { ui.coachPrep = coachPrepIndex(3); selectPage('inquiries'); }
       break;
-    case 'coach-focus-forecast': focusCashForecast(); break;
+    case 'coach-focus-forecast': reviewCashForecast(); break;
     case 'development-tab': selectDevelopmentTab(control.dataset.id); break;
     case 'quote-open': openQuote(control); break;
     case 'close-dialog': dismissDialog(); break;
@@ -903,6 +970,7 @@ mount.addEventListener('toggle', event => {
     const collapsed = !event.target.open;
     if (ui.ordersCollapsed.includes(orderId) !== collapsed) {
       ui.ordersCollapsed = collapsed ? [...ui.ordersCollapsed, orderId] : ui.ordersCollapsed.filter(key => key !== orderId);
+      if (!collapsed && recordCoachReview(state,ui,orderId)) refreshPageCoach();
       saveProgress();
     }
   }

@@ -1,12 +1,14 @@
 import { act, forecast } from '../engine/game.js';
 import { quote } from '../engine/quotes.js';
+import { evaluateRollouts, quoteExpectedProfit, rolloutBudget } from './rollout-planner.js';
+
+export { quoteExpectedProfit } from './rollout-planner.js';
 
 // Use a reproducible, independent scenario to compare future cash. Never use the
 // saved game's upcoming RNG draws to decide which customer will win or pay.
 const simulationSeed = 0x6e624eb7;
 const neutralForecastCache = new WeakMap();
 const visibleForecastCache = new WeakMap();
-const creditRisk = { AAA: .002, AA: .004, A: .01, BBB: .025, BB: .055, B: .12 };
 const defaultReserve = state => Math.max(5000, 4 * (1200 + state.staff.reduce((sum, person) => sum + person.salary, 0)));
 const floor = rows => Math.min(...rows.map(row => row.hypothetical));
 
@@ -19,15 +21,6 @@ export function plannerForecast(state, draft) {
 function visibleFloor(state) {
   if (!visibleForecastCache.has(state)) visibleForecastCache.set(state, floor(forecast(state)));
   return visibleForecastCache.get(state);
-}
-
-// Estimate profit weighted by winning and the remaining balance's credit risk.
-// Time discount and tied-up capital favor quicker, less resource-hungry orders.
-// This is an estimate, not an assertion about the next actual random result.
-export function quoteExpectedProfit(state, offer) {
-  const risk = offer.financing === 'letter-of-credit' ? .001 : Math.min(.8, (creditRisk[offer.buyer?.credit] ?? .025) * (state.riskMultiplier ?? 1));
-  const expectedLoss = Math.max(0, offer.total - offer.deposit) * risk * (1 - (offer.insuredRecovery ?? 0));
-  return Math.max(0, Math.min(1, offer.probability)) * (offer.profit + (offer.rebateEstimate ?? 0) - expectedLoss);
 }
 
 function expectedMetrics(state, offer, availableCapital) {
@@ -93,23 +86,24 @@ function candidatesFor(node, inquiries, recommendations, availableCapital, branc
 /** Bounded, deterministic beam search over the remaining weekly quote slots.
  * Existing bids stay fixed. All plans are simulated with real immutable bid
  * actions, so staff capacity, inventory allocations and quote rules are real.
- * No weeks are advanced in the actual game, no forecast outcomes are used as
- * winning predictions, and no future inquiries are evaluated.
+ * Finalists are compared by real, independently seeded multi-week rollouts;
+ * the live game never advances or reveals its next actual random outcomes.
  */
-export function planQuoteBundle(state, { recommendations, filter, reserve = defaultReserve(state), beamWidth = 4, branchLimit = 10 } = {}) {
+export function planQuoteBundle(state, { recommendations, filter, reserve = defaultReserve(state), beamWidth = 4, branchLimit = 10, lookahead = true } = {}) {
   if (typeof recommendations !== 'function') throw new TypeError('planQuoteBundle needs a recommendation function');
   const cashReserve = Math.max(0, Number.isFinite(reserve) ? reserve : defaultReserve(state));
   const rootFloor = floor(plannerForecast(state));
   const availableCapital = Math.max(1, Math.min(state.cash, rootFloor) - cashReserve);
   const root = { state, previous: null, steps: [], scenarioFloor: rootFloor, expectedProfit: 0, discountedExpectedProfit: 0, score: 0 };
-  const empty = examined => ({ steps: [], cashFloor: visibleFloor(state), scenarioFloor: rootFloor, expectedProfit: 0, discountedExpectedProfit: 0, score: 0, examined, reserve: cashReserve, projectedWeeks: 12 });
+  const empty = (examined, extra = {}) => ({ steps: [], cashFloor: visibleFloor(state), scenarioFloor: rootFloor, expectedProfit: 0, discountedExpectedProfit: 0, score: 0, examined, reserve: cashReserve, projectedWeeks: 12, ...extra });
   const depth = Math.max(0, Math.min(3, 3 - state.bids.length));
   const inquiries = state.inquiries.filter(inquiry => (!filter || filter(inquiry)) && !state.bids.some(bid => bid.inquiryId === inquiry.id));
   if (!depth || !inquiries.length || state.bankrupt || state.cash < cashReserve || rootFloor < cashReserve) return empty(0);
   // Caps are deliberately small for phones. Even if the caller asks for an
   // enlarged search, the three slots can trigger at most 58 candidate forecasts.
-  const width = Math.max(1, Math.min(4, Math.floor(beamWidth) || 4));
-  const branches = Math.max(1, Math.min(10, Math.floor(branchLimit) || 10));
+  const budget = rolloutBudget(state);
+  const width = Math.max(1, Math.min(budget.beamWidth, Math.floor(beamWidth) || budget.beamWidth));
+  const branches = Math.max(1, Math.min(budget.branchLimit, Math.floor(branchLimit) || budget.branchLimit));
   const visited = new Set();
   const finalists = [];
   let frontier = [root];
@@ -117,7 +111,7 @@ export function planQuoteBundle(state, { recommendations, filter, reserve = defa
   for (let level = 0; level < depth && frontier.length; level++) {
     const lists = frontier.map(node => ({ node, options: candidatesFor(node, inquiries, recommendations, availableCapital, branches) }));
     const next = [];
-    const allowance = level === 0 ? 10 : 24;
+    const allowance = level === 0 ? branches : budget.branchAllowance;
     let evaluated = 0;
     // Consider promising options round-robin across each distinct prior plan,
     // preventing a greedy first move from monopolizing the entire search.
@@ -163,23 +157,71 @@ export function planQuoteBundle(state, { recommendations, filter, reserve = defa
       if (frontier.length < width) frontier.push(...next.filter(node => !frontier.includes(node)).slice(0, width - frontier.length));
     } else frontier = next.slice(0, width);
   }
-  // Rank solely with the independent scenario and expected economics. Before
-  // suggesting the plan to the player, verify every prefix against the actual
-  // player-visible all-win forecast. It is a safety veto, not a source of extra
-  // expected profit; quote dialog's displayed projected minimum remains exact.
+  // Validate current commitments against the player-visible all-win cash
+  // chart. This remains a safety veto, not a way to rank by the saved RNG.
   finalists.sort((a, b) => b.score - a.score || b.scenarioFloor - a.scenarioFloor);
   const topFinalists = finalists.slice(0, 12);
-  // If long plans fail the visible safety check, do not prematurely settle
-  // while a safe useful first quote is still in the bounded shortlist.
-  const visibleCandidates = [...topFinalists, ...finalists.filter(node => node.steps.length === 1 && !topFinalists.includes(node))];
+  // Give shorter bundles a chance even when the analytic ranking is crowded
+  // with 3-order pricing variants. Their lower capital usage is precisely
+  // what additional weekly rounds may reveal to be valuable.
+  const byDepth = [1, 2, 3].flatMap(length => finalists.filter(node => node.steps.length === length).slice(0, 3));
+  const visibleCandidates = [...new Set([...topFinalists, ...byDepth, ...finalists.filter(node => node.steps.length === 1)])];
+  const possibleDepths = new Set(finalists.map(node => node.steps.length));
+  const safe = [];
   for (const node of visibleCandidates) {
     const path = [];
     for (let current = node; current.previous; current = current.previous) path.unshift(current);
     const prefixes = path.map(current => visibleFloor(current.state));
     if (prefixes.some(value => !Number.isFinite(value) || value < cashReserve)) continue;
     const steps = node.steps.map((step, index) => ({ ...step, cashFloor: prefixes[index], recommendation: { ...step.recommendation, cashFloor: prefixes[index] } }));
-    return { steps, cashFloor: prefixes.at(-1), scenarioFloor: node.scenarioFloor, expectedProfit: node.expectedProfit,
-      discountedExpectedProfit: node.discountedExpectedProfit, score: node.score, examined, reserve: cashReserve, projectedWeeks: 12 };
+    safe.push({ node, steps, cashFloor: prefixes.at(-1) });
+    if (!lookahead || (safe.length >= 8 && new Set(safe.map(candidate => candidate.steps.length)).size === possibleDepths.size)) break;
   }
-  return empty(examined);
+  if (!safe.length) return empty(examined);
+  const build = ({ node, steps, cashFloor }, extra = {}) => ({ steps, cashFloor, scenarioFloor: node.scenarioFloor,
+    expectedProfit: node.expectedProfit, discountedExpectedProfit: node.discountedExpectedProfit, score: node.score, examined,
+    reserve: cashReserve, projectedWeeks: 12, ...extra });
+  // Useful in diagnostics to isolate the within-week beam from the actual
+  // multiweek policy. Production coaching always keeps lookahead enabled.
+  if (!lookahead) return build(safe[0]);
+
+  // Several different current plans, plus not submitting another bid this week.
+  // Select diverse first moves and bundle lengths, not merely four pricing
+  // variants of the same customer. Search stays bounded on a phone.
+  const shortlist = [safe[0]];
+  const add = candidate => { if (candidate && !shortlist.includes(candidate) && shortlist.length < budget.currentPlans) shortlist.push(candidate); };
+  for (const length of [1, 2, 3]) {
+    if (length !== shortlist[0].steps.length) add(safe.find(candidate => candidate.steps.length === length));
+  }
+  add(safe.find(candidate => !shortlist.some(selected => selected.steps[0].inquiry.id === candidate.steps[0].inquiry.id)));
+  for (const candidate of safe) add(candidate);
+  const baselineRollout = evaluateRollouts(state, { reserve: cashReserve });
+  // A few scenarios carry sampling noise. Give the real continuation more
+  // influence when today's best analytical bundle would tie up most cash
+  // above the protected reserve; otherwise avoid giving up strong orders
+  // just because one hypothetical future was unlucky.
+  const priorHeadroom = Math.max(1, rootFloor - cashReserve);
+  const remainingHeadroom = Math.max(0, safe[0].node.scenarioFloor - cashReserve);
+  const liquidityPressure = Math.max(0, Math.min(1, 1 - remainingHeadroom / priorHeadroom));
+  const rolloutWeight = .25 + .45 * liquidityPressure;
+  const compared = shortlist.map(candidate => {
+    const rollout = evaluateRollouts(candidate.node.state, { reserve: cashReserve });
+    const rolloutDelta = rollout.score - baselineRollout.score;
+    // Stabilize a few uncertain sampled paths with the analytic current-week
+    // estimate, but let actual multi-round continuation drive the ranking.
+    const rolloutScore = rolloutWeight * rolloutDelta + (1 - rolloutWeight) * candidate.node.score;
+    return { ...candidate, rollout, rolloutDelta, rolloutScore };
+  }).sort((a, b) => b.rolloutScore - a.rolloutScore || b.node.score - a.node.score);
+  const sampleDebt = rollout => Math.max(0, ...rollout.scenarios.map(scenario => scenario.maxLoan - state.loan));
+  const best = compared.find(({ rollout }) => rollout.bankruptCount <= baselineRollout.bankruptCount
+    && rollout.blockedCount <= baselineRollout.blockedCount && sampleDebt(rollout) <= sampleDebt(baselineRollout)
+    && !(rollout.minCash < cashReserve && rollout.minCash < baselineRollout.minCash));
+  const metrics = { baselineRollout, rolloutCompared: compared.length + 1, lookaheadRounds: baselineRollout.horizon };
+  // If waiting leads to a materially stronger estimated position, do not fill
+  // a quote slot just for its own sake. A small sample difference alone is
+  // insufficient; the deal's positive expectation still matters.
+  if (!best || best.rolloutScore < -Math.max(250, cashReserve * .05)) {
+    return empty(examined, { ...metrics, rollout: baselineRollout, rolloutDelta: 0, rolloutScore: 0, waitPreferred: true });
+  }
+  return build(best, { ...metrics, rollout: best.rollout, rolloutDelta: best.rolloutDelta, rolloutScore: best.rolloutScore });
 }

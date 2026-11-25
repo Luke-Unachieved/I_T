@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { newGame, forecast, act } from '../v38/engine/game.js';
 import { quote } from '../v38/engine/quotes.js';
-import { eventCoach, pageCoach, quoteRecommendation, recordCoachVisit } from '../v38/ui/coaching.js';
+import { coachQuoteFilters, eventCoach, pageCoach, quoteRecommendation, recordCoachDecline, recordCoachReview, recordCoachVisit } from '../v38/ui/coaching.js';
 import { certProgress, decisionInfo } from '../v38/engine/expansion.js';
 import { ipoProgress } from '../v38/engine/strategy.js';
 import { TRADE_EVENTS } from '../v38/data/events.js';
@@ -83,9 +83,9 @@ test('team recommendation checks recent earnings and the new employee’s 12-wee
   assert.doesNotMatch(pageCoach(noDemand,ui),/data-coach-action="hire"/);
   for (const state of [build(1500000, []), build(1500, Array(12).fill(25000)), build(1500000, [-5000,2500,-100,5000])]) {
     const deferred = pageCoach(state, ui);
-    assert.match(deferred, /暂缓聘用/);
+    assert.match(deferred, /暂缓聘用|暂缓新支出/);
     assert.doesNotMatch(deferred, /data-coach-action="hire"/);
-    assert.match(deferred, /未来 12 周最低余额/);
+    assert.match(deferred, /未来 12 周最低余额|未来现金仍有缺口/);
   }
 });
 
@@ -108,7 +108,7 @@ test('development overview compares feasible actions while local pages state whe
     const advice = pageCoach(mature,local(tab));
     assert.match(advice,/本周不用操作/);
     assert.doesNotMatch(advice,/data-coach-action=|data-coach-form=/);
-    assert.match(advice,/data-ui="page"|data-action="end-week"/, 'local no-action advice should still point to an onward step');
+    assert.match(advice,/data-ui="page"|data-ui="coach-review-orders"|data-ui="coach-review-cash"|data-action="end-week"/, 'local no-action advice should still point to an onward step');
   }
 });
 
@@ -132,6 +132,26 @@ test('development checks joint certification/market cost, sustained earnings, an
   assert.doesNotMatch(pageCoach(funded,listingUi),/data-coach-action="restructure"/);
 });
 
+test('assistant treats one real weekly repayment as complete but permits additional manual repayment and reassesses next week',()=>{
+  const state=newGame({difficulty:'casual',seed:381});state.cash=150000;state.loan=10000;state.inquiries=[];
+  const ui={page:'company',developmentTab:'finance',coachIntro:4,coachPrep:3};
+  assert.match(pageCoach(state,ui),/data-coach-form="repay"/);
+  const partial=act(state,{type:'repay',amount:3000});assert.ifError(partial.error);
+  assert.equal(partial.state.period.cashBreakdown.outflow.repayment,3000);
+  assert.match(pageCoach(partial.state,ui),/本周已归还 ¥3,000.*剩余贷款 ¥7,000/);
+  for(const page of ['office','inquiries','orders','company','offwork']) {
+    const advice=pageCoach(partial.state,{...ui,page});assert.doesNotMatch(advice,/data-coach-form="repay"|data-id="growth:repay/);
+  }
+  const extra=act(partial.state,{type:'repay',amount:1000});assert.ifError(extra.error);
+  assert.equal(extra.state.loan,6000);
+  assert.equal(extra.state.period.cashBreakdown.outflow.repayment,4000);
+  assert.match(pageCoach(extra.state,ui),/本周已归还 ¥4,000.*剩余贷款 ¥6,000/);
+  const next=act(extra.state,{type:'end-week'});assert.ifError(next.error);
+  assert.equal(next.state.week,state.week+1);
+  assert.equal(next.state.period.cashBreakdown.outflow.repayment??0,0);
+  assert.match(pageCoach(next.state,ui),/data-coach-form="repay"/);
+});
+
 test('simple coaching prioritizes actionable finances and rest, can settle with no eligible quote, and does not repeat bids', () => {
   const state = newGame({ difficulty: 'casual', seed: 381 });
   const inquiry = state.inquiries.find(item => quoteRecommendation(state, item));
@@ -152,7 +172,7 @@ test('simple coaching prioritizes actionable finances and rest, can settle with 
     assert.doesNotMatch(html, /data-action="end-week"/);
   }
   const continuation = pageCoach(submitted, {page:'inquiries', coachPrep:3});
-  assert.match(continuation, /已报价 1\/3 笔.*预计.*建议再报.*也可以现在结算/s);
+  assert.match(continuation, /已报价 1\/3 笔.*预计.*建议再报.*最低余额/s);
   assert.match(continuation, /data-ui="quote-open"/);
   assert.doesNotMatch(continuation, new RegExp(`data-id="${inquiry.id}"`));
   const filtered = pageCoach(submitted, {page:'inquiries', coachPrep:3, filters:{category:'test-nonexistent', availability:'available'}});
@@ -170,12 +190,21 @@ test('simple coaching prioritizes actionable finances and rest, can settle with 
     filled = result.state;
   }
   assert.equal(filled.bids.length, 3);
-  assert.match(pageCoach(filled, {page:'inquiries',coachPrep:3}), /三个报价位已用完.*data-action="end-week"/s);
+  const completed={page:'inquiries',coachPrep:3};
+  assert.match(pageCoach(filled,completed),/核对新增现金承诺.*data-ui="coach-review-cash"/s);
+  assert.equal(recordCoachReview(filled,completed,'cash'),true);
+  assert.equal(recordCoachReview(filled,completed,'cash'),false);
+  assert.match(pageCoach(filled,completed), /三个报价位已用完.*data-page="offwork".*data-action="end-week"/s);
   assert.doesNotMatch(pageCoach(filled, {page:'inquiries',coachPrep:3}), /data-ui="quote-open"/);
   const unsuitable = {...submitted, inquiries:submitted.inquiries.map(item=>item.id===inquiry.id ? item : {...item,minRep:101})};
   for (const page of ['inquiries','office','orders','offwork']) {
-    const html = pageCoach(unsuitable,{page,coachPrep:3});
-    assert.match(html,/其余询盘暂时没有.*data-action="end-week"/s);
+    const view={page,coachPrep:3};
+    assert.match(pageCoach(unsuitable,view),/data-ui="coach-review-cash"/);
+    recordCoachReview(unsuitable,view,'cash');
+    const html = pageCoach(unsuitable,view);
+    if (page==='inquiries'||page==='office') assert.match(html,/其余询盘暂时没有/);
+    if (page!=='offwork') assert.match(html,/data-page="offwork"/);
+    assert.match(html,/data-action="end-week"/);
     assert.doesNotMatch(html,/data-ui="quote-open"/);
   }
   let awarded = act(filled, {type:'end-week'}).state;
@@ -201,6 +230,15 @@ test('simple coaching prioritizes actionable finances and rest, can settle with 
   // Postponed payment week may still be in the future. Overdue status is authoritative.
   assert.match(pageCoach(overdue, {page:'inquiries',coachIntro:4}), /逾期应收款.*data-page="orders".*data-coach-tab="orders-receivables"/s);
   assert.match(pageCoach(overdue, {page:'orders',coachIntro:4}), /data-coach-action="collect"/);
+  for(const page of ['office','inquiries','company','offwork'])assert.match(pageCoach(overdue,{page,coachIntro:4}),/逾期应收款.*data-coach-tab="orders-receivables"/s);
+  const optional={page:'orders',coachIntro:4};
+  assert.equal(recordCoachDecline(overdue,optional,'tasks',`order:collect:${unpaid.id}`),true);
+  assert.match(pageCoach(overdue,optional),/你选择本周暂缓催款/);
+  assert.doesNotMatch(pageCoach(overdue,optional),/data-coach-action="collect"/);
+  const debt=structuredClone(inTerm);debt.cash=200000;
+  const bad=debt.receivables.find(item=>item.id===due.id);bad.status='bad-debt';bad.insuranceDueWeek=null;bad.amount=Math.max(bad.amount,10000);
+  for(const page of ['office','inquiries','company','offwork'])assert.match(pageCoach(debt,{page,coachIntro:4}),/坏账可以尝试追回.*data-coach-tab="orders-receivables"/s);
+  assert.match(pageCoach(debt,{page:'orders',coachIntro:4}),/data-coach-action="sue"/);
   const competing = structuredClone(overdue);
   competing.receivables.unshift({ ...unpaid, id: 'newer-overdue', amount: unpaid.amount * 2, originalDueWeek: overdue.week - 1 });
   assert.ok(pageCoach(competing, {page:'orders',coachIntro:4}).includes(`data-id="${unpaid.id}" data-coach-action="collect"`));
@@ -320,8 +358,12 @@ for (const viewport of [{ width: 320, height: 568, mobile: true }, { width: 390,
         await page.click('dialog form[data-form="quote"] button[type="submit"]');
         assert.equal((await currentState(page)).bids.length,index+1);
       }
+      await page.click(`${coach} [data-ui="coach-review-cash"]`);
+      await page.waitFor(present('.forecast-panel [data-ui="coach-review-next"]'));
+      await page.click('.forecast-panel [data-ui="coach-review-next"]');
       await page.waitFor(present(`${coach} [data-action="end-week"]`));
       assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`),/三个报价位已用完/);
+      assert.ok(await page.evaluate(present(`${coach} [data-page="offwork"]`)));
       await page.click(`${coach} [data-action="end-week"]`);
       await page.waitFor(present('dialog [data-ui="view-first-order"]'));
       assert.equal((await currentState(page)).week, 2);
@@ -346,6 +388,8 @@ for (const viewport of [{ width: 320, height: 568, mobile: true }, { width: 390,
       await page.click('dialog [data-ui="coach-review-submit"]');
       await page.click('dialog form[data-form="quote"] button[type="submit"]');
       await page.click(`${coach} [data-ui="coach-skip-prep"]`);
+      await page.click(`${coach} [data-ui="coach-review-cash"]`);
+      await page.click('.forecast-panel [data-ui="coach-review-next"]');
       assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`),/不必为了用完报价位.*其余询盘暂时没有/s);
       assert.equal(await page.evaluate(present(`${coach} [data-ui="quote-open"]`)),false);
       await page.screenshot(`/tmp/v38-coach-no-extra-quote-${viewport.width}.png`);

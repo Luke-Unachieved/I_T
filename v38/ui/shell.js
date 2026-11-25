@@ -197,8 +197,9 @@ export function shell(state, ui, content, extraIndicators = '') {
       <div class="app-notices" aria-live="polite" aria-atomic="true">${state.cash < 0 && !state.bankrupt ? `<div class="notice negative" role="alert"><strong>资金链告急</strong><p>还差 ${yuan(-state.cash)}。可以到订单页清仓，或到发展页的「财务」借款。连续两周资金为负会破产。</p></div>` : ''}${state.events.length ? `<p class="notice">有 ${count(state.events.length)} 件事需要你决定。<button type="button" class="button quiet" data-ui="show-event">查看事项</button></p>` : ''}</div>
       ${ui.notice ? `<p class="notice action-feedback" role="status">${esc(ui.notice)}</p>` : ''}
       ${saveWarning(ui.saveStatus)}
+      ${state.difficulty === 'casual' ? pageCoach(state, ui) : ''}
       ${overview ? `${indicators(state)}${macroIndicators(state, ui)}` : ''}${extraIndicators}
-      ${state.difficulty === 'casual' ? pageCoach(state, ui) : tutorialNote(state)}
+      ${state.difficulty !== 'casual' ? tutorialNote(state) : ''}
       <div class="page-content">${content}</div>
     </main>
   </div>`;
