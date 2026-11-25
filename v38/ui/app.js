@@ -95,6 +95,7 @@ function renderDialog() {
   if (entering) dialogPointer = undefined;
   const top = entering ? 0 : dialog.scrollTop;
   const summaryTop = entering ? 0 : dialog.querySelector('.summary-scroll')?.scrollTop ?? 0;
+  const feedbackKind = entering ? null : dialog.querySelector('[data-feedback-active]')?.dataset.feedbackActive;
   const headingId = isQuote ? 'quote-title' : 'modal-title';
   dialog.dataset.view = view;
   dialog.setAttribute('aria-labelledby', headingId);
@@ -106,11 +107,24 @@ function renderDialog() {
   }
   dialog.classList.toggle('quote-dialog', isQuote);
   dialog.classList.toggle('summary-dialog', ui.dialog === 'summary');
+  if (feedbackKind && ui.dialog === 'summary') selectSummaryFeedback(feedbackKind);
   if (!dialog.open) dialog.showModal();
   if (entering) heading?.focus({ preventScroll: true });
   dialog.scrollTop = top;
   const summaryScroller = dialog.querySelector('.summary-scroll');
   if (summaryScroller) summaryScroller.scrollTop = summaryTop;
+}
+
+function selectSummaryFeedback(kind) {
+  const gallery = dialog.querySelector('[data-feedback-active]');
+  if (!gallery) return;
+  const cards = [...gallery.querySelectorAll('[data-summary-feedback]')];
+  if (!cards.some(card => card.dataset.summaryFeedback === kind)) return;
+  gallery.dataset.feedbackActive = kind;
+  for (const card of cards) card.hidden = card.dataset.summaryFeedback !== kind;
+  for (const button of gallery.querySelectorAll('[data-ui="summary-feedback-select"]')) {
+    button.setAttribute('aria-pressed', String(button.dataset.id === kind));
+  }
 }
 
 function highlightTutorial() {
@@ -741,6 +755,9 @@ function click(event) {
     return;
   }
   switch (control.dataset.ui) {
+    case 'summary-feedback-select':
+      if (ui.dialog === 'summary' && dialog.contains(control)) selectSummaryFeedback(control.dataset.id);
+      break;
     case 'page': {
       if (control.dataset.page === 'company') {
         const targeted = validDevelopmentTab(control.dataset.coachTab);

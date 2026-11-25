@@ -463,10 +463,19 @@ const summaryFeedbackArt = {
   paid: ['assets/v38-feedback-paid.webp', '收到客户货款'],
 };
 
-function feedbackCard(kind, title, context, value, detail, first = false) {
-  const [asset, alt] = summaryFeedbackArt[kind];
-  return `<article class="summary-feedback-card${first ? ' summary-feedback-first' : ''}" data-summary-feedback="${kind}">
-    ${imageFrame(asset, { className: 'summary-feedback-art', alt, fallback: '插画未加载', retry: first })}
+// Choose the scene from this settlement's actual business, rather than using
+// an unrelated random illustration or celebrating something that did not happen.
+function feedbackArtVariant(first, items, total) {
+  if (first) return 'first';
+  if (items.length > 0 && items.length === total && items.every(item => (item.market && item.market !== 'domestic') || (item.currency && item.currency !== 'CNY'))) return 'overseas';
+  return total > 1 ? 'multiple' : 'domestic';
+}
+
+function feedbackCard({ kind, title, context, value, detail, variant }, active, first = false) {
+  const [original, alt] = summaryFeedbackArt[kind];
+  const asset = variant === 'first' ? original : `assets/v38-feedback-${kind}-${variant}.webp`;
+  return `<article class="summary-feedback-card${first ? ' summary-feedback-first' : ''}" id="summary-feedback-${kind}" data-summary-feedback="${kind}" data-feedback-art="${variant}"${active ? '' : ' hidden'}>
+    ${imageFrame(asset, { className: 'summary-feedback-art', alt, fallback: '插画未加载', lazy: false, retry: true, autoRetry: 2 })}
     <div class="summary-feedback-copy"><h3>${esc(title)}</h3>${context ? `<p>${esc(context)}</p>` : ''}${value ? `<strong class="summary-feedback-value">${esc(value)}</strong>` : ''}${detail ? `<p class="summary-feedback-detail">${esc(detail)}</p>` : ''}</div></article>`;
 }
 
@@ -476,16 +485,17 @@ function summaryFeedback(state, weeks, won, delivered, cash, firstOrder) {
   const invoicesByOrder = new Map(state.receivables.map(invoice => [invoice.orderId, invoice]));
   const describeOrder = order => [order?.buyer?.name, order?.productName].filter(Boolean).join(' · ');
   const cards = [];
-  let focalShown = Boolean(firstOrder);
   if (won.length) {
     const contracts = won.map(bid => orders.get(bid.orderId)).filter(Boolean);
     const total = contracts.length === won.length && contracts.every(order => Number.isFinite(order.total))
       ? contracts.reduce((sum, order) => sum + order.total, 0) : null;
     const foreign = contracts.some(order => order.currency && order.currency !== 'CNY');
-    cards.push(feedbackCard('won', firstOrder ? '第一单，拿下！' : `拿下 ${count(won.length)} 笔新订单`,
-      won.length === 1 ? describeOrder(contracts[0]) : `本次签下 ${count(won.length)} 笔合同`,
-      total === null ? '' : `合同货款${foreign ? '（折合）' : ''} ${yuan(total)}`,
-      cash.deposit > 0 ? `客户定金已到账 ${yuan(cash.deposit)}。` : '合同已签下，接下来安排交货。', firstOrder));
+    cards.push({ kind: 'won', choiceLabel: '成交', choiceValue: `${count(won.length)} 笔`,
+      title: firstOrder ? '第一单，拿下！' : `拿下 ${count(won.length)} 笔新订单`,
+      context: won.length === 1 ? describeOrder(contracts[0]) : `本次签下 ${count(won.length)} 笔合同`,
+      value: total === null ? '' : `合同货款${foreign ? '（折合）' : ''} ${yuan(total)}`,
+      detail: cash.deposit > 0 ? `客户定金已到账 ${yuan(cash.deposit)}。` : '合同已签下，接下来安排交货。',
+      firstWeek: firstOrder ? state.orders[0].contractWeek : null, variant: feedbackArtVariant(firstOrder, contracts, won.length) });
   }
   if (delivered.length) {
     const deliveredOrders = delivered.map(id => orders.get(id)).filter(Boolean);
@@ -500,9 +510,11 @@ function summaryFeedback(state, weeks, won, delivered, cash, firstOrder) {
     }
     if (settled) notes.push(`${count(settled)} 笔款项已结清`);
     if (delivered.length > pending.length + settled) notes.push('其余回款进展见订单页');
-    cards.push(feedbackCard('delivered', firstDelivery ? '第一批货送到了！' : `完成 ${count(delivered.length)} 笔交付`,
-      delivered.length === 1 ? describeOrder(deliveredOrders[0]) : firstDelivery ? `本次完成 ${count(delivered.length)} 笔交付` : '', '', notes.length ? `${notes.join('。')}。` : '', firstDelivery && !focalShown));
-    focalShown ||= firstDelivery;
+    cards.push({ kind: 'delivered', choiceLabel: '交付', choiceValue: `${count(delivered.length)} 笔`,
+      title: firstDelivery ? '第一批货送到了！' : `完成 ${count(delivered.length)} 笔交付`,
+      context: delivered.length === 1 ? describeOrder(deliveredOrders[0]) : firstDelivery ? `本次完成 ${count(delivered.length)} 笔交付` : '',
+      value: '', detail: notes.length ? `${notes.join('。')}。` : '',
+      firstWeek: firstDelivery ? Math.min(...deliveredOrders.map(order => order.deliveredWeek)) : null, variant: feedbackArtVariant(firstDelivery, deliveredOrders, delivered.length) });
   }
   if (cash.customerPayment > 0) {
     const paid = weeks.flatMap(week => (week.collected ?? []).map(item => invoices.get(item.id))
@@ -510,10 +522,18 @@ function summaryFeedback(state, weeks, won, delivered, cash, firstOrder) {
     const paidIds = new Set(paid.map(invoice => invoice.id));
     const firstPayment = paid.length > 0 && state.receivables.every(invoice => invoice.status !== 'paid' || paidIds.has(invoice.id));
     const title = firstPayment ? (paid.length === 1 ? '第一笔客户尾款到账！' : '首次收到客户尾款') : paid.length ? `收到 ${count(paid.length)} 笔客户尾款` : '客户货款到账';
-    cards.push(feedbackCard('paid', title,
-      paid.length === 1 ? paid[0].buyer?.name ?? '' : firstPayment ? `本次到账 ${count(paid.length)} 笔` : '', `+${yuan(cash.customerPayment)}`, '回款已计入可用资金。', firstPayment && !focalShown));
+    cards.push({ kind: 'paid', choiceLabel: '回款', choiceValue: `+${yuan(cash.customerPayment)}`, title,
+      context: paid.length === 1 ? paid[0].buyer?.name ?? '' : firstPayment ? `本次到账 ${count(paid.length)} 笔` : '',
+      value: `+${yuan(cash.customerPayment)}`, detail: '回款已计入可用资金。',
+      firstWeek: firstPayment ? Math.min(...paid.map(invoice => invoice.paidWeek)) : null, variant: feedbackArtVariant(firstPayment, paid, paid.length) });
   }
-  return cards.length ? `<div class="summary-feedback" aria-label="本次订单进展">${cards.join('')}</div>` : '';
+  if (!cards.length) return '';
+  // A genuine first milestone gets priority, in the order it occurred. For
+  // repeat business, feature completed collection over delivery over signing.
+  const first = cards.filter(card => Number.isFinite(card.firstWeek)).sort((a, b) => a.firstWeek - b.firstWeek)[0];
+  const active = first ?? ['paid', 'delivered', 'won'].map(kind => cards.find(card => card.kind === kind)).find(Boolean);
+  const choices = cards.length > 1 ? `<div class="summary-feedback-choices" role="group" aria-label="本次经营进展">${cards.map(card => `<button type="button" class="summary-feedback-choice" data-ui="summary-feedback-select" data-id="${card.kind}" aria-controls="summary-feedback-${card.kind}" aria-pressed="${card === active}"><span>${esc(card.choiceLabel)}</span><strong>${esc(card.choiceValue)}</strong></button>`).join('')}</div>` : '';
+  return `<div class="summary-feedback" aria-label="本次订单进展" data-feedback-active="${active.kind}">${choices}${cards.map(card => feedbackCard(card, card === active, card === first)).join('')}</div>`;
 }
 
 function summaryContent(state, tutorial, firstOrder) {

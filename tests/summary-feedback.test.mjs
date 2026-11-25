@@ -28,12 +28,18 @@ async function settle(page, action = 'end-week') {
 async function card(page, kind, asset) {
   const selector = `[data-summary-feedback="${kind}"]`;
   await page.waitFor(present(selector));
-  await page.evaluate(`document.querySelector(${JSON.stringify(selector)}).scrollIntoView({block:'center'})`);
+  // The reward must be discoverable at the initial summary position, not
+  // only after a test scrolls down to locate the illustration.
+  if (await page.evaluate(`document.querySelector(${JSON.stringify(selector)}).hidden`)) {
+    await page.click(`[data-ui=summary-feedback-select][data-id="${kind}"]`);
+  }
   await page.waitFor(`(()=>{const f=document.querySelector(${JSON.stringify(selector+' .media-frame')}),i=f?.querySelector('img');return i?.naturalWidth>0&&f.dataset.mediaState==='loaded'&&Number(getComputedStyle(i).opacity)>.9&&i.getAttribute('data-media-src')==='assets/${asset}'})()`);
   await page.evaluate(`(async()=>{await document.querySelector(${JSON.stringify(selector+' img')}).decode();await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));})()`);
-  const geometry = await page.evaluate(`(()=>{const c=document.querySelector(${JSON.stringify(selector)}), f=c.querySelector('.summary-feedback-art'), i=f.querySelector('img'), r=f.getBoundingClientRect(), style=getComputedStyle(i);return {width:r.width,height:r.height,nw:i.naturalWidth,nh:i.naturalHeight,visible:style.visibility==='visible'&&style.display!=='none'&&Number(style.opacity)>.9,text:c.innerText};})()`);
+  const geometry = await page.evaluate(`(()=>{const c=document.querySelector(${JSON.stringify(selector)}), f=c.querySelector('.summary-feedback-art'), i=f.querySelector('img'), r=f.getBoundingClientRect(), style=getComputedStyle(i),scroller=c.closest('.summary-scroll').getBoundingClientRect(),body=c.closest('.dialog-body').getBoundingClientRect();return {width:r.width,height:r.height,nw:i.naturalWidth,nh:i.naturalHeight,visible:!c.hidden&&style.visibility==='visible'&&style.display!=='none'&&Number(style.opacity)>.9,inView:r.top>=scroller.top-1&&r.bottom<=scroller.bottom+1&&r.top>=0&&r.bottom<=innerHeight,relative:r.width/body.width,mobile:innerWidth<=760,text:c.innerText};})()`);
   assert.ok(Math.abs(geometry.height - geometry.width * geometry.nh / geometry.nw) < 1, 'Feedback image retains its native aspect');
   assert.equal(geometry.visible, true);
+  assert.equal(geometry.inView,true, 'large reward art is visible without scrolling through weekly figures');
+  if (geometry.mobile) assert.ok(geometry.relative>.8, 'mobile feedback uses the width of the summary instead of a thumbnail');
   return geometry;
 }
 
