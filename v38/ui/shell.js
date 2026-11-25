@@ -33,9 +33,7 @@ export const developmentTabs = [
 
 export const assistantFor = id => ASSISTANTS.find(person => person.id === id) ?? ASSISTANTS[0];
 const icon = path => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"></path></svg>`;
-// Crop the original four-person atlas to each assistant's head and shoulders.
-const openingPortraitPosition = { fang: '8% 3%', liang: '35.4% 13%', tao: '64.8% 2%', xu: '93.2% 3%' };
-const openingPortrait = person => `<span class="portrait" aria-hidden="true" style="background-image:url('${esc(person.portrait)}');background-position:${openingPortraitPosition[person.id]}"></span>`;
+const openingPortrait = person => `<span class="portrait" aria-hidden="true" style="background-image:url('${esc(person.portrait)}');background-position:${esc(person.portraitPosition)}"></span>`;
 const weekLabel = week => `第 ${count(week)} 周`;
 const yearWeek = week => `第 ${Math.floor((week - 1) / 52) + 1} 年 · 第 ${(week - 1) % 52 + 1} 周`;
 const openOrders = state => state.orders.filter(order => !['settled', 'cancelled', 'bad-debt', 'closed', 'paid', 'delivered'].includes(order.stage ?? order.status));
