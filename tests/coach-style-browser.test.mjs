@@ -229,9 +229,10 @@ for(const viewport of [{width:320,height:568,mobile:true},{width:390,height:844,
       await assertGuide(page,suggestion);
       await page.evaluate(`document.querySelector(${JSON.stringify(suggestion)}).scrollIntoView({block:'center'})`);
       await page.screenshot(`/tmp/v38-coach-style-${viewport.width}-event.png`);
-      // Full quote capacity genuinely disables another submission: there is
-      // no meaningful control to highlight inside the view-only quote.
-      await loadScenario(page,`game=>{let s=game.newGame({seed:381,difficulty:'casual'});s.tutorial.done=true;for(const inquiry of s.inquiries.slice(0,3)){const b=game.act(s,{type:'bid',inquiryId:inquiry.id,source:'stock',ratio:80});if(b.error)throw Error(b.error);s=b.state;}return s;}`);
+      // A real qualification restriction disables submission: there is no
+      // meaningful confirmation to highlight inside a view-only quote, even
+      // though the team has unused capacity after its third bid.
+      await loadScenario(page,`game=>{let s=game.newGame({seed:381,difficulty:'casual'});s.tutorial.done=true;for(const inquiry of s.inquiries.slice(0,3)){const b=game.act(s,{type:'bid',inquiryId:inquiry.id,source:'stock',ratio:80});if(b.error)throw Error(b.error);s=b.state;}s.inquiries.find(i=>i.id==='w1-4').minRep=101;return s;}`);
       await nav('inquiries');
       await page.click('article[data-inquiry-id=w1-4] [data-ui=quote-open]');
       assert.ok(await page.evaluate('document.querySelector("dialog form[data-form=quote] button[type=submit]").disabled'));

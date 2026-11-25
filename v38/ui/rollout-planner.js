@@ -1,6 +1,6 @@
 import { act, canExpedite, expediteFee } from '../engine/game.js';
 import { decisionInfo, marketProgress } from '../engine/expansion.js';
-import { quote } from '../engine/quotes.js';
+import { quote, quoteCapacity } from '../engine/quotes.js';
 import { VENTURES, strategyAssets } from '../engine/strategy.js';
 import { lifeAssets } from '../engine/life.js';
 import { ACTIVE_ORDER, OPEN_RECEIVABLE, orderMargin, receivableValue } from '../engine/treasury.js';
@@ -11,7 +11,7 @@ import { ACTIVE_ORDER, OPEN_RECEIVABLE, orderMargin, receivableValue } from '../
 export const ROLLOUT_SEEDS = Object.freeze([0x7f4a7c15, 0xbf58476d, 0xa511e9b3]);
 export const ROLLOUT_WEEKS = 4;
 const INQUIRY_LIMIT = 24;
-const EVENT_LIMIT = 12;
+const MIN_EVENT_BUDGET = 12;
 const cache = new WeakMap();
 const creditRisk = { AAA: .002, AA: .004, A: .01, BBB: .025, BB: .055, B: .12 };
 const clamp = (n, low, high) => Math.max(low, Math.min(high, n));
@@ -21,12 +21,19 @@ const recovery = (state, deal) => 1 - risk(state, deal) * (1 - clamp(deal.insure
 const timeDiscount = (state, due) => 1 + Math.max(0, (due ?? state.week) - state.week) * .025;
 
 // A long-running firm can have thousands of full records cloned by each real
-// reducer call. Narrow the search width in that case, not the number of weeks
-// played. Both budgets still compare multiple independent scenario paths.
+// reducer call. Narrow only the finite computation budget in that case, not
+// the firm's actual allowed quotes or the number of weeks played. A current
+// plan is a rolling prefix that can be recalculated after any real quote;
+// futureBidLimit is simulated additional actions per round, not a game rule.
 export function rolloutBudget(state) {
   const heavy = state.orders.length + state.receivables.length >= 600 || state.history.length >= 750;
-  return heavy ? { scenarioCount: 2, futureBidLimit: 2, currentPlans: 3, beamWidth: 3, branchLimit: 7, branchAllowance: 14 }
-    : { scenarioCount: 3, futureBidLimit: 3, currentPlans: 4, beamWidth: 4, branchLimit: 10, branchAllowance: 24 };
+  const capacity=quoteCapacity(state);
+  // Allocate a couple of extra simulated decisions as the team grows, while
+  // still bounding the work when a long history or a very large roster is
+  // present. The game itself can have a larger real capacity than this.
+  const futureBidLimit=Math.min(capacity,heavy?4+clamp(capacity-5,0,2):6+clamp(capacity-6,0,2));
+  return heavy ? { scenarioCount: 2, futureBidLimit, currentDepth: 3, currentPlans: 3, beamWidth: 3, branchLimit: 7, branchAllowance: 14 }
+    : { scenarioCount: 3, futureBidLimit, currentDepth: 4, currentPlans: 4, beamWidth: 4, branchLimit: 10, branchAllowance: 16 };
 }
 
 export function quoteExpectedProfit(state, offer) {
@@ -108,7 +115,7 @@ function shortlistedInquiries(state) {
 }
 
 function nextQuote(state, reserve) {
-  if (state.bids.length >= 3) return null;
+  if (state.bids.length >= quoteCapacity(state)) return null;
   const room = spare(state, reserve);
   if (state.cash < reserveFor(state, reserve)) return null;
   let best = null;
@@ -176,7 +183,11 @@ function eventChoices(state, event, reserve, remaining) {
 
 function resolveEvents(state, reserve, remaining, actions) {
   let next = state;
-  for (let count = 0; next.events.length && count < EVENT_LIMIT; count++) {
+  // Delivery/factory decisions can queue in a larger company. Process the
+  // actual existing queue and a little room for newly generated milestones;
+  // retain a finite analysis guard for malformed/exceptionally large queues.
+  const eventBudget=Math.min(96,Math.max(MIN_EVENT_BUDGET,state.events.length+4));
+  for (let count = 0; next.events.length && count < eventBudget; count++) {
     const event = next.events[0];
     let handled = false;
     for (const choice of eventChoices(next, event, reserve, remaining)) {
@@ -215,7 +226,7 @@ function continueBusiness(state, requested, actions, marketOpened, allowDevelopm
       .sort((a, b) => a.fee - b.fee);
     if (eligible[0] && apply({ type: 'open-market', id: eligible[0].id })) marketOpened = true;
   }
-  for (let index = 0; index < futureBidLimit && next.bids.length < 3; index++) {
+  for (let index = 0; index < futureBidLimit && next.bids.length < quoteCapacity(next); index++) {
     const candidate = nextQuote(next, requested);
     if (!candidate) break;
     if (!apply({ type: 'bid', inquiryId: candidate.inquiry.id, ...candidate.config })) break;

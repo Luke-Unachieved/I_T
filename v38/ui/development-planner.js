@@ -60,6 +60,10 @@ function longerTermAllowance(choice, after) {
   // Only an explicitly evidenced strategic candidate gets a bounded allowance,
   // and only for the type of value its current action genuinely creates.
   const tolerance = Math.min(1000, choice.reserve * .04);
+  // A hire solely to expand weekly quoting capacity must genuinely reward
+  // that additional capacity in the sampled future business, not receive a
+  // wage allowance or a generic strategic tie-break.
+  if(choice.action.type==='hire'&&choice.capacityExpansion===true)return 0;
   if (choice.action.type === 'repay' && choice.loanDelta < 0 && choice.scenarioOperatingDelta > 0 &&
       choice.scenarioFloor >= choice.reserve * 2 && choice.upfront <= (choice.scenarioFloor - choice.reserve) * .05) {
     // A modest repayment with a robust cash cushion and known interest savings
@@ -188,8 +192,11 @@ export function planDevelopment(state, candidates, { reserve = 0 } = {}) {
   const baselineDebt = maximumNewDebt(deferred, state.loan);
   const accepted = [];
   const shortlist=choices.slice(0,MAX_ROLLOUT_CANDIDATES);
-  const stagedHire=choices.find(choice=>choice.action.type==='hire'&&choice.stagedUnlock==='audit-market');
-  if(stagedHire&&!shortlist.includes(stagedHire))shortlist[shortlist.length-1]=stagedHire;
+  const evidencedHires=[choices.find(choice=>choice.action.type==='hire'&&choice.stagedUnlock==='audit-market'),choices.find(choice=>choice.action.type==='hire'&&choice.capacityExpansion===true)].filter(Boolean);
+  for(const hire of evidencedHires)if(!shortlist.includes(hire)) {
+    const replace=shortlist.findLastIndex(choice=>!evidencedHires.includes(choice));
+    if(replace>=0)shortlist[replace]=hire;
+  }
   for (const choice of shortlist) {
     const after = successors.get(choice);
     const rollout = multiweekProjection(state, after, choice.action, prudentialReserve);
@@ -198,6 +205,10 @@ export function planDevelopment(state, candidates, { reserve = 0 } = {}) {
         maximumNewDebt(rollout, after.loan) > baselineDebt ||
         (rollout.minCash < choice.reserve && rollout.minCash < deferred.minCash)) {
       reject(choice, '多轮经营情境中，这项操作可能使资金风险高于继续现有业务，建议暂缓。');
+      continue;
+    }
+    if (choice.capacityExpansion===true&&choice.action.type==='hire'&&!(delta>0)) {
+      reject(choice,'新增报价能力在未来几周的比较中还没有带来高于暂缓招聘的收益，先避免额外固定工资。');
       continue;
     }
     if (delta < -longerTermAllowance(choice, after)) {

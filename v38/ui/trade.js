@@ -1,7 +1,7 @@
 import { CATEGORIES, PRODUCTS } from '../data/core.js';
 import { CERTIFICATION_BY_ID, FINANCING, MARKET_BY_ID, STAFF_ROLES } from '../data/expansion.js';
 import { canExpedite, expediteFee, factorValue, forecast, lawsuitFee, liquidationValue } from '../engine/game.js';
-import { quote } from '../engine/quotes.js';
+import { quote, quoteCapacity } from '../engine/quotes.js';
 import { stockPurchaseQuote } from '../engine/strategy.js';
 import { receivableValue } from '../engine/treasury.js';
 import { imageFrame } from './media.js';
@@ -124,20 +124,20 @@ function inquiryMessage(inquiry) {
 
 function inquiryInbox(rows, state) {
   const bids = new Set(state.bids.map(bid => bid.inquiryId));
+  const full=state.bids.length>=quoteCapacity(state);
   let hasTutorialAnchor = false;
   return `<div class="inquiry-threads" role="list" aria-label="本周客户来信">${rows.map(({ inquiry, canQuote }) => {
     const { buyer } = inquiry;
     const alreadyBid = bids.has(inquiry.id);
-    const full = state.bids.length >= 3;
     const tour = !hasTutorialAnchor && canQuote && !alreadyBid && !full ? 'data-tour="quote"' : '';
     if (tour) hasTutorialAnchor = true;
     const flags = [inquiry.tutorial && badge('开场客户'), marketName(inquiry),
       inquiry.landmark ? badge('地标订单', 'pending') : inquiry.framework && badge('年度框架'),
       inquiry.repeat && badge('熟客复购'), inquiry.brandDemand && badge('偏好品牌'), inquiry.localRestock && badge('海外仓补货')].filter(Boolean);
-    const actionLabel = canQuote && !full ? '算价' : '查看条款';
+    const actionLabel = canQuote&&!full ? '算价' : '查看条款';
     const quotesAction = alreadyBid ? '' : `<button type="button" class="button inquiry-thread-open${tour ? ' primary' : ''}"
       data-ui="quote-open" data-id="${escapeHtml(inquiry.id)}" ${tour} aria-label="${escapeHtml(`${actionLabel}：${buyer.name}的${inquiry.productName}询盘`)}">${actionLabel}</button>`;
-    const status = alreadyBid ? badge('已报价', 'positive') : full ? badge('报价位已满', 'pending') : canQuote ? badge('待报价', 'pending') : badge('暂不可报');
+    const status = alreadyBid ? badge('已报价', 'positive') : !canQuote ? badge('暂不可报') : full ? badge('跟进能力已满','pending') : badge('待报价', 'pending');
     const art = imageFrame(productIndex.get(inquiry.productId)?.asset ?? inquiry.asset, { className: 'product-thumb', fallback: '无图', alt: inquiry.productName });
     return `<article role="listitem" class="inquiry-thread${alreadyBid ? ' inquiry-thread-sent' : ''}" data-inquiry-id="${escapeHtml(inquiry.id)}">
       <div class="inquiry-thread-contact">${buyerPortrait(buyer)}<div class="inquiry-thread-message">
@@ -176,15 +176,20 @@ function sentQuotes(state) {
 
 export function inquiriesPage(state, ui) {
   const { category = '', availability = 'all' } = ui.filters ?? {};
+  const capacity=quoteCapacity(state);
+  const full=state.bids.length>=capacity;
+  const overCapacity=state.bids.length>capacity;
   const submitted = new Set(state.bids.map(bid => bid.inquiryId));
-  const rows = state.inquiries.map(inquiry => ({ inquiry, canQuote: eligible(state, inquiry) }))
+  const allRows = state.inquiries.map(inquiry => ({ inquiry, canQuote: eligible(state, inquiry) }));
+  const remaining = allRows.filter(({ inquiry })=>!submitted.has(inquiry.id)&&inquiry.expiresWeek>=state.week);
+  const rows = allRows
     .filter(({ inquiry, canQuote }) => (!category || category === 'all' || inquiry.category === category) &&
-      (availability !== 'available' || (canQuote && !submitted.has(inquiry.id) && state.bids.length < 3)));
+      (availability !== 'available' || (canQuote && !submitted.has(inquiry.id) && !full)));
   return `<div class="trade-stack inquiry-app">
     <section class="panel inquiry-inbox" data-tour="inquiries"><header class="trade-header">
       <h2>客户来信 <span class="inquiry-inbox-count">${rows.length}</span></h2>
-      <a class="badge pending inquiry-sent-link" href="#inquiry-sent">已用报价位 ${state.bids.length} / 3</a>
-      <p class="trade-note inquiry-guidance">点开来信算价并回复，本周结算时查看成交结果。</p>
+      <a class="badge pending inquiry-sent-link" href="#inquiry-sent">${overCapacity?`已报价 ${number(state.bids.length)} 笔（当前能力 ${number(capacity)} 笔）`:`本周已报价 ${number(state.bids.length)} / ${number(capacity)}`}</a>
+      <p class="trade-note inquiry-guidance">团队报价能力：公司基础 3 笔，业务员每人增加 2 笔，其他员工每人增加 1 笔。还有 ${number(remaining.length)} 封未报价来信。${full?'团队本周报价能力已满，已提交的报价仍然有效；可在结算前撤回。':`其中 ${number(remaining.filter(row=>row.canQuote).length)} 封符合基本报价条件。无需报满，回复前留足周转资金。`}本周结算时查看成交结果。</p>
     </header>
     <div class="trade-filters">
       <label>报价状态<select data-ui="inquiry-filter" name="availability">
@@ -196,7 +201,7 @@ export function inquiriesPage(state, ui) {
         ${CATEGORIES.map(name => `<option value="${escapeHtml(name)}"${name === category ? ' selected' : ''}>${escapeHtml(name)}</option>`).join('')}
       </select></label>
     </div>
-    ${rows.length ? inquiryInbox(rows, state) : empty('没有符合筛选条件的询盘。可选择全部询盘查看本周信息。')}
+    ${rows.length ? inquiryInbox(rows, state) : empty(full&&availability==='available'?'团队本周报价能力已满。可选择全部询盘查看来信，或在结算前撤回已提交的报价。':'没有符合筛选条件的询盘。可选择全部询盘查看本周信息。')}
     <p class="trade-note">买家信用从 AAA 到 B，等级越高，通常越能按时付款。</p>
     </section>
     <section id="inquiry-sent" class="panel inquiry-outbox"><header class="trade-header"><h2>已提交报价</h2><span class="trade-note">结算前可撤回</span></header>
@@ -488,7 +493,10 @@ export function quoteDialog(state, ui) {
   const selected = sourcesAvailable.find(item => model.source === item.source) ?? sourcesAvailable[0];
   const proposal = quote(state, inquiry, { ...model, source: selected.source, ratio, extraTerms, branded, brandUnitPrice });
   const alreadyBid = state.bids.some(bid => bid.inquiryId === inquiry.id);
-  const disabled = proposal.error || alreadyBid || state.bids.length >= 3;
+  const capacity=quoteCapacity(state);
+  const full=state.bids.length>=capacity;
+  const overCapacity=state.bids.length>capacity;
+  const disabled = proposal.error || alreadyBid || full;
   return `<header class="trade-header"><div><h2 id="quote-title" tabindex="-1">${escapeHtml(inquiry.buyer.name)}的询盘</h2><p class="trade-note">${escapeHtml(inquiry.productName)}（算价与报价）</p>
     ${ui.quoteDraftRestored ? '<small class="trade-note">已恢复这条询盘的未提交报价。</small>' : ''}</div>${close}</header>
     ${quoteCoach(state, inquiry, model, coachQuoteFilters(state,ui),ui.quoteDefault)}
@@ -509,7 +517,7 @@ export function quoteDialog(state, ui) {
         ${staffField(state, model)}${financingField(inquiry, model)}
         <div data-quote-preview="numbers">${quoteNumbers(state, proposal, inquiry)}</div>
         <div class="dialog-actions" data-quote-preview="submit"><button class="button primary" type="submit"${disabled ? ' disabled' : ''}>提交报价</button>
-          <small>${alreadyBid ? '这条询盘已经提交报价。' : state.bids.length >= 3 ? '本周 3 个报价位已用完。' : `本周已用 ${state.bids.length} / 3 个报价位，结算时查看成交结果。`}</small></div>
+          <small>${alreadyBid ? '这条询盘已经提交报价。' : full ? `${overCapacity?`已报价 ${number(state.bids.length)} 笔（当前能力 ${number(capacity)} 笔）。`:''}团队本周报价能力已满，已提交的报价仍然有效；可以结算前撤回。` : `本周已报价 ${number(state.bids.length)} / ${number(capacity)} 笔（团队报价能力）。确认全部中单也能周转，再提交本单；本周结算时查看结果。`}</small></div>
       </form>
     </div>`;
 }

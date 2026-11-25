@@ -1,5 +1,5 @@
 import { act, forecast } from '../engine/game.js';
-import { quote } from '../engine/quotes.js';
+import { quote, quoteCapacity } from '../engine/quotes.js';
 import { evaluateRollouts, quoteExpectedProfit, rolloutBudget } from './rollout-planner.js';
 
 export { quoteExpectedProfit } from './rollout-planner.js';
@@ -83,7 +83,7 @@ function candidatesFor(node, inquiries, recommendations, availableCapital, branc
   return [...primary.slice(0, firstCount), ...[...alternatives, ...primary.slice(firstCount)].sort(byValue).slice(0, branchLimit - firstCount)];
 }
 
-/** Bounded, deterministic beam search over the remaining weekly quote slots.
+/** Bounded, deterministic beam search over actual unsubmitted inquiries.
  * Existing bids stay fixed. All plans are simulated with real immutable bid
  * actions, so staff capacity, inventory allocations and quote rules are real.
  * Finalists are compared by real, independently seeded multi-week rollouts;
@@ -95,13 +95,19 @@ export function planQuoteBundle(state, { recommendations, filter, reserve = defa
   const rootFloor = floor(plannerForecast(state));
   const availableCapital = Math.max(1, Math.min(state.cash, rootFloor) - cashReserve);
   const root = { state, previous: null, steps: [], scenarioFloor: rootFloor, expectedProfit: 0, discountedExpectedProfit: 0, score: 0 };
-  const empty = (examined, extra = {}) => ({ steps: [], cashFloor: visibleFloor(state), scenarioFloor: rootFloor, expectedProfit: 0, discountedExpectedProfit: 0, score: 0, examined, reserve: cashReserve, projectedWeeks: 12, ...extra });
-  const depth = Math.max(0, Math.min(3, 3 - state.bids.length));
-  const inquiries = state.inquiries.filter(inquiry => (!filter || filter(inquiry)) && !state.bids.some(bid => bid.inquiryId === inquiry.id));
-  if (!depth || !inquiries.length || state.bankrupt || state.cash < cashReserve || rootFloor < cashReserve) return empty(0);
-  // Caps are deliberately small for phones. Even if the caller asks for an
-  // enlarged search, the three slots can trigger at most 58 candidate forecasts.
   const budget = rolloutBudget(state);
+  const submitted = new Set(state.bids.map(bid => bid.inquiryId));
+  const inquiries = state.inquiries.filter(inquiry => inquiry.expiresWeek >= state.week && (!filter || filter(inquiry)) && !submitted.has(inquiry.id));
+  // This is the number of consecutive additional quotes to compare in one
+  // calculation, irrespective of how many were already submitted. It is not
+  // a quota; another real action starts a fresh search on the new state.
+  const remainingCapacity=Math.max(0,quoteCapacity(state)-state.bids.length);
+  const depth = Math.min(budget.currentDepth, inquiries.length, remainingCapacity);
+  const context = { searchWindow: depth, remainingInquiries: inquiries.length, remainingCapacity };
+  const empty = (examined, extra = {}) => ({ steps: [], cashFloor: visibleFloor(state), scenarioFloor: rootFloor, expectedProfit: 0, discountedExpectedProfit: 0, score: 0, examined, reserve: cashReserve, projectedWeeks: 12, ...context, ...extra });
+  if (!depth || state.bankrupt || state.cash < cashReserve || rootFloor < cashReserve) return empty(0);
+  // Even as actual company capacity grows, the rolling search has at most 58
+  // candidate forecasts (35 in heavy saves) and bounded multi-week samples.
   const width = Math.max(1, Math.min(budget.beamWidth, Math.floor(beamWidth) || budget.beamWidth));
   const branches = Math.max(1, Math.min(budget.branchLimit, Math.floor(branchLimit) || budget.branchLimit));
   const visited = new Set();
@@ -162,9 +168,10 @@ export function planQuoteBundle(state, { recommendations, filter, reserve = defa
   finalists.sort((a, b) => b.score - a.score || b.scenarioFloor - a.scenarioFloor);
   const topFinalists = finalists.slice(0, 12);
   // Give shorter bundles a chance even when the analytic ranking is crowded
-  // with 3-order pricing variants. Their lower capital usage is precisely
+  // with longer bundle pricing variants. Their lower capital usage is precisely
   // what additional weekly rounds may reveal to be valuable.
-  const byDepth = [1, 2, 3].flatMap(length => finalists.filter(node => node.steps.length === length).slice(0, 3));
+  const lengths=Array.from({length:depth},(_,index)=>index+1);
+  const byDepth = lengths.flatMap(length => finalists.filter(node => node.steps.length === length).slice(0, 3));
   const visibleCandidates = [...new Set([...topFinalists, ...byDepth, ...finalists.filter(node => node.steps.length === 1)])];
   const possibleDepths = new Set(finalists.map(node => node.steps.length));
   const safe = [];
@@ -180,7 +187,7 @@ export function planQuoteBundle(state, { recommendations, filter, reserve = defa
   if (!safe.length) return empty(examined);
   const build = ({ node, steps, cashFloor }, extra = {}) => ({ steps, cashFloor, scenarioFloor: node.scenarioFloor,
     expectedProfit: node.expectedProfit, discountedExpectedProfit: node.discountedExpectedProfit, score: node.score, examined,
-    reserve: cashReserve, projectedWeeks: 12, ...extra });
+    reserve: cashReserve, projectedWeeks: 12, ...context, ...extra });
   // Useful in diagnostics to isolate the within-week beam from the actual
   // multiweek policy. Production coaching always keeps lookahead enabled.
   if (!lookahead) return build(safe[0]);
@@ -190,7 +197,7 @@ export function planQuoteBundle(state, { recommendations, filter, reserve = defa
   // variants of the same customer. Search stays bounded on a phone.
   const shortlist = [safe[0]];
   const add = candidate => { if (candidate && !shortlist.includes(candidate) && shortlist.length < budget.currentPlans) shortlist.push(candidate); };
-  for (const length of [1, 2, 3]) {
+  for (const length of lengths) {
     if (length !== shortlist[0].steps.length) add(safe.find(candidate => candidate.steps.length === length));
   }
   add(safe.find(candidate => !shortlist.some(selected => selected.steps[0].inquiry.id === candidate.steps[0].inquiry.id)));
@@ -217,8 +224,8 @@ export function planQuoteBundle(state, { recommendations, filter, reserve = defa
     && rollout.blockedCount <= baselineRollout.blockedCount && sampleDebt(rollout) <= sampleDebt(baselineRollout)
     && !(rollout.minCash < cashReserve && rollout.minCash < baselineRollout.minCash));
   const metrics = { baselineRollout, rolloutCompared: compared.length + 1, lookaheadRounds: baselineRollout.horizon };
-  // If waiting leads to a materially stronger estimated position, do not fill
-  // a quote slot just for its own sake. A small sample difference alone is
+  // If waiting leads to a materially stronger estimated position, do not add
+  // another quote just for its own sake. A small sample difference alone is
   // insufficient; the deal's positive expectation still matters.
   if (!best || best.rolloutScore < -Math.max(250, cashReserve * .05)) {
     return empty(examined, { ...metrics, rollout: baselineRollout, rolloutDelta: 0, rolloutScore: 0, waitPreferred: true });

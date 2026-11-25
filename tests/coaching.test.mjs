@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { newGame, forecast, act } from '../v38/engine/game.js';
-import { quote } from '../v38/engine/quotes.js';
+import { quote, quoteCapacity } from '../v38/engine/quotes.js';
 import { coachQuoteFilters, eventCoach, pageCoach, quoteRecommendation, recordCoachDecline, recordCoachReview, recordCoachVisit } from '../v38/ui/coaching.js';
 import { certProgress, decisionInfo } from '../v38/engine/expansion.js';
 import { ipoProgress } from '../v38/engine/strategy.js';
@@ -187,13 +187,13 @@ test('simple coaching prioritizes actionable finances and rest, can settle with 
     assert.doesNotMatch(html, /data-ui="coach-settlement"/);
   }
   const continuation = pageCoach(submitted, {page:'inquiries', coachPrep:3});
-  assert.match(continuation, /已报价 1\/3 笔.*预计.*建议再报.*最低余额/s);
+  assert.match(continuation, new RegExp(`已报价 1 / ${quoteCapacity(state)} 笔.*预计.*接下来优先考虑.*提交一笔后会重新判断.*最低余额`,'s'));
   assert.match(continuation, /data-ui="quote-open"/);
   assert.doesNotMatch(continuation, new RegExp(`data-id="${inquiry.id}"`));
   const filtered = pageCoach(submitted, {page:'inquiries', coachPrep:3, filters:{category:'test-nonexistent', availability:'available'}});
   assert.match(filtered, /当前筛选没有合适的方案.*data-ui="coach-all-inquiries"/s);
   let filled = state;
-  for (let index = 0; index < 3; index++) {
+  for (let index = 0; index < quoteCapacity(filled); index++) {
     const html = pageCoach(filled, {page:'inquiries', coachPrep:3});
     const id = html.match(/data-ui="quote-open" data-id="([^"]+)"/)?.[1];
     const next = filled.inquiries.find(item => item.id === id);
@@ -204,12 +204,13 @@ test('simple coaching prioritizes actionable finances and rest, can settle with 
     assert.equal(result.error, undefined);
     filled = result.state;
   }
-  assert.equal(filled.bids.length, 3);
+  assert.equal(filled.bids.length, quoteCapacity(filled));
+  assert.ok(filled.bids.length>3,'the default sales assistant genuinely expands the profitable seeded company beyond the old fixed three');
   const completed={page:'inquiries',coachPrep:3};
-  assert.match(pageCoach(filled,completed),/三个报价位已用完.*data-ui="coach-settlement".*data-ui="coach-review-cash"/s,'routine cash review is optional alongside actual settlement');
+  assert.match(pageCoach(filled,completed),/团队本周报价能力已满.*data-ui="coach-settlement".*data-ui="coach-review-cash"/s,'routine cash review is optional alongside actual settlement');
   assert.equal(recordCoachReview(filled,completed,'cash'),true);
   assert.equal(recordCoachReview(filled,completed,'cash'),false);
-  assert.match(pageCoach(filled,completed), /三个报价位已用完.*data-page="offwork".*data-ui="coach-settlement"/s);
+  assert.match(pageCoach(filled,completed), /团队本周报价能力已满.*data-page="offwork".*data-ui="coach-settlement"/s);
   assert.doesNotMatch(pageCoach(filled, {page:'inquiries',coachPrep:3}), /data-ui="quote-open"/);
   const unsuitable = {...submitted, inquiries:submitted.inquiries.map(item=>item.id===inquiry.id ? item : {...item,minRep:101})};
   for (const page of ['inquiries','office','orders','offwork']) {
@@ -369,10 +370,12 @@ for (const viewport of [{ width: 320, height: 568, mobile: true }, { width: 390,
       assert.equal(await page.evaluate(`JSON.parse(localStorage.getItem('trade-tycoon:weekly:v38:v1')).view.coachPrep`), 3);
       assert.equal(await page.evaluate(`JSON.parse(localStorage.getItem('trade-tycoon:weekly:v38:v1')).view.coachLearning`), true,'the requested first teaching round remains active through the first contract');
       await page.click(`${coach} [data-page="inquiries"]`);
-      assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`), /建议再报 2 笔.*估算收益.*最低余额/s);
+      assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`), /接下来优先考虑 \d+ 笔.*估算收益.*提交一笔后会重新判断.*最低余额/s);
       await page.screenshot(`/tmp/v38-coach-multi-quote-${viewport.width}.png`);
       const ids = [(await currentState(page)).bids[0].inquiryId];
-      for (let index=1; index<3;index++) {
+      const capacity=quoteCapacity(await currentState(page));
+      assert.ok(capacity>3);
+      for (let index=1; index<capacity;index++) {
         const next = await page.evaluate(`document.querySelector('${coach} [data-ui="quote-open"]').dataset.id`);
         assert.ok(!ids.includes(next)); ids.push(next);
         await page.click(`${coach} [data-ui="quote-open"]`);
@@ -386,7 +389,7 @@ for (const viewport of [{ width: 320, height: 568, mobile: true }, { width: 390,
       await page.waitFor(present('.forecast-panel [data-ui="coach-review-next"]'));
       await page.click('.forecast-panel [data-ui="coach-review-next"]');
       await page.waitFor(present(`${coach} [data-ui="coach-settlement"]`));
-      assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`),/三个报价位已用完/);
+      assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`),/团队本周报价能力已满/);
       assert.ok(await page.evaluate(present(`${coach} [data-page="offwork"]`)));
       await settleWithCoach(page, coach);
       await page.waitFor(present('dialog [data-ui="view-first-order"]'));
@@ -417,7 +420,7 @@ for (const viewport of [{ width: 320, height: 568, mobile: true }, { width: 390,
       await page.click('dialog form[data-form="quote"] button[type="submit"]');
       await page.click(`${coach} [data-ui="coach-review-cash"]`);
       await page.click('.forecast-panel [data-ui="coach-review-next"]');
-      assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`),/不必为了用完报价位.*其余询盘暂时没有/s);
+      assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`),/先把利润和周转守住.*其余询盘暂时没有/s);
       assert.equal(await page.evaluate(present(`${coach} [data-ui="quote-open"]`)),false);
       await page.screenshot(`/tmp/v38-coach-no-extra-quote-${viewport.width}.png`);
       await settleWithCoach(page, coach);

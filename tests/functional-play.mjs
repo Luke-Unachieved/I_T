@@ -3,7 +3,7 @@
 // policy in the 2001 scenario on casual difficulty, rather than tuning values.
 import { act, forecast, netAssets, newGame } from '../v38/engine/game.js';
 import { certProgress } from '../v38/engine/expansion.js';
-import { quote } from '../v38/engine/quotes.js';
+import { quote, quoteCapacity } from '../v38/engine/quotes.js';
 import { ipoProgress, ventureProgress } from '../v38/engine/strategy.js';
 
 const weeks = Number(process.argv[2] ?? 520);
@@ -115,9 +115,9 @@ while (state.week <= weeks && !state.bankrupt) {
   for (const bill of state.receivables.filter(bill => bill.status === 'overdue')) {
     perform({ type: 'collect', receivableId: bill.id });
   }
-  const bids = state.inquiries.map(bestProposal).filter(Boolean).sort((a, b) => b.score - a.score).slice(0, 8);
+  const bids = state.inquiries.map(bestProposal).filter(Boolean).sort((a, b) => b.score - a.score);
   for (const { proposal, options } of bids) {
-    if (state.bids.length >= 3) break;
+    if (state.bids.length >= quoteCapacity(state)) break;
     if (forecast(state, proposal).some(week => week.hypothetical < 0)) continue;
     if (perform({ type: 'bid', inquiryId: proposal.inquiryId, source: proposal.source, ...options })) submitted += 1;
   }

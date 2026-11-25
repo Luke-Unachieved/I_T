@@ -5,8 +5,11 @@ import { fileURLToPath } from 'node:url';
 import { launchBrowser } from './helpers/chromium.mjs';
 import { currentState } from './helpers/scenarios.mjs';
 import { SAVE_KEY } from '../v38/ui/save.js';
-import { act } from '../v38/engine/game.js';
-import { coachTourIds, pageCoach } from '../v38/ui/coaching.js';
+import { act, forecast, netAssets } from '../v38/engine/game.js';
+import { quoteCapacity } from '../v38/engine/quotes.js';
+import { certProgress, decisionInfo, marketProgress } from '../v38/engine/expansion.js';
+import { coachQuoteFilters, coachTourIds, eventCoach, pageCoach, quoteRecommendation, recordCoachReview } from '../v38/ui/coaching.js';
+import { operatingReserve } from '../v38/ui/development-planner.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const options = {skip:process.env.V38_BROWSER !== '1', timeout:120_000};
@@ -24,56 +27,105 @@ const selector = '.workspace > .coach-card';
 // direct wage-savings-only threshold.
 const fixture = JSON.parse(await readFile(new URL('./fixtures/hiring-seed920-w32.json', import.meta.url), 'utf8'));
 
-test('the actual week-32 checkpoint supports independent hiring, audit and market decisions in later weeks', () => {
+const buttons=html=>Array.from(html.matchAll(/<button\b([^>]*)>(.*?)<\/button>/gs),match=>({
+  ...Object.fromEntries(Array.from(match[1].matchAll(/([\w-]+)="([^"]*)"/g),([,name,value])=>[name,value])),
+  label:match[2].replace(/<[^>]*>/g,'').replace(/&amp;/g,'&'),
+}));
+
+test('the actual week-32 checkpoint supports separate hiring, audit and market decisions under adaptive team capacity', {timeout:90000}, () => {
   let state=structuredClone(fixture);
-  const ui={page:'inquiries',coachPrep:3,coachIntro:4,coachTour:{version:2,visited:coachTourIds,active:null,skipped:false},
+  const ui={page:'inquiries',coachPrep:3,coachIntro:4,coachLearning:false,coachTour:{version:2,visited:coachTourIds,active:null,skipped:false},
     coachReview:{},filters:{category:'all',availability:'all'}};
-  const advise=(tab,title)=>{
-    const before=structuredClone(state);
-    const html=pageCoach(state,ui);
-    assert.match(html,title);
-    assert.ok(html.includes(`data-page="company" data-coach-tab="${tab}"`));
-    assert.deepEqual(state,before,'viewing advice cannot execute the next development action');
-  };
-  const apply=action=>{
+  const trace=[],quotedByWeek={};
+  const priorMarkets=new Set(state.company.markets);
+  const apply=(action)=>{
+    const before=state;
     const result=act(state,action);
-    assert.ifError(result.error);
+    assert.ifError(result.error,JSON.stringify(action));
     state=result.state;
+    trace.push({week:before.week,type:action.type,id:action.id,cashBefore:before.cash,cashAfter:state.cash});
+    if(action.type==='hire'){
+      assert.equal(state.cash,before.cash);
+      assert.deepEqual(state.company.certs,before.company.certs);
+      assert.deepEqual(state.company.markets,before.company.markets);
+      assert.ok(quoteCapacity(state)>quoteCapacity(before));
+    }
+    if(action.type==='buy-cert'){
+      const cert=certProgress(before,netAssets(before)).find(item=>item.id===action.id);
+      assert.ok(cert?.available);
+      assert.equal(state.cash,before.cash-cert.fee);
+      assert.deepEqual(state.company.markets,before.company.markets);
+    }
+    if(['referral','open-market'].includes(action.type)){
+      const market=marketProgress(before).find(item=>item.id===action.id);
+      assert.ok(market?.eligible);
+      assert.equal(state.cash,before.cash-(action.type==='referral'?market.referralFee:market.fee));
+    }
+    if(['hire','buy-cert','referral','open-market'].includes(action.type)){
+      assert.equal(state.loan,before.loan);
+      assert.ok(Math.min(state.cash,...forecast(state).flatMap(row=>[row.cash,row.hypothetical]))>=operatingReserve(state));
+    }
   };
-  // Exact real offers/decisions from a six-week continuation of this checkpoint.
-  // Replay the already chosen ordinary business, but independently ask the
-  // current coach about each new development step before executing it.
-  advise('team',/建议聘用梁佳音/);
-  apply({type:'hire',id:'liang'});
-  assert.equal(state.cash,153553);
-  assert.deepEqual(state.company.certs,['export']);
-  for(const action of [
-    {type:'bid',inquiryId:'w32-2',source:'factory',ratio:85,extraTerms:0,staffId:'',financing:'letter-of-credit'},
-    {type:'bid',inquiryId:'w32-1',source:'factory',ratio:95,extraTerms:0,staffId:'fang',financing:'standard'},
-    {type:'bid',inquiryId:'w32-5',source:'factory',ratio:80,extraTerms:0,staffId:'',financing:'standard'},
-    {type:'end-week'}, {type:'dismiss-summary'},
-    {type:'resolve-event',eventId:'event-434',choice:'defer'},
-    {type:'resolve-event',eventId:'event-435',choice:'contact'},
-    {type:'resolve-event',eventId:'event-436',choice:'contact'},
-  ]) apply(action);
-  assert.equal(state.week,33);
-  advise('certifications',/取得验厂认证/);
-  const beforeAudit=state.cash;
-  apply({type:'buy-cert',id:'audit'});
-  assert.equal(state.cash,beforeAudit-25000);
-  assert.deepEqual(state.company.markets,['domestic','se-asia']);
-  for(const action of [
-    {type:'bid',inquiryId:'w33-5',source:'factory',ratio:95,extraTerms:0,staffId:'',financing:'standard'},
-    {type:'bid',inquiryId:'w33-2',source:'factory',ratio:80,extraTerms:0,staffId:'',financing:'letter-of-credit'},
-    {type:'bid',inquiryId:'w33-3',source:'stock',ratio:80,extraTerms:4,staffId:'',financing:'standard'},
-    {type:'end-week'}, {type:'dismiss-summary'},
-  ]) apply(action);
-  assert.equal(state.week,34);
-  advise('markets',/开拓日韩/);
-  const beforeMarket=state.cash;
-  apply({type:'referral',id:'east-asia'});
-  assert.equal(state.cash,beforeMarket-6600);
-  assert.ok(state.company.markets.includes('east-asia'));
+  // Do not force the old three-quote trace or any exact certification week.
+  // Follow the current coach after every real state change; a strategic
+  // expansion may reasonably be deferred or select a different market.
+  for(let turns=0;turns<500&&state.week<fixture.week+10&&!state.company.markets.some(id=>!priorMarkets.has(id));turns++){
+    if(state.summary){apply({type:'dismiss-summary'});continue;}
+    if(state.events.length){
+      const event=state.events[0],info=decisionInfo(state,event);
+      const suggested=eventCoach(state,event,info.choices)?.id;
+      const legal=info.choices.filter(choice=>!choice.disabled&&!act(state,{type:'resolve-event',eventId:event.id,choice:choice.id}).error);
+      const choice=suggested??(legal.length===1?legal[0].id:null);
+      assert.ok(choice,`No genuine event action for ${event.title}`);
+      apply({type:'resolve-event',eventId:event.id,choice});continue;
+    }
+    const snapshot=structuredClone(state),html=pageCoach(state,ui),offers=buttons(html);
+    assert.deepEqual(state,snapshot,'viewing current advice must not automatically act');
+    const main=offers.find(button=>button.class?.split(' ').includes('coach-action'));
+    assert.ok(main,`No primary recommendation at week ${state.week}`);
+    // Quiet leisure and settlement are voluntary alternatives; choose the
+    // actual settlement control when the current coach has no urgent work.
+    const settlement=offers.find(button=>button['data-ui']==='coach-settlement');
+    const action=settlement&&main['data-ui']==='coach-leisure-menu'?settlement:main;
+    const route=action['data-ui'],id=action['data-id'];
+    if(route==='page'){
+      ui.page=action['data-page'];
+      if(ui.page==='company'){
+        ui.developmentTab=action['data-coach-tab']??ui.developmentTab;
+        ui.developmentOverview=!action['data-coach-tab'];
+      }
+      if(ui.page==='office'&&action['data-coach-tab']==='cash-forecast')recordCoachReview(state,ui,'cash');
+    }else if(route==='coach-review-cash'||route==='coach-focus-forecast'){
+      ui.page='office';assert.ok(recordCoachReview(state,ui,'cash'));
+    }else if(route==='coach-review-orders'){
+      ui.page='orders';assert.ok(recordCoachReview(state,ui,id));
+    }else if(route==='coach-target'){
+      const type=action['data-coach-action']??action['data-coach-form'];
+      assert.ok(type);
+      apply({type,id,...(action['data-coach-amount']?{amount:Number(action['data-coach-amount'])}:{}),
+        ...(action['data-choice']?{target:action['data-choice']}:{}),...(type==='withdraw-bid'?{inquiryId:id}:{}),
+        ...(type==='liquidate'?{productId:id}:{})});
+      const section={expedite:'orders-delivery',collect:'orders-receivables',sue:'orders-receivables',factor:'orders-receivables',liquidate:'orders-inventory'}[type];
+      if(section&&ui.page==='orders')recordCoachReview(state,ui,section);
+    }else if(route==='quote-open'){
+      const inquiry=state.inquiries.find(item=>item.id===id);
+      const offer=quoteRecommendation(state,inquiry,coachQuoteFilters(state,ui));
+      assert.ok(offer?.offer.profit>0&&offer.cashFloor>=operatingReserve(state));
+      assert.ok(state.bids.length<quoteCapacity(state));
+      apply({type:'bid',inquiryId:id,...offer.config});
+      quotedByWeek[state.week]=(quotedByWeek[state.week]??0)+1;
+    }else if(route==='coach-select-outing')apply({type:'outing',id,choiceId:action['data-choice']});
+    else if(route==='coach-settlement'){
+      ui.page='offwork';apply({type:'end-week'});ui.page='inquiries';
+    }else assert.fail(`Unexpected primary assistant route ${route} at week ${state.week}`);
+  }
+  const hired=trace.find(item=>item.type==='hire');
+  const audit=trace.find(item=>item.type==='buy-cert'&&item.id==='audit');
+  const market=trace.find(item=>['referral','open-market'].includes(item.type)&&!priorMarkets.has(item.id));
+  assert.ok(hired&&audit&&market,`Staged progression did not complete: ${JSON.stringify(trace.filter(item=>['hire','buy-cert','referral','open-market'].includes(item.type)))}`);
+  assert.ok(hired.week<audit.week&&audit.week<market.week,'each stage is independently recommended in a later week');
+  assert.ok(Object.values(quotedByWeek).some(count=>count>3),'the actual continuation exercises more than three legal quotes');
+  assert.ok(state.company.certs.includes('audit')&&state.company.markets.some(id=>!priorMarkets.has(id)));
   assert.equal(state.loan,0);
 });
 

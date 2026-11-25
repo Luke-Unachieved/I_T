@@ -429,7 +429,7 @@ test('E06: failed optional comic explains the failure, retries, and keeps the qu
     await page.waitFor(`document.querySelector('dialog .media-frame.buyer-comic')?.dataset.mediaState==='loaded'`);
     await page.click('dialog [data-form="quote"] button[type="submit"]');
     await page.waitFor('!document.querySelector("dialog").open');
-    assert.match(await page.evaluate(body), /已用报价位 1 \/ 3/);
+    assert.match(await page.evaluate(body), /本周已报价 1 \/ 5/);
   } finally { await browser.close(); }
 });
 

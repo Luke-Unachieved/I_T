@@ -2,7 +2,7 @@ import { ASSISTANTS } from '../data/core.js';
 import { tradePolicy } from '../data/expansion.js';
 import { growthAction, growthEvent, growthWeek, initGrowth } from './expansion.js';
 import { collateral, initLife, lifeAction, lifeAssets, lifeWeek } from './life.js';
-import { generateInquiries, quote, resolveBid } from './quotes.js';
+import { generateInquiries, quote, quoteCapacity, resolveBid } from './quotes.js';
 import { random } from './rng.js';
 import { finalizeGoal, initAnnualGoal, initStrategy, nationalRank, strategyAction, strategyAssets, strategyMilestones, strategyWeek, valuation } from './strategy.js';
 import { ACTIVE_ORDER, amount, factorValue, OPEN_RECEIVABLE, orderDates, orderMargin, receivableValue, staffAbility, updateOrderProjection } from './treasury.js';
@@ -518,8 +518,9 @@ export function act(state, action = {}) {
     case 'bid': {
       const inquiry = s.inquiries.find((item) => item.id === action.inquiryId);
       if (!inquiry) return fail('这条询盘已结束。');
-      if (s.bids.length >= 3) return fail('本周三个报价位已用完。');
       if (s.bids.some((item) => item.inquiryId === inquiry.id)) return fail('已经提交过这条询盘。');
+      const capacity = quoteCapacity(s);
+      if (s.bids.length >= capacity) return fail(`当前团队本周报价能力为 ${capacity} 笔，已提交 ${s.bids.length} 笔，暂不能新增报价。`);
       const pitch = quote(s, inquiry, action);
       if (pitch.error) return fail(pitch.error);
       if (pitch.source === 'inventory') {

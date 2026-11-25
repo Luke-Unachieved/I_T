@@ -11,6 +11,13 @@ const domestic = MARKET_BY_ID.domestic;
 const activeOrder = item => !['paid', 'settled', 'cancelled', 'bad-debt', 'badDebt'].includes(item.status);
 const ventureLevel = value => Number.isInteger(value) ? clamp(value, 0, 3) : 0;
 
+// Current weekly quote-handling capacity comes from the company owner and
+// employed team. Sales handles more new negotiations; other roles support
+// the business. This is separate from a named employee's concurrent workload.
+export function quoteCapacity(state) {
+  return 3 + (state.staff ?? []).reduce((total, person) => total + (person.role === 'sales' ? 2 : 1), 0);
+}
+
 function tradeIndustry(state, category, marketId) {
   return {
     warehouseLevel: ventureLevel(state.ventures?.warehouse),

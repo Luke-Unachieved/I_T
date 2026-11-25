@@ -3,12 +3,34 @@ import assert from 'node:assert/strict';
 import { act, forecast, newGame } from '../v38/engine/game.js';
 import { planDevelopment } from '../v38/ui/development-planner.js';
 import { evaluateRollouts } from '../v38/ui/rollout-planner.js';
+import { quoteCapacity } from '../v38/engine/quotes.js';
 
 const step = (state, action) => {
   const result = act(state, action);
   assert.ifError(result.error);
   return result.state;
 };
+
+test('capacity-driven hiring must improve future business; a safe evidenced candidate is not lost behind higher-ranked options',()=>{
+  const ordinary=newGame({difficulty:'casual',seed:381});ordinary.cash=100000;ordinary.inquiries=[];
+  const person=ordinary.candidates.find(item=>item.role==='sales');
+  const proposed={action:{type:'hire',id:person.id},capacityExpansion:true,strategicValue:99,longTermEvidence:true,expectedWeeklyBenefit:100000};
+  const deferred=planDevelopment(ordinary,[proposed]);
+  assert.equal(deferred.choices.length,0);
+  assert.match(deferred.rejected[0].reason,/新增报价能力.*没有带来高于暂缓招聘的收益/,'generic long-term evidence cannot bypass strict positive capacity return');
+  let state=newGame({difficulty:'casual',seed:381});state.cash=500000;
+  const ref=state.inquiries[0];state.inquiries=Array.from({length:10},(_,i)=>({...ref,id:`inquiry-${i}`,quantity:100,targetPrice:200,dueWeek:4,expiresWeek:1,terms:0,depositRate:20,buyer:{...ref.buyer,id:`buyer-${i}`,credit:'AAA'},rivals:[{name:'同行',price:200,style:'稳健'}]}));
+  for(const inquiry of state.inquiries.slice(0,quoteCapacity(state))) state=step(state,{type:'bid',inquiryId:inquiry.id,source:'stock',ratio:95,extraTerms:0,financing:'standard'});
+  const sales=state.candidates.find(item=>item.role==='sales');
+  const others=state.candidates.filter(item=>item.id!==sales.id).slice(0,3).map((item,i)=>({action:{type:'hire',id:item.id},strategicValue:100-i}));
+  const snapshot=structuredClone(state);
+  const plan=planDevelopment(state,[...others,{action:{type:'hire',id:sales.id},capacityExpansion:true,strategicValue:10}]);
+  const choice=plan.choices.find(item=>item.action.id===sales.id);
+  assert.ok(choice&&choice.rolloutDelta>0,'an evidenced safe extra-capacity hire is actually sampled and compared against waiting');
+  assert.ok(choice.rolloutFutureBids>plan.defer.rolloutFutureBids&&choice.cashFloor>=choice.reserve);
+  assert.equal(quoteCapacity(step(state,choice.action)),quoteCapacity(state)+2);
+  assert.deepEqual(state,snapshot,'planning never hires or submits on the real save');
+});
 
 test('equal market unlocks are compared through real fees and 12-week liquidity, not first match', () => {
   const state = newGame({ seed: 19, difficulty: 'casual', origin: 'buyer' });
@@ -20,13 +42,13 @@ test('equal market unlocks are compared through real fees and 12-week liquidity,
     { action: { type: 'referral', id: 'se-asia' }, strategicValue: 60, label: '引荐' },
   ];
   const plan = planDevelopment(state, candidates);
-  assert.equal(plan.choices.length, 1);
+  assert.equal(plan.choices.length, 2,'both real approaches can now benefit from the larger actual quote capacity');
   assert.equal(plan.choices[0].label, '引荐');
   const directMarket = step(state, candidates[0].action);
   const marketFloor = Math.min(directMarket.cash, ...forecast(directMarket).flatMap(row => [row.cash, row.hypothetical]));
   assert.ok(marketFloor >= plan.baseline.reserve, 'Both choices pass the first cash reserve check');
   assert.ok(plan.choices[0].cashFloor > marketFloor);
-  assert.match(plan.rejected.find(item => item.candidate.label === '参展').reason, /多轮情境/);
+  assert.ok(plan.choices[0].rolloutDelta>plan.choices[1].rolloutDelta,'cheaper referral also has the stronger sampled continuation');
   const continueNow = evaluateRollouts(state, { reserve: plan.baseline.reserve, continueCurrentWeek: true });
   assert.equal(plan.defer.rolloutScore, continueNow.score);
   assert.ok(continueNow.scenarios.every(sample => sample.rounds[0].actions.some(action => action.type === 'bid')));
@@ -71,14 +93,14 @@ test('high strategic value cannot override insufficient reserve or an avoidable 
 
 test('a safe repayment is deferred if pending winning quotes consume the available reserve', () => {
   let state = newGame({ seed: 21, difficulty: 'casual' });
-  state.cash = 70000;
+  state.cash = 100000;
   state.loan = 9000;
   const candidate = { action: { type: 'repay', amount: 9000 }, strategicValue: 60 };
   assert.equal(planDevelopment(state, [candidate]).choices.length, 1);
   // Use a long open invoice term to keep the winning bid's procurement cash within
   // the planning horizon, without crediting a future sale not currently committed.
   const mira = state.inquiries.find(inquiry => inquiry.buyer.id === 'mira');
-  mira.quantity = 1000;
+  mira.quantity = 1800;
   mira.terms = 12;
   state = step(state, { type: 'bid', inquiryId: mira.id, source: 'stock', ratio: 80 });
   const untouched = structuredClone(state);

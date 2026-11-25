@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { access } from 'node:fs/promises';
 import { newGame, act, endWeek as closeWeek, forecast, creditLimit } from '../v38/engine/game.js';
-import { quote } from '../v38/engine/quotes.js';
+import { quote, quoteCapacity } from '../v38/engine/quotes.js';
 import { PRODUCTS, ASSISTANTS } from '../v38/data/core.js';
 
 const apply = (state, action) => {
@@ -112,15 +112,23 @@ test('an overpriced losing tender names the actual winner without creating an or
   assert.equal(result.cash, expectedCash);
 });
 
-test('only three quotations can be outstanding, and withdrawing releases a slot', () => {
+test('weekly quoting capacity reflects the team instead of a fixed three, and withdrawal frees capacity', () => {
   let state = fresh();
-  for (const inquiry of state.inquiries.slice(0, 3)) state = apply(state, { ...firstBid(state), inquiryId: inquiry.id });
+  const inquiries=state.inquiries.filter(inquiry=>!quote(state,inquiry,{source:'stock',ratio:80}).error);
+  const capacity=quoteCapacity(state);
+  assert.equal(capacity,5);
+  assert.ok(inquiries.length>capacity);
+  for (const inquiry of inquiries.slice(0,capacity)) state = apply(state, { ...firstBid(state), inquiryId: inquiry.id });
+  assert.equal(state.bids.length,capacity);
   const before = JSON.stringify(state);
-  const rejected = act(state, { ...firstBid(state), inquiryId: state.inquiries[3].id });
-  assert.ok(rejected.error);
+  const rejected = act(state, { ...firstBid(state), inquiryId: inquiries[0].id });
+  assert.match(rejected.error,/已经提交/);
+  assert.match(act(state,{...firstBid(state),inquiryId:inquiries[capacity].id}).error,/报价能力为 5 笔/);
   assert.equal(JSON.stringify(state), before);
-  state = apply(state, { type: 'withdraw-bid', inquiryId: state.inquiries[0].id });
-  assert.equal(state.bids.length, 2);
+  state = apply(state, { type: 'withdraw-bid', inquiryId: inquiries[0].id });
+  assert.equal(state.bids.length,capacity-1);
+  state = apply(state, { ...firstBid(state), inquiryId: inquiries[capacity].id });
+  assert.equal(state.bids.length,capacity);
 });
 
 test('cash forecast has twelve finite weeks and its first quiet week agrees with settlement', () => {

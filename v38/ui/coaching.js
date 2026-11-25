@@ -3,7 +3,7 @@ import { STAFF_ROLES } from '../data/expansion.js';
 import { certProgress, marketProgress } from '../engine/expansion.js';
 import { act, canExpedite, expediteFee, factorValue, forecast, liquidationValue, lawsuitFee, netAssets } from '../engine/game.js';
 import { LIFE_CATALOG, outingLockHint } from '../engine/life.js';
-import { quote } from '../engine/quotes.js';
+import { quote, quoteCapacity } from '../engine/quotes.js';
 import { ipoProgress, VENTURES, ventureProgress } from '../engine/strategy.js';
 import { ACTIVE_ORDER, OPEN_RECEIVABLE } from '../engine/treasury.js';
 import { planQuoteBundle, plannerForecast, quoteExpectedProfit } from './quote-planner.js';
@@ -212,10 +212,15 @@ function proposalConfig(offer) {
     branded: offer.branded, brandUnitPrice: offer.unitPrice };
 }
 
+function unsubmittedInquiries(state) {
+  const submitted=new Set(state.bids.map(item=>item.inquiryId));
+  return state.inquiries.filter(inquiry=>inquiry.expiresWeek>=state.week&&!submitted.has(inquiry.id));
+}
+
 // The assistant compares executable quotes, preferring a good expected return, short cash cycles,
 // reliable buyers and enough reserve for other commitments. This is a shortlist, not a guarantee.
 function quoteCandidates(state, inquiry) {
-  if (!easy(state) || !inquiry || state.bids.length >= 3 || state.bids.some(item => item.inquiryId === inquiry.id)) return [];
+  if (!easy(state) || !inquiry || inquiry.expiresWeek<state.week || state.bids.length>=quoteCapacity(state) || state.bids.some(item => item.inquiryId === inquiry.id)) return [];
   let estimate = candidateCache.get(state);
   if (!estimate) {
     const reserve = operatingReserve(state);
@@ -227,7 +232,8 @@ function quoteCandidates(state, inquiry) {
   const sources = ['stock', 'factory', ...(state.inventory.some(item => item.productId === inquiry.productId) ? ['inventory'] : [])];
   const ratioBelow = Math.floor((Math.min(inquiry.targetPrice, ...inquiry.rivals.map(rival => rival.price)) - 1) * 100 / inquiry.targetPrice);
   const ratios = [...new Set([80, 85, 90, 95, 100, ratioBelow, ratioBelow + 1].filter(n => n >= 80 && n <= 100))];
-  const sales = state.staff.filter(person => person.role === 'sales').sort((a, b) => b.ability - a.ability).slice(0, 2);
+  const load=person=>state.bids.filter(item=>item.staffId===person.id).length+state.orders.filter(item=>item.staffId===person.id&&ACTIVE_ORDER.has(item.status)).length;
+  const sales = state.staff.filter(person => person.role === 'sales'&&load(person)<3).sort((a, b) => b.ability - a.ability).slice(0, 2);
   const staffOptions = [null, ...sales.map(person => person.id)];
   const overseas = inquiry.currency !== 'CNY';
   const financingOptions = overseas ? ['standard', 'letter-of-credit', 'insured'] : ['standard'];
@@ -289,14 +295,14 @@ function quoteBundle(state, filter = {}) {
   const excluded=new Set(filter?.excludedIds ?? []);
   const key = JSON.stringify([category, availability,[...excluded].sort()]);
   if (!estimate.plans.has(key)) {
-    const matches = inquiry => !excluded.has(inquiry.id) && (!category || inquiry.category === category) && (availability !== 'available' || ['stock', 'factory', 'inventory'].some(source => !quote(state, inquiry, { source, ratio: 100, extraTerms: 0 }).error));
+    const matches = inquiry => inquiry.expiresWeek>=state.week&&!excluded.has(inquiry.id) && (!category || inquiry.category === category) && (availability !== 'available' || ['stock', 'factory', 'inventory'].some(source => !quote(state, inquiry, { source, ratio: 100, extraTerms: 0 }).error));
     estimate.plans.set(key, planQuoteBundle(state, { recommendations: quoteCandidates, filter: matches, reserve: estimate.reserve }));
   }
   return estimate.plans.get(key);
 }
 
 export function quoteRecommendation(state, inquiry, filter) {
-  if (!easy(state) || !inquiry || state.bids.length >= 3 || state.bids.some(item => item.inquiryId === inquiry.id)) return null;
+  if (!easy(state) || !inquiry || inquiry.expiresWeek<state.week || state.bids.length>=quoteCapacity(state) || state.bids.some(item => item.inquiryId === inquiry.id)) return null;
   // The recommended thread and its actual proposal must match, even after a filter change.
   const planned = quoteBundle(state, filter).steps[0];
   if (planned?.inquiry.id === inquiry.id) return verifyRecommendation(state,planned.recommendation);
@@ -328,23 +334,26 @@ function projectedCreditNote(state) {
 
 function inquiryAdvice(state, filter, onInquiryPage = true) {
   const submitted = state.bids.length;
-  if (submitted >= 3) return note('本周的三个报价位已用完', `已经提交 3 笔报价，无需继续挑选。本周结算后会揭晓结果、推进订单与回款，并收到新询盘。${projectedCreditNote(state)}`, settle());
+  const capacity=quoteCapacity(state);
+  const pending=unsubmittedInquiries(state);
+  const progress=submitted?`本周已报价 ${submitted} / ${capacity} 笔。`:'';
+  if(submitted>capacity)return note('团队本周报价能力已满',`已报价 ${submitted} 笔（当前能力 ${capacity} 笔）。团队人数变化后，本周暂不能新增报价。已提交的报价仍然有效，可在结算前撤回。${projectedCreditNote(state)}`,settle());
+  if(!pending.length)return note(submitted?'本周来信已经处理完':'先别急着发新报价',`${progress}当前没有其他未提交的有效询盘。结算会揭晓报价结果、推进订单与回款，并收到新来信。${projectedCreditNote(state)}`,settle());
+  if(submitted>=capacity)return note('团队本周报价能力已满',`${progress}还有 ${pending.length} 封有效来信，但团队暂时无法跟进更多报价。已经提交的仍然有效，本周结算后会揭晓结果；也可在结算前撤回不合适的报价。${projectedCreditNote(state)}`,settle());
   const best = bestInquiry(state, filter);
   if (best) {
     const { inquiry, recommendation: { offer }, bundle } = best;
-    const progress = submitted ? `已报价 ${submitted}/3 笔。` : '';
     const rollout=bundle.rollout?`我按 ${bundle.rollout.scenarioCount} 种可能的情况，算了接下来 ${bundle.rollout.horizon} 周的接单、交货和回款。`:'';
-    const plan = `${rollout}建议${submitted ? '再' : '先'}报 ${bundle.steps.length} 笔，按中单和回款风险估算收益 ${cash(bundle.expectedProfit)}。若全部中单，最低余额 ${cash(bundle.cashFloor)}。`;
+    const plan = `${rollout}接下来优先考虑 ${bundle.steps.length} 笔，按中单和回款风险估算收益 ${cash(bundle.expectedProfit)}；提交一笔后会重新判断。若这些报价和已有报价全部中单，最低余额 ${cash(bundle.cashFloor)}。`;
     const advice=note(`${submitted ? '再看' : '先看'}${inquiry.buyer.name}的${inquiry.productName}询盘`, `${progress}此单建议${sourceNames[offer.source]}，预计中单率 ${percent(offer.probability)}，利润 ${cash(offer.profit)}。${plan}`, onInquiryPage ? { ui: 'quote-open', id: inquiry.id, label: '打开推荐询盘' } : page('inquiries', submitted ? '继续挑选询盘' : '开始挑选询盘'));
     return onInquiryPage?{...advice,nextAction:{ui:'coach-skip-inquiry',id:inquiry.id,label:'换条推荐',quiet:true}}:advice;
   }
   const filtered = (filter?.category && filter.category !== 'all') || filter?.availability === 'available';
   if (filtered && bestInquiry(state,{excludedIds:filter?.excludedIds})) return note('当前筛选没有合适的方案', '全部来信中还有利润和资金都合适的询盘，建议取消筛选再挑选。', onInquiryPage ? { ui: 'coach-all-inquiries', label: '查看全部询盘' } : page('inquiries', '查看询盘并调整筛选'));
   const waiting=quoteBundle(state,filter);
-  if(waiting.waitPreferred)return note('先把资金留给后续机会',`我按 ${waiting.rollout.scenarioCount} 种可能情况，比较了接下来 ${waiting.rollout.horizon} 周的生意。现在留下资金，更有利于之后接单和周转。其余询盘并非都亏损，你仍可自行报价。${projectedCreditNote(state)}`,settle());
-  const remaining = state.inquiries.some(inquiry => !state.bids.some(bid => bid.inquiryId === inquiry.id) && !filter?.excludedIds?.includes(inquiry.id));
-  const skipped=state.inquiries.some(inquiry=>!state.bids.some(bid=>bid.inquiryId===inquiry.id)&&filter?.excludedIds?.includes(inquiry.id));
-  return note(submitted ? '不必为了用完报价位而接单' : '先别急着发新报价', `${submitted ? `已报价 ${submitted}/3 笔。` : ''}${remaining ? '其余询盘暂时没有同时满足交期、利润和周转资金预留的方案。' : skipped?'本周已略过其余来信，仍可自行打开。':'当前没有其他未提交的询盘。'}结算会让新询盘和现有业务继续推进。${projectedCreditNote(state)}`, settle());
+  if(waiting.waitPreferred)return note('先把资金留给后续机会',`${progress}我按 ${waiting.rollout.scenarioCount} 种可能情况，比较了接下来 ${waiting.rollout.horizon} 周的生意。现在留下资金，更有利于之后接单和周转。其余询盘并非都亏损，你仍可自行报价。${projectedCreditNote(state)}`,settle());
+  const remaining = pending.some(inquiry => !filter?.excludedIds?.includes(inquiry.id));
+  return note(submitted ? '先把利润和周转守住' : '先别急着发新报价', `${progress}${remaining ? '其余询盘暂时没有同时满足交期、利润和周转资金预留的方案。' : '本周已略过其余来信，仍可自行打开。'}结算会让新询盘和现有业务继续推进。${projectedCreditNote(state)}`, settle());
 }
 
 // The orders and leisure pages share the same decision about whether another quote
@@ -469,6 +478,38 @@ function auditHiringPlan(state,growth) {
   return {reason:`已经有验厂认证的业务基础，但招聘、认证和市场费用至少需 ${cash(cheapest)}，目前还不能在保留报价资金的前提下稳妥承担全部安排。`};
 }
 
+function capacityHiringPlan(state,growth) {
+  const capacity=quoteCapacity(state);
+  const remaining=unsubmittedInquiries(state);
+  if(!growth.ready||state.staff.length>=18||state.bids.length<capacity||!remaining.length)return null;
+  // One busy week does not justify a permanent salary. Require recurrent
+  // actually profitable contract volume close to the team's current limit.
+  const cohorts=new Map();
+  for(const order of growth.orders.filter(item=>item.profit>0))cohorts.set(order.contractWeek,(cohorts.get(order.contractWeek)??0)+1);
+  const near=Math.ceil(capacity*.8);
+  const busy=[...cohorts.entries()].filter(([,count])=>count>=near);
+  if(busy.length<4||busy.filter(([week])=>week>=state.week-6).length<2)return null;
+  const people=state.candidates.filter(person=>person.role==='sales'&&!state.staff.some(staff=>staff.id===person.id||staff.name===person.name))
+    .sort((a,b)=>b.ability-a.ability||a.salary-b.salary);
+  for(const candidate of people.slice(0,2)){
+    const payroll=candidate.salary*12;
+    const reserve=growth.reserve+candidate.salary*4;
+    if(growth.average<candidate.salary*2||growth.retained<payroll||growth.capacity<payroll+candidate.salary*4||state.cash<reserve)continue;
+    const hired=act(state,{type:'hire',id:candidate.id});
+    if(hired.error)continue;
+    const rows=[...forecast(hired.state),...plannerForecast(hired.state)];
+    const minimum=Math.min(hired.state.cash,...rows.flatMap(row=>[row.cash,row.hypothetical]));
+    if(!Number.isFinite(minimum)||minimum<reserve||rows.some(row=>row.financing>0))continue;
+    const bundle=planQuoteBundle(hired.state,{recommendations:quoteCandidates,filter:inquiry=>remaining.some(item=>item.id===inquiry.id),reserve});
+    if(!bundle.steps.length||bundle.expectedProfit<candidate.salary*1.15||bundle.cashFloor<reserve)continue;
+    const addedCapacity=quoteCapacity(hired.state);
+    return {candidate,capacityExpansion:true,advice:note(`建议聘用${candidate.name}（业务员）`,
+      `近 12 周已有 ${busy.length} 周的盈利合同数量接近当前报价能力。本周已报 ${state.bids.length} 笔，仍有未处理的来信；招聘后团队报价能力从 ${capacity} 笔增至 ${addedCapacity} 笔。模拟聘用后，可再考虑 ${bundle.steps.length} 笔有利润且资金可承受的报价，估计收益 ${cash(bundle.expectedProfit)}，周薪 ${cash(candidate.salary)}，已计入 12 周工资 ${cash(payroll)}，并预留经营资金 ${cash(reserve)}。这不保证未来中单；聘用后再逐笔判断报价。`,
+      focus('hire',candidate.id,'查看推荐业务员'))};
+  }
+  return null;
+}
+
 function teamPlan(state) {
   const estimate = estimates(state);
   if (estimate.teamPlan) return estimate.teamPlan;
@@ -497,6 +538,8 @@ function teamPlan(state) {
   }else if(direct){
     estimate.teamPlan=direct;
   } else {
+    const capacityHire=capacityHiringPlan(state,growth);
+    if(capacityHire){estimate.teamPlan=capacityHire;return capacityHire;}
     const reason = growth.spent ? '本周已经增加过人员或办理发展投入，先让新安排产生实际效果。' : !growth.stable ? '近 12 周还没有实现持续盈利，先稳定订单收益。' : state.loan>0 ? '先处理贷款，暂不增加长期固定支出。' : !candidates.length ? '没有实际业务瓶颈能证明新岗位预计带来的收益足以覆盖工资和提成。' : '新增工资会挤占未来报价的周转资金。';
     const stageWaiting=growth.stable&&!growth.spent&&state.loan===0&&growth.orders.length>=12&&staged?.reason;
     estimate.teamPlan={advice:noAction(stageWaiting?`暂缓聘用。${stageWaiting}`:`暂缓聘用。${reason} 日后需求明朗、收益覆盖岗位成本，且未来 12 周最低余额保留后续报价资金，再考虑招聘。`)};
@@ -606,15 +649,19 @@ function listingCandidate(state,growth) {
   // Equity is not free money: consider dilution only for a real working-capital bottleneck.
   const remainingCredit=Math.max(0,state.creditLine-state.loan);
   const shortage=growth.nextTrading-estimates(state).budget;
-  if (!(shortage>remainingCredit && state.bids.length<3)) return null;
+  const remaining=Math.min(unsubmittedInquiries(state).length,Math.max(0,quoteCapacity(state)-state.bids.length));
+  if (!(shortage>remainingCredit && remaining>0)) return null;
   const before=quoteBundle(state);
-  if (before.steps.length>=3-state.bids.length) return null;
+  if(before.steps.length>=remaining)return null;
   const result=act(state,{type:current.id});
   if (result.error) return null;
   const after=quoteBundle(result.state);
   const added=after.expectedProfit-before.expectedProfit;
-  if (after.steps.length<=before.steps.length || added<Math.max(500,growth.average*.5)) return null;
-  return {current,basis:`当前正常授信和现金限制后续报价。模拟引资后，本周可多报 ${after.steps.length-before.steps.length} 笔，考虑成交机会和回款风险，预计收益增加 ${cash(added)}；预计引入 ${cash(current.cashIn)}，创始人持股降至 82%，仍需考虑长期股权代价。`};
+  const more=after.steps.length-before.steps.length;
+  const beforeIds=new Set(before.steps.map(step=>step.inquiry.id));
+  const betterCombination=after.steps.some(step=>!beforeIds.has(step.inquiry.id));
+  if ((more<=0&&!betterCombination) || added<Math.max(500,growth.average*.5)) return null;
+  return {current,basis:`当前正常授信和现金限制后续报价。模拟引资后，${more>0?`接下来可多考虑 ${more} 笔可行报价`:'接下来可以考虑收益更高的新报价组合'}，考虑成交机会和回款风险，预计收益增加 ${cash(added)}；预计引入 ${cash(current.cashIn)}，创始人持股降至 82%，仍需考虑长期股权代价。`};
 }
 
 function developmentCandidates(state) {
@@ -629,7 +676,7 @@ function developmentCandidates(state) {
     candidates.push({ tab: 'finance', action: { type: 'repay', amount }, strategicValue: 82, advice: note('有闲置现金时优先还款', `建议偿还 ${cash(amount)}，仍保留经营周转资金，减少每周利息。`, form('repay', '查看并核对还款', amount)) });
   }
   const team = teamPlan(state);
-  for(const option of [team,team.alternative].filter(item=>item?.candidate)) candidates.push({tab:'team',action:{type:'hire',id:option.candidate.id},longTermEvidence:!option.stagedUnlock,expectedWeeklyBenefit:option.expectedWeeklyBenefit,stagedUnlock:option.stagedUnlock,stageCost:option.stageCost,strategicValue:option.stagedUnlock?78:72,advice:option.advice});
+  for(const option of [team,team.alternative].filter(item=>item?.candidate)) candidates.push({tab:'team',action:{type:'hire',id:option.candidate.id},longTermEvidence:!option.stagedUnlock&&!option.capacityExpansion,expectedWeeklyBenefit:option.expectedWeeklyBenefit,capacityExpansion:option.capacityExpansion,stagedUnlock:option.stagedUnlock,stageCost:option.stageCost,strategicValue:option.stagedUnlock?78:72,advice:option.advice});
   const markets=marketProgress(state);
   const overseas= growth.delivered.filter(order=>order.market!=='domestic' && order.profit>0);
   for (const cert of certProgress(state, netAssets(state)).filter(item => item.available)) {
@@ -1099,15 +1146,18 @@ function manualQuoteAdvice(state,inquiry,model,selected) {
   const tradeoff=delta===null?'':Math.abs(delta)<50?' 考虑成交机会和回款风险，两种方案预计收益接近。':` 考虑成交机会和回款风险，相比助理方案预计收益${delta>0?'增加':'减少'}约 ${cash(Math.abs(delta))}。`;
   const details=`你的方案预计中单率 ${percent(draft.probability)}，订单利润 ${cash(draft.profit)}，若本周报价全部成交，预计最低余额 ${cash(floor)}。${tradeoff}`;
   const review={ui:'coach-review-submit',label:'保留我的方案，查看提交 ↓'};
-  const safe=draft.profit>0&&draft.probability>0&&floor>=estimates(state).reserve;
+  const safe=draft.profit>0&&draft.probability>0&&value>0&&floor>=estimates(state).reserve;
   if (safe) return {...note('你的报价方案可保留',`${details}${!selected?' 单笔可盈利，但仍要留意整周经营安排。':' 仍保留必要资金，可以维持你的选择。'}`,review),nextAction:apply};
-  const risk=draft.probability<=0?'当前价格没有中单机会。':draft.profit<=0?'即使成交也没有正利润。':`最低现金低于建议预留 ${cash(estimates(state).reserve)}，会挤占周转。`;
+  const risk=draft.probability<=0?'当前价格没有中单机会。':draft.profit<=0?'即使成交也没有正利润。':value<=0?'算上回款与履约风险后，预计收益不足以承担风险。':`最低现金低于建议预留 ${cash(estimates(state).reserve)}，会挤占周转。`;
   return {...note('你的改动有经营风险',`${details} ${risk} 仍由你决定是否提交。`,apply??review),nextAction:apply?{...review,quiet:true}:null};
 }
 
 export function quoteCoach(state, inquiry, model, filter, initial={}) {
   if (!easy(state)) return '';
-  if (state.bids.some(item => item.inquiryId === inquiry.id) || state.bids.length >= 3) return card(state, note('本周暂时无法再提交这笔报价', '待本周结算后再选择新机会，也可以先在询盘页撤回不再合适的报价。'), { preview: true });
+  if (state.bids.some(item => item.inquiryId === inquiry.id)) return card(state, note('这条询盘已经提交报价', '可以在询盘页撤回这条报价，再重新算价；本周结算时会揭晓结果。'), { preview: true });
+  if (inquiry.expiresWeek<state.week) return card(state,note('这条询盘已过报价期限','返回客户来信查看仍然有效的询盘。'),{preview:true});
+  const capacity=quoteCapacity(state);
+  if (state.bids.length>=capacity) return card(state,note('团队本周报价能力已满',`${state.bids.length>capacity?`已报价 ${state.bids.length} 笔（当前能力 ${capacity} 笔）。`:`本周已报价 ${state.bids.length} / ${capacity} 笔。`}可以查看来信条款，也可返回已提交报价，撤回不再合适的询盘。已经提交的报价仍然有效。`),{preview:true});
   const recommended = quoteRecommendation(state, inquiry, filter);
   const applied=recommended&&Object.entries(recommended.config).every(([name,value])=>name==='brandUnitPrice'&&!recommended.config.branded||String(model[name]??'')===String(value));
   const edited=Object.keys(initial).length>0&&Object.entries(initial).some(([name,value])=>!(name==='brandUnitPrice'&&!model.branded)&&String(model[name]??'')!==String(value??''));
@@ -1143,7 +1193,7 @@ export function eventCoach(state, event, choices) {
     });
     reason = '比较预计交期、订单利润与合同逾期罚款，优先保住合同和现金回流。';
   } else {
-    const opportunities = state.inquiries.filter(inquiry => !state.bids.some(bid => bid.inquiryId === inquiry.id));
+    const opportunities = unsubmittedInquiries(state);
     const worthConsidering = (test, sources = ['stock', 'factory']) => opportunities.some(inquiry => sources.some(source => {
       const proposal = quote(state, inquiry, { source, ratio: 90 });
       return !proposal.error && proposal.profit > 0 && proposal.probability > 0 && proposal.workingCapital <= budget && test(proposal);
@@ -1155,7 +1205,7 @@ export function eventCoach(state, event, choices) {
       'fx-surge': spendable(600) && state.receivables.filter(bill => OPEN_RECEIVABLE.has(bill.status) && bill.currency === 'USD').reduce((total,bill) => total + (bill.foreignBalance ?? 0), 0) * .2 > 600 ? 'protect' : 'float',
       'new-tariff': spendable(550) && worthConsidering(offer => offer.market === event.market && offer.total >= 20000) ? 'certify' : 'observe',
       'tax-rebate': spendable(280) && worthConsidering(offer => offer.market === event.market && offer.total >= 15000) ? 'file' : 'ignore',
-      'local-fair': spendable(750) && state.bids.length < 2 ? 'book' : 'skip',
+      'local-fair': spendable(750) && !state.exhibitions.some(item=>item.market==='domestic'&&item.untilWeek>=state.week) ? 'book' : 'skip',
       'winter-supply': spendable(420) && worthConsidering(offer => offer.cost > 8400, ['factory']) ? 'combine' : 'wait',
       'season': spendable(250) ? 'reply' : 'watch',
       'warehouse-water': spendable(360) && (stock?.unitCost ?? 0) * (stock?.quantity ?? 0) * .12 > 360 ? 'move' : 'mark',

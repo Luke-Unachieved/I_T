@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { act, forecast, newGame } from '../v38/engine/game.js';
-import { quote } from '../v38/engine/quotes.js';
+import { quote, quoteCapacity } from '../v38/engine/quotes.js';
 import { planQuoteBundle } from '../v38/ui/quote-planner.js';
 import { evaluateRollouts, ROLLOUT_SEEDS, ROLLOUT_WEEKS } from '../v38/ui/rollout-planner.js';
 
@@ -44,6 +44,7 @@ test('rollout plays four actual weekly rounds per scenario, including new inquir
         if (action.type === 'bid') {
           assert.ok(round > 0, 'First round uses only candidate current bids; future policy chooses later rounds');
           assert.ok(replay.inquiries.some(inquiry => inquiry.id === action.inquiryId));
+          assert.ok(replay.bids.length<quoteCapacity(replay),'the same real team capacity governs every simulated round');
           actualBids++;
           if (!initialIds.has(action.inquiryId)) freshBids++;
         }
@@ -88,6 +89,17 @@ test('mandatory event is resolved through a concrete safe engine choice rather t
   assert.deepEqual(state, snapshot, 'Actual pending player decision must remain untouched');
 });
 
+test('larger-firm simulated decision queues are not falsely blocked after the former fixed twelve decisions',()=>{
+  const state=newGame({difficulty:'casual',seed:381});state.cash=100000;
+  state.events=Array.from({length:14},(_,i)=>({id:`materials-${i}`,type:'trade-event',code:'materials',title:'供应商调整价格',text:'比较采购方案',choices:[{id:'open',label:'按现价采购',macro:{materials:1}}]}));
+  const untouched=structuredClone(state);
+  const report=evaluateRollouts(state,{futurePolicy:false});
+  assert.equal(report.blockedCount,0);
+  assert.equal(report.completedRounds,12);
+  for(const scenario of report.scenarios)assert.equal(scenario.rounds[0].actions.filter(x=>x.type==='resolve-event').length,14);
+  assert.deepEqual(state,untouched);
+});
+
 test('multi-round comparison changes the current bundle when a slow contract would block profitable future moves', () => {
   const state = newGame({ difficulty: 'casual', seed: 381 });
   const reference = state.inquiries[0];
@@ -100,7 +112,7 @@ test('multi-round comparison changes the current bundle when a slow contract wou
   const chosen = planQuoteBundle(state, { recommendations });
   assert.deepEqual(new Set(ids(analytic)), new Set(['slow', 'fast', 'small']));
   assert.deepEqual(new Set(ids(chosen)), new Set(['fast', 'small']));
-  assert.ok(analytic.expectedProfit > chosen.expectedProfit, 'Old immediate expected-return ranking prefers filling all three slots');
+  assert.ok(analytic.expectedProfit > chosen.expectedProfit, 'The immediate expected-return ranking prefers every available offer');
   const analyticSimulation = evaluateRollouts(replayBundle(state, analytic), { reserve: analytic.reserve });
   const chosenSimulation = evaluateRollouts(replayBundle(state, chosen), { reserve: chosen.reserve });
   assert.ok(chosenSimulation.score > analyticSimulation.score);
@@ -150,7 +162,8 @@ test('four rounds stay explicitly bounded on a long history with a busy inquiry 
   const report = evaluateRollouts(state);
   const elapsed = performance.now() - started;
   assert.equal(report.completedRounds, 12);
-  assert.ok(report.futureBids <= 27, 'At most three new future bids per later week per scenario');
+  assert.ok(report.futureBids <= report.futureBidLimit*report.futureWeeks, 'A bounded simulation budget, not a real firm quota');
+  assert.ok(report.futureBidLimit<=quoteCapacity(state));
   assert.ok(report.futureBids > 0);
   assert.ok(elapsed < 3500, `rollout took ${Math.round(elapsed)}ms`);
 });
@@ -175,8 +188,8 @@ test('very long firm histories narrow the search width without skipping weekly s
   assert.equal(plan.rollout.horizon, 4);
   assert.equal(plan.rollout.scenarioCount, 2);
   assert.equal(plan.rollout.completedRounds, 8);
-  assert.equal(plan.rollout.futureBidLimit, 2);
-  assert.ok(plan.rollout.futureBids > 0 && plan.rollout.futureBids <= 12);
+  assert.equal(plan.rollout.futureBidLimit, 4);
+  assert.ok(plan.rollout.futureBids > 0 && plan.rollout.futureBids <= plan.rollout.futureBidLimit*plan.rollout.futureWeeks);
   assert.ok(plan.examined <= 35 && plan.rolloutCompared <= 4);
   assert.ok(elapsed < 5000, `heavy-state search took ${Math.round(elapsed)}ms`);
   const explicit = evaluateRollouts(state, { seeds: ROLLOUT_SEEDS });
@@ -184,4 +197,39 @@ test('very long firm histories narrow the search width without skipping weekly s
   assert.equal(explicit.completedRounds, 12);
   assert.equal(state.orders.length, 1000);
   assert.equal(state.history.length, 519);
+});
+
+test('future business simulation uses the enlarged real team capacity rather than an old three-bid boundary',()=>{
+  let state=newGame({difficulty:'casual',seed:381});
+  const ref=state.inquiries[0];state.cash=500000;
+  state.inquiries=Array.from({length:10},(_,i)=>makeInquiry(ref,{id:`rich-${i}`,quantity:100,targetPrice:200,terms:0,depositRate:20}));
+  // Five previously submitted quotes are still real commitments. Hiring a
+  // second salesperson opens two more; simulations must use both now and
+  // greater capacity in later actual rounds without manufacturing a bid.
+  for(const inquiry of state.inquiries.slice(0,5)){
+    const result=act(state,{type:'bid',inquiryId:inquiry.id,...config});assert.ifError(result.error);state=result.state;
+  }
+  assert.equal(quoteCapacity(state),5);
+  const before=evaluateRollouts(state,{continueCurrentWeek:true});
+  assert.ok(before.scenarios.every(scenario=>scenario.rounds[0].actions.every(action=>action.type!=='bid')));
+  const employee=state.candidates.find(person=>person.role==='sales');
+  const hired=act(state,{type:'hire',id:employee.id});assert.ifError(hired.error);state=hired.state;
+  assert.equal(quoteCapacity(state),7);
+  const untouched=structuredClone(state);
+  const after=evaluateRollouts(state,{continueCurrentWeek:true});
+  assert.equal(after.futureBidLimit,7,'larger actual teams receive more simulated decisions, up to the bounded analysis budget');
+  assert.ok(after.scenarios.every(scenario=>scenario.rounds[0].actions.filter(action=>action.type==='bid').length===2));
+  assert.ok(after.scenarios.some(scenario=>scenario.rounds.slice(1).some(round=>round.actions.filter(action=>action.type==='bid').length>3)));
+  for(const [index,scenario] of after.scenarios.entries()) {
+    let replay=structuredClone({...state,seed:ROLLOUT_SEEDS[index]});
+    for(const round of scenario.rounds){
+      for(const action of round.actions){
+        if(action.type==='bid')assert.ok(replay.bids.length<quoteCapacity(replay));
+        const result=act(replay,action);assert.ifError(result.error);replay=result.state;
+      }
+      const result=act(replay,{type:'end-week'});assert.ifError(result.error);replay=result.state;
+      assert.equal(replay.cash,round.cash);assert.equal(replay.loan,round.loan);
+    }
+  }
+  assert.deepEqual(state,untouched);
 });
