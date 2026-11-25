@@ -1,5 +1,9 @@
 // Intrinsic sizes of the local artwork, used to reserve the right frame before loading.
 export const ART_DIMENSIONS = Object.freeze({
+  "v38-life-app-trips.webp": [768, 512],
+  "v38-life-app-friends.webp": [768, 512],
+  "v38-life-app-property.webp": [768, 512],
+  "v38-life-app-car.webp": [768, 512],
   "v38-feedback-delivered.webp": [883, 439],
   "v38-feedback-order-won.webp": [883, 439],
   "v38-feedback-paid.webp": [883, 439],

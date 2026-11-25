@@ -11,6 +11,17 @@ const options = { skip: !enabled, timeout: 90_000 };
 const present = selector => `Boolean(document.querySelector(${JSON.stringify(selector)}))`;
 const body = 'document.body.innerText';
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+const settlementNav = '[data-ui="page"][data-page="offwork"]';
+const weekActions = '[data-action="end-week"], [data-action="advance-four"]';
+
+async function enterSettlement(page) {
+  if (!await page.evaluate(present(`${settlementNav}[aria-current="page"]`))) await page.click(settlementNav);
+}
+
+async function settleWeek(page) {
+  await enterSettlement(page);
+  await page.click('#week-controls [data-action="end-week"]');
+}
 
 async function createCompany(page, name = '体验问题回归') {
   await page.goto();
@@ -102,7 +113,7 @@ test('E01/E10: real double banking submits once, corrected Chinese forms remain 
   } finally { await browser.close(); }
 });
 
-test('rapid modal submission cannot tap the weekly controls underneath on a phone', options, async () => {
+test('rapid modal submission cannot advance the week on a phone, and settlement remains keyboard accessible', options, async () => {
   const browser = await launchBrowser(root);
   try {
     const page = await browser.page({ width: 390, height: 844, mobile: true });
@@ -129,7 +140,8 @@ test('rapid modal submission cannot tap the weekly controls underneath on a phon
     await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', ...point, button: 'left', clickCount: 1 });
     await page.waitFor('!document.querySelector("dialog").open');
     const behind = await page.evaluate(`document.elementFromPoint(${point.x},${point.y})?.closest('button')?.dataset.action`);
-    assert.ok(['end-week', 'advance-four'].includes(behind), `Fixture must expose a weekly control underneath the submit button, got ${behind}`);
+    assert.ok(!['end-week', 'advance-four'].includes(behind), `Weekly controls must be unreachable beneath the quote, got ${behind}`);
+    assert.equal(await page.evaluate(present(weekActions)), false, 'Inquiries must not contain real settlement actions');
     await pause(60);
     await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', ...point, button: 'left', clickCount: 2 });
     await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', ...point, button: 'left', clickCount: 2 });
@@ -137,7 +149,10 @@ test('rapid modal submission cannot tap the weekly controls underneath on a phon
     assert.equal(after.week, before.week, 'Second tap must not accidentally advance the week');
     assert.equal(after.cash, before.cash);
     assert.equal(after.bids.length, 1);
-    await page.evaluate(`document.querySelector('[data-action=end-week]').focus()`);
+    assert.equal(await page.evaluate(present('[data-page="inquiries"][aria-current="page"]')), true);
+    await enterSettlement(page);
+    await page.evaluate(`document.querySelector('#week-controls [data-action=end-week]').focus()`);
+    assert.equal(await page.evaluate('document.activeElement.dataset.action'), 'end-week');
     await key(page, ' ', 'Space', 32);
     await page.waitFor('document.querySelector("dialog[open] #modal-title")?.textContent.includes("本周小结")');
     assert.equal((await stored()).week, before.week + 1, 'Keyboard activation remains available immediately');
@@ -202,8 +217,12 @@ test('E02: tutorial next and ESC always return to a usable current target', opti
     await page.click('dialog [data-ui="tutorial-next"]');
     assert.equal(await page.evaluate('document.querySelector("dialog").open'), false);
     assert.match(await page.evaluate('document.querySelector(".tutorial").innerText'), /4 \/ 5/);
-    assert.equal(await page.evaluate('document.activeElement.dataset.tour'), 'end-week');
-    await page.click('[data-action="end-week"]');
+    assert.equal(await page.evaluate('document.activeElement.dataset.ui'), 'coach-settlement');
+    assert.equal(await page.evaluate(present(weekActions)), false);
+    await page.click('.tutorial [data-ui="coach-settlement"]');
+    assert.ok(await page.evaluate(present(`${settlementNav}[aria-current="page"]`)));
+    assert.equal(await page.evaluate('document.activeElement.dataset.action'), 'end-week');
+    await page.click('#week-controls [data-action="end-week"]');
     await page.waitFor('document.querySelector("dialog[open] #modal-title")?.textContent.includes("本周小结")');
   } finally { await browser.close(); }
 });
@@ -232,7 +251,7 @@ test('E04: auto-save restores a pending quote, weekly summary and pending event,
     assert.deepEqual(await currentState(page), quoting);
     assert.equal(await page.evaluate('document.querySelector("dialog[open] input[name=ratio]").value'), '80');
     await page.click('dialog [data-form="quote"] button[type="submit"]');
-    await page.click('[data-action="end-week"]');
+    await settleWeek(page);
     const settled = await currentState(page);
     assert.equal(settled.week, 2);
     assert.ok(settled.orders.length > 0);
@@ -241,7 +260,12 @@ test('E04: auto-save restores a pending quote, weekly summary and pending event,
     assert.match(await page.evaluate('document.querySelector("dialog[open]").innerText'), /本周小结/);
     await dismissDecisions(page);
     await loadScenario(page, `(game)=>{const s=game.newGame({name:'自动存档验收',seed:381});s.tutorial.done=true;s.events.push({id:'pending-demo',type:'ipo-celebration',title:'上市成功',text:'继续经营',choices:[{id:'continue',label:'继续经营'}]});return s;}`);
-    await page.click('[data-ui="show-event"]');
+    assert.equal(await page.evaluate(present(weekActions)), false);
+    assert.ok(await page.evaluate(present('.app-notices [data-ui="show-event"]')));
+    await enterSettlement(page);
+    assert.equal(await page.evaluate(present('#week-controls [data-action="end-week"]')), false);
+    assert.ok(await page.evaluate(present('#week-controls [data-action="advance-four"]:disabled')));
+    await page.click('#week-controls [data-ui="show-event"]');
     await key(page, 'Escape', 'Escape', 27);
     const pending = await currentState(page);
     await resume();
@@ -413,7 +437,12 @@ test('E07/E08: 320px summary opens on results and long company names wrap away f
       }
       await noOverflow(page, tab);
     }
-    await page.click('[data-action="end-week"]');
+    await enterSettlement(page);
+    assert.ok(await page.evaluate(present('.workspace > #week-controls:last-child')));
+    for (const action of ['advance-four', 'end-week']) {
+      assert.ok(await page.evaluate(`(() => {const button=document.querySelector('#week-controls [data-action="${action}"]');button.scrollIntoView({block:'center',behavior:'instant'});const rect=button.getBoundingClientRect();return rect.width>=44&&rect.height>=44&&rect.top>=0&&rect.bottom<=innerHeight&&button.contains(document.elementFromPoint(rect.x+rect.width/2,rect.y+rect.height/2))&&!button.disabled;})()`), `Footer ${action} must be accessible at 320px`);
+    }
+    await page.click('#week-controls [data-action="end-week"]');
     await page.waitFor(present('dialog[open] .summary-scroll'));
     const opening = await page.evaluate(`(()=>{const s=document.querySelector('dialog[open] .summary-scroll'),h=document.querySelector('dialog[open] #modal-title'),t=document.querySelector('dialog[open] .summary-totals');const hr=h.getBoundingClientRect(),tr=t.getBoundingClientRect();return {scroll:s.scrollTop,titleTop:hr.top,titleBottom:hr.bottom,totalsTop:tr.top,totalsBottom:tr.bottom,height:innerHeight}})()`);
     assert.ok(opening.scroll <= 1);
@@ -431,7 +460,7 @@ test('calendar shows the selected era and advances across a year boundary on all
     await page.waitFor(present('[data-form="new-game"]'));
     await loadScenario(page, `(game)=>{const s=game.newGame({name:'港湾贸易',era:'2008',seed:381});s.week=52;s.cash=1000000;s.tutorial.done=true;return s;}`);
     assert.match(await page.evaluate('document.querySelector(".current-time").innerText'), /2008 年[\s\S]*第 52 周/);
-    await page.click('[data-action="end-week"]');
+    await settleWeek(page);
     await dismissDecisions(page);
     for (const tab of ['office', 'inquiries', 'orders', 'company', 'offwork']) {
       await page.click(`[data-ui="page"][data-page="${tab}"]`);

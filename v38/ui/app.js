@@ -6,7 +6,7 @@ import { defaultLifeCollapsed, eraIllustration, lifeAppForOuting, lifeAppIds, li
 import { companyPage, developmentTabs, dialogContent, esc, officePage, offworkPage, opening, saveWarning, saveWarningMessage, shell, tourTarget, yuan } from './shell.js';
 import { strategySections } from './strategy.js';
 import { readSave, SAVE_KEY, writeSave } from './save.js';
-import { coachDeclinedRecord, coachIntroIndex, coachPrepIndex, coachQuoteFilters, coachReviewRecord, pageCoach, quoteRecommendation, recordCoachDecline, recordCoachReview, recordCoachVisit } from './coaching.js';
+import { coachDeclinedRecord, coachIntroIndex, coachPrepIndex, coachQuoteFilters, coachReviewRecord, coachTourRecord, finishCoachTour, pageCoach, quoteRecommendation, recordCoachDecline, recordCoachReview, recordCoachVisit } from './coaching.js';
 
 const mount = document.querySelector('#v38-root');
 const dialog = document.createElement('dialog');
@@ -34,7 +34,7 @@ function freshUi() {
     page: 'office', dialog: '', quoteId: '', quote: {}, quoteDefault: {}, quoteOrigin: null,
     quoteDrafts: new Map(), quoteDraftRestored: false, bankGuard: new Map(), actionGesture: null,
     filters: { category: '', availability: 'all' }, notice: '', tutorialStep: 0, showMacro: false,
-    saveStatus: 'ready', developmentTab: 'finance', developmentOverview: false, lifeApp: 'home', lifeCollapsed: [...defaultLifeCollapsed], ordersCollapsed: [], coachPrep: 0, coachIntro: 0, coachDeferredWeek: 0, coachReview:{}, coachDeclined:null,
+    saveStatus: 'ready', developmentTab: 'finance', developmentOverview: false, lifeApp: 'home', lifeCollapsed: [...defaultLifeCollapsed], ordersCollapsed: [], coachPrep: 0, coachIntro: 0, coachTour:coachTourRecord(null), coachDeferredWeek: 0, coachReview:{}, coachDeclined:null,
   };
 }
 
@@ -117,7 +117,12 @@ function highlightTutorial() {
   mount.querySelector('.tutorial-target')?.classList.remove('tutorial-target');
   dialog.querySelector('.tutorial-target')?.classList.remove('tutorial-target');
   if (!state || state.tutorial.done) return;
-  if (state.difficulty === 'casual' && state.tutorial.step === 3 && !mount.querySelector('.coach-card .coach-action[data-action="end-week"]')) return;
+  if (state.tutorial.step===3&&!dialog.open) {
+    const route=mount.querySelector('[data-ui="coach-settlement"]');
+    if(state.difficulty==='casual'&&!route?.classList.contains('coach-action'))return;
+    (mount.querySelector('[data-tour="end-week"]')??route)?.classList.add('tutorial-target');
+    return;
+  }
   const target = tourTarget(state.tutorial.step);
   const container = dialog.open ? dialog : mount;
   container.querySelector(`[data-tour="${target}"]`)?.classList.add('tutorial-target');
@@ -141,7 +146,7 @@ function savedView() {
   ui.quoteDrafts = new Map([...ui.quoteDrafts].filter(([id]) => active.has(id)));
   return {
     page: ui.page, filters: ui.filters, showMacro: ui.showMacro, developmentTab: ui.developmentTab, developmentOverview: ui.developmentOverview, lifeApp: ui.lifeApp, lifeCollapsed: ui.lifeCollapsed, lifeDisclosureVersion, ordersCollapsed: ui.ordersCollapsed,
-    coachPrep: coachPrepIndex(ui.coachPrep), coachIntro: coachIntroIndex(ui.coachIntro), coachDeferredWeek: ui.coachDeferredWeek, coachReview:coachReviewRecord(ui.coachReview), coachDeclined:coachDeclinedRecord(ui.coachDeclined,state.week),
+    coachPrep: coachPrepIndex(ui.coachPrep), coachIntro: coachIntroIndex(ui.coachIntro), coachTour:coachTourRecord(ui.coachTour,ui.coachIntro), coachDeferredWeek: ui.coachDeferredWeek, coachReview:coachReviewRecord(ui.coachReview), coachDeclined:coachDeclinedRecord(ui.coachDeclined,state.week),
     drafts: [...ui.quoteDrafts],
     quote: ui.dialog === 'quote' && active.has(ui.quoteId) ? { id: ui.quoteId, proposal: ui.quote } : null,
   };
@@ -208,6 +213,7 @@ function resumeSaved() {
     ui.developmentOverview = view.developmentOverview === true;
     ui.coachPrep = coachPrepIndex(view.coachPrep);
     ui.coachIntro = coachIntroIndex(view.coachIntro);
+    ui.coachTour = coachTourRecord(view.coachTour,ui.coachIntro);
     ui.coachReview = coachReviewRecord(view.coachReview);
     ui.coachDeclined = coachDeclinedRecord(view.coachDeclined,state.week);
     if (Number.isInteger(view.coachDeferredWeek)) ui.coachDeferredWeek = view.coachDeferredWeek;
@@ -238,7 +244,7 @@ function resumeSaved() {
         ui.quoteDraftRestored = true;
       }
     }
-    if (!ui.dialog && recordCoachVisit(state, ui)) saveProgress();
+    if (!ui.dialog && (recordCoachVisit(state, ui)||(state.difficulty==='casual'&&view.coachTour?.version!==2))) saveProgress();
     render();
     if (!ui.dialog) mount.querySelector('#page-title')?.focus({ preventScroll: true });
     window.scrollTo(0, 0);
@@ -332,6 +338,10 @@ function quoteRow(id) {
   return mount.querySelector(`[data-inquiry-id="${CSS.escape(id)}"]`);
 }
 
+function weeklyTutorialTarget() {
+  return mount.querySelector('[data-tour="end-week"]')??mount.querySelector('[data-ui="coach-settlement"]');
+}
+
 function returnFromQuote(weeklyTarget = false) {
   const origin = ui.quoteOrigin;
   ui.quoteOrigin = null;
@@ -341,7 +351,7 @@ function returnFromQuote(weeklyTarget = false) {
     const trigger = row?.querySelector('[data-ui="quote-open"]');
     const fallback = row?.querySelector('strong') ?? row;
     if (!trigger && fallback) fallback.tabIndex = -1;
-    const focus = weeklyTarget ? mount.querySelector('[data-tour="end-week"]') : trigger ?? fallback;
+    const focus = weeklyTarget ? weeklyTutorialTarget() ?? trigger ?? fallback : trigger ?? fallback;
     focus?.scrollIntoView({ block: 'center', behavior: 'instant' });
     focus?.focus({ preventScroll: true });
     return;
@@ -354,8 +364,9 @@ function returnFromQuote(weeklyTarget = false) {
   window.scrollTo({ left: origin.left, top: Math.max(0, top), behavior: 'instant' });
   const fallback = row?.querySelector('strong') ?? row;
   if (!trigger && fallback) fallback.tabIndex = -1;
-  const focus = weeklyTarget ? mount.querySelector('[data-tour="end-week"]') : trigger ?? fallback;
+  const focus = weeklyTarget ? weeklyTutorialTarget() ?? trigger ?? fallback : trigger ?? fallback;
   focus?.focus({ preventScroll: true });
+  if(weeklyTarget)focus?.scrollIntoView({block:'center',behavior:'instant'});
 }
 
 function retainDraft() {
@@ -400,7 +411,13 @@ function dismissDialog({ weeklyTarget = false, viewOrders = false, receiptView =
       target?.focus({ preventScroll: true });
       if (receiptSection) target?.scrollIntoView({ block: 'center', behavior: 'instant' });
     }
-    else restoreFocus(focusAfterDialog);
+    else {
+      const afterSettlement=focusAfterDialog?.action==='end-week'||focusAfterDialog?.action==='advance-four';
+      const next=afterSettlement&&state.difficulty==='casual'?mount.querySelector('.workspace > .coach-card .coach-action'):null;
+      const target=next??focusTarget(focusAfterDialog)??mount.querySelector('#page-title');
+      target?.focus({preventScroll:true});
+      if(next)next.scrollIntoView({block:'center',behavior:'instant'});
+    }
     focusAfterDialog = undefined;
   }
 }
@@ -589,6 +606,23 @@ function selectLifeApp(app, focus = true) {
   }
 }
 
+function showLeisureMenu() {
+  if(ui.page!=='offwork') {ui.lifeApp='home';selectPage('offwork');}
+  else if(!['home','trips','friends'].includes(ui.lifeApp))selectLifeApp('home',false);
+  const menu=mount.querySelector('.life-app-menu');
+  const first=menu?.querySelector('[data-ui="life-app"][data-id="trips"]')??mount.querySelector('[data-life-app-page="trips"] .outing-grid summary,[data-life-app-page="friends"] .life-grid summary,[data-life-app-page="friends"] details summary');
+  (menu??first)?.scrollIntoView({block:'start',behavior:'instant'});
+  first?.focus({preventScroll:true});
+}
+
+function showSettlement() {
+  if(ui.page!=='offwork'){ui.lifeApp='home';selectPage('offwork');}
+  const footer=mount.querySelector('.week-controls');
+  const target=footer?.querySelector('[data-action="end-week"]:not(:disabled),[data-ui="show-event"]:not(:disabled)');
+  (target??footer)?.scrollIntoView({block:'center',behavior:'instant'});
+  target?.focus({preventScroll:true});
+}
+
 function revealOrderSections(ids) {
   const count = ui.ordersCollapsed.length;
   ui.ordersCollapsed = ui.ordersCollapsed.filter(id => !ids.includes(id));
@@ -725,6 +759,8 @@ function click(event) {
       break;
     }
     case 'life-app': selectLifeApp(control.dataset.id); break;
+    case 'coach-leisure-menu': showLeisureMenu(); break;
+    case 'coach-settlement': showSettlement(); break;
     case 'coach-target': revealCoachTarget(control); break;
     case 'coach-apply-quote': applyRecommendedQuote(); break;
     case 'coach-review-submit': reviewRecommendedQuote(); break;
@@ -745,6 +781,7 @@ function click(event) {
     case 'coach-defer-task':
     case 'coach-skip-inquiry':
       if (recordCoachDecline(state,ui,control.dataset.ui==='coach-defer-task'?'tasks':'inquiries',control.dataset.id)) {
+        recordCoachVisit(state,ui);
         saveProgress();render();mount.querySelector('.workspace > .coach-card .coach-action')?.focus({preventScroll:true});
       }
       break;
@@ -752,10 +789,14 @@ function click(event) {
       if (state.difficulty === 'casual') { ui.coachDeferredWeek = state.week; selectPage('inquiries'); }
       break;
     case 'coach-skip-intro':
+    case 'coach-finish-intro':
       if (state.difficulty === 'casual') {
-        ui.coachIntro = 4;
+        finishCoachTour(ui,control.dataset.ui==='coach-skip-intro');
         saveProgress();
         render();
+        const next=mount.querySelector('.workspace > .coach-card .coach-action');
+        next?.focus({preventScroll:true});
+        next?.scrollIntoView({block:'nearest',behavior:'instant'});
       }
       break;
     case 'coach-skip-prep':

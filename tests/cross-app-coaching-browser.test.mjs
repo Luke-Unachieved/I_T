@@ -77,6 +77,7 @@ test('real Chromium 390px simple mode: chat inbox, draft/reload/withdraw, first 
     await openSuggestedQuote(page);
     await submitSuggestedQuote(page);
     assert.ok(await page.evaluate(visible(`${coach} [data-page="office"]`)), 'first bid should prompt a meaningful page visit, not force settlement');
+    await page.click('.nav [data-page=offwork]');
     await page.click('.week-controls [data-action="end-week"]'); // Player may choose to settle voluntarily with one quote.
     await page.waitFor(visible('dialog[open] [data-ui="view-first-order"]'));
     assert.equal((await saved(page)).state.week, 2);
@@ -84,10 +85,12 @@ test('real Chromium 390px simple mode: chat inbox, draft/reload/withdraw, first 
     await page.click(`${coach} [data-coach-tab="finance"]`);
     await page.click(`${coach} [data-coach-tab="team"]`);
     assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`), /暂缓聘用/);
+    for(const tab of ['certifications','markets','economy','rivalry','partners','board-goals','ventures','listing','company-record']) await page.click(`${coach} [data-coach-tab="${tab}"]`);
     await page.click(`${coach} [data-page="offwork"]`);
+    await page.click(`${coach} [data-ui=coach-finish-intro]`);
     await page.waitFor(visible('[data-ui="life-app"][data-id="trips"]'));
     assert.deepEqual(await page.evaluate('Array.from(document.querySelectorAll("[data-ui=life-app]")).map(e=>e.dataset.id)'), ['trips', 'friends', 'property', 'car']);
-    assert.equal((await saved(page)).view.coachIntro, 4);
+    assert.equal((await saved(page)).view.coachTour.visited.length, 13);
     await page.waitFor(visible('.life-app-room[data-media-state="loaded"]'));
     await page.evaluate('document.querySelector(".life-app-room img").decode()');
     await page.screenshot('/tmp/v38-cross-app-launcher-390.png');

@@ -56,7 +56,8 @@ for (const width of [320, 390, 1440]) {
       await page.click('[data-ui=quote-open]');
       await page.evaluate(`(()=>{const e=document.querySelector('dialog input[name=ratio]');e.value='80';e.dispatchEvent(new Event('input',{bubbles:true}));})()`);
       await page.click('dialog [data-form=quote] button[type=submit]');
-      await page.click('[data-action=end-week]');
+      await nav('offwork');
+      await page.click('.week-controls [data-action=end-week]');
       await page.waitFor('!!document.querySelector("dialog [data-ui=view-first-order]")');
       await page.click('dialog [data-ui=view-first-order]');
       await dismissDecisions(page);

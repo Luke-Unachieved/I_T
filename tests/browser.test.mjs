@@ -8,6 +8,35 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const enabled = process.env.V38_BROWSER === '1';
 const present = selector => `Boolean(document.querySelector(${JSON.stringify(selector)}))`;
 const content = 'document.body.innerText';
+const settlementNav = '[data-ui="page"][data-page="offwork"]';
+const weekActions = '[data-action="end-week"], [data-action="advance-four"]';
+
+async function settleWeek(page, action = 'end-week') {
+  if (!await page.evaluate(present(`${settlementNav}[aria-current="page"]`))) await page.click(settlementNav);
+  await page.click(`#week-controls [data-action="${action}"]`);
+}
+
+async function checkWeekControls(page, id) {
+  const controls = await page.evaluate(`Array.from(document.querySelectorAll(${JSON.stringify(weekActions)}), button => button.dataset.action)`);
+  if (id !== 'offwork') {
+    assert.deepEqual(controls, [], `Week actions must be absent from ${id}`);
+    return;
+  }
+  assert.deepEqual(controls.sort(), ['advance-four', 'end-week']);
+  assert.ok(await page.evaluate(present('.workspace > #week-controls:last-child')));
+  for (const action of controls) {
+    const layout = await page.evaluate(`(() => {
+      const button = document.querySelector('#week-controls [data-action="${action}"]');
+      button.scrollIntoView({block:'center',behavior:'instant'});
+      const rect = button.getBoundingClientRect();
+      const positions = [];
+      for (let node = button; node; node = node.parentElement) positions.push(getComputedStyle(node).position);
+      return {positions, width:rect.width, height:rect.height, inViewport:rect.top>=0 && rect.bottom<=innerHeight && rect.left>=0 && rect.right<=innerWidth, hit:button.contains(document.elementFromPoint(rect.x+rect.width/2,rect.y+rect.height/2)), disabled:button.disabled};
+    })()`);
+    assert.ok(!layout.positions.some(position => ['fixed', 'sticky'].includes(position)), `Docked ${action}: ${JSON.stringify(layout)}`);
+    assert.ok(layout.inViewport && layout.hit && !layout.disabled && layout.height >= 44 && layout.width >= 44, `Unusable ${action}: ${JSON.stringify(layout)}`);
+  }
+}
 
 async function noOverflow(page, label) {
   const layout = await page.evaluate(`({width:innerWidth,scroll:document.documentElement.scrollWidth,body:document.body.scrollWidth})`);
@@ -61,7 +90,12 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 
       await page.waitFor('!document.querySelector("dialog").open');
       assert.match(await page.evaluate('document.querySelector(".tutorial").innerText'), /4 \/ 5/);
       assert.match(await page.evaluate(content), /已提交报价/);
-      await page.click('[data-action="end-week"]');
+      await checkWeekControls(page, 'inquiries');
+      await page.click('.tutorial [data-ui="coach-settlement"]');
+      assert.ok(await page.evaluate(present(`${settlementNav}[aria-current="page"]`)));
+      assert.equal(await page.evaluate('document.activeElement.dataset.action'), 'end-week');
+      await checkWeekControls(page, 'offwork');
+      await page.click('#week-controls [data-action="end-week"]');
       await page.waitFor('document.querySelector("dialog[open] #modal-title")?.textContent.includes("本周小结")');
       assert.match(await page.evaluate('document.querySelector("dialog .tutorial").innerText'), /5 \/ 5/);
       const summary = await page.evaluate('document.querySelector("dialog").innerText');
@@ -86,6 +120,7 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 
         assert.equal(await page.evaluate(present('a[href="classic.html"], a[href="deal-room.html"], a[href="legacy-game.html"]')), false);
         assert.equal(await page.evaluate(present('[aria-label="经营指标"]')), id === 'office');
         assert.equal(await page.evaluate(present('[data-ui="macro-disclosure"]')), id === 'office');
+        await checkWeekControls(page, id);
         if (id !== 'office' && viewport.mobile) {
           assert.match(await page.evaluate('document.querySelector(".compact-cash").innerText'), /可用资金.*¥/);
           assert.equal(await page.evaluate('document.querySelector(".compact-cash").getClientRects().length > 0'), true);
@@ -148,7 +183,7 @@ test('real Chromium: illustrated key-client decision and cash-emergency bankrupt
     await page.waitFor(present('[data-form="new-game"]'));
     await loadScenario(page, `(game)=>{let state=game.newGame({name:'客户漫画与风险验收',assistant:'fang',seed:381});state.tutorial.done=true;const inquiry=state.inquiries[0];state.relationships[inquiry.buyer.id]={deliveries:2,rep:30,buyer:inquiry.buyer,productId:inquiry.productId,market:'domestic'};state=game.act(state,{type:'bid',inquiryId:inquiry.id,source:'stock',ratio:80}).state;return game.endWeek(state);}`);
     for (let i = 0; i < 8 && !(await currentState(page)).events.some(item => item.type === 'key-client'); i++) {
-      await page.click('[data-action="end-week"]');
+      await settleWeek(page);
       await page.waitFor(present('dialog[open]'));
       await page.click('dialog [data-ui="close-dialog"]');
       if (!(await currentState(page)).events.some(item => item.type === 'key-client')) await dismissDecisions(page);
@@ -162,7 +197,7 @@ test('real Chromium: illustrated key-client decision and cash-emergency bankrupt
     await loadScenario(page, `(game)=>{const state=game.newGame({name:'资金链风险验收',assistant:'fang',seed:381});state.tutorial.done=true;state.payables.push({id:'unfunded-factory',amount:500000,dueWeek:1,type:'supplier'});return game.endWeek(state);}`);
     assert.match(await page.evaluate(content), /资金链告急/);
     assert.ok((await currentState(page)).loan > 0);
-    await page.click('[data-action="end-week"]');
+    await settleWeek(page);
     await page.waitFor('document.querySelector("dialog[open] #modal-title")?.textContent.includes("公司破产")');
     await noOverflow(page, 'bankruptcy');
     await page.screenshot('/tmp/trade-v38-bankruptcy-iphone13.png');
@@ -320,7 +355,7 @@ test('real Chromium: first million-order and overseas-delivery artwork appears a
       const files = { landmark: 'v38-milestone-million.webp', 'export-shipment': 'v38-milestone-export.webp' };
       const illustrated = [];
       for (let i = 0; i < 12 && illustrated.length < 2; i++) {
-        await page.click('[data-action="end-week"]');
+        await settleWeek(page);
         const state = await currentState(page);
         for (const id of state.summary.illustratedMilestones ?? []) {
           const selector = `dialog .milestone-image img[src="assets/${files[id]}"]`;
@@ -374,7 +409,7 @@ test('real Chromium: a funded 52-week calendar displays annual settlement and ca
     assert.match(await page.evaluate(content), /220,000/);
     let annual = false;
     for (let i = 0; i < 60 && (await currentState(page)).week < 53; i++) {
-      await page.click('[data-action="advance-four"]');
+      await settleWeek(page, 'advance-four');
       await page.waitFor(present('dialog[open]'));
       const text = await page.evaluate('document.querySelector("dialog").innerText');
       assert.doesNotMatch(text, /公司破产|NaN|undefined/);
@@ -383,7 +418,7 @@ test('real Chromium: a funded 52-week calendar displays annual settlement and ca
     }
     assert.ok(annual);
     assert.match(await page.evaluate(content), /第 2 年 · 第 1 周/);
-    await page.click('[data-action="end-week"]');
+    await settleWeek(page);
     await page.waitFor(present('dialog[open]'));
     assert.match(await page.evaluate('document.querySelector("dialog").innerText'), /第 53 周/);
     assert.deepEqual(page.errors, []);
@@ -412,7 +447,7 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 
       assert.ok((await currentState(page)).company.markets.includes('se-asia'));
       await noOverflow(page, 'expanded company');
       await page.screenshot(`/tmp/trade-v38-phase2-${viewport.name}-company.png`);
-      await page.click('[data-action="end-week"]');
+      await settleWeek(page);
       await page.waitFor(present('dialog[open]'));
       await dismissDecisions(page);
       await loadScenario(page, `(game,quotes)=>{const state=${JSON.stringify(await currentState(page))};const inquiry=state.inquiries.find(item=>item.market==='se-asia'&&!quotes.quote(state,item,{source:'stock',ratio:80}).error);if(!inquiry)throw Error('Missing eligible export inquiry');inquiry.terms=3;return state;}`);
@@ -430,7 +465,7 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 
       await page.click('dialog [data-form="quote"] button[type="submit"]');
       await page.waitFor('!document.querySelector("dialog").open');
       for (let i = 0; i < 14 && !(await currentState(page)).receivables.some(item => item.status === 'open' || item.status === 'overdue'); i++) {
-        await page.click('[data-action="end-week"]');
+        await settleWeek(page);
         await page.waitFor(present('dialog[open]'));
         await dismissDecisions(page);
       }

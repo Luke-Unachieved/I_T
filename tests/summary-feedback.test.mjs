@@ -19,7 +19,8 @@ async function ready(page) {
 async function settle(page, action = 'end-week') {
   // A deliberate new weekly action follows the previous dialog or submission.
   await pause(410);
-  await page.click(`[data-action="${action}"]`);
+  if (!(await page.evaluate(present('.week-controls')))) await page.click('.nav [data-page="offwork"]');
+  await page.click(`.week-controls [data-action="${action}"]`);
   await page.waitFor(present('dialog.summary-dialog[open]'));
   return currentState(page);
 }

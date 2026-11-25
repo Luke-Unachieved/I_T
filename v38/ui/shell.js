@@ -22,7 +22,7 @@ const pages = [
 ];
 const captions = {
   office: '本周经营与现金安排', orders: '跟进生产、交付、收款和库存',
-  company: '管理团队、拓展市场与规划企业成长',
+  company: '管理团队、拓展市场与成长规划',
 };
 
 export const developmentTabs = [
@@ -152,32 +152,39 @@ function macroIndicators(state, ui) {
 
 function weekControls(state) {
   const stopped = state.bankrupt ? ' disabled' : '';
-  return `<div class="week-controls">
-    ${state.events.length ? '<button type="button" class="button primary" data-ui="show-event">处理待定事项</button>' : `<button type="button" class="button primary" data-action="end-week" data-tour="end-week"${stopped}>结束本周 <span aria-hidden="true">→</span></button>`}
-    <button type="button" class="button secondary" data-action="advance-four"${state.events.length ? ' disabled' : stopped}>连推四周</button>
-  </div>`;
+  return `<footer class="week-controls" id="week-controls" aria-labelledby="week-controls-title">
+    <div class="week-controls-copy"><small class="eyebrow">${weekLabel(state.week)}</small><h2 id="week-controls-title">本周安排</h2><p>${state.events.length ? '处理本周待定事项后即可结算。' : '结算后查看本周经营小结。'}</p></div>
+    <div class="week-controls-actions">
+      ${state.events.length ? `<button type="button" class="button primary" data-ui="show-event"${stopped}>处理待定事项</button>` : `<button type="button" class="button primary" data-action="end-week" data-tour="end-week"${stopped}>结束本周 <span aria-hidden="true">→</span></button>`}
+      <button type="button" class="button secondary" data-action="advance-four"${state.events.length ? ' disabled' : stopped}>连推四周</button>
+    </div>
+  </footer>`;
 }
 
 const steps = [
   ['看询盘', '打开「询盘」，先看看客户要什么、希望什么时候到货。'],
   ['算价', '点一笔询盘的「算价」，比较现货仓和工厂，再试着调整报价。'],
   ['看现金预测', '留意「若中单」的最低现金。利润够，手里的钱也要撑到回款。'],
-  ['结束本周', '现在结束本周，可以查看收支，但不会有报价结果。想看中单结果，可以先去「询盘」提交一笔报价。'],
+  ['结束本周', '前往「下班」，在页面底部结算本周。想看中单结果，可以先去「询盘」提交一笔报价。'],
   ['看本周小结', '这里汇总中单、交付和收支。关掉小结后就可以继续经营。'],
 ];
 const tour = ['inquiries', 'quote', 'cash-forecast', 'end-week', 'week-summary'];
 export const tourTarget = step => tour[step];
 
-function tutorialNote(state, inDialog = false) {
+function tutorialNote(state, inDialog = false, page = '') {
   const step = state.tutorial.step;
   if (state.tutorial.done || inDialog !== (step === 2 || step === 4)) return '';
   const [title, defaultText] = steps[step] ?? steps[0];
-  const text = step === 3 && state.bids.length
-    ? `你已经提交 ${count(state.bids.length)} 笔报价。点「结束本周」查看结果。`
-    : defaultText;
+  const where = page === 'offwork' ? '本页底部' : '「下班」页面底部';
+  const text = step !== 3 ? defaultText : state.events.length
+    ? `先处理待定事项，再到${where}结算。`
+    : state.bids.length
+      ? `你已经提交 ${count(state.bids.length)} 笔报价。到${where}点「结束本周」查看结果。`
+      : `到${where}点「结束本周」可以查看收支。想看中单结果，可以先去「询盘」提交一笔报价。`;
   const person = assistantFor(state.assistant);
   return `<aside class="tutorial" aria-label="新手引导"><div><small>新手引导 ${step + 1} / ${steps.length} · ${esc(person.name)}</small><h2>${title}</h2><p>${text}</p></div><div class="tutorial-controls">
     ${step === 2 ? '<button type="button" class="button secondary" data-ui="tutorial-next">稍后报价，继续引导</button>' : ''}
+    ${step === 3 ? `<button type="button" class="button primary" data-ui="coach-settlement">${page === 'offwork' ? '查看结算按钮' : '前往下班结算'}</button>` : ''}
     ${step === 4 ? '<button type="button" class="button primary" data-ui="finish-tutorial">完成引导</button>' : '<button type="button" class="button quiet" data-ui="skip-tutorial">跳过引导</button>'}
   </div></aside>`;
 }
@@ -190,7 +197,6 @@ export function shell(state, ui, content, extraIndicators = '') {
       <div class="brand"><span>贸易工作室</span><strong>再开一单就下班</strong></div>
       <nav class="nav" aria-label="经营页面">${pages.map(([key, name, path]) => `<button type="button" class="nav-button${key === ui.page ? ' active' : ''}" data-ui="page" data-page="${key}"${key === ui.page ? ' aria-current="page"' : ''}${key === 'inquiries' ? ' data-tour="inquiries"' : ''}>${icon(path)}<span>${name}</span></button>`).join('')}</nav>
       <dl class="side-stats"><div><dt>公司</dt><dd>${esc(state.company.name)}</dd></div><div><dt>经营时间</dt><dd>${yearWeek(state.week)}</dd></div><div><dt>可用资金</dt><dd>${yuan(state.cash)}</dd></div></dl>
-      ${weekControls(state)}
     </aside>
     <main class="workspace" id="work-area" aria-labelledby="page-title">
       <header class="page-header"><div><p class="eyebrow">${esc(state.company.name)}</p><h1 id="page-title" tabindex="-1">${title}</h1>${captions[ui.page] ? `<p>${captions[ui.page]}</p>` : ''}${overview ? '' : `<p class="compact-cash">可用资金 <strong class="${state.cash < 0 ? 'negative' : ''}">${yuan(state.cash)}</strong></p>`}</div>${currentTime(state)}</header>
@@ -199,8 +205,9 @@ export function shell(state, ui, content, extraIndicators = '') {
       ${saveWarning(ui.saveStatus)}
       ${state.difficulty === 'casual' ? pageCoach(state, ui) : ''}
       ${overview ? `${indicators(state)}${macroIndicators(state, ui)}` : ''}${extraIndicators}
-      ${state.difficulty !== 'casual' ? tutorialNote(state) : ''}
+      ${state.difficulty !== 'casual' ? tutorialNote(state, false, ui.page) : ''}
       <div class="page-content">${content}</div>
+      ${ui.page === 'offwork' ? weekControls(state) : ''}
     </main>
   </div>`;
 }

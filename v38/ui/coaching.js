@@ -26,17 +26,49 @@ const preparation = [
   { page: 'offwork', label: '认识精力与休息' },
 ];
 const introduction = [
-  { page: 'orders', label: '查看订单与交期' },
-  { page: 'company', tab: 'finance', label: '认识财务' },
-  { page: 'company', tab: 'team', label: '认识团队' },
-  { page: 'offwork', label: '认识下班与休息' },
+  { id:'orders',page: 'orders', label: '查看订单与交期', name:'订单' },
+  { id:'finance',page: 'company', tab: 'finance', label: '认识财务', name:'财务' },
+  { id:'team',page: 'company', tab: 'team', label: '认识团队', name:'团队' },
+  { id:'certifications',page:'company',tab:'certifications',label:'认识资质',name:'资质' },
+  { id:'markets',page:'company',tab:'markets',label:'认识市场',name:'市场' },
+  { id:'economy',page:'company',tab:'economy',label:'认识宏观行情',name:'宏观' },
+  { id:'rivalry',page:'company',tab:'rivalry',label:'认识同行',name:'同行' },
+  { id:'partners',page:'company',tab:'partners',label:'认识客户',name:'客户' },
+  { id:'board-goals',page:'company',tab:'board-goals',label:'认识年度目标',name:'年度目标' },
+  { id:'ventures',page:'company',tab:'ventures',label:'认识产业链',name:'产业链' },
+  { id:'listing',page:'company',tab:'listing',label:'认识估值上市',name:'估值上市' },
+  { id:'company-record',page:'company',tab:'company-record',label:'认识成就记事',name:'成就记事' },
+  { id:'offwork',page:'offwork',label:'认识下班与休息',name:'下班' },
 ];
+const legacyIntroduction=['orders','finance','team','offwork'];
+export const coachTourIds=Object.freeze(introduction.map(item=>item.id));
 const introMatches = (ui, step) => step && ui.page === step.page && (step.page !== 'company' || !step.tab || (!ui.developmentOverview && ui.developmentTab === step.tab));
 export function coachIntroIndex(value) {
-  return Number.isInteger(value) ? Math.max(0, Math.min(introduction.length, value)) : 0;
+  return Number.isInteger(value) ? Math.max(0, Math.min(legacyIntroduction.length, value)) : 0;
 }
 export function coachPrepIndex(value) {
   return Number.isInteger(value) ? Math.max(0, Math.min(preparation.length, value)) : 0;
+}
+
+export function coachTourRecord(value,legacyIndex=0) {
+  const valid=value?.version===2;
+  const known=valid&&Array.isArray(value.visited)?value.visited:legacyIntroduction.slice(0,coachIntroIndex(legacyIndex));
+  const visited=coachTourIds.filter(id=>known.includes(id));
+  const skipped=valid&&value.skipped===true;
+  const active=valid&&!skipped&&visited.includes(value.active)?value.active:null;
+  return {version:2,visited,active,skipped};
+}
+
+function saveCoachTour(ui,tour) {
+  ui.coachTour=coachTourRecord(tour);
+  let legacy=0;
+  while(legacy<legacyIntroduction.length&&ui.coachTour.visited.includes(legacyIntroduction[legacy]))legacy++;
+  ui.coachIntro=ui.coachTour.skipped?legacyIntroduction.length:legacy;
+}
+
+export function finishCoachTour(ui,skip=false) {
+  const tour=coachTourRecord(ui.coachTour,ui.coachIntro);
+  saveCoachTour(ui,{...tour,active:null,skipped:tour.skipped||skip});
 }
 
 const reviewIds = ['orders-delivery','orders-receivables','orders-funding','orders-inventory','cash'];
@@ -111,10 +143,20 @@ export function recordCoachVisit(state, ui) {
     ui.coachPrep = index + 1;
     return true;
   }
-  const index = coachIntroIndex(ui.coachIntro);
-  if (!introMatches(ui, introduction[index])) return false;
-  ui.coachIntro = index + 1;
-  return true;
+  const tour=coachTourRecord(ui.coachTour,ui.coachIntro);
+  if(tour.skipped||!tour.active&&tour.visited.length===coachTourIds.length)return false;
+  // A page visit interrupted by a real urgent task is not a completed lesson.
+  if(state.events.length||cashEmergency(state,ui)||orderTask(state,ui))return false;
+  const current=introduction.find(step=>introMatches(ui,step));
+  if(current&&!tour.visited.includes(current.id)) {
+    saveCoachTour(ui,{...tour,visited:[...tour.visited,current.id],active:current.id});
+    return true;
+  }
+  if(tour.active&&tour.active!==current?.id) {
+    saveCoachTour(ui,{...tour,active:null});
+    return true;
+  }
+  return false;
 }
 
 function operatingReserve(state) {
@@ -241,7 +283,7 @@ function bestInquiry(state, filter) {
 const page = (id, label, tab) => ({ ui: 'page', page: id, label, tab });
 const focus = (action, id, label) => ({ ui: 'coach-target', action, id, label });
 const form = (name, label, amount) => ({ ui: 'coach-target', form: name, label, amount });
-const settle = () => ({ command: 'end-week', label: '结束本周，查看结果' });
+const settle = pageId => ({ command:'end-week',label:pageId==='offwork'?'查看本周结算 ↓':'去下班结束本周' });
 const deferGrowth = () => ({ ui: 'coach-defer-growth', label: '稍后发展，继续报价', quiet: true });
 const deferTask = id => ({ui:'coach-defer-task',id,label:'本周先不处理',quiet:true});
 const skipPreparation = () => ({ ui: 'coach-skip-prep', label: '跳过介绍，继续报价', quiet: true });
@@ -640,32 +682,58 @@ function preparationAdvice(state, ui, local) {
   return { ...note(...messages[index], nextAction), nextAction: skipPreparation(), preparation: true };
 }
 
-function introductionAdvice(state, ui, local) {
-  const index = coachIntroIndex(ui.coachIntro);
-  const next = introduction[index];
-  if (!state.orders.length || !next) return local;
-  const nextAction = page(next.page, next.label, next.tab);
-  if (ui.page === 'inquiries' || ui.page === 'office') {
-    const messages = [
-      ['第一张订单到手了', '中单只是开始。到订单页看看合同交期、预计回款以及如何推进交付。'],
-      ['下一步认识财务', '订单会逐周交货和回款。先看看银行授信、当前现金和每周资金趋势，了解如何防止周转中断。'],
-      ['接着认识发展团队', '资金稳定后，再根据业务需要判断是否值得招聘。助理会计算新工资后的现金余额。'],
-      ['最后认识下班与休息', '持续经营会消耗精力。花费合适的活动可恢复精力，低精力时中单率会受影响。'],
-    ];
-    return { ...note(...messages[index], nextAction), introduction: true };
+function introductionLesson(state,step,local) {
+  const messages={
+    orders:()=>`${state.orders[0].buyer.name} 的合同已成交。这里可以跟进备货、发运、回款和库存；按周结算会自动推进，只有确实能减少损失时才需要加急或催款。`,
+    finance:()=>`除了银行授信，这里还记录净资产、最近 12 周的营收和净利。结算后来看看实际赚了多少、钱有没有到账。${state.loan?`目前尚有贷款 ${cash(state.loan)}，我会在资金宽裕时提醒还款。`:`目前没有贷款，尚可借 ${cash(Math.max(0,state.creditLine-state.loan))}，不必提前借。`}`,
+    team:()=>`业务员帮助接单，跟单员降低交付风险，财务协助回款。每人都有周薪和提成；${local?.action?'有真实业务需要时，我会算清工资对资金的影响再提醒你。':'现在先暂缓聘用，等业务量和利润能覆盖新工资。'}`,
+    certifications:()=>{
+      const cert=certProgress(state,netAssets(state)).find(item=>!item.owned);
+      return `资质可解锁海外市场及大客户。${cert?`下方可以逐项查看${cert.name}所需的交付、信誉等条件。`:'目前所需资质已全部取得。'}申请有费用，等开拓计划和周转资金成熟再办理。`;
+    },
+    markets:()=>`地图显示已开拓和待开拓地区，目前已进入 ${Math.max(0,state.company.markets.length-1)} 个海外市场。符合资质后，可参展或请熟客引荐，带来新的询盘；先判断市场费用是否值得投入。`,
+    economy:()=>`汇率影响外币回款，原料和海运价格影响采购、运费，消费需求影响报价机会。这些行情每周自动变化；到这里观察趋势即可，不必手动调整。`,
+    rivalry:()=>`这里能看同行的生意规模、排名和近期动向。竞价时留意同行报价，别为了争排名接亏损订单；有真正值得考虑的收购机会，我会另行提醒。`,
+    partners:()=>`持续按时交货能建立客户关系，熟客更容易再次询价。合作至少三次、关系足够稳定后，客户还能引荐新市场；现在先做好手里的每一单。`,
+    'board-goals':()=>`每年的营收、净利、逾期交付和质量四项指标都在这里。达标会在年度结算时自动奖励，不必领取；经营中既要赚钱，也要守住履约质量。`,
+    ventures:()=>`自建仓库、工厂、海外仓、品牌和跨境店铺能改变后续经营，但会花现金和维护费。等有足够稳定的订单，我会比较预计收益是否值得投入。`,
+    listing:()=>`这里查看估值、持股与上市条件。战略投资能带来资金但会降低持股，改造也有成本；上市还要有长期真实营收和盈利，现在不必急着办理。`,
+    'company-record':()=>`中单、出海、成长等里程碑会自动收进成就和经营记事。以后还可以翻看企业传记；这里只记录已取得的成果，不需要额外领取或提交。`,
+    offwork:()=>`当前精力 ${state.energy}/100。经营会消耗精力，下班可以旅行、约朋友，也能浏览房产和车辆。每周可安排一次休息，免费活动同样能恢复精力，不要求消费。`,
+  };
+  return {title:step.id==='orders'?'认识第一张订单':`认识${step.name}`,text:messages[step.id]()};
+}
+
+function introductionAdvice(state,ui,local) {
+  if(!state.orders.length)return local;
+  const tour=coachTourRecord(ui.coachTour,ui.coachIntro);
+  if(tour.skipped)return local;
+  const current=introduction.find(step=>introMatches(ui,step));
+  const next=introduction.find(step=>!tour.visited.includes(step.id));
+  const active=introduction.find(step=>step.id===tour.active);
+  const progress={introduction:true,introProgress:tour.visited.length};
+  if(active&&current?.id===active.id) {
+    const lesson=introductionLesson(state,active,local);
+    const action=next?page(next.page,next.label,next.tab):{ui:'coach-finish-intro',label:'继续本周经营'};
+    if(ui.page==='company'&&local?.action) {
+      // A genuine current development opportunity must remain actionable on
+      // its page. Teach what the page is for and let this real decision take
+      // precedence, with the tour still available without any purchase.
+      return {...note(lesson.title,`${lesson.text.split('。')[0]}。${local.title}。${local.text}`,local.action),nextAction:{...action,quiet:true},...progress};
+    }
+    return {...note(lesson.title,lesson.text,action),...progress};
   }
-  if (!introMatches(ui, introduction[index - 1])) return local;
-  if (index === 1 && ui.page === 'orders') {
-    const order = state.orders[0];
-    if (local?.action && local.action.ui === 'coach-target') return { ...local, nextAction, introduction: true };
-    return { ...note('认识第一张订单', `${order.buyer.name} 的订单已成交，备货、发运、回款会随周结算更新。看过交期和预计收款后，接下来了解资金安排。`, nextAction), introduction: true };
+  if(ui.page==='company'&&local?.action)return local;
+  if(!next) {
+    if(active)return {...note('继续认识游戏',`还有${active.name}的介绍没确认结束，回去看一眼即可。`,page(active.page,active.label,active.tab)),...progress};
+    return local;
   }
-  if (index === 2 && ui.developmentTab === 'finance') {
-    if (local?.action?.ui === 'coach-target' || local?.action?.page === 'orders') return { ...local, nextAction, introduction: true };
-    return { ...local, action: nextAction, introduction: true };
-  }
-  if (index === 3 && ui.developmentTab === 'team') return { ...local, nextAction: local?.action ? nextAction : null, action: local?.action ?? nextAction, introduction: true };
-  return local;
+  // A deliberate visit to a previously taught page with a useful real action
+  // takes priority over the optional remaining tour.
+  if(current&&tour.visited.includes(current.id)&&local?.action)return local;
+  const action=page(next.page,next.label,next.tab);
+  if(local&&current&&tour.visited.includes(current.id))return {...note(local.title,`${local.text} 下一步认识${next.name}，看看它什么时候派得上用场。`,action),...progress};
+  return {...note(next.id==='orders'?'第一张订单到手了':'继续认识游戏',next.id==='orders'?'中单只是开始。先去订单页看看合同交期和预计回款。':`接下来认识${next.name}。不需要为了介绍办理或消费，可以看过再继续经营。`,action),...progress};
 }
 
 const developmentPriorities = [
@@ -688,8 +756,6 @@ function developmentOverviewAdvice(state, ui) {
   }
   const opportunity = bestDevelopmentImprovement(state,ui);
   if (opportunity) return opportunity;
-  const next = state.orders.length && introduction[coachIntroIndex(ui.coachIntro)];
-  if (next?.page === 'company') return { ...noAction(`目前没有适合立即支出的发展项目。初次成交后，可以先认识${next.tab === 'finance' ? '财务' : '团队'}，再继续经营。`), action: page(next.page, next.label, next.tab), introduction: true };
   return noAction('当前没有需要立即处理的财务问题，团队、资质、市场及产业也暂无适合周转安排的新增项目。本周继续做好现有经营即可。');
 }
 
@@ -753,7 +819,7 @@ function cashEmergency(state, ui) {
   if (stock?.value > 0) return note('先变现可用库存', `${PRODUCT_BY_ID[stock.id]?.name ?? '可用库存'} 清仓预计立即到账 ${cash(stock.value)}，但会减少库存价值。没有其他即时筹款选择时可考虑。`, ui.page === 'orders' ? focus('liquidate', stock.id, '查看清仓金额') : page('orders', '前往可用库存', 'orders-inventory'));
   const rescue=assetRescue(state,ui,lowest);
   if(rescue)return rescue;
-  if (state.cash >= 0 && rows[0].hypothetical >= 0) return note('暂缓新支出，本周可以继续推进', '当前没有适合的即时筹款渠道，未来现金仍有缺口。建议先不再接新单或投资，让现有业务继续交货回款。', settle());
+  if (state.cash >= 0 && rows[0].hypothetical >= 0) return note('暂缓新支出，本周可以继续推进', '当前没有适合的即时筹款渠道，未来现金仍有缺口。建议先不再接新单或投资，让现有业务继续交货回款。', settle(ui.page));
   return note('暂停新增支出', '现在没有可立即弥补缺口的回款、授信或可用库存。暂缓报价、招聘和投资。继续周结算可能使资金链进一步恶化，请先核对已有订单的预计回款。');
 }
 
@@ -780,8 +846,11 @@ function quietWeek(state,ui,quoted) {
   const declined=coachDeclinedRecord(ui.coachDeclined,state.week);
   const deferred=declined.tasks.length||declined.inquiries.length?'你选择暂缓的事项仍保留，可自行返回办理。':'';
   const text=`${quoted.text} 当前没有其他建议立即办理的经营事项。${deferred}${rested?'本周已安排过休息，仍可浏览生活内容，或直接结算。':'可以去下班娱乐，也可以直接结束本周。'}`;
-  if (ui.page==='offwork') return {...note(rested?'本周已安排休息':'本周暂时没有其他经营事项',`${deferred}${rested?'本周活动已经结算，可以继续浏览生活内容，或结束本周。':'可以自行选择活动，也可以直接结束本周，不要求消费。'}`,settle()),quietWeek:true};
-  return {...note(quoted.title,text,page('offwork',rested?'去下班看看':'去下班娱乐')),nextAction:settle(),quietWeek:true};
+  if (ui.page==='offwork') {
+    if(rested)return {...note('本周已安排休息',`${deferred}本周活动已经结算，可以继续浏览生活内容，或者到页面底部结束本周。`,settle(ui.page)),quietWeek:true};
+    return {...note('本周暂时没有其他经营事项',`${deferred}可以看看旅行和约朋友的活动，免费的也能休息，不要求消费。想继续经营时，到页面底部结束本周。`,{ui:'coach-leisure-menu',label:'看看娱乐项目'}),nextAction:{...settle(ui.page),quiet:true},quietWeek:true};
+  }
+  return {...note(quoted.title,text,{ui:'coach-leisure-menu',page:'offwork',label:rested?'去下班看看':'去下班娱乐'}),nextAction:settle(ui.page),quietWeek:true};
 }
 
 function attachOnward(local,next) {
@@ -827,16 +896,16 @@ function pageAdvice(state, ui) {
 
 function actionButton(action) {
   if (!action) return '';
-  if (action.command === 'end-week') return `<button type="button" class="button ${action.quiet ? 'quiet' : 'coach-action'}" data-action="end-week">${esc(action.label)}</button>`;
+  if (action.command === 'end-week') return `<button type="button" class="button ${action.quiet ? 'quiet' : 'coach-action'}" data-ui="coach-settlement">${esc(action.label)}</button>`;
   return `<button type="button" class="button ${action.quiet ? 'quiet' : 'coach-action'}" data-ui="${action.ui}"${action.page ? ` data-page="${action.page}"` : ''}${action.tab ? ` data-coach-tab="${action.tab}"` : ''}${action.id != null ? ` data-id="${esc(action.id)}"` : ''}${action.choice ? ` data-choice="${esc(action.choice)}"` : ''}${action.action ? ` data-coach-action="${esc(action.action)}"` : ''}${action.form ? ` data-coach-form="${esc(action.form)}"` : ''}${Number.isSafeInteger(action.amount) ? ` data-coach-amount="${action.amount}"` : ''}>${esc(action.label)}</button>`;
 }
 
-function card(state, advice, { extra = '', preview = false, progress = false, overview = false } = {}) {
+function card(state, advice, { extra = '', preview = false, progress = false, overview = false, introProgress = null } = {}) {
   if (!advice) return '';
   const person = ASSISTANTS.find(item => item.id === state.assistant) ?? ASSISTANTS[0];
   return `<aside class="coach-card" aria-label="助理带教"${preview ? ' data-quote-preview="coach" tabindex="-1"' : ''}>
     <span class="portrait headshot coach-portrait" data-assistant-id="${esc(person.id)}" aria-hidden="true" style="background-image:url('${esc(person.portrait)}')"></span>
-    <div class="coach-copy"><small class="coach-label">${esc(person.name)}的带教建议${overview ? '（发展总览）' : progress ? `（入门 ${state.tutorial.step + 1}/5）` : ''}</small><h3>${esc(advice.title)}</h3><p>${esc(advice.text)}</p>
+    <div class="coach-copy"><small class="coach-label">${esc(person.name)}的带教建议${Number.isInteger(introProgress)?`（认识游戏 ${introProgress}/${coachTourIds.length}）`:overview ? '（发展总览）' : progress ? `（入门 ${state.tutorial.step + 1}/5）` : ''}</small><h3>${esc(advice.title)}</h3><p>${esc(advice.text)}</p>
     ${advice.action || advice.nextAction || extra ? `<div class="coach-actions">${actionButton(advice.action)}${actionButton(advice.nextAction)}${extra}</div>` : ''}</div></aside>`;
 }
 
@@ -845,7 +914,7 @@ export function pageCoach(state, ui) {
   const step = !state.tutorial.done && [0,1,3].includes(state.tutorial.step);
   const advice = pageAdvice(state, ui);
   const extra = advice?.preparation ? (advice.nextAction?.ui === 'coach-skip-prep' ? '' : actionButton(skipPreparation())) : advice?.introduction ? '<button type="button" class="button quiet" data-ui="coach-skip-intro">跳过介绍</button>' : step ? '<button type="button" class="button quiet" data-ui="skip-tutorial">跳过基础流程提示</button>' : '';
-  return card(state, advice, { extra, progress: step, overview: ui.page === 'company' && ui.developmentOverview });
+  return card(state, advice, { extra, progress: step, overview: ui.page === 'company' && ui.developmentOverview, introProgress:advice?.introduction?advice.introProgress:null });
 }
 
 function manualQuoteAdvice(state,inquiry,model,selected) {

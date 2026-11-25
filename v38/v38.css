@@ -23,7 +23,6 @@
   --panel-radius: .8rem;
   --gutter: clamp(1rem, 2.5vw, 2.35rem);
   --space: 1rem;
-  --dock-controls: 3.6rem;
   --dock-nav: 3.2rem;
   font-family: var(--ws-sans);
   font-variant-numeric: tabular-nums;
@@ -170,8 +169,22 @@ input[type=range] { width: 100%; min-height: 44px; margin: 0; }
 .side-stats > * { display: flex; justify-content: space-between; gap: .65rem; align-items: baseline; }
 .side-stats :is(dt, small) { flex: none; color: var(--ws-secondary); }
 .side-stats :is(dd, strong) { min-width: 0; overflow-wrap: anywhere; text-align: right; color: var(--ws-mark-bright); }
-.week-controls { display: grid; grid-template-columns: minmax(0, 1fr); gap: .42rem; margin-top: auto; }
-.week-controls :is(button, .button) { width: 100%; }
+.week-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(15rem, 23rem);
+  align-items: center;
+  gap: .78rem 1.25rem;
+  margin-top: var(--space);
+  padding: clamp(.8rem, 1.5vw, 1.15rem);
+  border: 1px solid #665438;
+  border-radius: var(--panel-radius);
+  background: linear-gradient(115deg, #30271b, var(--ws-card) 68%);
+  scroll-margin-block: 1rem;
+}
+.week-controls-copy { display: grid; gap: .13rem; min-width: 0; }
+.week-controls-copy p { color: var(--ws-secondary); font-size: .86rem; }
+.week-controls-actions { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: .5rem; min-width: 0; }
+.week-controls :is(button, .button) { width: 100%; min-width: 0; min-height: 46px; }
 .workspace { min-width: 0; width: min(100%, 105rem); margin-inline: auto; padding: var(--gutter); }
 .page-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .75rem; align-items: center; margin-bottom: 1.05rem; }
 .page-header > * { min-width: 0; }
@@ -841,10 +854,15 @@ dialog.dialog::backdrop { background: #0b0907bf; }
   .app-shell { display: block; }
   .sidebar { display: contents; }
   .sidebar > .brand, .sidebar > .side-stats { display: none; }
-  .workspace { padding-bottom: calc(var(--dock-controls) + var(--dock-nav) + env(safe-area-inset-bottom, 0px) + 1.1rem); }
-  .nav, .week-controls { position: fixed; inset-inline: 0; z-index: 5; margin: 0; border-top: 1px solid var(--ws-line-warm); background: #1b1915; }
+  .workspace { padding-bottom: calc(var(--dock-nav) + env(safe-area-inset-bottom, 0px) + 1.1rem); }
   .nav {
+    position: fixed;
+    inset-inline: 0;
     bottom: 0;
+    z-index: 5;
+    margin: 0;
+    border-top: 1px solid var(--ws-line-warm);
+    background: #1b1915;
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: .14rem;
@@ -854,12 +872,12 @@ dialog.dialog::backdrop { background: #0b0907bf; }
   .nav :is(button, a) { display: grid; align-content: center; justify-items: center; justify-content: center; gap: .12rem; padding: .22rem .05rem; font-size: .81rem; text-align: center; }
   .nav svg { width: 1rem; height: 1rem; }
   .week-controls {
-    bottom: calc(var(--dock-nav) + env(safe-area-inset-bottom, 0px));
-    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
-    gap: .45rem;
-    min-height: var(--dock-controls);
-    padding: .37rem var(--gutter);
+    grid-template-columns: minmax(0, 1fr);
+    gap: .6rem;
+    padding: .75rem;
+    scroll-margin-block-end: calc(var(--dock-nav) + env(safe-area-inset-bottom, 0px) + .8rem);
   }
+  .week-controls-actions { gap: .45rem; }
   .page-header { align-items: start; margin-bottom: .67rem; }
   .current-time { min-width: 7.15rem; padding: .42rem .57rem .47rem; }
   .compact-cash { display: block; margin-top: .28rem; font-size: .88rem; }

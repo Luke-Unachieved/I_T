@@ -24,6 +24,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844,
       await page.goto();
       await page.waitFor(present('[data-form="new-game"]'));
       await loadScenario(page, `(game)=>{const s=game.newGame({name:'下班生活验收',assistant:'fang',seed:381});s.cash=6000000;s.creditLine=game.creditLimit(s);s.energy=0;s.tutorial.done=true;return s;}`);
+      assert.equal(await page.evaluate(present('[data-action=end-week],[data-action=advance-four]')), false, 'office does not advance the week');
       await page.click('.nav [data-page="offwork"]');
       assert.equal(await currentApp(), 'home');
       assert.deepEqual(await page.evaluate('Array.from(document.querySelectorAll("[data-ui=life-app]")).map(e=>e.dataset.id)'), ['trips', 'friends', 'property', 'car']);
@@ -33,10 +34,13 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844,
       assert.equal(room.src, 'assets/deal-afterwork-original-room.webp');
       assert.ok(Math.abs(room.ratio-room.native)<.01 && room.fit==='contain',JSON.stringify(room));
       await checkWidth(page);
-      if (viewport.width <= 360) {
-        const firstScreen = await page.evaluate(`(()=>{const bounds=selector=>document.querySelector(selector).getBoundingClientRect();return{titleBottom:bounds('.life-app-menu-title').bottom,appTop:bounds('.life-app-tile').top,footerTop:bounds('.week-controls').top};})()`);
-        assert.ok(firstScreen.titleBottom < firstScreen.footerTop && firstScreen.appTop < firstScreen.footerTop, JSON.stringify(firstScreen));
-      }
+      const firstScreen = await page.evaluate(`(()=>{
+        const footer=document.querySelector('.week-controls'),content=document.querySelector('.workspace > .page-content'),r=footer.getBoundingClientRect();
+        return {lastChild:footer===document.querySelector('.workspace').lastElementChild,position:getComputedStyle(footer).position,contentBottom:content.getBoundingClientRect().bottom,footerTop:r.top,footerBottom:r.bottom,navTop:document.querySelector('.nav').getBoundingClientRect().top};
+      })()`);
+      assert.ok(firstScreen.lastChild && firstScreen.contentBottom <= firstScreen.footerTop+1, JSON.stringify(firstScreen));
+      assert.ok(!['fixed', 'sticky'].includes(firstScreen.position), JSON.stringify(firstScreen));
+      if (viewport.mobile) assert.ok(firstScreen.footerBottom > firstScreen.navTop, 'the footer is below the initial life content');
       await page.screenshot(`/tmp/v38-life-app-${viewport.width}-home.png`);
 
       await life('trips');
@@ -113,6 +117,27 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844,
       await checkWidth(page);
       await life('home');
       assert.ok(await page.evaluate(present('#latest-outing')));
+
+      // Ending the week is an explicit action at the bottom of the offwork page.
+      const beforeWeek = (await currentState(page)).week;
+      await page.evaluate('document.querySelector(".week-controls").scrollIntoView({block:"center",behavior:"instant"})');
+      const footer = await page.evaluate(`(()=>{
+        const r=document.querySelector('.week-controls').getBoundingClientRect(),nav=document.querySelector('.nav').getBoundingClientRect();
+        const controls=Array.from(document.querySelectorAll('[data-action=end-week],[data-action=advance-four]'));
+        return {top:r.top,bottom:r.bottom,navTop:nav.top,height:innerHeight,actions:controls.map(button=>{
+          const b=button.getBoundingClientRect(),hit=document.elementFromPoint(b.x+b.width/2,b.y+b.height/2);
+          return {action:button.dataset.action,inFooter:Boolean(button.closest('.week-controls')),clickable:button.contains(hit)&&!button.disabled};
+        })};
+      })()`);
+      assert.deepEqual(footer.actions, [{action:'end-week',inFooter:true,clickable:true},{action:'advance-four',inFooter:true,clickable:true}]);
+      if (viewport.mobile) assert.ok(footer.top >= 0 && footer.bottom <= footer.navTop+1, JSON.stringify(footer));
+      else assert.ok(footer.top >= 0 && footer.bottom <= footer.height+1, JSON.stringify(footer));
+      assert.equal((await currentState(page)).week, beforeWeek);
+      await page.click('.week-controls [data-action=end-week]');
+      await page.waitFor('document.querySelector("dialog[open] #modal-title")?.textContent.includes("本周小结")');
+      assert.equal((await currentState(page)).week, beforeWeek+1);
+      await page.click('dialog [data-ui="close-dialog"]');
+      assert.equal(await currentApp(), 'home');
       assert.deepEqual(page.errors, []);
     } finally { await browser.close(); }
   });

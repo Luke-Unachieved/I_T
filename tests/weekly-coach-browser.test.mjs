@@ -22,11 +22,11 @@ async function postIntro(page, fixture, firstPage = 'office') {
   await page.waitFor(exists('[data-form="new-game"],[data-ui="resume-save"]'));
   await loadScenario(page, fixture);
   await nav(page, firstPage);
-  await page.evaluate(`(()=>{const record=${storage};record.view.coachPrep=3;record.view.coachIntro=4;localStorage.setItem(${JSON.stringify(SAVE_KEY)},JSON.stringify(record));})()`);
+  await page.evaluate(`(()=>{const record=${storage};record.view.coachPrep=3;record.view.coachTour={version:2,visited:[],active:null,skipped:true};localStorage.setItem(${JSON.stringify(SAVE_KEY)},JSON.stringify(record));})()`);
   await page.send('Page.reload');
   await page.waitFor(exists('[data-ui="resume-save"]'));
   await page.click('[data-ui="resume-save"]');
-  assert.equal((await saved(page)).view.coachIntro, 4);
+  assert.equal((await saved(page)).view.coachTour.skipped, true);
   assert.equal((await saved(page)).view.coachPrep, 3);
 }
 
@@ -70,7 +70,7 @@ async function reviewPending(page, max = 10) {
     const after = await reviewTask(page, `[data-ui="${current.ui}"]${current.id ? `[data-id="${current.id}"]` : ''}`);
     assert.notDeepEqual(after.view.coachReview, before.view.coachReview, 'a real review must acknowledge the reviewed current information');
     const returnSelector=current.id?`#${current.id} .order-section-body [data-ui=coach-review-next]`:'.forecast-panel [data-ui=coach-review-next]';
-    const visibleReturn=await page.evaluate(`(()=>{const button=document.querySelector(${JSON.stringify(returnSelector)});const dock=document.querySelector('.week-controls').getBoundingClientRect();const r=button?.getBoundingClientRect();return Boolean(r&&r.width>0&&r.height>0&&r.top>=0&&r.bottom<dock.top);})()`);
+    const visibleReturn=await page.evaluate(`(()=>{const button=document.querySelector(${JSON.stringify(returnSelector)});const dock=document.querySelector('.nav').getBoundingClientRect();const r=button?.getBoundingClientRect();return Boolean(r&&r.width>0&&r.height>0&&r.top>=0&&r.bottom<dock.top);})()`);
     assert.ok(visibleReturn, `return to next recommendation must be visible beside the reviewed ${current.id??'cash forecast'}`);
     await assertCoachReturnStyle(page,returnSelector);
     await page.screenshot(`/tmp/v38-weekly-review-${current.id??'cash'}-${await page.evaluate('innerWidth')}.png`);
@@ -179,6 +179,7 @@ for (const viewport of [{ width: 390, height: 844, mobile: true }, { width: 320,
       await chooseInquiryPage(page);
       assert.ok(![first,alternate,second].includes(await readRecommendation(page)));
       const oldWeek=(await saved(page)).state.week;
+      await nav(page,'offwork');
       await page.click('.week-controls [data-action=end-week]');
       await dismissDecisions(page);
       assert.equal((await saved(page)).state.week,oldWeek+1);
@@ -301,6 +302,7 @@ test(`weekly coach follows outstanding invoices, deferred work and cash reviews 
     assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`),/本周已归还/);
     assert.equal(await page.evaluate(exists(`${coach} [data-coach-form="repay"]`)),false,'saved partial repayment remains acknowledged after refresh');
     const oldWeek=adjusted.week;
+    await nav(page,'offwork');
     await page.click('.week-controls [data-action=end-week]');
     await dismissDecisions(page);
     assert.equal((await saved(page)).state.week,oldWeek+1);
@@ -311,40 +313,50 @@ test(`weekly coach follows outstanding invoices, deferred work and cash reviews 
 });
 }
 
-test('weekly coach preserves quiet-week player choice and does not demand repeated leisure at 320px', { skip: !enabled, timeout: 120_000 }, async () => {
+for (const viewport of [{width:320,height:568,mobile:true},{width:390,height:844,mobile:true}]) {
+test(`weekly coach shows actual leisure choices upon entering quiet-week entertainment at ${viewport.width}px`, { skip: !enabled, timeout: 120_000 }, async () => {
   const browser = await launchBrowser(root, { scenarios: true });
   try {
-    const page = await browser.page({ width: 320, height: 568, mobile: true });
+    const page = await browser.page(viewport);
     await postIntro(page, `game=>{const s=game.newGame({difficulty:'casual',seed:381});s.inquiries=[];s.energy=100;s.tutorial.done=true;return s;}`, 'office');
-    const choices = await page.evaluate(`(()=>{const e=document.querySelector('${coach}');const l=e.querySelector('[data-page=offwork]'),w=e.querySelector('[data-action=end-week]');return l&&w?{leisure:l.textContent,week:w.textContent,leisureClass:l.className,weekClass:w.className}:null;})()`);
+    const choices = await page.evaluate(`(()=>{const e=document.querySelector('${coach}');const l=e.querySelector('[data-page=offwork]'),w=e.querySelector('[data-ui=coach-settlement]');return l&&w?{leisure:l.textContent,week:w.textContent,leisureClass:l.className,weekClass:w.className}:null;})()`);
     assert.ok(choices, 'quiet week must offer both leisure and settlement');
+    assert.equal(await page.evaluate(exists('.week-controls,[data-action=end-week],[data-action=advance-four]')),false,'office has no actual settlement controls');
     assert.equal(choices.leisureClass,choices.weekClass, 'leisure and settlement are equal alternatives without mandatory spending');
-    const firstScreen = await page.evaluate(`(()=>{const rect=s=>document.querySelector(s).getBoundingClientRect();return{titleTop:rect('${coach} h3').top,leisureBottom:rect('${coach} [data-page=offwork]').bottom,settleBottom:rect('${coach} [data-action=end-week]').bottom,dockTop:rect('.week-controls').top};})()`);
+    const firstScreen = await page.evaluate(`(()=>{const rect=s=>document.querySelector(s).getBoundingClientRect();return{titleTop:rect('${coach} h3').top,leisureBottom:rect('${coach} [data-page=offwork]').bottom,settleBottom:rect('${coach} [data-ui=coach-settlement]').bottom,dockTop:rect('.nav').top};})()`);
     assert.ok(firstScreen.titleTop>=0 && Math.max(firstScreen.leisureBottom,firstScreen.settleBottom)<firstScreen.dockTop, JSON.stringify(firstScreen));
-    await page.screenshot('/tmp/v38-weekly-quiet-320.png');
+    await page.screenshot(`/tmp/v38-weekly-quiet-${viewport.width}.png`);
     const before=(await saved(page)).state;
     await coachButton(page,'[data-page=offwork]');
     assert.deepEqual((await saved(page)).state,before);
-    assert.ok(await page.evaluate(exists(`${coach} [data-action=end-week]`)));
-    assert.equal(await page.evaluate(exists(`${coach} [data-page=offwork]`)),false, 'no redirect back to the current leisure page');
+    assert.ok(await page.evaluate(exists('.life-app-room')), 'the home illustration remains available');
+    assert.equal(await page.evaluate("getComputedStyle(document.querySelector('.week-controls')).position"),'static');
+    const leisureScreen=await page.evaluate(`(()=>{const dock=document.querySelector('.nav').getBoundingClientRect();const rect=id=>{const r=document.querySelector('[data-ui=life-app][data-id='+id+']').getBoundingClientRect();return {top:r.top,bottom:r.bottom};};return {trips:rect('trips'),friends:rect('friends'),dock:dock.top};})()`);
+    assert.ok(leisureScreen.trips.top>=0 && leisureScreen.friends.top>=0 && Math.max(leisureScreen.trips.bottom,leisureScreen.friends.bottom)<=leisureScreen.dock, 'guided arrival must actually show both entertainment choices without extra scrolling: '+JSON.stringify(leisureScreen));
+    assert.ok(await page.evaluate(exists(`${coach} [data-ui=coach-settlement],.week-controls [data-action=end-week]`)), 'settlement stays available, not mandatory');
+    await page.waitFor("Array.from(document.querySelectorAll('.life-app-tile-art')).every(frame=>frame.dataset.mediaState==='loaded')");
+    assert.deepEqual(await page.evaluate("Array.from(document.querySelectorAll('.life-app-tile-art img')).map(img=>[img.dataset.mediaSrc,img.naturalWidth,img.naturalHeight])"),['trips','friends','property','car'].map(id=>[`assets/v38-life-app-${id}.webp`,768,512]));
+    await page.screenshot(`/tmp/v38-guided-leisure-${viewport.width}.png`);
     await page.click('[data-ui=life-app][data-id=trips]');
     await page.click('[data-life-id=trip-paper-boat] > summary');
     const form='[data-outing-id=trip-paper-boat]';
     await page.click(`${form} button[type=submit]`);
     assert.equal((await saved(page)).state.life.lastBreakWeek,before.week);
     assert.equal((await saved(page)).state.cash,before.cash,'the manually chosen free leisure is not an assistant-imposed expense');
-    assert.ok(await page.evaluate(exists(`${coach} [data-action=end-week]`)));
+    assert.ok(await page.evaluate(exists(`${coach} [data-ui=coach-settlement]`)));
     assert.equal(await page.evaluate(exists(`${coach} [data-ui=coach-select-outing],${coach} [data-coach-action=outing]`)),false);
     const rested=(await saved(page)).state;
     await assertCoachReturnStyle(page,'#latest-outing [data-ui=coach-review-next]');
     await page.click('#latest-outing [data-ui=coach-review-next]');
-    assert.ok(await page.evaluate(`document.activeElement.matches('${coach} [data-action=end-week]')`));
+    assert.ok(await page.evaluate(`document.activeElement.matches('${coach} [data-ui=coach-settlement]')`));
     assert.deepEqual((await saved(page)).state,rested,'the leisure result return control must not execute settlement');
     await reloadAndContinue(page);
     assert.equal((await saved(page)).view.lifeApp,'trips');
     assert.equal((await saved(page)).state.life.lastBreakWeek,before.week);
-    assert.ok(await page.evaluate(exists(`${coach} [data-action=end-week]`)));
-    await coachButton(page,'[data-action=end-week]');
+    assert.ok(await page.evaluate(exists(`${coach} [data-ui=coach-settlement]`)));
+    await coachButton(page,'[data-ui=coach-settlement]');
+    assert.equal((await saved(page)).state.week,before.week,'assistant settlement route only navigates');
+    await page.click('.week-controls [data-action=end-week]');
     await page.waitFor(exists('dialog[open]'));
     await dismissDecisions(page);
     assert.equal((await saved(page)).state.week,before.week+1);
@@ -352,6 +364,7 @@ test('weekly coach preserves quiet-week player choice and does not demand repeat
     assert.deepEqual(page.errors,[]);
   } finally { await browser.close(); }
 });
+}
 
 test('a finance emergency follows manual navigation and the coach accepts a player-selected loan amount at 320px', { skip: !enabled, timeout: 120_000 }, async () => {
   const browser = await launchBrowser(root, { scenarios: true });

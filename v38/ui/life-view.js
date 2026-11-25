@@ -243,10 +243,10 @@ function lifeHome(state) {
     <nav class="life-app-menu" aria-label="下班去处">
       <h2 class="life-app-menu-title">下班去处</h2>
       <div class="life-app-grid">
-        ${appLauncher('trips', '旅行', `${count(tripCount)} 项行程`, 'assets/deal-outing-result-night-bus-rear-window.webp')}
-        ${appLauncher('friends', '约朋友', `${count(friends.length)} 项活动，${count(unlocked)} 项已开放`, 'assets/deal-outing-reel-river-bench.webp')}
-        ${appLauncher('property', '房产', `${count(LIFE_CATALOG.properties.length)} 种房产，已持有 ${count(state.life.properties.length)} 处`, 'assets/deal-property-home-harbor.webp')}
-        ${appLauncher('car', '车行', `${count(LIFE_CATALOG.cars.length)} 款车型，已持有 ${count(state.life.cars.length)} 辆`, 'assets/deal-car-wagon.webp')}
+        ${appLauncher('trips', '旅行', `${count(tripCount)} 项行程`, 'assets/v38-life-app-trips.webp')}
+        ${appLauncher('friends', '约朋友', `${count(friends.length)} 项活动，${count(unlocked)} 项已开放`, 'assets/v38-life-app-friends.webp')}
+        ${appLauncher('property', '房产', `${count(LIFE_CATALOG.properties.length)} 种房产，已持有 ${count(state.life.properties.length)} 处`, 'assets/v38-life-app-property.webp')}
+        ${appLauncher('car', '车行', `${count(LIFE_CATALOG.cars.length)} 款车型，已持有 ${count(state.life.cars.length)} 辆`, 'assets/v38-life-app-car.webp')}
       </div>
     </nav>
     ${outingResult(state.life.latestOuting)}
