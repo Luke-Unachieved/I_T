@@ -33,7 +33,9 @@ export const developmentTabs = [
 
 export const assistantFor = id => ASSISTANTS.find(person => person.id === id) ?? ASSISTANTS[0];
 const icon = path => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"></path></svg>`;
-const portrait = person => `<span class="portrait" aria-hidden="true" style="background-image:url('${esc(person.portrait)}');background-position:${esc(person.portraitPosition)}"></span>`;
+// Crop the original four-person atlas to each assistant's head and shoulders.
+const openingPortraitPosition = { fang: '8% 3%', liang: '35.4% 13%', tao: '64.8% 2%', xu: '93.2% 3%' };
+const openingPortrait = person => `<span class="portrait" aria-hidden="true" style="background-image:url('${esc(person.portrait)}');background-position:${openingPortraitPosition[person.id]}"></span>`;
 const weekLabel = week => `第 ${count(week)} 周`;
 const yearWeek = week => `第 ${Math.floor((week - 1) / 52) + 1} 年 · 第 ${(week - 1) % 52 + 1} 周`;
 const openOrders = state => state.orders.filter(order => !['settled', 'cancelled', 'bad-debt', 'closed', 'paid', 'delivered'].includes(order.stage ?? order.status));
@@ -74,7 +76,7 @@ export function opening(notice = '', settings = '', stored = { status: 'empty' }
       ${mode === 'form' ? `<form data-form="new-game" class="opening-form" novalidate>
         <div class="form-field"><label for="opening-company-name">公司名</label><input id="opening-company-name" name="name" type="text" placeholder="例如：海港贸易工作室" maxlength="32" required autocomplete="off" aria-describedby="new-game-error"><p class="negative" id="new-game-error" data-field-error role="alert" hidden></p></div>
         <fieldset class="assistant-grid"><legend>选择一位助理</legend>
-          ${ASSISTANTS.map((person, i) => `<label class="assistant-choice"><input type="radio" name="assistant" value="${esc(person.id)}"${i === 0 ? ' checked' : ''}>${portrait(person)}<span><strong>${esc(person.name)}</strong><small>${esc(person.description)}</small></span></label>`).join('')}
+          ${ASSISTANTS.map((person, i) => `<label class="assistant-choice">${openingPortrait(person)}<span class="assistant-choice-name"><input type="radio" name="assistant" value="${esc(person.id)}"${i === 0 ? ' checked' : ''}><strong>${esc(person.name)}</strong></span><small>${esc(person.description)}</small></label>`).join('')}
         </fieldset>
         ${settings}
         <button class="button primary" type="submit">创立工作室</button>

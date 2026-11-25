@@ -19,6 +19,9 @@ async function createCompany(page, name) {
   await page.goto();
   await page.waitFor(present('[data-form="new-game"]'));
   assert.equal(await page.evaluate(present('a[href="classic.html"], a[href="deal-room.html"], a[href="legacy-game.html"]')), false);
+  const portraits = await page.evaluate('({mobile:innerWidth<=760,sizes:Array.from(document.querySelectorAll(".assistant-choice .portrait"),e=>({width:e.clientWidth,height:e.clientHeight}))})');
+  assert.equal(portraits.sizes.length, 4);
+  if (portraits.mobile) assert.ok(portraits.sizes.every(size => size.width >= 120 && Math.abs(size.width - size.height) <= 1), JSON.stringify(portraits));
   await noOverflow(page, 'opening');
   await page.fill('[data-form="new-game"] [name="name"]', name);
   await page.click('[data-form="new-game"] button[type="submit"]');
