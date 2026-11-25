@@ -12,6 +12,26 @@ const present = selector => `Boolean(document.querySelector(${JSON.stringify(sel
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 const select = (page, name, value) => page.evaluate(`(()=>{const input=document.querySelector('${form} [name=${name}]');input.value=${JSON.stringify(value)};input.dispatchEvent(new Event('change',{bubbles:true}));})()`);
 
+test('difficulty descriptions explain the difference between full assistant guidance and independent play on phones', options, async () => {
+  const browser = await launchBrowser(root);
+  try {
+    for (const width of [320,390]) {
+      const page = await browser.page({width,height:width===320?568:844,mobile:true});
+      await page.goto();
+      await page.waitFor(present(form));
+      for (const [id,expect] of [['casual',/手把手.*接下来几周.*根据你的选择/],['normal',/基础入门提示.*自己掌握/],['hard',/启动资金更少.*坏账风险更高.*压价.*亲自判断/]]) {
+        await select(page,'difficulty',id);
+        const note = await page.evaluate('document.querySelector("#opening-difficulty-note").innerText');
+        assert.match(note,expect);
+        assert.ok(await page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'));
+        await page.evaluate('document.querySelector("#opening-difficulty-note").scrollIntoView({block:"center"})');
+        await page.screenshot(`/tmp/v38-difficulty-${width}-${id}.png`);
+      }
+      assert.deepEqual(page.errors,[]);
+    }
+  } finally { await browser.close(); }
+});
+
 async function waitUntil(predicate, timeout = 5000) {
   const end = Date.now() + timeout;
   while (Date.now() < end) { if (predicate()) return; await pause(15); }

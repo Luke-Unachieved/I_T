@@ -46,7 +46,7 @@ export const ORIGINS = [
 ];
 
 export const DIFFICULTIES = [
-  { id: 'casual', label: '简单', description: '启动金较多，坏账较少；助理全程带教，推荐适合当前资金和风险的经营方案。', cashDelta: 28000, riskMultiplier: 0.75, rivalMultiplier: 0.95 },
-  { id: 'normal', label: '标准', description: '按常规资金、信用风险和竞争条件经营，提供简要入门提示。', cashDelta: 0, riskMultiplier: 1, rivalMultiplier: 1 },
-  { id: 'hard', label: '困难', description: '启动金较少，风险较高，同行压价更积极，提供简要入门提示。', cashDelta: -12000, riskMultiplier: 1.33, rivalMultiplier: 1.12 },
+  { id: 'casual', label: '简单', description: '启动资金更多，回款风险更低。助理全程手把手带你经营，提前比较接下来几周的方案，并根据你的选择调整建议。', cashDelta: 28000, riskMultiplier: 0.75, rivalMultiplier: 0.95 },
+  { id: 'normal', label: '标准', description: '常规启动资金、回款风险与市场竞争。助理提供基础入门提示，经营决策由你自己掌握。', cashDelta: 0, riskMultiplier: 1, rivalMultiplier: 1 },
+  { id: 'hard', label: '困难', description: '启动资金更少，坏账风险更高，同行压价更激烈。助理只提供基础入门提示，经营需要你亲自判断。', cashDelta: -12000, riskMultiplier: 1.33, rivalMultiplier: 1.12 },
 ];
