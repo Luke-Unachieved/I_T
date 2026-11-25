@@ -6,7 +6,7 @@ import { defaultLifeCollapsed, eraIllustration, lifeAppForOuting, lifeAppIds, li
 import { companyPage, developmentTabs, dialogContent, esc, officePage, offworkPage, opening, saveWarning, saveWarningMessage, shell, tourTarget, yuan } from './shell.js';
 import { strategySections } from './strategy.js';
 import { readSave, SAVE_KEY, writeSave } from './save.js';
-import { coachIntroIndex, quoteRecommendation, recordCoachVisit } from './coaching.js';
+import { coachIntroIndex, coachPrepIndex, quoteRecommendation, recordCoachVisit } from './coaching.js';
 
 const mount = document.querySelector('#v38-root');
 const dialog = document.createElement('dialog');
@@ -34,7 +34,7 @@ function freshUi() {
     page: 'office', dialog: '', quoteId: '', quote: {}, quoteDefault: {}, quoteOrigin: null,
     quoteDrafts: new Map(), quoteDraftRestored: false, bankGuard: new Map(), actionGesture: null,
     filters: { category: '', availability: 'all' }, notice: '', tutorialStep: 0, showMacro: false,
-    saveStatus: 'ready', developmentTab: 'finance', developmentOverview: false, lifeApp: 'home', lifeCollapsed: [...defaultLifeCollapsed], ordersCollapsed: [], coachIntro: 0, coachDeferredWeek: 0,
+    saveStatus: 'ready', developmentTab: 'finance', developmentOverview: false, lifeApp: 'home', lifeCollapsed: [...defaultLifeCollapsed], ordersCollapsed: [], coachPrep: 0, coachIntro: 0, coachDeferredWeek: 0,
   };
 }
 
@@ -42,7 +42,7 @@ const developmentViews = { ...growthSections, ...strategySections };
 const validDevelopmentTab = id => developmentTabs.some(([key]) => key === id);
 
 const pageViews = {
-  office: current => officePage(current, officeFeatures(current)),
+  office: (current, model) => officePage(current, { ...officeFeatures(current), coachPrep: model.coachPrep }),
   inquiries: inquiriesPage,
   orders: ordersPage,
   company: (current, model) => companyPage(current, model.developmentTab, developmentViews[model.developmentTab]?.(current)),
@@ -52,7 +52,7 @@ const pageViews = {
   },
 };
 const notices = {
-  bid: '报价已提交，本周末开结果。', 'withdraw-bid': '已撤回报价。',
+  bid: '报价已提交，本周结算时会收到客户回复。', 'withdraw-bid': '已撤回报价。',
   expedite: '加急已安排，船期提前一周。', collect: '已发出催款提醒。', sue: '已付诉讼费，等待追回。', liquidate: '库存已清仓。',
   hire: '已办理入职。', 'dismiss-staff': '已办理离职。', 'buy-cert': '已取得认证。', 'open-market': '已进入新市场。',
   exhibit: '已报名参展。', referral: '已请客户引荐。', factor: '保理款已到账。',
@@ -117,6 +117,7 @@ function highlightTutorial() {
   mount.querySelector('.tutorial-target')?.classList.remove('tutorial-target');
   dialog.querySelector('.tutorial-target')?.classList.remove('tutorial-target');
   if (!state || state.tutorial.done) return;
+  if (state.difficulty === 'casual' && state.tutorial.step === 3 && !mount.querySelector('.coach-card .coach-action[data-action="end-week"]')) return;
   const target = tourTarget(state.tutorial.step);
   const container = dialog.open ? dialog : mount;
   container.querySelector(`[data-tour="${target}"]`)?.classList.add('tutorial-target');
@@ -140,7 +141,7 @@ function savedView() {
   ui.quoteDrafts = new Map([...ui.quoteDrafts].filter(([id]) => active.has(id)));
   return {
     page: ui.page, filters: ui.filters, showMacro: ui.showMacro, developmentTab: ui.developmentTab, developmentOverview: ui.developmentOverview, lifeApp: ui.lifeApp, lifeCollapsed: ui.lifeCollapsed, lifeDisclosureVersion, ordersCollapsed: ui.ordersCollapsed,
-    coachIntro: coachIntroIndex(ui.coachIntro), coachDeferredWeek: ui.coachDeferredWeek,
+    coachPrep: coachPrepIndex(ui.coachPrep), coachIntro: coachIntroIndex(ui.coachIntro), coachDeferredWeek: ui.coachDeferredWeek,
     drafts: [...ui.quoteDrafts],
     quote: ui.dialog === 'quote' && active.has(ui.quoteId) ? { id: ui.quoteId, proposal: ui.quote } : null,
   };
@@ -205,6 +206,7 @@ function resumeSaved() {
     if (Object.hasOwn(pageViews, view.page)) ui.page = view.page;
     if (validDevelopmentTab(view.developmentTab)) ui.developmentTab = view.developmentTab;
     ui.developmentOverview = view.developmentOverview === true;
+    ui.coachPrep = coachPrepIndex(view.coachPrep);
     ui.coachIntro = coachIntroIndex(view.coachIntro);
     if (Number.isInteger(view.coachDeferredWeek)) ui.coachDeferredWeek = view.coachDeferredWeek;
     if (lifeAppIds.includes(view.lifeApp)) ui.lifeApp = view.lifeApp;
@@ -352,7 +354,7 @@ function retainDraft() {
   return changed;
 }
 
-function dismissDialog({ weeklyTarget = false, viewOrders = false } = {}) {
+function dismissDialog({ weeklyTarget = false, viewOrders = false, receiptView = '' } = {}) {
   if (ui.dialog === 'bankruptcy') return;
   ui.notice = '';
   const wasQuote = ui.dialog === 'quote';
@@ -366,7 +368,7 @@ function dismissDialog({ weeklyTarget = false, viewOrders = false } = {}) {
     ui.dialog = modalAfterAction();
     if (viewOrders) {
       ui.page = 'orders';
-      revealOrderSections(['orders-delivery']);
+      revealOrderSections([receiptView ? 'orders-receivables' : 'orders-delivery']);
       focusAfterDialog = undefined;
     }
   } else {
@@ -378,7 +380,14 @@ function dismissDialog({ weeklyTarget = false, viewOrders = false } = {}) {
   if (viewOrders) window.scrollTo(0, 0);
   if (!ui.dialog) {
     if (wasQuote) returnFromQuote(weeklyTarget);
-    else if (viewOrders) mount.querySelector('#page-title')?.focus({ preventScroll: true });
+    else if (viewOrders) {
+      const receiptSection = receiptView ? mount.querySelector('#orders-receivables') : null;
+      const recent = receiptView === 'paid' ? receiptSection?.querySelector('details:has(table[aria-label="最近回款"])') : null;
+      if (recent) recent.open = true;
+      const target = (recent || receiptSection)?.querySelector('summary') || mount.querySelector('#page-title');
+      target?.focus({ preventScroll: true });
+      if (receiptSection) target?.scrollIntoView({ block: 'center', behavior: 'instant' });
+    }
     else restoreFocus(focusAfterDialog);
     focusAfterDialog = undefined;
   }
@@ -420,7 +429,7 @@ function refreshQuote(updatePriceControl = false) {
 function applyRecommendedQuote() {
   if (state.difficulty !== 'casual' || ui.dialog !== 'quote') return;
   const inquiry = state.inquiries.find(item => item.id === ui.quoteId);
-  const recommendation = quoteRecommendation(state, inquiry);
+  const recommendation = quoteRecommendation(state, inquiry, ui.filters);
   if (!recommendation || recommendation.cashFloor == null || recommendation.cashFloor < 0) return;
   ui.quote = { ...ui.quote, ...recommendation.config };
   saveProgress();
@@ -429,7 +438,7 @@ function applyRecommendedQuote() {
 }
 
 function revealCoachTarget(control) {
-  const { coachAction, coachForm, id, choice } = control.dataset;
+  const { coachAction, coachForm, id, choice, coachAmount } = control.dataset;
   if (ui.page === 'offwork') {
     const app = coachAction === 'outing' ? lifeAppForOuting(id)
       : ['buy-property', 'sell-property', 'mortgage', 'unmortgage'].includes(coachAction) ? 'property'
@@ -441,6 +450,14 @@ function revealCoachTarget(control) {
     const selector = targetForm.elements.target;
     if (!selector || ![...selector.options].some(option => option.value === choice && !option.disabled)) return;
     selector.value = choice;
+  }
+  if (targetForm && coachAmount != null) {
+    const amount = targetForm.elements.amount;
+    const proposed = Number(coachAmount);
+    if (amount && !amount.disabled && Number.isSafeInteger(proposed) && proposed >= Number(amount.min || 1) && proposed <= Number(amount.max || Number.MAX_SAFE_INTEGER)) {
+      amount.value = String(proposed);
+      amount.dispatchEvent(new Event('input', { bubbles: true }));
+    }
   }
   const target = coachForm
     ? targetForm?.querySelector('[name="amount"],[name="target"],button[type="submit"]')
@@ -457,6 +474,14 @@ function reviewRecommendedQuote() {
   if (!submit || submit.disabled) return;
   submit.focus({ preventScroll: true });
   submit.scrollIntoView({ block: 'center' });
+}
+
+function focusCashForecast() {
+  const forecast = mount.querySelector('.forecast-panel h2');
+  if (ui.page !== 'office' || !forecast) return;
+  forecast.tabIndex = -1;
+  forecast.focus({ preventScroll: true });
+  forecast.scrollIntoView({ block: 'start', behavior: 'instant' });
 }
 
 function revealRecommendedOuting(control) {
@@ -640,6 +665,7 @@ function click(event) {
         revealOrderSections(directed.split(' '));
       }
       selectPage(control.dataset.page);
+      if (control.dataset.page === 'office' && control.dataset.coachTab === 'cash-forecast') focusCashForecast();
       if (directOrder) {
         const section = document.getElementById(directOrder);
         section?.scrollIntoView({ block: 'start', behavior: 'instant' });
@@ -665,11 +691,18 @@ function click(event) {
         render();
       }
       break;
+    case 'coach-skip-prep':
+      if (state.difficulty === 'casual') { ui.coachPrep = coachPrepIndex(3); selectPage('inquiries'); }
+      break;
+    case 'coach-focus-forecast': focusCashForecast(); break;
     case 'development-tab': selectDevelopmentTab(control.dataset.id); break;
     case 'quote-open': openQuote(control); break;
     case 'close-dialog': dismissDialog(); break;
     case 'view-first-order':
       if (ui.dialog === 'summary') dismissDialog({ viewOrders: true });
+      break;
+    case 'view-order-receivables':
+      if (ui.dialog === 'summary' && ['paid', 'pending'].includes(control.dataset.receiptView)) dismissDialog({ viewOrders: true, receiptView: control.dataset.receiptView });
       break;
     case 'skip-tutorial':
     case 'finish-tutorial':
@@ -782,7 +815,12 @@ function submit(event) {
     proposal.brandUnitPrice = Number(proposal.brandUnitPrice);
     const submitted = perform({ type: 'bid', inquiryId: ui.quoteId, ...proposal });
     if (submitted) {
-      returnFromQuote(!state.tutorial.done && state.tutorial.step === 3);
+      const next = state.difficulty === 'casual' && mount.querySelector('.coach-card .coach-action');
+      if (next) {
+        ui.quoteOrigin = null;
+        next.focus({ preventScroll: true });
+        next.scrollIntoView({ block: 'center', behavior: 'instant' });
+      } else returnFromQuote(!state.tutorial.done && state.tutorial.step === 3);
     }
     return;
   }

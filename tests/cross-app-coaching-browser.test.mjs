@@ -14,6 +14,7 @@ const saved = page => page.evaluate(snapshot);
 async function openSuggestedQuote(page) {
   await page.click(`${coach} [data-ui="quote-open"]`);
   await page.waitFor(visible('dialog[open] [data-quote-preview="coach"]'));
+  assert.equal(await page.evaluate(visible('dialog[open] .tutorial')), false, 'simple-mode quote shows only the assistant, not a competing basic tutorial');
   if (await page.evaluate(visible('dialog [data-ui="coach-apply-quote"]'))) await page.click('dialog [data-ui="coach-apply-quote"]');
   await page.waitFor(visible('dialog [data-ui="coach-review-submit"]'));
 }
@@ -75,7 +76,8 @@ test('real Chromium 390px simple mode: chat inbox, draft/reload/withdraw, first 
     await page.waitFor(`${snapshot}.state.bids.length===0`);
     await openSuggestedQuote(page);
     await submitSuggestedQuote(page);
-    await page.click(`${coach} [data-action="end-week"]`);
+    assert.ok(await page.evaluate(visible(`${coach} [data-page="office"]`)), 'first bid should prompt a meaningful page visit, not force settlement');
+    await page.click('.week-controls [data-action="end-week"]'); // Player may choose to settle voluntarily with one quote.
     await page.waitFor(visible('dialog[open] [data-ui="view-first-order"]'));
     assert.equal((await saved(page)).state.week, 2);
     await page.click('dialog [data-ui="view-first-order"]');
@@ -83,7 +85,8 @@ test('real Chromium 390px simple mode: chat inbox, draft/reload/withdraw, first 
     await page.click(`${coach} [data-coach-tab="team"]`);
     assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`), /暂缓聘用/);
     await page.click(`${coach} [data-page="offwork"]`);
-    await page.waitFor(visible('[data-ui="life-app"][data-id="rest"]'));
+    await page.waitFor(visible('[data-ui="life-app"][data-id="trips"]'));
+    assert.deepEqual(await page.evaluate('Array.from(document.querySelectorAll("[data-ui=life-app]")).map(e=>e.dataset.id)'), ['trips', 'friends', 'property', 'car']);
     assert.equal((await saved(page)).view.coachIntro, 4);
     await page.waitFor(visible('.life-app-room[data-media-state="loaded"]'));
     await page.evaluate('document.querySelector(".life-app-room img").decode()');
@@ -104,12 +107,16 @@ test('real Chromium 390px simple mode: chat inbox, draft/reload/withdraw, first 
     assert.ok(recommendation, 'tired players should get a feasible specific leisure recommendation');
     const activity = LIFE_CATALOG.outings.find(item => item.id === recommendation.id);
     assert.ok(activity);
-    const expectedApp = activity.kind === 'quick' ? 'rest' : activity.kind === 'trip' ? 'trips' : 'friends';
+    const expectedApp = activity.kind === 'trip' || activity.id === 'night-bus' ? 'trips' : 'friends';
     const selector = recommendation.detailed ? `${coach} [data-ui="coach-select-outing"]` : `${coach} [data-coach-action="outing"]`;
     await page.click(selector);
     await page.waitFor(visible(`[data-life-app-page="${expectedApp}"]`));
     assert.equal((await saved(page)).state.energy, before.energy, 'coach navigation must not purchase rest');
     assert.equal((await saved(page)).view.lifeApp, expectedApp);
+    const reviewControl = recommendation.detailed
+      ? `form[data-form="outing"][data-outing-id="${activity.id}"] button[type="submit"]`
+      : `[data-action="outing"][data-id="${activity.id}"]`;
+    assert.ok(await page.evaluate(`document.querySelector(${JSON.stringify(reviewControl)})?.getClientRects().length>0`), 'recommended activity must be revealed, not hidden in a collapsed group or card');
     await page.screenshot('/tmp/v38-cross-app-rest-390.png');
     if (recommendation.detailed) {
       const form = `form[data-form="outing"][data-outing-id="${activity.id}"]`;

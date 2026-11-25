@@ -289,7 +289,7 @@ function flowChart(rows) {
     forecastLegend('现金流入（含融资）', 'income') + forecastLegend('现金支出', 'expense'));
 }
 
-export function forecastPanel(rows, state) {
+export function forecastPanel(rows, state, coachPrep = 0) {
   const line = row => row.cash;
   const hypothetical = row => row.hypothetical ?? row.cash;
   const showHypothesis = Boolean(state?.bids?.length) || rows.some(row => hypothetical(row) !== line(row));
@@ -299,6 +299,7 @@ export function forecastPanel(rows, state) {
   return `<section class="panel forecast-panel" data-tour="cash-forecast"><header class="panel-heading"><div><h2>未来 12 周现金预测</h2><p>按手头已接订单及收支推算，不计以后新报价。${showHypothesis ? '另外展示当前已提交报价全部中单的情况。' : ''}</p></div></header>
     <div class="forecast-scenarios">${projections.map(projection => projectionSummary(projection, finalWeek)).join('')}</div>
     ${balanceChart(rows, projections)}
+    ${coachPrep === 1 && state?.difficulty === 'casual' && state.bids.length && !state.orders.length && !state.events.length && state.cash >= 0 && rows.every(row => row.hypothetical >= 0) ? '<div class="toolbar"><button type="button" class="button secondary" data-ui="page" data-page="company" data-coach-tab="finance">认识备用资金与授信 →</button></div>' : ''}
     ${flowChart(rows)}
     <details class="forecast-details"><summary>查看逐周明细</summary>${table(['周次', '现金流入', '支出', '周末现金', ...(showHypothesis ? ['若全中单'] : [])], rows.map(row => [weekLabel(row.week), yuan(row.inflow), yuan(row.outflow), yuan(row.cash), ...(showHypothesis ? [yuan(hypothetical(row))] : [])]))}</details>
     ${state ? fundingSchedule(state, finalWeek) : ''}
@@ -355,7 +356,7 @@ export function officePage(state, feature = {}) {
       <button type="button" data-ui="page" data-page="inquiries"><span><strong>${count(state.inquiries.length)} 条询盘</strong><small>已提交 ${count(state.bids.length)} / 3 个报价</small></span><span aria-hidden="true">→</span></button>
       <button type="button" data-ui="page" data-page="orders" data-order-sections="orders-delivery"><span><strong>${count(open)} 笔待交付订单</strong><small>${due ? `本周 ${count(due)} 笔待收款` : '查看交付、回款与库存'}</small></span><span aria-hidden="true">→</span></button>
     </div></section></div></div>
-    ${forecastPanel(rows, state)}
+    ${forecastPanel(rows, state, feature.coachPrep)}
     <section class="panel"><header class="panel-heading"><h2>经营动态</h2></header>${state.log.length ? `<ol class="activity-list">${state.log.slice(0, 10).map(item => `<li><span class="badge">${weekLabel(item.week)}</span><p>${esc(item.text)}</p></li>`).join('')}</ol>` : '<p class="empty">开张第一周，等你发出首笔报价。</p>'}</section>`;
 }
 
@@ -558,14 +559,20 @@ function eventContent(state, event, notice) {
 }
 
 export function dialogContent(state, ui, quote) {
-  if (ui.dialog === 'quote') return `${quote}${tutorialNote(state, true)}`;
+  const basicGuide = state.difficulty === 'casual' ? '' : tutorialNote(state, true);
+  if (ui.dialog === 'quote') return `${quote}${basicGuide}`;
   if (ui.dialog === 'summary' && state.summary) {
     const firstOrder = state.orders[0];
     const weeks = state.summary.weeks ?? [state.summary];
     const wonFirstOrder = firstOrder && weeks.some(week => week.won.some(bid => bid.orderId === firstOrder.id));
-    return `${summaryContent(state, tutorialNote(state, true), wonFirstOrder)}<footer class="dialog-footer">
-      <button type="button" class="button ${wonFirstOrder ? 'secondary' : 'primary'}" data-ui="close-dialog">继续经营</button>
-      ${wonFirstOrder ? '<button type="button" class="button primary" data-ui="view-first-order">查看订单</button>' : ''}
+    const delivered = new Set(weeks.flatMap(week => week.delivered ?? []));
+    const paid = new Set(weeks.flatMap(week => (week.collected ?? []).filter(item => state.receivables.some(invoice => invoice.id === item.id && invoice.status === 'paid' && invoice.paidWeek === week.week)).map(item => item.id)));
+    const firstDelivery = delivered.size && state.orders.every(order => !order.deliveredWeek || delivered.has(order.id));
+    const firstPayment = paid.size && state.receivables.every(invoice => invoice.status !== 'paid' || paid.has(invoice.id));
+    const receiptView = state.difficulty === 'casual' && !wonFirstOrder ? firstPayment ? 'paid' : firstDelivery ? 'pending' : '' : '';
+    return `${summaryContent(state, basicGuide, wonFirstOrder)}<footer class="dialog-footer">
+      <button type="button" class="button ${wonFirstOrder || receiptView ? 'secondary' : 'primary'}" data-ui="close-dialog">继续经营</button>
+      ${wonFirstOrder ? '<button type="button" class="button primary" data-ui="view-first-order">查看订单</button>' : receiptView ? `<button type="button" class="button primary" data-ui="view-order-receivables" data-receipt-view="${receiptView}">${receiptView === 'paid' ? '查看回款记录' : '查看交货后的应收款'}</button>` : ''}
     </footer>`;
   }
   if (ui.dialog === 'event' && state.events.length) return eventContent(state, state.events[0], ui.notice);

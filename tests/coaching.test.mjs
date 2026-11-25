@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { newGame, forecast, act } from '../v38/engine/game.js';
 import { quote } from '../v38/engine/quotes.js';
-import { eventCoach, pageCoach, quoteRecommendation } from '../v38/ui/coaching.js';
-import { decisionInfo } from '../v38/engine/expansion.js';
+import { eventCoach, pageCoach, quoteRecommendation, recordCoachVisit } from '../v38/ui/coaching.js';
+import { certProgress, decisionInfo } from '../v38/engine/expansion.js';
+import { ipoProgress } from '../v38/engine/strategy.js';
 import { TRADE_EVENTS } from '../v38/data/events.js';
 import { launchBrowser } from './helpers/chromium.mjs';
 import { currentState, loadScenario } from './helpers/scenarios.mjs';
@@ -12,6 +13,28 @@ import { currentState, loadScenario } from './helpers/scenarios.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const enabled = process.env.V38_BROWSER === '1';
 const present = selector => `Boolean(document.querySelector(${JSON.stringify(selector)}))`;
+
+// Mature fixture with actual-shaped completed contracts, diversified factory demand,
+// and enough cash to protect a genuine future order cohort. Cash alone is insufficient.
+function seasonedOperationsFixture(game, quotes, money=1500000, profits=Array.from({length:12},(_,i)=>25000+i*500)) {
+  const state=game.newGame({difficulty:'casual',seed:381});
+  const inquiry=state.inquiries.find(item=>item.id==='w1-7');
+  const bid=game.act(state,{type:'bid',inquiryId:inquiry.id,source:'factory',ratio:93});
+  if (bid.error) throw Error(bid.error);
+  const base=game.act(bid.state,{type:'end-week'}).state.orders[0];
+  if (!base) throw Error('Fixture first factory contract did not win.');
+  state.week=profits.length+1;
+  state.cash=money;
+  const ids=['clock','carafe','stapler','umbrella'];
+  state.orders=profits.flatMap((profit,index)=>[0,1].map(slot=>({ ...structuredClone(base), id:`historical-${index}-${slot}`, productId:ids[(index*2+slot)%ids.length], staffId:null, status:'settled', contractWeek:index+1, deliveredWeek:index+1, dueWeek:index+2, deliverWeek:index+1, expectedPayWeek:index+1, productionLeft:0, shippingLeft:0, total:250000, foreignTotal:250000, cost:200000, shipping:2000, deposit:50000, workingCapital:152000, profit:48000, probability:1 })));
+  state.history=profits.map((profit,index)=>({week:index+1,cash:money,loan:0,receivables:0,orders:0,profit,revenue:500000,inflow:500000,outflow:500000-profit,rep:state.company.rep,macro:{...state.macro},rank:1,valuation:money}));
+  state.cumulativeRevenue=state.history.reduce((sum,row)=>sum+row.revenue,0);
+  state.year.deliveries=state.orders.length;
+  state.year.revenue=state.cumulativeRevenue;
+  state.year.profit=state.history.reduce((sum,row)=>sum+row.profit,0);
+  state.tutorial.done=true;
+  return state;
+}
 
 test('simple assistant picks a real profitable quote without changing game state; other levels remain quiet', () => {
   const state = newGame({ difficulty: 'casual', seed: 381 });
@@ -41,14 +64,9 @@ test('easy event coaching recommends a valid free response when cash is short', 
 });
 
 test('team recommendation checks recent earnings and the new employee’s 12-week payroll', () => {
-  const build = (money, profits) => {
-    const state = newGame({ difficulty: 'casual', seed: 381 });
-    state.cash = money;
-    state.history = profits.map((profit, index) => ({ week: index + 1, profit, revenue: 10000 }));
-    return state;
-  };
+  const build = (money, profits) => seasonedOperationsFixture({newGame,act},{quote},money,profits);
   const ui = { page: 'company', developmentTab: 'team', coachIntro: 4 };
-  const rich = build(150000, [5000, 6000, 4000, 5000]);
+  const rich = build(1500000,Array(12).fill(25000));
   const recommended = pageCoach(rich, ui);
   const id = recommended.match(/data-id="([^"]+)" data-coach-action="hire"/)?.[1];
   const person = rich.candidates.find(candidate => candidate.id === id);
@@ -56,8 +74,14 @@ test('team recommendation checks recent earnings and the new employee’s 12-wee
   assert.match(recommended, /建议聘用.*周薪.*新增 12 周工资.*预测最低余额/);
   const minimum = Math.min(...forecast({ ...rich, staff: [...rich.staff, person] }).map(row => row.hypothetical));
   assert.ok(recommended.includes(`¥${minimum.toLocaleString('zh-CN')}`));
-  assert.equal(act(rich, { type: 'hire', id }).error, undefined);
-  for (const state of [build(150000, []), build(1500, [5000,5000,5000,5000]), build(150000, [-5000,2500,-100,5000])]) {
+  const hired=act(rich, { type: 'hire', id });
+  assert.equal(hired.error,undefined);
+  assert.match(pageCoach(hired.state,ui),/本周已经增加过人员/);
+  assert.doesNotMatch(pageCoach(hired.state,ui),/data-coach-action="hire"/);
+  const noDemand={...rich,orders:[]};
+  assert.match(pageCoach(noDemand,ui),/实际业务瓶颈/);
+  assert.doesNotMatch(pageCoach(noDemand,ui),/data-coach-action="hire"/);
+  for (const state of [build(1500000, []), build(1500, Array(12).fill(25000)), build(1500000, [-5000,2500,-100,5000])]) {
     const deferred = pageCoach(state, ui);
     assert.match(deferred, /暂缓聘用/);
     assert.doesNotMatch(deferred, /data-coach-action="hire"/);
@@ -72,7 +96,7 @@ test('development overview compares feasible actions while local pages state whe
   const unchanged = pageCoach(state, overview);
   assert.match(unchanged, /发展总览.*本周不用操作/s);
   assert.doesNotMatch(unchanged, /data-coach-tab=|data-coach-action=/);
-  const mature = {...state, cash:150000, history:[0,1,2,3].map(index=>({week:index+1,profit:5000,revenue:10000}))};
+  const mature = seasonedOperationsFixture({newGame,act},{quote});
   const team = pageCoach(mature,overview);
   assert.match(team, /建议聘用.*预测最低余额.*data-coach-tab="team"/s);
   assert.doesNotMatch(team, /data-coach-action="hire"/);
@@ -83,8 +107,29 @@ test('development overview compares feasible actions while local pages state whe
   for (const tab of ['finance','economy','partners','rivalry','board-goals','company-record']) {
     const advice = pageCoach(mature,local(tab));
     assert.match(advice,/本周不用操作/);
-    assert.doesNotMatch(advice,/data-coach-tab=|data-coach-action=|data-coach-form=|data-ui="page"/);
+    assert.doesNotMatch(advice,/data-coach-action=|data-coach-form=/);
+    assert.match(advice,/data-ui="page"|data-action="end-week"/, 'local no-action advice should still point to an onward step');
   }
+});
+
+test('development checks joint certification/market cost, sustained earnings, and real IPO proximity',()=>{
+  const build=(money,profits)=>{const state=seasonedOperationsFixture({newGame,act},{quote},money,profits);state.company.rep=90;return state;};
+  const certUi={page:'company',developmentTab:'certifications',coachIntro:4};
+  const listingUi={page:'company',developmentTab:'listing',coachIntro:4};
+  const early=build(1500000,Array(5).fill(25000));
+  assert.ok(certProgress(early).find(item=>item.id==='export').available);
+  assert.ok(ipoProgress(early,early.cash).actions.find(item=>item.id==='strategic-investment').available);
+  assert.doesNotMatch(pageCoach(early,certUi),/data-coach-action="buy-cert"/);
+  assert.doesNotMatch(pageCoach(early,listingUi),/data-coach-action="strategic-investment"/);
+  const mature=build(1500000,Array(12).fill(25000));
+  assert.match(pageCoach(mature,certUi),/资质与随后开拓该市场预计共需.*data-coach-action="buy-cert"/s);
+  const tight={...mature,cash:490500};
+  assert.ok(certProgress(tight).find(item=>item.id==='export').available,'individual cert is affordable');
+  assert.doesNotMatch(pageCoach(tight,certUi),/data-coach-action="buy-cert"/,'cert plus real future market cost must fit');
+  const funded={...mature,listing:{...mature.listing,stage:'funded',stake:82}};
+  assert.ok(ipoProgress(funded,funded.cash).actions.find(item=>item.id==='restructure').available);
+  assert.match(pageCoach(funded,listingUi),/等真实上市营收、净利与连续年度盈利/);
+  assert.doesNotMatch(pageCoach(funded,listingUi),/data-coach-action="restructure"/);
 });
 
 test('simple coaching prioritizes actionable finances and rest, can settle with no eligible quote, and does not repeat bids', () => {
@@ -92,22 +137,47 @@ test('simple coaching prioritizes actionable finances and rest, can settle with 
   const inquiry = state.inquiries.find(item => quoteRecommendation(state, item));
   const recommended = quoteRecommendation(state, inquiry);
   const submitted = act(state, { type: 'bid', inquiryId: inquiry.id, ...recommended.config }).state;
-  for (const page of ['office', 'inquiries']) {
-    const html = pageCoach(submitted, { page });
-    assert.match(html, /data-action="end-week">结束本周，查看结果/);
-    assert.doesNotMatch(html, /data-ui="quote-open"/);
+  const prep = {page:'inquiries', coachPrep:0};
+  assert.match(pageCoach(submitted, prep), /首笔报价.*data-page="office" data-coach-tab="cash-forecast"/s);
+  assert.match(pageCoach(submitted, prep), /data-ui="coach-skip-prep"/);
+  prep.page = 'office'; assert.ok(recordCoachVisit(submitted, prep));
+  assert.match(pageCoach(submitted, prep), /预测最低.*data-coach-tab="finance"/s);
+  prep.page = 'company'; prep.developmentTab = 'finance'; assert.ok(recordCoachVisit(submitted, prep));
+  assert.match(pageCoach(submitted, prep), /备用资金.*无需借款.*data-page="offwork"/s);
+  prep.page = 'offwork'; assert.ok(recordCoachVisit(submitted, prep));
+  assert.equal(prep.coachPrep, 3); assert.equal(recordCoachVisit(submitted, prep), false);
+  for (const page of ['office', 'orders', 'offwork']) {
+    const html = pageCoach(submitted, { page, coachPrep:3 });
+    assert.match(html, /data-page="inquiries"/);
+    assert.doesNotMatch(html, /data-action="end-week"/);
   }
+  const continuation = pageCoach(submitted, {page:'inquiries', coachPrep:3});
+  assert.match(continuation, /已报价 1\/3 笔.*预计.*建议再报.*也可以现在结算/s);
+  assert.match(continuation, /data-ui="quote-open"/);
+  assert.doesNotMatch(continuation, new RegExp(`data-id="${inquiry.id}"`));
+  const filtered = pageCoach(submitted, {page:'inquiries', coachPrep:3, filters:{category:'test-nonexistent', availability:'available'}});
+  assert.match(filtered, /当前筛选没有合适的方案.*data-ui="coach-all-inquiries"/s);
   let filled = state;
   for (let index = 0; index < 3; index++) {
-    const item = filled.inquiries.map(inquiry => ({ inquiry, recommendation: quoteRecommendation(filled, inquiry) }))
-      .filter(item => item.recommendation).sort((a,b) => b.recommendation.score-a.recommendation.score)[0];
-    const result = act(filled, { type:'bid',inquiryId:item.inquiry.id,...item.recommendation.config });
+    const html = pageCoach(filled, {page:'inquiries', coachPrep:3});
+    const id = html.match(/data-ui="quote-open" data-id="([^"]+)"/)?.[1];
+    const next = filled.inquiries.find(item => item.id === id);
+    const recommendation = quoteRecommendation(filled, next);
+    assert.ok(next && recommendation && recommendation.offer.profit > 0 && !filled.bids.some(item=>item.inquiryId===id));
+    assert.ok(forecast(filled,recommendation.offer).every(row=>row.hypothetical>=5500));
+    const result = act(filled, { type:'bid',inquiryId:id,...recommendation.config });
     assert.equal(result.error, undefined);
     filled = result.state;
   }
   assert.equal(filled.bids.length, 3);
-  assert.match(pageCoach(filled, {page:'inquiries'}), /data-action="end-week"/);
-  assert.doesNotMatch(pageCoach(filled, {page:'inquiries'}), /data-ui="quote-open"/);
+  assert.match(pageCoach(filled, {page:'inquiries',coachPrep:3}), /三个报价位已用完.*data-action="end-week"/s);
+  assert.doesNotMatch(pageCoach(filled, {page:'inquiries',coachPrep:3}), /data-ui="quote-open"/);
+  const unsuitable = {...submitted, inquiries:submitted.inquiries.map(item=>item.id===inquiry.id ? item : {...item,minRep:101})};
+  for (const page of ['inquiries','office','orders','offwork']) {
+    const html = pageCoach(unsuitable,{page,coachPrep:3});
+    assert.match(html,/其余询盘暂时没有.*data-action="end-week"/s);
+    assert.doesNotMatch(html,/data-ui="quote-open"/);
+  }
   let awarded = act(filled, {type:'end-week'}).state;
   const late = structuredClone(awarded);
   late.orders.find(order => order.total >= 8400).dueWeek = late.week;
@@ -225,7 +295,33 @@ for (const viewport of [{ width: 320, height: 568, mobile: true }, { width: 390,
       assert.equal(location.visible,true);
       await page.click('dialog form[data-form="quote"] button[type="submit"]');
       assert.equal((await currentState(page)).bids.length, 1);
+      assert.equal(await page.evaluate('document.activeElement.dataset.page'), 'office');
+      assert.equal(await page.evaluate('Boolean(document.querySelector("[data-tour=end-week].tutorial-target"))'), false);
+      await page.click(`${coach} [data-page="office"][data-coach-tab="cash-forecast"]`);
+      assert.equal(await page.evaluate('document.activeElement.matches(".forecast-panel h2")'), true);
+      assert.match(await page.evaluate('document.querySelector(".forecast-panel").innerText'), /已提交报价全部中单/);
+      await page.screenshot(`/tmp/v38-coach-first-bid-cash-${viewport.width}.png`);
+      await page.click('.forecast-panel [data-coach-tab="finance"]');
+      assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`), /备用资金.*无需借款/s);
+      assert.equal((await currentState(page)).loan, 0);
+      await page.click(`${coach} [data-page="offwork"]`);
+      assert.equal(await page.evaluate(`JSON.parse(localStorage.getItem('trade-tycoon:weekly:v38:v1')).view.coachPrep`), 3);
+      await page.click(`${coach} [data-page="inquiries"]`);
+      assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`), /建议再报 2 笔.*估算收益.*最低余额/s);
+      await page.screenshot(`/tmp/v38-coach-multi-quote-${viewport.width}.png`);
+      const ids = [(await currentState(page)).bids[0].inquiryId];
+      for (let index=1; index<3;index++) {
+        const next = await page.evaluate(`document.querySelector('${coach} [data-ui="quote-open"]').dataset.id`);
+        assert.ok(!ids.includes(next)); ids.push(next);
+        await page.click(`${coach} [data-ui="quote-open"]`);
+        if (await page.evaluate(present('dialog [data-ui="coach-apply-quote"]'))) await page.click('dialog [data-ui="coach-apply-quote"]');
+        await page.click('dialog [data-ui="coach-review-submit"]');
+        assert.equal((await currentState(page)).bids.length,index);
+        await page.click('dialog form[data-form="quote"] button[type="submit"]');
+        assert.equal((await currentState(page)).bids.length,index+1);
+      }
       await page.waitFor(present(`${coach} [data-action="end-week"]`));
+      assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`),/三个报价位已用完/);
       await page.click(`${coach} [data-action="end-week"]`);
       await page.waitFor(present('dialog [data-ui="view-first-order"]'));
       assert.equal((await currentState(page)).week, 2);
@@ -242,6 +338,19 @@ for (const viewport of [{ width: 320, height: 568, mobile: true }, { width: 390,
       await page.click(`${coach} [data-page="inquiries"]`);
       assert.ok(await page.evaluate(present(`${coach} [data-ui="quote-open"]`)), 'the completed orientation returns to a real quote');
       assert.equal(await page.evaluate(`JSON.parse(localStorage.getItem('trade-tycoon:weekly:v38:v1')).view.coachIntro`), 4);
+      // A single feasible inquiry must not prompt unnecessary extra offers.
+      await loadScenario(page,`(game)=>{const s=game.newGame({difficulty:'casual',seed:381});s.inquiries=s.inquiries.map(item=>item.id==='w1-7'?item:{...item,minRep:101});return s;}`);
+      await page.click(`${coach} [data-page="inquiries"]`);
+      await page.click(`${coach} [data-ui="quote-open"]`);
+      if (await page.evaluate(present('dialog [data-ui="coach-apply-quote"]'))) await page.click('dialog [data-ui="coach-apply-quote"]');
+      await page.click('dialog [data-ui="coach-review-submit"]');
+      await page.click('dialog form[data-form="quote"] button[type="submit"]');
+      await page.click(`${coach} [data-ui="coach-skip-prep"]`);
+      assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`),/不必为了用完报价位.*其余询盘暂时没有/s);
+      assert.equal(await page.evaluate(present(`${coach} [data-ui="quote-open"]`)),false);
+      await page.screenshot(`/tmp/v38-coach-no-extra-quote-${viewport.width}.png`);
+      await page.click(`${coach} [data-action="end-week"]`);
+      assert.equal((await currentState(page)).week,2);
       assert.deepEqual(page.errors, []);
     } finally { await browser.close(); }
   });
@@ -254,14 +363,14 @@ test('real Chromium generic development gives overview, active and targeted tabs
     const coach='.workspace > .coach-card';
     await page.goto();
     await page.waitFor(present('[data-form="new-game"]'));
-    await loadScenario(page,`(game)=>{const s=game.newGame({difficulty:'casual',seed:381});s.cash=150000;s.week=5;s.history=[1,2,3,4].map(week=>({week,cash:130000+week*5000,loan:0,receivables:0,orders:0,profit:5000,revenue:10000,inflow:10000,outflow:5000,rep:s.company.rep,macro:{...s.macro},rank:1,valuation:100000}));s.tutorial.done=true;return s;}`);
+    await loadScenario(page,`(game,quotes)=>(${seasonedOperationsFixture.toString()})(game,quotes)`);
     await page.click('.nav [data-page="company"]');
     assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`), /发展总览.*建议聘用/s);
     assert.ok(await page.evaluate(present(`${coach} [data-coach-tab="team"]`)));
     await page.screenshot('/tmp/v38-coach-development-overview-390.png');
     await page.click('[data-ui="development-tab"][data-id="finance"]');
     assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`), /本周不用操作/);
-    assert.equal(await page.evaluate(present(`${coach} [data-coach-tab]`)),false);
+    assert.equal(await page.evaluate(present(`${coach} [data-coach-form],${coach} [data-coach-action]`)),false);
     assert.equal(await page.evaluate(`JSON.parse(localStorage.getItem('trade-tycoon:weekly:v38:v1')).view.developmentOverview`),false);
     await page.click('.nav [data-page="company"]');
     await page.click(`${coach} [data-coach-tab="team"]`);
@@ -271,7 +380,41 @@ test('real Chromium generic development gives overview, active and targeted tabs
     assert.equal(await page.evaluate('document.activeElement.dataset.action'),'hire');
     await page.click('[data-ui="development-tab"][data-id="economy"]');
     assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`), /本周不用操作/);
-    assert.equal(await page.evaluate(present(`${coach} [data-ui="page"]`)),false);
+    assert.equal(await page.evaluate(present(`${coach} [data-coach-form],${coach} [data-coach-action]`)),false);
+    assert.deepEqual(page.errors,[]);
+  }finally{await browser.close()}
+});
+
+test('real Chromium assistant pre-fills recommended loan and repayment amounts without executing them', {skip:!enabled,timeout:120_000}, async()=>{
+  const browser=await launchBrowser(root,{scenarios:true});
+  try {
+    const page=await browser.page({width:390,height:844,mobile:true});
+    const coach='.workspace > .coach-card';
+    await page.goto();
+    await page.waitFor(present('[data-form="new-game"]'));
+    await loadScenario(page,`(game)=>{const s=game.newGame({difficulty:'casual',seed:381});s.cash=150000;s.loan=10000;return s;}`);
+    await page.click('.nav [data-page="company"]');
+    await page.click(`${coach} [data-coach-tab="finance"]`);
+    const repayment=Number(await page.evaluate(`document.querySelector('${coach} [data-coach-form="repay"]').dataset.coachAmount`));
+    const before=await currentState(page);
+    assert.ok(repayment>0 && repayment<=before.loan);
+    await page.click(`${coach} [data-coach-form="repay"]`);
+    assert.equal(Number(await page.evaluate('document.querySelector("form[data-form=repay] input[name=amount]").value')),repayment);
+    assert.equal((await currentState(page)).loan,before.loan);
+    await page.screenshot('/tmp/v38-coach-repay-prefill-390.png');
+    await page.click('form[data-form="repay"] button[type="submit"]');
+    assert.equal((await currentState(page)).loan,before.loan-repayment);
+    await loadScenario(page,`(game)=>{const s=game.newGame({difficulty:'casual',seed:381});s.cash=-250;s.creditLine=30000;return s;}`);
+    await page.click(`${coach} [data-page="company"][data-coach-tab="finance"]`);
+    const borrowing=Number(await page.evaluate(`document.querySelector('${coach} [data-coach-form="borrow"]').dataset.coachAmount`));
+    assert.ok(borrowing>0 && borrowing<=30000);
+    await page.click(`${coach} [data-coach-form="borrow"]`);
+    assert.equal(Number(await page.evaluate('document.querySelector("form[data-form=borrow] input[name=amount]").value')),borrowing);
+    assert.equal((await currentState(page)).loan,0);
+    assert.equal((await currentState(page)).cash,-250);
+    await page.click('form[data-form="borrow"] button[type="submit"]');
+    assert.equal((await currentState(page)).loan,borrowing);
+    assert.equal((await currentState(page)).cash,borrowing-250);
     assert.deepEqual(page.errors,[]);
   }finally{await browser.close()}
 });

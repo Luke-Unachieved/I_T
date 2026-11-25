@@ -1,11 +1,14 @@
-import { ASSISTANTS, BUYER_CREDITS, PRODUCT_BY_ID } from '../data/core.js';
+import { ASSISTANTS, PRODUCT_BY_ID } from '../data/core.js';
 import { STAFF_ROLES } from '../data/expansion.js';
 import { certProgress, marketProgress } from '../engine/expansion.js';
-import { canExpedite, expediteFee, factorValue, forecast, liquidationValue, netAssets } from '../engine/game.js';
+import { act, canExpedite, expediteFee, factorValue, forecast, liquidationValue, netAssets } from '../engine/game.js';
 import { LIFE_CATALOG, outingLockHint } from '../engine/life.js';
 import { quote } from '../engine/quotes.js';
-import { ipoProgress, ventureProgress } from '../engine/strategy.js';
+import { ipoProgress, VENTURES, ventureProgress } from '../engine/strategy.js';
 import { ACTIVE_ORDER, OPEN_RECEIVABLE } from '../engine/treasury.js';
+import { planQuoteBundle, plannerForecast, quoteExpectedProfit } from './quote-planner.js';
+import { planDevelopment } from './development-planner.js';
+import { planEventSafety } from './event-planner.js';
 
 const cash = value => `¥${Math.round(value).toLocaleString('zh-CN')}`;
 const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
@@ -13,24 +16,47 @@ const percent = value => `${Math.round(value * 100)}%`;
 const week = value => `第 ${value} 周`;
 const easy = state => state.difficulty === 'casual';
 const activeCache = new WeakMap();
+const candidateCache = new WeakMap();
 const sourceNames = { stock: '现货采购', factory: '工厂排产', inventory: '现有库存' };
 const financingNames = { standard: '按普通账期', insured: '出口信用保险', 'letter-of-credit': '信用证' };
+const preparation = [
+  { page: 'office', tab: 'cash-forecast', label: '查看报价后的现金预测' },
+  { page: 'company', tab: 'finance', label: '认识备用资金与授信' },
+  { page: 'offwork', label: '认识精力与休息' },
+];
 const introduction = [
   { page: 'orders', label: '查看订单与交期' },
   { page: 'company', tab: 'finance', label: '认识财务' },
   { page: 'company', tab: 'team', label: '认识团队' },
   { page: 'offwork', label: '认识下班与休息' },
 ];
-const introMatches = (ui, step) => step && ui.page === step.page && (!step.tab || (!ui.developmentOverview && ui.developmentTab === step.tab));
+const introMatches = (ui, step) => step && ui.page === step.page && (step.page !== 'company' || !step.tab || (!ui.developmentOverview && ui.developmentTab === step.tab));
 export function coachIntroIndex(value) {
   return Number.isInteger(value) ? Math.max(0, Math.min(introduction.length, value)) : 0;
 }
+export function coachPrepIndex(value) {
+  return Number.isInteger(value) ? Math.max(0, Math.min(preparation.length, value)) : 0;
+}
 export function recordCoachVisit(state, ui) {
-  if (!easy(state) || !state.orders.length) return false;
+  if (!easy(state)) return false;
+  if (!state.orders.length) {
+    const index = coachPrepIndex(ui.coachPrep);
+    if (!state.bids.length || !introMatches(ui, preparation[index])) return false;
+    ui.coachPrep = index + 1;
+    return true;
+  }
   const index = coachIntroIndex(ui.coachIntro);
   if (!introMatches(ui, introduction[index])) return false;
   ui.coachIntro = index + 1;
   return true;
+}
+
+function operatingReserve(state) {
+  const upkeep = VENTURES.reduce((sum,item)=>{
+    const levels = state.ventures[item.id];
+    return sum + item.upkeep * (typeof levels === 'number' ? levels : Object.values(levels).reduce((total,level)=>total+level,0));
+  },0);
+  return Math.max(5000, 4 * (1200 + upkeep + state.staff.reduce((sum, person) => sum + person.salary, 0)));
 }
 
 // Reserve cash against existing commitments. Reuse the forecast while the immutable game state is unchanged.
@@ -38,8 +64,8 @@ function estimates(state) {
   if (activeCache.has(state)) return activeCache.get(state);
   const rows = forecast(state);
   const lowest = rows.reduce((best, row) => row.hypothetical < best.hypothetical ? row : best, rows[0]);
-  const reserve = Math.max(5000, 4 * (1200 + state.staff.reduce((sum, person) => sum + person.salary, 0)));
-  const result = { lowest, rows, baselineFloor: Math.min(...rows.map(row => row.cash)), reserve, budget: Math.max(0, Math.min(state.cash, lowest.hypothetical) - reserve), quotes: new Map() };
+  const reserve = operatingReserve(state);
+  const result = { lowest, rows, baselineFloor: Math.min(...rows.map(row => row.cash)), reserve, budget: Math.max(0, Math.min(state.cash, lowest.hypothetical) - reserve), plans: new Map() };
   activeCache.set(state, result);
   return result;
 }
@@ -51,11 +77,16 @@ function proposalConfig(offer) {
 
 // The assistant compares executable quotes, preferring a good expected return, short cash cycles,
 // reliable buyers and enough reserve for other commitments. This is a shortlist, not a guarantee.
-export function quoteRecommendation(state, inquiry) {
-  if (!easy(state) || !inquiry || state.bids.length >= 3 || state.bids.some(item => item.inquiryId === inquiry.id)) return null;
-  const estimate = estimates(state);
+function quoteCandidates(state, inquiry) {
+  if (!easy(state) || !inquiry || state.bids.length >= 3 || state.bids.some(item => item.inquiryId === inquiry.id)) return [];
+  let estimate = candidateCache.get(state);
+  if (!estimate) {
+    const reserve = operatingReserve(state);
+    const minimum = Math.min(...plannerForecast(state).map(row => row.hypothetical));
+    estimate = { budget: Math.max(0, Math.min(state.cash, minimum) - reserve), upfrontRoom: Math.max(0, state.cash - reserve), quotes: new Map() };
+    candidateCache.set(state, estimate);
+  }
   if (estimate.quotes.has(inquiry.id)) return estimate.quotes.get(inquiry.id);
-  const credit = BUYER_CREDITS.indexOf(inquiry.buyer.credit);
   const sources = ['stock', 'factory', ...(state.inventory.some(item => item.productId === inquiry.productId) ? ['inventory'] : [])];
   const ratioBelow = Math.floor((Math.min(inquiry.targetPrice, ...inquiry.rivals.map(rival => rival.price)) - 1) * 100 / inquiry.targetPrice);
   const ratios = [...new Set([80, 85, 90, 95, 100, ratioBelow, ratioBelow + 1].filter(n => n >= 80 && n <= 100))];
@@ -63,14 +94,14 @@ export function quoteRecommendation(state, inquiry) {
   const staffOptions = [null, ...sales.map(person => person.id)];
   const overseas = inquiry.currency !== 'CNY';
   const financingOptions = overseas ? ['standard', 'letter-of-credit', 'insured'] : ['standard'];
-  let best = null;
+  const possibilities = [];
   function compare(config) {
     const offer = quote(state, inquiry, config);
-    if (offer.error || offer.profit <= 0 || offer.probability <= 0 || offer.workingCapital > estimate.budget) return;
-    const reliability = offer.financing === 'letter-of-credit' ? .99 : 1 - Math.max(0, credit + 1) * (offer.insurancePremium ? .009 : .022);
-    const expected = (offer.profit + offer.rebateEstimate) * offer.probability * reliability;
+    if (offer.error || offer.profit <= 0 || offer.probability <= 0 || offer.upfront > estimate.upfrontRoom) return;
+    const expected = quoteExpectedProfit(state, offer);
+    if (!(expected > 0)) return;
     const score = expected / (1 + (offer.expectedPayWeek - state.week) * .045 + offer.workingCapital / Math.max(1, estimate.budget) * .3);
-    if (!best || score > best.score) best = { offer, config: proposalConfig(offer), score };
+    possibilities.push({ offer, config: proposalConfig(offer), score });
   }
   for (const source of sources) {
     for (const ratio of ratios) {
@@ -82,89 +113,187 @@ export function quoteRecommendation(state, inquiry) {
       for (const ratio of [100, 120, 140, 160]) compare({ source, staffId: null, branded: true, brandUnitPrice: Math.max(1, Math.round(inquiry.targetPrice * ratio / 100)) });
     }
   }
-  if (best) {
-    const finalist = best.config;
+  possibilities.sort((a, b) => b.score - a.score);
+  if (possibilities.length) {
+    const finalist = possibilities[0].config;
     for (const extraTerms of [1, 2, 3, 4]) compare({ ...finalist, extraTerms });
   }
-  estimate.quotes.set(inquiry.id, best);
-  return best;
+  possibilities.sort((a,b) => b.score - a.score);
+  const best = possibilities[0];
+  const chosen = [];
+  const add = candidate => {
+    if (candidate && !chosen.some(item => JSON.stringify(item.config) === JSON.stringify(candidate.config))) chosen.push(candidate);
+  };
+  if (best) {
+    add(best);
+    // Keep alternatives that preserve most of the return but use less cash or complete sooner.
+    const competitive = possibilities.filter(item => item.score >= best.score * .65);
+    add([...competitive].sort((a,b) => a.offer.workingCapital - b.offer.workingCapital || b.score-a.score)[0]);
+    add([...competitive].sort((a,b) => a.offer.expectedPayWeek - b.offer.expectedPayWeek || b.score-a.score)[0]);
+    add(competitive.find(item => item.offer.source !== best.offer.source));
+    for (const alternative of competitive) { if (chosen.length >= 3) break; add(alternative); }
+  }
+  const result = chosen.slice(0, 3);
+  estimate.quotes.set(inquiry.id, result);
+  return result;
 }
 
 function verifyRecommendation(state, recommendation) {
   if (!recommendation) return null;
+  if (recommendation.scenarioFloor === undefined) recommendation.scenarioFloor = Math.min(...plannerForecast(state, recommendation.offer).map(row => row.hypothetical));
   if (recommendation.cashFloor === undefined) recommendation.cashFloor = Math.min(...forecast(state, recommendation.offer).map(row => row.hypothetical));
-  return recommendation.cashFloor < 0 ? null : recommendation;
+  return Math.min(recommendation.scenarioFloor, recommendation.cashFloor) < estimates(state).reserve ? null : recommendation;
+}
+
+function quoteBundle(state, filter = {}) {
+  const estimate = estimates(state);
+  const category = filter?.category && filter.category !== 'all' ? filter.category : '';
+  const availability = filter?.availability === 'available' ? 'available' : 'all';
+  const key = JSON.stringify([category, availability]);
+  if (!estimate.plans.has(key)) {
+    const matches = inquiry => (!category || inquiry.category === category) && (availability !== 'available' || ['stock', 'factory', 'inventory'].some(source => !quote(state, inquiry, { source, ratio: 100, extraTerms: 0 }).error));
+    estimate.plans.set(key, planQuoteBundle(state, { recommendations: quoteCandidates, filter: matches, reserve: estimate.reserve }));
+  }
+  return estimate.plans.get(key);
+}
+
+export function quoteRecommendation(state, inquiry, filter) {
+  if (!easy(state) || !inquiry || state.bids.length >= 3 || state.bids.some(item => item.inquiryId === inquiry.id)) return null;
+  // The recommended thread and its actual proposal must match, even after a filter change.
+  const planned = quoteBundle(state, filter).steps[0];
+  if (planned?.inquiry.id === inquiry.id) return planned.recommendation;
+  return quoteCandidates(state, inquiry).find(item => verifyRecommendation(state, item)) ?? null;
 }
 
 function bestInquiry(state, filter) {
-  const candidates = [];
-  for (const inquiry of state.inquiries) {
-    if (filter && filter.category && filter.category !== 'all' && inquiry.category !== filter.category) continue;
-    if (filter?.availability === 'available' && !['stock', 'factory', 'inventory'].some(source => !quote(state, inquiry, { source, ratio: 100, extraTerms: 0 }).error)) continue;
-    const recommendation = quoteRecommendation(state, inquiry);
-    if (recommendation) candidates.push({ inquiry, recommendation });
-  }
-  return candidates.sort((a, b) => b.recommendation.score - a.recommendation.score).slice(0, 3)
-    .find(item => verifyRecommendation(state, item.recommendation)) ?? null;
+  const bundle = quoteBundle(state, filter);
+  const first = bundle.steps[0];
+  return first ? { ...first, bundle } : null;
 }
 
 const page = (id, label, tab) => ({ ui: 'page', page: id, label, tab });
 const focus = (action, id, label) => ({ ui: 'coach-target', action, id, label });
-const form = (name, label) => ({ ui: 'coach-target', form: name, label });
+const form = (name, label, amount) => ({ ui: 'coach-target', form: name, label, amount });
 const settle = () => ({ command: 'end-week', label: '结束本周，查看结果' });
 const deferGrowth = () => ({ ui: 'coach-defer-growth', label: '稍后发展，继续报价', quiet: true });
+const skipPreparation = () => ({ ui: 'coach-skip-prep', label: '跳过介绍，继续报价', quiet: true });
 const note = (title, text, action) => ({ title, text, action });
 const noAction = reason => note('本周不用操作', reason);
 
-function inquiryAdvice(state, filter) {
-  if (state.bids.length) return note('本周报价已提交', `目前已提交 ${state.bids.length} 笔报价（每周最多 3 笔）。可以自行比较其他询盘，但这轮建议先结算，让订单和资金按周推进。`, settle());
+function projectedCreditNote(state) {
+  const { rows, lowest } = estimates(state);
+  const draw = rows.reduce((sum,row)=>sum+row.financing,0);
+  if (state.cash < 0 || lowest.hypothetical < 0 || draw <= 0) return '';
+  return ` 现有业务预计还会自动动用约 ${cash(draw)} 授信，按周计息；先让已有回款推进，不宜为多接单增加新的支出。`;
+}
+
+function inquiryAdvice(state, filter, onInquiryPage = true) {
+  const submitted = state.bids.length;
+  if (submitted >= 3) return note('本周的三个报价位已用完', `已经提交 3 笔报价，无需继续挑选。本周结算后会揭晓结果、推进订单与回款，并收到新询盘。${projectedCreditNote(state)}`, settle());
   const best = bestInquiry(state, filter);
   if (best) {
-    const { inquiry, recommendation: { offer } } = best;
-    return note(`先看${inquiry.buyer.name}的${inquiry.productName}询盘`, `建议用${sourceNames[offer.source]}，预计中单率 ${percent(offer.probability)}、订单利润 ${cash(offer.profit)}。垫资约 ${cash(offer.workingCapital)}，目前仍能留出周转资金。`, { ui: 'quote-open', id: inquiry.id, label: '打开推荐询盘' });
+    const { inquiry, recommendation: { offer }, bundle } = best;
+    const progress = submitted ? `已报价 ${submitted}/3 笔。` : '';
+    const plan = `建议${submitted ? '再' : '先'}报 ${bundle.steps.length} 笔，按中单和回款风险估算收益 ${cash(bundle.expectedProfit)}。若全部中单，最低余额 ${cash(bundle.cashFloor)}。${submitted ? '也可以现在结算。' : ''}`;
+    return note(`${submitted ? '再看' : '先看'}${inquiry.buyer.name}的${inquiry.productName}询盘`, `${progress}此单建议${sourceNames[offer.source]}，预计中单率 ${percent(offer.probability)}，利润 ${cash(offer.profit)}。${plan}`, onInquiryPage ? { ui: 'quote-open', id: inquiry.id, label: '打开推荐询盘' } : page('inquiries', submitted ? '继续挑选询盘' : '开始挑选询盘'));
   }
-  if (filter?.category && filter.category !== 'all' && bestInquiry(state, {})) return note('当前筛选没有合适的方案', '其他品类还有利润和资金都合适的询盘，先取消品类筛选再挑选。', { ui: 'coach-all-inquiries', label: '查看全部品类' });
-  return note('先别急着发新报价', '目前没有同时满足利润和周转资金预留的方案。可以调整筛选条件，或者结算本周，让新询盘与现有订单继续推进。', settle());
+  const filtered = (filter?.category && filter.category !== 'all') || filter?.availability === 'available';
+  if (filtered && bestInquiry(state, {})) return note('当前筛选没有合适的方案', '全部来信中还有利润和资金都合适的询盘，可以取消筛选再挑选。也可以现在结算。', onInquiryPage ? { ui: 'coach-all-inquiries', label: '查看全部询盘' } : page('inquiries', '查看询盘并调整筛选'));
+  const remaining = state.inquiries.some(inquiry => !state.bids.some(bid => bid.inquiryId === inquiry.id));
+  return note(submitted ? '不必为了用完报价位而接单' : '先别急着发新报价', `${submitted ? `已报价 ${submitted}/3 笔。` : ''}${remaining ? '其余询盘暂时没有同时满足交期、利润和周转资金预留的方案。' : '当前没有其他未提交的询盘。'}建议结算本周，等新询盘和现有业务继续推进。${projectedCreditNote(state)}`, settle());
+}
+
+// The orders and leisure pages share the same decision about whether another quote
+// is worthwhile. They explain their own page first without sending the player in circles.
+function nextBusinessStep(state, ui) {
+  const advice = inquiryAdvice(state, ui.filters, false);
+  return { action: advice.action, text: advice.action.command === 'end-week' ? ` ${advice.text}` : ' 本周还有值得比较的询盘，也可以提前结算。' };
+}
+
+// Expansion spends tomorrow's bidding capacity. Base the budget on realized
+// earnings and the actual capital tied up by recent weekly contract cohorts.
+function growthReadiness(state) {
+  const estimate = estimates(state);
+  if (estimate.growthReadiness) return estimate.growthReadiness;
+  const recent = state.history.slice(-12);
+  const orders = state.orders.filter(order => order.contractWeek < state.week && order.contractWeek >= state.week - 12 && !['cancelled','bad-debt'].includes(order.status));
+  const delivered = orders.filter(order=>order.deliveredWeek != null);
+  const cohorts = new Map();
+  for (const order of orders) {
+    const capital = Math.max(0,order.workingCapital ?? ((order.cost ?? 0) + (order.shipping ?? 0) - (order.deposit ?? 0)));
+    cohorts.set(order.contractWeek,(cohorts.get(order.contractWeek) ?? 0) + capital);
+  }
+  const weekly = [...cohorts.values()].sort((a,b)=>a-b);
+  const median = weekly.length ? (weekly[Math.floor((weekly.length-1)/2)] + weekly[Math.floor(weekly.length/2)]) / 2 : 0;
+  const nextTrading = Math.ceil(median * 1.5);
+  const reserve = estimate.reserve + nextTrading;
+  const floor = Math.min(state.cash,estimate.lowest.hypothetical,estimate.baselineFloor);
+  const profit = recent.reduce((sum,row)=>sum+(row.profit ?? 0),0);
+  const average = profit / Math.max(1,recent.length);
+  const retained = state.history.reduce((sum,row)=>sum+(row.profit ?? 0),0) + (state.period?.profit ?? 0);
+  const stable = recent.length >= 12 && recent.filter(row=>row.profit>0).length >= 8 && recent.slice(-4).filter(row=>row.profit>0).length >= 3 && average > 0 && retained > 0;
+  const spent = state.log.some(row=>row.week === state.week && (['cert','market','venture','milestone'].includes(row.type) || row.type === 'staff' && row.text.includes('加入公司')));
+  const capacity = Math.max(0,floor-reserve);
+  const ready = stable && !spent && state.loan === 0 && orders.length >= 12;
+  // A discretionary opening fee should be funded by retained profits, with
+  // enough recent earning power to recover it in a few months of real business.
+  const canFund = cost => ready && cost <= capacity && retained >= cost * 1.25 && average * 20 >= cost;
+  estimate.growthReadiness = { orders, delivered, nextTrading, reserve, profit, average, retained, stable, spent, ready, capacity, canFund };
+  return estimate.growthReadiness;
+}
+
+function teamBenefit(state, candidate, growth) {
+  const current = Math.max(0,...state.staff.filter(person=>person.role===candidate.role).map(person=>person.ability));
+  const gain = Math.max(0,candidate.ability-current);
+  if (!gain) return null;
+  if (candidate.role === 'operations') {
+    const relevant = growth.orders.filter(order=>order.source==='factory' && !order.staffId);
+    // Better follow-up reduces the real factory-disruption chance. Value only
+    // a plausible avoided rush/penalty cost, not the whole contract as a saving.
+    const benefit = relevant.reduce((sum,order)=>sum+gain*.009*Math.max(300,(order.cost ?? 0)*.06),0)/12;
+    return relevant.length >= 12 ? { benefit, basis:`最近 12 周有 ${relevant.length} 笔需跟进的工厂订单，按延误概率和赶工成本估算，每周有望少损失约 ${cash(benefit)}。` } : null;
+  }
+  if (candidate.role === 'finance') {
+    const overdue = state.receivables.filter(item=>item.status==='overdue');
+    const balance = overdue.reduce((sum,item)=>sum+(item.amount ?? 0),0);
+    const interest = state.loan*.0025*gain*.04;
+    const quicker = balance * gain * .006 * 2.5 * .0025;
+    const benefit = interest+quicker;
+    return overdue.length >= 4 || state.loan > 0 ? { benefit,basis:`实际逾期应收 ${overdue.length} 笔，按融资利息和延后付款概率估算，每周可能节省 ${cash(benefit)}。` } : null;
+  }
+  const relevant = growth.orders.filter(order=>(order.probability ?? 1)<.9 && order.profit>0);
+  const benefit = relevant.reduce((sum,order)=>{
+    const probability = order.probability;
+    const improved = Math.min(1,probability+gain*.004+candidate.ability*.012);
+    const marginal = Math.max(0,improved*Math.max(0,order.profit-order.total*candidate.commission)-probability*order.profit);
+    return sum+marginal;
+  },0)/12;
+  return relevant.length >= 12 ? { benefit,basis:`最近 12 周有 ${relevant.length} 笔中单率不足 90% 的合同；扣除业务提成后，估算每周增加收益 ${cash(benefit)}。` } : null;
 }
 
 function teamPlan(state) {
   const estimate = estimates(state);
   if (estimate.teamPlan) return estimate.teamPlan;
-  const openRole = ['operations', 'finance', 'sales'].filter(role => !state.staff.some(person => person.role === role));
-  const role = state.orders.some(order => ACTIVE_ORDER.has(order.status)) && openRole.includes('operations') ? 'operations'
-    : state.receivables.some(item => OPEN_RECEIVABLE.has(item.status)) && openRole.includes('finance') ? 'finance'
-      : openRole.includes('sales') ? 'sales' : openRole[0];
-  const candidates = state.candidates.filter(person => person.role === role && !state.staff.some(staff => staff.id === person.id))
-    .sort((a, b) => b.ability - a.ability || a.salary - b.salary);
-  const last = state.history.slice(-4);
-  const profit = last.reduce((sum, row) => sum + row.profit, 0) / Math.max(1, last.length);
-  const recentStable = last.length === 4 && last.filter(row => row.profit > 0).length >= 3;
-  const neededRole = STAFF_ROLES[role]?.label ?? '对应岗位';
-  if (!role || state.staff.length >= 18) {
-    estimate.teamPlan = { advice: noAction('暂缓聘用。当前已有覆盖三类业务的岗位或办公室人员已满，继续做好现有订单。') };
-  } else if (!candidates.length) {
-    estimate.teamPlan = { advice: noAction(`暂缓聘用。目前人才市场没有合适的${neededRole}，等候选人刷新。`) };
+  const growth = growthReadiness(state);
+  const candidates = state.candidates.filter(person=>!state.staff.some(staff=>staff.id===person.id || staff.name===person.name))
+    .map(candidate=>({candidate,demand:teamBenefit(state,candidate,growth)}))
+    .filter(item=>item.demand && item.demand.benefit>=item.candidate.salary*1.15)
+    .sort((a,b)=>(b.demand.benefit-b.candidate.salary)-(a.demand.benefit-a.candidate.salary));
+  let selected;
+  if (growth.ready && state.staff.length<18) for (const {candidate,demand} of candidates) {
+    const payroll = candidate.salary*12;
+    const reserve = growth.reserve+candidate.salary*4;
+    if (growth.average < candidate.salary*2 || growth.retained < payroll || state.cash<reserve || growth.capacity<payroll+candidate.salary*4) continue;
+    const simulated = forecast({...state,staff:[...state.staff,candidate]});
+    const minimum = Math.min(...simulated.map(row=>Math.min(row.cash,row.hypothetical)));
+    if (minimum>=reserve) {selected={candidate,demand,minimum,reserve,payroll};break;}
+  }
+  if (selected) {
+    const {candidate,demand,minimum,reserve,payroll}=selected;
+    estimate.teamPlan={candidate,advice:note(`建议聘用${candidate.name}（${STAFF_ROLES[candidate.role].label}）`,`${demand.basis} 预计收益高于周薪 ${cash(candidate.salary)}。新增 12 周工资 ${cash(payroll)} 后，预测最低余额 ${cash(minimum)}，保留后续报价周转 ${cash(reserve)}。`,focus('hire',candidate.id,'查看推荐候选人'))};
   } else {
-    const cheapest = candidates.reduce((best, person) => person.salary < best.salary ? person : best, candidates[0]);
-    const profitTarget = Math.ceil(cheapest.salary * 1.5);
-    let selected;
-    for (const candidate of candidates) {
-      const payroll = candidate.salary * 12;
-      const reserve = Math.max(5000, estimate.reserve + candidate.salary * 4);
-      if (!recentStable || profit < 1.5 * candidate.salary || state.cash < candidate.salary || estimate.lowest.hypothetical - payroll < reserve) continue;
-      const simulated = forecast({ ...state, staff: [...state.staff, candidate] });
-      const minimum = Math.min(...simulated.map(row => row.hypothetical));
-      if (minimum >= reserve) { selected = { candidate, minimum, reserve, payroll }; break; }
-    }
-    if (selected) {
-      const { candidate, minimum, reserve, payroll } = selected;
-      estimate.teamPlan = { candidate, advice: note(`建议聘用${candidate.name}（${STAFF_ROLES[candidate.role].label}）`, `岗位目前缺人。近 4 周平均净利 ${cash(profit)}，可覆盖新周薪 ${cash(candidate.salary)}；新增 12 周工资 ${cash(payroll)} 后，预测最低余额 ${cash(minimum)}，高于建议周转预留 ${cash(reserve)}。`, focus('hire', candidate.id, '查看推荐候选人')) };
-    } else {
-      const target = Math.max(5000, estimate.reserve + cheapest.salary * 4) + cheapest.salary * 12;
-      const cause = last.length < 4 ? '经营记录还不足 4 周，尚不能判断持续盈利。' : !recentStable || profit < profitTarget
-        ? `近 4 周平均净利 ${cash(profit)}，或盈利周数不足以稳定承担新工资。` : `考虑现有订单和新增工资后的现金余量不足。`;
-      estimate.teamPlan = { advice: noAction(`暂缓聘用。${cause} 建议先达到近 4 周至少 3 周盈利、平均净利 ${cash(profitTarget)} 以上，且未来 12 周最低余额达到 ${cash(target)}，再考虑增补${neededRole}。`) };
-    }
+    const reason = growth.spent ? '本周已经增加过人员或办理发展投入，先让新安排产生实际效果。' : !growth.stable ? '近 12 周还没有实现持续盈利，先稳定订单收益。' : state.loan>0 ? '先处理贷款，暂不增加长期固定支出。' : !candidates.length ? '没有实际业务瓶颈能证明新岗位预计带来的收益足以覆盖工资和提成。' : '新增工资会挤占未来报价的周转资金。';
+    estimate.teamPlan={advice:noAction(`暂缓聘用。${reason} 日后需求明朗、收益覆盖岗位成本，且未来 12 周最低余额保留后续报价资金，再考虑招聘。`)};
   }
   return estimate.teamPlan;
 }
@@ -174,7 +303,7 @@ function overdueForCollection(state) {
     .sort((a, b) => (a.originalDueWeek ?? a.dueWeek) - (b.originalDueWeek ?? b.dueWeek) || b.amount - a.amount)[0];
 }
 
-function orderAdvice(state) {
+function orderAdvice(state, ui) {
   const bills = state.receivables.filter(item => OPEN_RECEIVABLE.has(item.status));
   const trouble = state.orders.filter(item => ACTIVE_ORDER.has(item.status) && item.deliverWeek > item.dueWeek)
     .sort((a, b) => a.dueWeek - b.dueWeek);
@@ -185,72 +314,156 @@ function orderAdvice(state) {
   const debt = state.receivables.find(item => item.status === 'bad-debt' && !item.insuranceDueWeek && state.cash > estimates(state).reserve + Math.max(200, item.amount * .05));
   if (debt) return note('坏账可以尝试追回', `${debt.buyer.name} 有未获保险赔付的坏账。诉讼要先支出费用，且不保证全额追回。现金充足时可查看是否值得起诉。`, focus('sue', debt.id, '查看诉讼操作'));
   if (trouble.length) return note('先关注已出现的逾期风险', `${trouble[0].buyer.name} 的订单预计晚于合同交期。若暂时不能加急，优先留出现金应对罚款，慎选后续新单。`);
+  const onward = nextBusinessStep(state, ui);
   const current = bills.filter(item => item.status === 'open').sort((a, b) => a.dueWeek - b.dueWeek || b.amount - a.amount)[0];
-  if (current) return note('正常账期，先等待回款', `${current.buyer.name}的应收款 ${cash(current.amount)} 预计${week(current.dueWeek)}结算时回款。目前尚未逾期，建议正常等待，避免影响客户关系。`, state.bids.length ? settle() : page('inquiries', '查看询盘'));
-  return note(state.orders.length ? '现有订单按周推进' : '先拿到第一张订单', state.orders.length ? '交期、回款周和供应商费用会随周结算更新。当前不需要主动催款或付费加急。' : '提交盈利且垫资可承受的报价，本周结算中单后会自动进入生产和发运。', page('inquiries', '查看询盘'));
+  if (current) return note('正常账期，先等待回款', `${current.buyer.name}的应收款 ${cash(current.amount)} 预计${week(current.dueWeek)}结算时回款。目前尚未逾期，建议正常等待，避免影响客户关系。${onward.text}`, onward.action);
+  return note(state.orders.length ? '现有订单按周推进' : '先拿到第一张订单', `${state.orders.length ? '交期、回款周和供应商费用会随周结算更新。当前不需要主动催款或付费加急。' : '提交盈利且垫资可承受的报价，本周结算中单后会自动进入生产和发运。'}${onward.text}`, onward.action);
 }
 
-function venturePlan(state) {
-  const { budget } = estimates(state);
-  const recentOrders = state.orders.filter(order => order.contractWeek >= state.week - 12 && !['cancelled', 'bad-debt'].includes(order.status));
-  const recentProfit = state.history.slice(-4);
-  const average = recentProfit.reduce((sum, row) => sum + row.profit, 0) / Math.max(1, recentProfit.length);
-  if (recentProfit.length < 4 || recentProfit.filter(row => row.profit > 0).length < 3) return null;
+function ventureCandidates(state) {
+  const growth = growthReadiness(state);
+  const recentOrders = growth.orders;
+  if (!growth.ready) return [];
+  const candidates = [];
   for (const project of ventureProgress(state)) {
     for (const option of project.options) {
-      if (!option.available || option.nextCost > budget * .6 || option.nextCost + project.upkeep * 12 > budget || average < project.upkeep * 2) continue;
+      if (!option.available || !growth.canFund(option.nextCost+project.upkeep*4)) continue;
       let basis = '';
+      let weeklyBenefit = 0;
       if (project.id === 'warehouse') {
         const orders = recentOrders.filter(order => order.source === 'stock');
-        if (orders.length >= 4) basis = `最近 12 周有 ${orders.length} 笔现货采购订单，提高仓库等级可缩短备货并支持库存采购。`;
+        weeklyBenefit = orders.reduce((sum,order)=>sum+(order.workingCapital ?? 0)*.0025+(order.lateWeeks ? order.total*.03 : 0),0)/12-project.upkeep;
+        if (orders.length >= 12) basis = `最近 12 周有 ${orders.length} 笔现货采购订单，缩短备货有机会降低占款和晚交损失。`;
       } else if (project.id === 'factory') {
         const orders = recentOrders.filter(order => order.source === 'factory' && PRODUCT_BY_ID[order.productId]?.category === option.target);
-        if (orders.length >= 3 && orders.reduce((sum, order) => sum + order.cost, 0) * .09 >= project.upkeep * 18) basis = `最近 12 周有 ${orders.length} 笔同品类工厂订单，自有产线有助于降低后续采购成本和排产用时。`;
+        weeklyBenefit = orders.reduce((sum,order)=>sum+order.cost*.09/(1-.09*option.level),0)/12 + 455*.535*state.macro.consumer/100-project.upkeep;
+        if (orders.length >= 12) basis = `最近 12 周有 ${orders.length} 笔同品类工厂订单，按现有采购规模可估算新增产线的采购节省。`;
       } else if (project.id === 'overseas') {
         const orders = recentOrders.filter(order => order.market === option.target);
-        if (orders.length >= 4 && !option.level) basis = `该市场最近 12 周有 ${orders.length} 笔订单，建立当地仓库可以缩短跨境交付。`;
-      } else if (project.id === 'brand' && recentOrders.length >= 12 && !option.level) basis = `最近 12 周有 ${recentOrders.length} 笔合同，现有客户规模已较稳定。自牌产品可尝试自主定价，市场接受度仍需验证。`;
-      else if (project.id === 'ecommerce' && recentOrders.length >= 8 && state.macro.consumer >= 110 && !option.level) basis = '当前需求较旺且既有业务稳定，跨境店铺有机会补充销售，但每周收益仍可能波动。';
-      if (!basis) continue;
+        weeklyBenefit = orders.reduce((sum,order)=>sum+Math.max(0,order.shipping-(order.tariff ?? 0))*.35,0)/12-project.upkeep;
+        if (orders.length >= 12 && !option.level) basis = `该市场最近 12 周有 ${orders.length} 笔订单，已有可供估算仓储运输节省的实际业务量。`;
+      } else if (project.id === 'brand' && !option.level) {
+        const repeat = growth.delivered.filter(order=>(state.relationships[order.buyer.id]?.deliveries ?? 0)>=3);
+        weeklyBenefit=repeat.reduce((sum,order)=>sum+Math.max(0,order.profit)*.15,0)/12-project.upkeep;
+        if (repeat.length>=12) basis=`最近 12 周有 ${repeat.length} 笔来自熟客的交付，保守按既有利润的少量增幅评估自主定价机会，仍有市场风险。`;
+      } else if (project.id === 'ecommerce' && recentOrders.length >= 8 && state.macro.consumer >= 110 && !option.level) {
+        weeklyBenefit=1540*.34*state.macro.consumer/100-project.upkeep;
+        basis='按当前消费指数及店铺日常销售成本估算，每周利润仍可能波动。';
+      }
+      if (!basis || weeklyBenefit <= 0 || weeklyBenefit*52 < option.nextCost) continue;
       const action = option.target ? { ui: 'coach-target', form: 'invest-venture', id: project.id, choice: option.target, label: '查看推荐项目' } : focus('invest-venture', project.id, '查看推荐项目');
       const label = option.target ? `${project.label}（${option.label}）` : project.label;
-      return note(`建议${option.level ? '升级' : '投入'}${label}`, `${basis} 本次需要 ${cash(option.nextCost)}，每周新增维护费 ${cash(project.upkeep)}。已留出近期工资、订单及维护资金。`, action);
+      candidates.push({ tab: 'ventures', action: { type: 'invest-venture', id: project.id, ...(option.target ? { target: option.target } : {}) }, strategicValue: 68 + (project.id === 'warehouse' || project.id === 'factory' ? 5 : 0), advice: note(`建议${option.level ? '升级' : '投入'}${label}`, `${basis} 支出 ${cash(option.nextCost)}，扣掉每周维护费后，估计每周新增收益 ${cash(weeklyBenefit)}，按现有业务规模回收成本约 ${Math.ceil(option.nextCost/weeklyBenefit)} 周。`, action) });
     }
   }
-  return null;
+  return candidates;
+}
+
+function marketFits(growth,market) {
+  return growth.delivered.filter(order=>market.categories.includes(PRODUCT_BY_ID[order.productId]?.category) && order.profit>0).length >= 4;
+}
+
+function listingCandidate(state,growth) {
+  const listing = ipoProgress(state,netAssets(state));
+  const current = listing.actions.find(item=>item.current && item.available);
+  if (!current || !growth.stable || growth.spent || growth.orders.length<12) return null;
+  const ipo = listing.actions.find(item=>item.id==='ipo');
+  const trailingProfit=state.history.slice(-52).reduce((sum,row)=>sum+(row.profit ?? 0),0);
+  const ipoNear = ipo.requirements.every(item=>item.met) && trailingProfit >= 95000+20000;
+  if (current.id==='restructure') {
+    if (!ipoNear || !growth.canFund(current.cost)) return null;
+    return { current,basis:`已有真实年度盈利和近 52 周上市营收、净利基础。即使支付改造费 ${cash(current.cost)}，仍有净利余量支持下一步申请。` };
+  }
+  if (current.id==='ipo') return {current,basis:`真实上市门槛已达到，预计引入 ${cash(current.cashIn)}，但创始人持股会进一步降低。`};
+  if (current.id!=='strategic-investment') return null;
+  if (ipoNear && growth.canFund(20000)) return { current,basis:`已有实际上市所需业绩，引资可开启后续改造与上市，预计到账 ${cash(current.cashIn)}，创始人持股将从 100% 降至 82%。` };
+  // Equity is not free money: consider dilution only for a real working-capital bottleneck.
+  const remainingCredit=Math.max(0,state.creditLine-state.loan);
+  const shortage=growth.nextTrading-estimates(state).budget;
+  if (!(shortage>remainingCredit && state.bids.length<3)) return null;
+  const before=quoteBundle(state);
+  if (before.steps.length>=3-state.bids.length) return null;
+  const result=act(state,{type:current.id});
+  if (result.error) return null;
+  const after=quoteBundle(result.state);
+  const added=after.expectedProfit-before.expectedProfit;
+  if (after.steps.length<=before.steps.length || added<Math.max(500,growth.average*.5)) return null;
+  return {current,basis:`当前正常授信和现金限制后续报价。模拟引资后，本周可多报 ${after.steps.length-before.steps.length} 笔，风险加权收益估计增加 ${cash(added)}；预计引入 ${cash(current.cashIn)}，创始人持股降至 82%，仍需考虑长期股权代价。`};
+}
+
+function developmentPlan(state) {
+  const estimate = estimates(state);
+  if (estimate.developmentPlan) return estimate.developmentPlan;
+  const growth = growthReadiness(state);
+  const candidates = ventureCandidates(state);
+  const repay = Math.floor(Math.min(state.loan, growth.capacity));
+  for (const amount of new Set([repay, Math.floor(repay / 2)])) if (amount > 0) {
+    candidates.push({ tab: 'finance', action: { type: 'repay', amount }, strategicValue: 82, advice: note('有闲置现金时优先还款', `建议偿还 ${cash(amount)}，仍保留经营周转资金，减少每周利息。`, form('repay', '查看并核对还款', amount)) });
+  }
+  const team = teamPlan(state);
+  if (team.candidate) candidates.push({ tab: 'team', action: { type: 'hire', id: team.candidate.id }, strategicValue: 72, advice: team.advice });
+  const markets=marketProgress(state);
+  const overseas= growth.delivered.filter(order=>order.market!=='domestic' && order.profit>0);
+  for (const cert of certProgress(state, netAssets(state)).filter(item => item.available)) {
+    if (cert.id==='audit' && overseas.length<6 || cert.id==='supplier' && overseas.length<12) continue;
+    const target = markets.filter(market=>market.cert===cert.id && !market.opened && marketFits(growth,market))
+      .sort((a,b)=>(a.referralBuyer ? a.referralFee:a.fee)-(b.referralBuyer ? b.referralFee:b.fee))[0];
+    if (!target) continue;
+    const combined=cert.fee+(target.referralBuyer ? target.referralFee : target.fee);
+    if (!growth.canFund(combined)) continue;
+    candidates.push({ tab:'certifications',action:{type:'buy-cert',id:cert.id},strategicValue:79,advice:note(`下一步：取得${cert.name}`,`近期订单已有${target.name}相关品类的实际利润。资质与随后开拓该市场预计共需 ${cash(combined)}，约为近期平均净利的 ${Math.ceil(combined/growth.average)} 周，已保留下轮报价资金，不依赖尚未发生的海外订单。`,focus('buy-cert',cert.id,'查看资质申请')) });
+  }
+  const lastExpansion=state.log.find(row=>row.type==='market')?.week ?? -Infinity;
+  for (const market of markets.filter(item => !item.opened && item.eligible && (item.canRefer || item.canPay))) {
+    const type = market.canRefer ? 'referral' : 'open-market';
+    const fee=market.canRefer ? market.referralFee : market.fee;
+    if (!growth.canFund(fee) || !marketFits(growth,market) || state.company.markets.length>1 && (overseas.length<6 || state.week-lastExpansion<12)) continue;
+    candidates.push({ tab:'markets',action:{type,id:market.id},strategicValue:65+(market.canRefer?4:0),advice:note(`可先开拓${market.name}`,`已有实际获利的相关品类订单，资质已满足。${market.canRefer ? '熟客引荐' : '参展开拓'}费用 ${cash(fee)}，能由持续经营利润承担，同时保留后续报价资金。开拓不保证中单。`,focus(type,market.id,'查看市场方案')) });
+  }
+  const equity=listingCandidate(state,growth);
+  if (equity) candidates.push({tab:'listing',action:{type:equity.current.id},strategicValue:90,advice:note(`当前可办理${equity.current.label}`,equity.basis,focus(equity.current.id,'','查看申请条件'))});
+  estimate.developmentPlan = planDevelopment(state, candidates, { reserve: growth.reserve });
+  return estimate.developmentPlan;
+}
+
+function improvementAdvice(choice) {
+  if (!choice) return null;
+  const { advice } = choice;
+  return choice.tab === 'team' ? advice : { ...advice, text: `${advice.text} 办理后预测最低现金 ${cash(choice.cashFloor)}，不低于后续经营预留 ${cash(choice.reserve)}。` };
 }
 
 function developmentAdvice(state, tab) {
-  const { budget, reserve } = estimates(state);
+  const { reserve } = estimates(state);
   if (tab === 'finance') {
     const urgent = cashEmergency(state, { page: 'company', developmentTab: 'finance' });
     if (urgent) return urgent.action?.form === 'borrow' ? urgent : noAction('本页暂不建议新增或归还贷款。' + urgent.text);
-    if (state.loan > 0 && budget > 0) return note('有闲置现金时优先还款', `建议偿还 ${cash(Math.min(state.loan, budget))}，仍保留经营周转资金，减少每周利息。`, form('repay', '查看还款'));
+  }
+  const choice = developmentPriorities.some(([id]) => id === tab) ? developmentPlan(state).choices.find(item => item.tab === tab) : null;
+  if (choice) return improvementAdvice(choice);
+  if (tab === 'finance') {
     return noAction(state.loan > 0 ? '目前应优先留出订单周转资金，暂缓还款。' : `当前没有贷款需要归还，也无需提前借款。建议仍保留 ${cash(reserve)} 作为周转资金。`);
   }
   if (tab === 'team') {
-    return teamPlan(state).advice;
+    const team = teamPlan(state);
+    return team.candidate ? noAction('暂缓聘用。把现有订单和待揭晓报价也计入后，新增工资后的现金不适合本周招聘。') : team.advice;
   }
   if (tab === 'certifications') {
     const next = certProgress(state, netAssets(state)).find(item => !item.owned);
     if (!next) return noAction('所需资质已全部取得，暂时没有新的申请事项。');
-    if (next.available && next.fee <= budget) return note(`下一步：取得${next.name}`, `已经满足条件，申请费 ${cash(next.fee)} 在建议的现金余量内，可解锁下一阶段业务。`, focus('buy-cert', next.id, '查看资质申请'));
     const unmet = next.requirements.filter(item => !item.met).map(item => item.text);
-    return noAction(`${next.name}${unmet.length ? `尚有未达成条件：${unmet.join('；')}。` : '资格条件已达成，但费用会占用必要周转资金，应暂缓申请。'}`);
+    return noAction(`${next.name}${unmet.length ? `尚有未达成条件：${unmet.join('；')}。` : '资格已达到。暂缓申请：先积累持续利润和相关品类业务，确保资质连同开拓市场的费用留足后续报价资金。'}`);
   }
   if (tab === 'markets') {
-    const next = marketProgress(state).filter(item => !item.opened && item.eligible && (item.canRefer ? item.referralFee : item.fee) <= budget).sort((a,b) => (a.canRefer ? a.referralFee : a.fee) - (b.canRefer ? b.referralFee : b.fee))[0];
-    if (next) return note(`可先开拓${next.name}`, `资质已满足，开拓费能保留必要周转资金。${next.canRefer ? `已有熟客可以引荐，费用 ${cash(next.referralFee)}。` : `参展开拓费 ${cash(next.fee)}。`}`, focus(next.canRefer ? 'referral' : 'open-market', next.id, '查看市场方案'));
-    return noAction('暂时没有同时满足资质和现金预留要求的新市场，已有市场也无需例行额外花费。');
+    return noAction('暂时没有同时满足真实业务需求、持续利润和后续报价资金预留的新市场。已有市场应先做好订单与回款。');
   }
   if (tab === 'partners') return noAction('客户关系随交付和回款更新，当前分区没有需要额外办理的客户事项。');
-  if (tab === 'ventures') return venturePlan(state) ?? noAction('暂时没有同时满足近期订单需求、稳定利润和周转资金预留的投资项目。先让现有业务继续经营。');
+  if (tab === 'ventures') return noAction('暂时没有同时满足近期订单需求、稳定利润和周转资金预留的投资项目。先让现有业务继续经营。');
   if (tab === 'listing') {
     const next = ipoProgress(state, netAssets(state)).actions.find(item => item.current);
     if (!next) return noAction('上市目标已经完成，目前没有待办理的上市事项。');
-    if (next.available && next.cost <= budget) return note(`当前可办理${next.label}`, `所需条件均满足。${next.cashIn ? `预计可引入 ${cash(next.cashIn)}，同时创始人持股会变化。` : `预计支出 ${cash(next.cost)}。`}`, focus(next.id, '', '查看申请条件'));
     const unmet = next.requirements.filter(item => !item.met).map(item => item.text);
-    return noAction(`${next.label}${unmet.length ? `尚有未满足条件：${unmet.join('；')}。` : '已满足条件，但费用暂不适合当前周转资金。'}`);
+    const reason = next.id==='strategic-investment' ? '现有周转并不需要以股权换资金；应等实际业务瓶颈或上市先决业绩成熟。' : next.id==='restructure' ? '当前不急于花改造费；等真实上市营收、净利与连续年度盈利基础达标，并保留下轮经营资金。' : '暂缓支出，先确保实际经营稳定和后续报价资金。';
+    return noAction(`${next.label}${unmet.length ? `尚有未满足条件：${unmet.join('；')}。` : `已满足本阶段条件。${reason}`}`);
   }
   if (tab === 'board-goals') {
     const goal = state.year.goal;
@@ -277,13 +490,41 @@ function restPlan(state) {
   return estimate.restPlan;
 }
 
-function offworkAdvice(state) {
-  const onward = state.bids.length ? settle() : page('inquiries', '开始下一轮经营');
-  if (state.life.lastBreakWeek === state.week) return note('本周已安排休息', '这次活动已经结算，精力会随经营消耗。下周可以再次安排旅行或好友活动。', onward);
-  if (state.energy >= 85) return note('精力充足，先把预算用在经营', `当前精力 ${state.energy}/100。旅行与好友活动可恢复精力，房产和车辆会占用现金，可以等公司资金稳定后再选。`, onward);
-  const selected = restPlan(state);
-  return selected ? note(`推荐${selected.activity.label}`, `${selected.activity.kind === 'quick' ? '' : `可以选择「${selected.choice.label}」。`}${selected.choice.price ? `费用 ${cash(selected.choice.price)}` : '费用为零'}，可恢复 ${Math.min(selected.choice.energy,100-state.energy)} 点精力。精力低时中单率会受影响，先休息再继续经营。`, selected.activity.kind === 'quick' ? focus('outing', selected.activity.id, '查看这项活动') : { ui: 'coach-select-outing', id: selected.activity.id, choice: selected.choice.id, label: '查看推荐的休息方案' })
-    : note('精力需要恢复，但现金优先', `精力仅 ${state.energy}/100，建议在旅行与好友活动中先挑费用较低或免费的选项，避免大额非必要开支。`, onward);
+function offworkAdvice(state, ui) {
+  const restDone = state.life.lastBreakWeek === state.week;
+  const selected = !restDone && state.energy < 85 ? restPlan(state) : null;
+  if (selected) return note(`推荐${selected.activity.label}`, `${selected.activity.kind === 'quick' ? '' : `可以选择「${selected.choice.label}」。`}${selected.choice.price ? `费用 ${cash(selected.choice.price)}` : '费用为零'}，可恢复 ${Math.min(selected.choice.energy,100-state.energy)} 点精力。精力低时中单率会受影响，先休息再继续经营。`, selected.activity.kind === 'quick' ? focus('outing', selected.activity.id, '查看这项活动') : { ui: 'coach-select-outing', id: selected.activity.id, choice: selected.choice.id, label: '查看推荐的休息方案' });
+  const onward = nextBusinessStep(state, ui);
+  if (restDone) return note('本周已安排休息', `这次活动已经结算，精力会随经营消耗。下周可以再次安排旅行或好友活动。${onward.text}`, onward.action);
+  if (state.energy >= 85) return note('精力充足，先把预算用在经营', `当前精力 ${state.energy}/100。旅行与好友活动可恢复精力，房产和车辆会占用现金，可以等公司资金稳定后再选。${onward.text}`, onward.action);
+  return note('精力需要恢复，但现金优先', `精力仅 ${state.energy}/100，建议在旅行与好友活动中先挑费用较低或免费的选项，避免大额非必要开支。${onward.text}`, onward.action);
+}
+
+// Learn what the first quote means outside the inquiry inbox, before an actual order exists.
+// The separate persisted preparation index prevents repeated tours, and does not pretend
+// a submitted quote is already a contract.
+function preparationAdvice(state, ui, local) {
+  if (!state.bids.length || state.orders.length) return null;
+  const index = coachPrepIndex(ui.coachPrep);
+  const next = preparation[index];
+  if (!next) return null;
+  const nextAction = page(next.page, next.label, next.tab);
+  if (index === 1 && ui.page === 'office') {
+    const { lowest, baselineFloor, reserve } = estimates(state);
+    return { ...note('从报价看到资金周转', `已有报价并不等于成交。未来 12 周若没有新单，最低现金约为 ${cash(baselineFloor)}；若目前报价全部中单，预测最低 ${cash(lowest.hypothetical)}。建议留出 ${cash(reserve)} 周转资金。接下来认识现金不足时的备用授信。`, nextAction), nextAction: { ui: 'coach-focus-forecast', label: '向下查看预测图 ↓', quiet: true }, preparation: true };
+  }
+  if (index === 2 && introMatches(ui, preparation[1])) {
+    if (local?.action) return { ...local, nextAction, preparation: true };
+    const remaining = Math.max(0,state.creditLine-state.loan);
+    return { ...note('认识备用资金', `现有现金优先用于采购、运费和日常经营。银行还可借 ${cash(remaining)}；借款有利息，并不是收入。目前${state.loan ? '不建议再增加贷款' : '无需借款'}，资金留在手里即可。最后认识精力与休息。`, nextAction), nextAction: skipPreparation(), preparation: true };
+  }
+  if (ui.page !== 'office' && ui.page !== 'inquiries') return null;
+  const messages = [
+    ['首笔报价已经发给客户', '这笔还在等结果。先到办公室看未来 12 周现金预测，弄清若中单会占用多少资金，再继续其他报价。'],
+    ['接下来认识财务', '现金趋势已经看过了。到发展页的财务查看备用授信，了解遇到资金短缺时有哪些办法。'],
+    ['再认识下班与精力', '经营会消耗精力。到下班页看看当前体力和休息安排，不必为了介绍花钱。'],
+  ];
+  return { ...note(...messages[index], nextAction), nextAction: skipPreparation(), preparation: true };
 }
 
 function introductionAdvice(state, ui, local) {
@@ -319,10 +560,11 @@ const developmentPriorities = [
 ];
 
 function bestDevelopmentImprovement(state) {
-  // Prioritize cash and eligibility milestones before recurring payroll, market and facility spending.
-  const opportunities = developmentPriorities.map(([tab, label]) => ({ tab, label, advice: developmentAdvice(state, tab) }));
-  const next = opportunities.find(item => item.advice.action);
-  return next ? { ...next.advice, action: page('company', `查看${next.label}建议`, next.tab) } : null;
+  // Compare actual before/after cash, recurring expenses and future runway for
+  // all presently justified actions rather than giving one fixed tab priority.
+  const next = developmentPlan(state).choices[0];
+  const label = developmentPriorities.find(([tab]) => tab === next?.tab)?.[1];
+  return next ? { ...improvementAdvice(next), action: page('company', `查看${label}建议`, next.tab) } : null;
 }
 
 function developmentOverviewAdvice(state, ui) {
@@ -346,15 +588,15 @@ function growthOpportunity(state) {
 function cashEmergency(state, ui) {
   const { lowest, rows, baselineFloor } = estimates(state);
   if (state.cash >= 0 && lowest.hypothetical >= 0) return null;
-  const bill = state.receivables.filter(item => factorValue(state, item) > 0).sort((a, b) => factorValue(state, b) - factorValue(state, a))[0];
-  if (bill) return note('先回收应收款', `${bill.buyer.name} 的应收款可以保理并立即到账 ${cash(factorValue(state, bill))}，代价是放弃部分货款。眼下先补足周转资金。`, ui.page === 'orders' ? focus('factor', bill.id, '查看可保理应收') : page('orders', '前往回款与保理', 'orders-receivables'));
   // If only the new bids cause the shortfall, undoing a quote is free and avoids more borrowing.
   if (state.cash >= 0 && baselineFloor >= 0 && state.bids.length) {
     const bid = [...state.bids].sort((a, b) => b.workingCapital - a.workingCapital)[0];
     return note('先减少新增垫资', '现有业务的预测余额还够用，但如果新报价都中单，资金会不足。建议先撤回占用现金最多的报价，再结算。', ui.page === 'inquiries' ? focus('withdraw-bid', bid.inquiryId, '查看该笔报价') : page('inquiries', '检查已提交报价'));
   }
   const room = Math.max(0, state.creditLine - state.loan);
-  if (room > 0 && state.cash < 0) return note('先安排现金缺口', `目前现金为负，尚有 ${cash(room)} 授信。建议先借 ${cash(Math.min(-state.cash, room))} 弥补${room < -state.cash ? '一部分' : ''}现有缺口；未来第 ${lowest.week} 周仍需复查现金预测。`, ui.page === 'company' && ui.developmentTab === 'finance' ? form('borrow', '查看可用借款') : page('company', '前往财务筹款', 'finance'));
+  const bill = state.receivables.filter(item => factorValue(state, item) > 0).sort((a, b) => factorValue(state, b) - factorValue(state, a))[0];
+  if (bill) return note('先回收应收款', `${bill.buyer.name} 的应收款可以保理并立即到账 ${cash(factorValue(state, bill))}，代价是放弃部分货款。眼下先补足周转资金。`, ui.page === 'orders' ? focus('factor', bill.id, '查看可保理应收') : page('orders', '前往回款与保理', 'orders-receivables'));
+  if (room > 0 && state.cash < 0) return note('先安排现金缺口', `目前现金为负，尚有 ${cash(room)} 授信。建议先借 ${cash(Math.min(-state.cash, room))} 弥补${room < -state.cash ? '一部分' : ''}现有缺口；未来第 ${lowest.week} 周仍需复查现金预测。`, ui.page === 'company' && ui.developmentTab === 'finance' ? form('borrow', '查看可用借款', Math.min(-state.cash, room)) : page('company', '前往财务筹款', 'finance'));
   const lots = new Map();
   for (const item of state.inventory) lots.set(item.productId, (lots.get(item.productId) ?? 0) + item.quantity);
   for (const bid of state.bids) if (bid.source === 'inventory') lots.set(bid.productId, (lots.get(bid.productId) ?? 0) - bid.quantity);
@@ -368,34 +610,46 @@ function pageAdvice(state, ui) {
   if (state.bankrupt) return null;
   if (state.events.length) return ui.page === 'company' && !ui.developmentOverview ? noAction('尚有待定事项可能影响本周资金与经营安排，建议解决后再办理当前分区的业务。') : note('先处理本周待定事项', '助理会在事项内比较结果并推荐处理方式，解决后才能继续周结算。', { ui: 'show-event', label: '查看待定事项' });
   if (ui.page === 'company') {
-    if (ui.developmentOverview) return developmentOverviewAdvice(state, ui);
-    const advice = introductionAdvice(state, ui, developmentAdvice(state, ui.developmentTab));
+    if (ui.developmentOverview) {
+      const overview = developmentOverviewAdvice(state, ui);
+      if (overview.action || cashEmergency(state, ui)) return overview;
+      const onward = nextBusinessStep(state, ui);
+      return { ...overview, text: `${overview.text}${onward.text}`, action: onward.action };
+    }
+    const local = developmentAdvice(state, ui.developmentTab);
+    const advice = preparationAdvice(state, ui, local) ?? introductionAdvice(state, ui, local);
+    if (advice.preparation || advice.introduction) return advice;
     if (!advice.introduction && advice.action && state.orders.length && ['team', 'certifications', 'markets', 'ventures', 'listing'].includes(ui.developmentTab)) return { ...advice, nextAction: deferGrowth() };
-    return advice;
+    if (advice.action) return advice;
+    const emergency = cashEmergency(state, ui);
+    if (emergency) return { ...advice, ...(emergency.action ? { action: emergency.action } : {}) };
+    const global = ui.coachDeferredWeek === state.week ? null : bestDevelopmentImprovement(state);
+    if (global && global.action.tab !== ui.developmentTab) return { ...advice, text: `${advice.text} 发展页还有一项更值得考虑的行动。`, action: global.action, nextAction: deferGrowth() };
+    const onward = nextBusinessStep(state, ui);
+    return { ...advice, text: `${advice.text}${onward.text}`, action: onward.action };
   }
   const emergency = cashEmergency(state, ui);
   if (emergency) return emergency;
-  if (ui.page === 'orders') return introductionAdvice(state, ui, orderAdvice(state));
-  if (ui.page === 'offwork') return offworkAdvice(state);
-  if (!state.orders.length && state.bids.length) return note('首笔报价已提交', '现在可以结算本周，立即查看首笔报价是否中单。结算也会推进货物与资金。', settle());
+  if (ui.page === 'orders') return introductionAdvice(state, ui, orderAdvice(state, ui));
+  if (ui.page === 'offwork') return offworkAdvice(state, ui);
   const overdue = overdueForCollection(state);
   if (overdue) return note('先跟进逾期应收款', `${overdue.buyer.name}的货款已逾期，可以先跟进回款，再挑选新订单。`, page('orders','查看逾期应收账款','orders-receivables'));
   const late = state.orders.find(item => ACTIVE_ORDER.has(item.status) && item.deliverWeek > item.dueWeek && canExpedite(state, item) && expediteFee(item) < item.total * .03 && state.cash >= expediteFee(item));
   if (late) return note('先处理交期风险', `${late.buyer.name} 的订单预计晚交货，有可行的加急安排。先核对费用和能避免的罚款，再发新报价。`, page('orders', '查看交期与加急', 'orders-delivery'));
   if (state.energy < 50 && state.life.lastBreakWeek !== state.week && restPlan(state)) return note('精力偏低，先考虑休息', `当前精力 ${state.energy}/100。低精力会影响中单率，现在有不影响周转资金的休息安排，可以先恢复精力再经营。`, page('offwork', '查看休息活动'));
+  const prep = preparationAdvice(state, ui, null);
+  if (prep) return prep;
   const orientation = introductionAdvice(state, ui, null);
   if (orientation) return orientation;
-  if (state.bids.length) return inquiryAdvice(state, ui.filters);
   const growth = ui.coachDeferredWeek === state.week ? null : growthOpportunity(state);
   if (growth) return { ...growth, nextAction: deferGrowth() };
-  if (ui.page === 'inquiries') return inquiryAdvice(state, ui.filters);
-  return note(state.orders.length ? '继续挑选合适的订单' : '从第一笔合适的订单开始', '先打开询盘；助理会比较报价的利润、中单机会、信用和垫资，挑出目前更适合的方案。', page('inquiries','开始挑选询盘'));
+  return inquiryAdvice(state, ui.filters, ui.page === 'inquiries');
 }
 
 function actionButton(action) {
   if (!action) return '';
-  if (action.command === 'end-week') return `<button type="button" class="button coach-action" data-action="end-week">${esc(action.label)}</button>`;
-  return `<button type="button" class="button ${action.quiet ? 'quiet' : 'coach-action'}" data-ui="${action.ui}"${action.page ? ` data-page="${action.page}"` : ''}${action.tab ? ` data-coach-tab="${action.tab}"` : ''}${action.id != null ? ` data-id="${esc(action.id)}"` : ''}${action.choice ? ` data-choice="${esc(action.choice)}"` : ''}${action.action ? ` data-coach-action="${esc(action.action)}"` : ''}${action.form ? ` data-coach-form="${esc(action.form)}"` : ''}>${esc(action.label)}</button>`;
+  if (action.command === 'end-week') return `<button type="button" class="button ${action.quiet ? 'quiet' : 'coach-action'}" data-action="end-week">${esc(action.label)}</button>`;
+  return `<button type="button" class="button ${action.quiet ? 'quiet' : 'coach-action'}" data-ui="${action.ui}"${action.page ? ` data-page="${action.page}"` : ''}${action.tab ? ` data-coach-tab="${action.tab}"` : ''}${action.id != null ? ` data-id="${esc(action.id)}"` : ''}${action.choice ? ` data-choice="${esc(action.choice)}"` : ''}${action.action ? ` data-coach-action="${esc(action.action)}"` : ''}${action.form ? ` data-coach-form="${esc(action.form)}"` : ''}${Number.isSafeInteger(action.amount) ? ` data-coach-amount="${action.amount}"` : ''}>${esc(action.label)}</button>`;
 }
 
 function card(state, advice, { extra = '', preview = false, progress = false, overview = false } = {}) {
@@ -403,7 +657,7 @@ function card(state, advice, { extra = '', preview = false, progress = false, ov
   const person = ASSISTANTS.find(item => item.id === state.assistant) ?? ASSISTANTS[0];
   return `<aside class="coach-card" aria-label="助理带教"${preview ? ' data-quote-preview="coach" tabindex="-1"' : ''}>
     <span class="portrait headshot coach-portrait" data-assistant-id="${esc(person.id)}" aria-hidden="true" style="background-image:url('${esc(person.portrait)}')"></span>
-    <div class="coach-copy"><small class="coach-label">${esc(person.name)}的带教建议${overview ? '（发展总览）' : progress ? `（入门第 ${state.tutorial.step + 1} 步，共 5 步）` : ''}</small><h3>${esc(advice.title)}</h3><p>${esc(advice.text)}</p>
+    <div class="coach-copy"><small class="coach-label">${esc(person.name)}的带教建议${overview ? '（发展总览）' : progress ? `（入门 ${state.tutorial.step + 1}/5）` : ''}</small><h3>${esc(advice.title)}</h3><p>${esc(advice.text)}</p>
     ${advice.action || advice.nextAction || extra ? `<div class="coach-actions">${actionButton(advice.action)}${actionButton(advice.nextAction)}${extra}</div>` : ''}</div></aside>`;
 }
 
@@ -411,14 +665,14 @@ export function pageCoach(state, ui) {
   if (!easy(state)) return '';
   const step = !state.tutorial.done && [0,1,3].includes(state.tutorial.step);
   const advice = pageAdvice(state, ui);
-  const extra = advice?.introduction ? '<button type="button" class="button quiet" data-ui="coach-skip-intro">跳过介绍</button>' : step ? '<button type="button" class="button quiet" data-ui="skip-tutorial">跳过基础流程提示</button>' : '';
+  const extra = advice?.preparation ? (advice.nextAction?.ui === 'coach-skip-prep' ? '' : actionButton(skipPreparation())) : advice?.introduction ? '<button type="button" class="button quiet" data-ui="coach-skip-intro">跳过介绍</button>' : step ? '<button type="button" class="button quiet" data-ui="skip-tutorial">跳过基础流程提示</button>' : '';
   return card(state, advice, { extra, progress: step, overview: ui.page === 'company' && ui.developmentOverview });
 }
 
-export function quoteCoach(state, inquiry, model) {
+export function quoteCoach(state, inquiry, model, filter) {
   if (!easy(state)) return '';
   if (state.bids.some(item => item.inquiryId === inquiry.id) || state.bids.length >= 3) return card(state, note('本周暂时无法再提交这笔报价', '待本周结算后再选择新机会，也可以先在询盘页撤回不再合适的报价。'), { preview: true });
-  const recommended = verifyRecommendation(state, quoteRecommendation(state, inquiry));
+  const recommended = verifyRecommendation(state, quoteRecommendation(state, inquiry, filter));
   if (!recommended) return card(state, note('暂时不建议提交这笔报价', '请检查利润、交期、回款和现金预测。若资金不足，可以挑其他询盘，不必为了中单而降到亏损价。'), { preview: true });
   const { offer, config, cashFloor } = recommended;
   const applied = Object.entries(config).every(([name, value]) => name === 'brandUnitPrice' && !config.branded || String(model[name] ?? '') === String(value));
@@ -434,7 +688,9 @@ export function quoteCoach(state, inquiry, model) {
 export function eventCoach(state, event, choices) {
   if (!easy(state) || choices.length <= 1) return null;
   const { budget, reserve } = estimates(state);
-  const valid = choices.filter(choice => !choice.disabled && Math.max(0, -(choice.impact?.cash ?? 0), choice.cost ?? 0) <= Math.max(0, state.cash));
+  const affordable = choices.filter(choice => !choice.disabled && Math.max(0, -(choice.impact?.cash ?? 0), choice.cost ?? 0) <= Math.max(0, state.cash));
+  const safety = planEventSafety(state,event,affordable,{reserve});
+  const valid = safety.choices;
   if (!valid.length) return null;
   const order = state.orders.find(item => item.id === event.orderId && ACTIVE_ORDER.has(item.status));
   const invoice = state.receivables.find(item => item.id === event.invoiceId);
@@ -470,8 +726,8 @@ export function eventCoach(state, event, choices) {
       'overstock': state.cash < reserve ? 'sell' : 'save',
       'trade-note': spendable(200) && state.company.rep < 100 ? 'use' : 'later',
       'supplier-demo': spendable(380) && worthConsidering(offer => offer.cost > 5000, ['factory']) ? 'visit' : 'pass',
-      'staff-poach': spendable(event.raise * 4) ? 'retain' : event.staffId === state.assistant ? 'defer' : 'release',
-      'rival-sale': spendable(event.fee * 2) ? 'acquire' : 'pass',
+      'staff-poach': event.staffId === state.assistant ? (growthReadiness(state).stable && growthReadiness(state).average > event.raise*3 && spendable(event.raise*12) ? 'retain' : 'defer') : spendable(event.raise*12) && growthReadiness(state).stable ? 'retain' : 'release',
+      'rival-sale': growthReadiness(state).canFund(event.fee) && (state.rivals.find(item=>item.id===event.rivalId)?.scale ?? 0)*40*19*.65 >= event.fee ? 'acquire' : 'pass',
     }[event.code ?? event.type];
     const picked = valid.find(choice => choice.id === preferred);
     ranked = picked ? [picked] : [...valid].sort((a,b) => (b.impact.cash ?? 0)-(a.impact.cash ?? 0));
@@ -490,7 +746,8 @@ export function eventCoach(state, event, choices) {
     reason = picked && reasons[key] ? reasons[key] : (chosenReason(ranked[0], preferred, budget));
   }
   const chosen = ranked[0];
-  if (-(chosen.impact?.cash ?? 0) > budget) reason += ' 这项支出会占用部分周转资金，请再核对现金与授信。';
+  if (!safety.safe) reason += ` 现有选项都不能充分保留 ${cash(chosen.reserve)} 周转资金；这个方案的保守预测最低余额 ${cash(Math.min(chosen.cashFloor,chosen.scenarioFloor))}，在可执行方案中资金风险较低，但仍可能缺钱。`;
+  else if (safety.all.some(choice=>!choice.safeReserve)) reason += ` 其他方案可能挤占周转资金；该方案未来 12 周预计最低余额至少 ${cash(Math.min(chosen.cashFloor,chosen.scenarioFloor))}，仍保留必要现金。`;
   return { id: chosen.id, html: card(state, note(`建议：${chosen.label}`, reason)) };
 }
 

@@ -288,7 +288,9 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 
       assert.ok((await currentState(page)).life.cars.includes('hatch'));
       const tired = (await currentState(page)).energy;
       await page.click('[data-ui="life-app"][data-id="home"]');
-      await page.click('[data-ui="life-app"][data-id="rest"]');
+      await page.click('[data-ui="life-app"][data-id="friends"]');
+      await page.click('#life-friends-streets > summary');
+      await page.click('[data-life-id="flower-market"] > summary');
       await page.click('[data-action="outing"][data-id="flower-market"]');
       assert.ok((await currentState(page)).energy > tired);
       await page.waitFor('document.querySelector(".outing-note img")?.naturalWidth>0');

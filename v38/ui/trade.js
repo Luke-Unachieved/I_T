@@ -182,7 +182,7 @@ export function inquiriesPage(state, ui) {
     <section class="panel inquiry-inbox" data-tour="inquiries"><header class="trade-header">
       <h2>客户来信 <span class="inquiry-inbox-count">${rows.length}</span></h2>
       <a class="badge pending inquiry-sent-link" href="#inquiry-sent">已用报价位 ${state.bids.length} / 3</a>
-      <p class="trade-note inquiry-guidance">点开来信算价并回复，周末统一开结果。</p>
+      <p class="trade-note inquiry-guidance">点开来信算价并回复，本周结算时查看成交结果。</p>
     </header>
     <div class="trade-filters">
       <label>报价状态<select data-ui="inquiry-filter" name="availability">
@@ -483,7 +483,7 @@ export function quoteDialog(state, ui) {
   const disabled = proposal.error || alreadyBid || state.bids.length >= 3;
   return `<header class="trade-header"><div><h2 id="quote-title" tabindex="-1">${escapeHtml(inquiry.buyer.name)}的询盘</h2><p class="trade-note">${escapeHtml(inquiry.productName)}（算价与报价）</p>
     ${ui.quoteDraftRestored ? '<small class="trade-note">已恢复这条询盘的未提交报价。</small>' : ''}</div>${close}</header>
-    ${quoteCoach(state, inquiry, model)}
+    ${quoteCoach(state, inquiry, model, ui.filters)}
     <div class="quote-grid">${quoteArtwork(inquiry)}
       <form class="quote-controls inquiry-reply" data-form="quote" data-id="${escapeHtml(inquiry.id)}">
         <h3 class="inquiry-reply-title">我的报价</h3><fieldset><legend>货源</legend><div class="source-options">${sourcesAvailable.map(({ source, proposal: option }) => {
@@ -501,7 +501,7 @@ export function quoteDialog(state, ui) {
         ${staffField(state, model)}${financingField(inquiry, model)}
         <div data-quote-preview="numbers">${quoteNumbers(state, proposal, inquiry)}</div>
         <div class="dialog-actions" data-quote-preview="submit"><button class="button primary" type="submit"${disabled ? ' disabled' : ''}>提交报价</button>
-          <small>${alreadyBid ? '这条询盘已经提交报价。' : state.bids.length >= 3 ? '本周 3 个报价位已用完。' : `本周已用 ${state.bids.length} / 3 个报价位，周末统一开结果。`}</small></div>
+          <small>${alreadyBid ? '这条询盘已经提交报价。' : state.bids.length >= 3 ? '本周 3 个报价位已用完。' : `本周已用 ${state.bids.length} / 3 个报价位，结算时查看成交结果。`}</small></div>
       </form>
     </div>`;
 }

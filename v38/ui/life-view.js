@@ -89,9 +89,10 @@ function propertyCards(state) {
     const owned = state.life.properties.find(property => property.id === item.id);
     const actions = owned ? [
       owned.pledged ? lifeButton('unmortgage', item, '解除抵押') : lifeButton('mortgage', item, `抵押 · 增加 ${yuan(Math.floor(item.price * 0.55))} 授信`),
-      lifeButton('sell-property', item, `出售 · ${yuan(Math.floor(item.price * 0.85))}`, owned.pledged),
-    ] : [lifeButton('buy-property', item, `买入 · ${yuan(item.price)}`, state.cash < item.price, true)];
-    return catalogueItem(item, actions.join(''), owned ? (owned.pledged ? '已抵押' : '持有中') : '');
+      lifeButton('sell-property', item, `出售 · ${yuan(Math.floor(item.price * 0.85))}${owned.pledged ? '（需先解除抵押）' : ''}`, owned.pledged),
+    ] : [lifeButton('buy-property', item, `买入 · ${yuan(item.price)}${state.cash < item.price ? '（现金不足）' : ''}`, state.cash < item.price, true)];
+    const description = owned ? item.description : item.description.replace(/可抵押给银行。?$/, `购入后可抵押，增加 ${yuan(Math.floor(item.price * 0.55))} 授信额度。`);
+    return catalogueItem({ ...item, description }, actions.join(''), owned ? (owned.pledged ? '已抵押' : '持有中') : '');
   }).join('');
 }
 
@@ -99,17 +100,17 @@ function carCards(state) {
   return LIFE_CATALOG.cars.map(item => {
     const owned = state.life.cars.includes(item.id);
     return catalogueItem(item, owned ? lifeButton('sell-car', item, `卖车 · ${yuan(Math.floor(item.price * 0.65))}`)
-      : lifeButton('buy-car', item, `买车 · ${yuan(item.price)}`, state.cash < item.price, true), owned ? '持有中' : '');
+      : lifeButton('buy-car', item, `买车 · ${yuan(item.price)}${state.cash < item.price ? '（现金不足）' : ''}`, state.cash < item.price, true), owned ? '持有中' : '');
   }).join('');
 }
 
-function quickOutingCards(state) {
+function quickOutingCard(state, item) {
   const resting = state.life.lastBreakWeek === state.week;
-  return LIFE_CATALOG.outings.filter(item => item.kind === 'quick').map(item => {
-    const restore = Math.min(item.energy, 100 - state.energy);
-    const label = resting ? '本周已安排休息' : `安排 · ${item.price ? yuan(item.price) : '免费'}${restore ? ` · 精力 +${count(restore)}` : ''}`;
-    return catalogueItem(item, lifeButton('outing', item, label, resting || state.cash < item.price, true), item.weeks ? `推进 ${item.weeks} 周` : '');
-  }).join('');
+  const restore = Math.min(item.energy, 100 - state.energy);
+  const cost = item.price ? yuan(item.price) : '免费';
+  const label = resting ? '本周已安排休息' : state.cash < item.price ? '现金不足' : '安排这次活动';
+  const summary = `${cost} · ${restore ? `精力 +${count(restore)}` : '精力已满'}`;
+  return `<details class="life-card outing-card" data-life-id="${esc(item.id)}"><summary class="outing-card-summary">${media(item.asset, 'outing-thumb')}<span class="outing-card-label"><strong>${esc(item.label)}</strong><small>${esc(summary)}</small></span></summary><div class="life-card-copy">${media(item.asset, 'outing-detail-art')}<p>${esc(item.description)}</p><p>${esc(summary)}</p><div class="toolbar">${lifeButton('outing', item, label, resting || state.cash < item.price, true)}</div></div></details>`;
 }
 
 function companionField(state, activity) {
@@ -152,11 +153,18 @@ const friendGroups = [
 
 export const lifeDisclosureIds = friendGroups.map(([key]) => `life-friends-${key}`);
 export const defaultLifeCollapsed = [...lifeDisclosureIds];
-export const lifeAppIds = ['home', 'rest', 'trips', 'friends', 'property', 'car'];
+export const lifeAppIds = ['home', 'trips', 'friends', 'property', 'car'];
+
+// The three fixed-choice outings belong with the thematically matching
+// catalogues, without changing the game's outing definitions or rules.
+const quickFriendGroups = { 'flower-market': 'streets', mending: 'culture' };
+const outingApp = item => item?.kind === 'trip' || item?.id === 'night-bus' ? 'trips'
+  : item?.kind === 'friend' || Object.hasOwn(quickFriendGroups, item?.id) ? 'friends' : null;
+const outingsForApp = app => LIFE_CATALOG.outings.filter(item => outingApp(item) === app);
+const outingCard = (state, item) => item.kind === 'quick' ? quickOutingCard(state, item) : detailedOutingCard(state, item);
 
 export function lifeAppForOuting(id) {
-  const kind = LIFE_CATALOG.outings.find(item => item.id === id)?.kind;
-  return kind === 'quick' ? 'rest' : kind === 'trip' ? 'trips' : kind === 'friend' ? 'friends' : null;
+  return outingApp(LIFE_CATALOG.outings.find(item => item.id === id));
 }
 
 function activityDetails(id, label, content, collapsed) {
@@ -165,14 +173,14 @@ function activityDetails(id, label, content, collapsed) {
 
 function activityGroup(id, label, items, state, collapsed) {
   if (!items.length) return '';
-  return activityDetails(id, `${label} · ${count(items.length)} 项`, `<div class="life-grid outing-grid">${items.map(item => detailedOutingCard(state, item)).join('')}</div>`, collapsed);
+  return activityDetails(id, `${label} · ${count(items.length)} 项`, `<div class="life-grid outing-grid">${items.map(item => outingCard(state, item)).join('')}</div>`, collapsed);
 }
 
 function friendOutings(state, collapsed) {
-  const friends = LIFE_CATALOG.outings.filter(item => item.kind === 'friend');
+  const friends = outingsForApp('friends');
   const open = friends.filter(item => !outingLockHint(state, item)).length;
   return `${open < friends.length ? `<p class="muted">另外 ${count(friends.length - open)} 段故事，和朋友相处后会陆续遇到。</p>` : ''}<div class="life-friend-groups">
-      ${friendGroups.map(([key, label]) => activityGroup(`life-friends-${key}`, label, friends.filter(item => item.group === key), state, collapsed)).join('')}
+      ${friendGroups.map(([key, label]) => activityGroup(`life-friends-${key}`, label, friends.filter(item => (quickFriendGroups[item.id] ?? item.group) === key), state, collapsed)).join('')}
     </div>`;
 }
 
@@ -197,7 +205,7 @@ function outingResult(recent) {
 }
 
 function energyPanel(state) {
-  return `<div class="life-energy"><div><label for="life-energy">精力 ${count(state.energy)} / 100</label><progress id="life-energy" max="100" value="${state.energy}"></progress></div><p>${state.life.lastBreakWeek === state.week ? '本周已经安排过休息。' : state.energy < 35 ? '精力偏低，出门走走可以恢复。' : '每周可以休息一次，恢复精力。'}</p></div>`;
+  return `<div class="life-energy"><div><label for="life-energy">精力 ${count(state.energy)} / 100</label><progress id="life-energy" max="100" value="${state.energy}"></progress></div><p>${state.life.lastBreakWeek === state.week ? '本周已经安排过休息。' : '旅行或约朋友都能恢复精力，每周选一次。'}</p></div>`;
 }
 
 const residenceScenes = {
@@ -222,10 +230,9 @@ function lifeHome(state) {
   const lastOwned = state.life.properties.at(-1);
   const residence = LIFE_CATALOG.properties.find(item => item.id === lastOwned?.id);
   const room = residenceScenes[residence?.id] ?? residenceScenes['studio-room'];
-  const friends = LIFE_CATALOG.outings.filter(item => item.kind === 'friend');
+  const friends = outingsForApp('friends');
   const unlocked = friends.filter(item => !outingLockHint(state, item)).length;
-  const tripCount = LIFE_CATALOG.outings.filter(item => item.kind === 'trip').length;
-  const quickCount = LIFE_CATALOG.outings.filter(item => item.kind === 'quick').length;
+  const tripCount = outingsForApp('trips').length;
   return `<section class="life-app-home" data-life-app-page="home">
     <div class="life-app-home-scene">
       ${imageFrame(room, { className: 'life-app-room', alt: residence?.label ?? '下班后的港边起居室', fallback: '房间插画暂未加载', lazy: false, retry: true })}
@@ -233,9 +240,9 @@ function lifeHome(state) {
       ${energyPanel(state)}
     </div>
     <nav class="life-app-menu" aria-label="下班去处">
-      <button type="button" class="button primary life-app-rest-launcher" data-ui="life-app" data-id="rest"><span><strong>周末休息</strong><small>${count(quickCount)} 种轻松安排</small></span><span aria-hidden="true">›</span></button>
+      <h2 class="life-app-menu-title">下班去处</h2>
       <div class="life-app-grid">
-        ${appLauncher('trips', '旅行', `${count(tripCount)} 个目的地`, 'assets/deal-outing-result-night-bus-rear-window.webp')}
+        ${appLauncher('trips', '旅行', `${count(tripCount)} 项行程`, 'assets/deal-outing-result-night-bus-rear-window.webp')}
         ${appLauncher('friends', '约朋友', `${count(friends.length)} 项活动，${count(unlocked)} 项已开放`, 'assets/deal-outing-reel-river-bench.webp')}
         ${appLauncher('property', '房产', `${count(LIFE_CATALOG.properties.length)} 种房产，已持有 ${count(state.life.properties.length)} 处`, 'assets/deal-property-home-harbor.webp')}
         ${appLauncher('car', '车行', `${count(LIFE_CATALOG.cars.length)} 款车型，已持有 ${count(state.life.cars.length)} 辆`, 'assets/deal-car-wagon.webp')}
@@ -258,10 +265,8 @@ export function lifePanel(state, collapsed = defaultLifeCollapsed, app = 'home')
   const recent = state.life.latestOuting;
   const last = lifeAppForOuting(recent?.id) === app ? outingResult(recent) : '';
   switch (app) {
-    case 'rest':
-      return lifeAppPage(app, '周末休息', '选一种轻松的活动，恢复精力。', `${energyPanel(state)}${last}<div class="life-grid">${quickOutingCards(state)}</div>`);
     case 'trips':
-      return lifeAppPage(app, '旅行', '挑个目的地，和朋友一起，也可以独自出发。', `${energyPanel(state)}${last}<div class="life-grid outing-grid">${LIFE_CATALOG.outings.filter(item => item.kind === 'trip').map(item => detailedOutingCard(state, item)).join('')}</div>`);
+      return lifeAppPage(app, '旅行', '挑个目的地，和朋友一起，也可以独自出发。', `${energyPanel(state)}${last}<div class="life-grid outing-grid">${outingsForApp('trips').map(item => outingCard(state, item)).join('')}</div>`);
     case 'friends':
       return lifeAppPage(app, '约朋友', '约朋友相聚，留下一些共同的回忆。', `${energyPanel(state)}${last}${friendOutings(state, collapsed)}`);
     case 'property':

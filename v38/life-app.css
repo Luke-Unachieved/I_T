@@ -40,28 +40,12 @@
 .life-app-page .life-energy {
   margin-bottom: 0;
 }
-.life-app-home .life-app-rest-launcher {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  text-align: left;
-  padding: .7rem .9rem;
-  border-radius: .65rem;
-}
-.life-app-rest-launcher strong, .life-app-rest-launcher small {
-  display: block;
-}
-.life-app-rest-launcher strong { font-size: 1.05rem; }
-.life-app-rest-launcher small { opacity: .82; }
-.life-app-rest-launcher > span:last-child {
-  font-size: 1.55rem;
-  line-height: 1;
-}
 .life-app-home .life-app-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: .65rem;
 }
+.life-app-home .life-app-menu-title { display: none; }
 .life-app-home button.life-app-tile {
   display: flex;
   flex-direction: column;
@@ -168,4 +152,17 @@
   .life-app-tile-copy strong { font-size: 1rem; }
   .life-app-tile-copy small { font-size: .74rem; }
   .life-app-page .life-app-header { display: grid; justify-items: start; gap: .45rem; }
+}
+@media (max-width: 360px) {
+  .life-app-home { gap: .45rem; }
+  .life-app-home .life-app-home-scene,
+  .life-app-home .life-app-menu { gap: .35rem; }
+  .life-app-home .life-energy {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .5rem;
+    padding: .45rem .55rem;
+  }
+  .life-app-home .life-energy label { font-size: .86rem; }
+  .life-app-home .life-energy p { font-size: .78rem; line-height: 1.35; }
+  .life-app-home .life-app-menu-title { display: block; font-size: .98rem; }
 }

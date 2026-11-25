@@ -180,3 +180,30 @@ test('insurance payout does not display a customer-payment reward', options, asy
     assert.deepEqual(await summaryCards(page), []);
   } finally { await browser.close(); }
 });
+
+test('simple mode first delivery and first customer payment guide the player to the actual receivable ledger', options, async () => {
+  const browser = await launchBrowser(root, { scenarios: true });
+  try {
+    const page = await browser.page({ width: 390, height: 844, mobile: true });
+    await ready(page);
+    await loadScenario(page, `game=>{let state=game.newGame({name:'回款带教验收',assistant:'fang',seed:381,difficulty:'casual'});state.tutorial.done=true;state=game.act(state,{type:'bid',inquiryId:state.inquiries[0].id,source:'stock',ratio:80}).state;return state;}`);
+    const won = await settle(page);
+    assert.ok(won.summary.won.length);
+    await page.click('dialog [data-ui="view-first-order"]');
+    await settle(page);
+    await page.click('dialog [data-ui="close-dialog"]');
+    const delivered = await settle(page);
+    assert.ok(delivered.summary.delivered.length);
+    await visibleFooter(page);
+    await page.click('dialog [data-ui="view-order-receivables"][data-receipt-view="pending"]');
+    assert.ok(await page.evaluate('!document.querySelector("dialog").open && document.querySelector("#orders-receivables").open'));
+    assert.equal(await page.evaluate('document.activeElement.closest("#orders-receivables")?.id'), 'orders-receivables');
+    const paid = await settle(page);
+    assert.ok(paid.summary.cashBreakdown.inflow.customerPayment > 0);
+    await visibleFooter(page);
+    await page.click('dialog [data-ui="view-order-receivables"][data-receipt-view="paid"]');
+    assert.ok(await page.evaluate('!document.querySelector("dialog").open && document.querySelector("#orders-receivables details:has(table[aria-label=最近回款])").open'));
+    assert.match(await page.evaluate('document.querySelector("table[aria-label=最近回款]").innerText'), /实际到账/);
+    assert.deepEqual(page.errors, []);
+  } finally { await browser.close(); }
+});

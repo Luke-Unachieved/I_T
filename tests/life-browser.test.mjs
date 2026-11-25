@@ -26,24 +26,27 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844,
       await loadScenario(page, `(game)=>{const s=game.newGame({name:'下班生活验收',assistant:'fang',seed:381});s.cash=6000000;s.creditLine=game.creditLimit(s);s.energy=0;s.tutorial.done=true;return s;}`);
       await page.click('.nav [data-page="offwork"]');
       assert.equal(await currentApp(), 'home');
-      assert.equal(await page.evaluate('document.querySelectorAll("[data-ui=life-app]").length'), 5);
+      assert.deepEqual(await page.evaluate('Array.from(document.querySelectorAll("[data-ui=life-app]")).map(e=>e.dataset.id)'), ['trips', 'friends', 'property', 'car']);
       assert.equal(await page.evaluate('document.querySelectorAll("[data-life-id]").length'), 0);
       await page.waitFor('document.querySelector(".life-app-room img")?.naturalWidth>0');
       const room = await page.evaluate(`(()=>{const art=document.querySelector('.life-app-room'),img=art.querySelector('img'),r=art.getBoundingClientRect();return{src:img.getAttribute('src'),ratio:r.width/r.height,native:img.naturalWidth/img.naturalHeight,fit:getComputedStyle(img).objectFit};})()`);
       assert.equal(room.src, 'assets/deal-afterwork-original-room.webp');
       assert.ok(Math.abs(room.ratio-room.native)<.01 && room.fit==='contain',JSON.stringify(room));
       await checkWidth(page);
+      if (viewport.width <= 360) {
+        const firstScreen = await page.evaluate(`(()=>{const bounds=selector=>document.querySelector(selector).getBoundingClientRect();return{titleBottom:bounds('.life-app-menu-title').bottom,appTop:bounds('.life-app-tile').top,footerTop:bounds('.week-controls').top};})()`);
+        assert.ok(firstScreen.titleBottom < firstScreen.footerTop && firstScreen.appTop < firstScreen.footerTop, JSON.stringify(firstScreen));
+      }
       await page.screenshot(`/tmp/v38-life-app-${viewport.width}-home.png`);
 
-      await life('rest');
-      assert.equal(await currentApp(), 'rest');
-      assert.equal(await page.evaluate('document.querySelectorAll("[data-life-id]").length'), 3);
-      assert.ok(await page.evaluate('document.querySelector("[data-action=outing][data-id=flower-market]").getClientRects().length>0'));
-      await life('home');
       await life('trips');
       assert.equal(await currentApp(), 'trips');
-      assert.equal(await page.evaluate('document.querySelectorAll("[data-life-id]").length'), 8);
+      assert.equal(await page.evaluate('document.querySelectorAll("[data-life-id]").length'), 9);
       assert.equal(await page.evaluate('document.querySelectorAll("details.outing-card[open]").length'), 0);
+      await page.click('[data-life-id="night-bus"] > summary');
+      assert.match(await page.evaluate('document.querySelector("[data-life-id=night-bus] .outing-card-label").innerText'), /¥1,560.*精力 \+38/);
+      assert.ok(await page.evaluate('document.querySelector("[data-action=outing][data-id=night-bus]").getClientRects().length>0'));
+      await page.click('[data-life-id="night-bus"] > summary');
       await page.click('[data-life-id="trip-night-train"] > summary');
       await page.waitFor('document.querySelector("[data-life-id=trip-night-train] .outing-detail-art img")?.naturalWidth>0');
       const travelLayout = await page.evaluate(`(()=>{const card=document.querySelector('[data-life-id=trip-night-train]'), img=card.querySelector('.outing-detail-art').getBoundingClientRect(), label=card.querySelector('.outing-card-label').getBoundingClientRect();return {open:card.open,photoWidth:img.width,photoTop:img.top,labelBottom:label.bottom};})()`);
@@ -54,16 +57,25 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844,
       await life('home');
       await life('friends');
       assert.equal(await currentApp(), 'friends');
-      assert.equal(await page.evaluate('document.querySelectorAll("[data-life-id]").length'), 50);
+      assert.equal(await page.evaluate('document.querySelectorAll("[data-life-id]").length'), 52);
       assert.equal(await page.evaluate('document.querySelectorAll("[data-life-disclosure][open]").length'), 0);
       await page.click('#life-friends-streets > summary');
+      await page.click('[data-life-id="flower-market"] > summary');
+      assert.match(await page.evaluate('document.querySelector("[data-life-id=flower-market] .outing-card-label").innerText'), /¥240.*精力 \+14/);
+      assert.ok(await page.evaluate('document.querySelector("#life-friends-streets [data-action=outing][data-id=flower-market]").getClientRects().length>0'));
+      await page.click('#life-friends-culture > summary');
+      await page.click('[data-life-id="mending"] > summary');
+      assert.match(await page.evaluate('document.querySelector("[data-life-id=mending] .outing-card-label").innerText'), /¥480.*精力 \+21/);
+      assert.ok(await page.evaluate('document.querySelector("#life-friends-culture [data-action=outing][data-id=mending]").getClientRects().length>0'));
+      await page.click('#life-friends-culture > summary');
       assert.match(await page.evaluate('document.querySelector("[data-life-id=friend-laundry-rain] .outing-card-label").innerText'), /免费或 ¥12/);
       await page.click('#life-friends-fang > summary');
+      await page.waitFor(`document.querySelector('#life-friends-fang').open && !JSON.parse(localStorage.getItem(${JSON.stringify(SAVE_KEY)})).view.lifeCollapsed.includes('life-friends-fang')`);
       const locked = await page.evaluate('document.querySelector("[data-life-id=friend-fang-stool-fit] .outing-card-label").innerText');
       assert.match(locked, /尚未开放/);
       assert.match(locked, /方文斌/);
       await page.click('#life-friends-streets > summary');
-      await page.waitFor(`JSON.parse(localStorage.getItem(${JSON.stringify(SAVE_KEY)}))?.view.lifeCollapsed?.includes('life-friends-streets')`);
+      await page.waitFor(`!document.querySelector('#life-friends-streets').open && JSON.parse(localStorage.getItem(${JSON.stringify(SAVE_KEY)}))?.view.lifeCollapsed?.includes('life-friends-streets')`);
       await page.send('Page.reload');
       await page.waitFor(present('[data-ui="resume-save"]'));
       await page.click('[data-ui="resume-save"]');
@@ -120,6 +132,12 @@ test('older saved life views open the app home and retain the folded activity de
     await page.waitFor(present('[data-ui="resume-save"]'));
     await page.click('[data-ui="resume-save"]');
     assert.ok(await page.evaluate(present('[data-life-app-page="home"]')));
+    // A saved view from the former separate weekend-rest app must resolve to the new home.
+    await page.evaluate(`(()=>{const record=JSON.parse(localStorage.getItem(${key}));record.view.lifeApp='rest';localStorage.setItem(${key},JSON.stringify(record));})()`);
+    await page.send('Page.reload');
+    await page.waitFor(present('[data-ui="resume-save"]'));
+    await page.click('[data-ui="resume-save"]');
+    assert.ok(await page.evaluate(present('[data-life-app-page="home"]')));
     await page.click('[data-ui=life-app][data-id=friends]');
     assert.deepEqual(await page.evaluate('Array.from(document.querySelectorAll("[data-life-disclosure][open]")).map(e=>e.id)'), []);
     await page.click('#life-friends-streets > summary');
@@ -130,6 +148,88 @@ test('older saved life views open the app home and retain the folded activity de
     assert.ok(await page.evaluate(present('[data-life-app-page="friends"]')));
     assert.deepEqual(await page.evaluate('Array.from(document.querySelectorAll("[data-life-disclosure][open]")).map(e=>e.id)'), ['life-friends-streets']);
     assert.deepEqual(page.errors, []);
+  } finally { await browser.close(); }
+});
+
+test('all three original short activities keep their cost, energy and weekly limit in the new apps', { skip: !enabled, timeout: 120_000 }, async () => {
+  const browser = await launchBrowser(root, { scenarios: true });
+  try {
+    const page = await browser.page({ width: 390, height: 844, mobile: true });
+    await page.goto();
+    await page.waitFor(present('[data-form="new-game"]'));
+    for (const [id, app, group, cost, energy, otherApp, otherId, otherGroup] of [
+      ['night-bus', 'trips', null, 1560, 38, 'friends', 'flower-market', 'streets'],
+      ['flower-market', 'friends', 'streets', 240, 14, 'trips', 'night-bus', null],
+      ['mending', 'friends', 'culture', 480, 21, 'trips', 'night-bus', null],
+    ]) {
+      await loadScenario(page, `game=>{const s=game.newGame({seed:381});s.cash=50000;s.energy=10;s.tutorial.done=true;return s;}`);
+      await page.click('.nav [data-page="offwork"]');
+      await page.click(`[data-ui=life-app][data-id="${app}"]`);
+      if (group) await page.click(`#life-friends-${group} > summary`);
+      await page.click(`[data-life-id="${id}"] > summary`);
+      const before = await currentState(page);
+      await page.click(`[data-action=outing][data-id="${id}"]`);
+      const after = await currentState(page);
+      assert.equal(after.cash, before.cash-cost, id);
+      assert.equal(after.energy, before.energy+energy, id);
+      assert.equal(after.life.lastBreakWeek, before.week, id);
+      assert.equal(after.life.latestOuting.id, id);
+      assert.equal(after.life.latestOuting.price, cost);
+      assert.equal(after.life.latestOuting.restored, energy);
+      assert.ok(await page.evaluate('document.activeElement.closest("#latest-outing")'));
+      await page.waitFor('document.querySelector("#latest-outing img")?.naturalWidth>0');
+      await page.click('[data-ui=life-app][data-id=home]');
+      await page.click(`[data-ui=life-app][data-id="${otherApp}"]`);
+      if (otherGroup) await page.click(`#life-friends-${otherGroup} > summary`);
+      await page.click(`[data-life-id="${otherId}"] > summary`);
+      assert.ok(await page.evaluate(`document.querySelector('[data-action=outing][data-id="${otherId}"]').disabled`), 'weekly limit shared across apps');
+      assert.deepEqual(await currentState(page), after);
+      await checkWidth(page);
+    }
+    assert.deepEqual(page.errors, []);
+  } finally { await browser.close(); }
+});
+
+test('unaffordable houses and cars and pledged sales explain disabled controls on mobile', { skip: !enabled, timeout: 120_000 }, async () => {
+  const browser = await launchBrowser(root, { scenarios: true });
+  try {
+    for (const viewport of [{ width: 320, height: 568, mobile: true }, { width: 390, height: 844, mobile: true }]) {
+      const page = await browser.page(viewport);
+      await page.goto();
+      await page.waitFor(present('[data-form="new-game"],[data-ui="resume-save"]'));
+      await loadScenario(page, `game=>{const s=game.newGame({seed:381});s.cash=50000;s.tutorial.done=true;return s;}`);
+      await page.click('.nav [data-page="offwork"]');
+      await page.click('[data-ui=life-app][data-id=property]');
+      const buttonInfo = selector => page.evaluate(`(()=>{const el=document.querySelector(${JSON.stringify(selector)}),r=el.getBoundingClientRect();return{disabled:el.disabled,label:el.innerText,overflow:el.scrollWidth>el.clientWidth+1,right:r.right};})()`);
+      const expensiveHome = await buttonInfo('[data-action="buy-property"][data-id="city-flat"]');
+      assert.equal(expensiveHome.disabled, true);
+      assert.match(expensiveHome.label, /¥62,000.*现金不足/);
+      assert.match(await page.evaluate('document.querySelector("[data-life-id=city-flat]").innerText'), /增加 ¥34,100 授信额度/);
+      assert.equal(expensiveHome.overflow, false);
+      assert.ok(expensiveHome.right <= viewport.width + 1);
+      const room = await buttonInfo('[data-action="buy-property"][data-id="studio-room"]');
+      assert.equal(room.disabled, false);
+      assert.doesNotMatch(room.label, /现金不足/);
+      await page.click('[data-action="buy-property"][data-id="studio-room"]');
+      await page.click('[data-action="mortgage"][data-id="studio-room"]');
+      const pledgedSale = await buttonInfo('[data-action="sell-property"][data-id="studio-room"]');
+      assert.equal(pledgedSale.disabled, true);
+      assert.match(pledgedSale.label, /¥23,800.*需先解除抵押/);
+      assert.equal(pledgedSale.overflow, false);
+      // The intentional reversal occurs after the existing double-gesture guard.
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await page.click('[data-action="unmortgage"][data-id="studio-room"]');
+      assert.equal((await buttonInfo('[data-action="sell-property"][data-id="studio-room"]')).disabled, false);
+      await page.click('[data-ui=life-app][data-id=home]');
+      await page.click('[data-ui=life-app][data-id=car]');
+      const expensiveCar = await buttonInfo('[data-action="buy-car"][data-id="super"]');
+      assert.equal(expensiveCar.disabled, true);
+      assert.match(expensiveCar.label, /¥1,950,000.*现金不足/);
+      assert.equal(expensiveCar.overflow, false);
+      assert.ok(expensiveCar.right <= viewport.width + 1);
+      await checkWidth(page);
+      assert.deepEqual(page.errors, []);
+    }
   } finally { await browser.close(); }
 });
 
