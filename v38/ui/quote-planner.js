@@ -1,8 +1,8 @@
 import { act, forecast } from '../engine/game.js';
 import { quote, quoteCapacity } from '../engine/quotes.js';
-import { evaluateRollouts, quoteExpectedProfit, rolloutBudget } from './rollout-planner.js';
+import { evaluateRollouts, quoteExpectedProfit, quoteOpportunityValue, rolloutBudget } from './rollout-planner.js';
 
-export { quoteExpectedProfit } from './rollout-planner.js';
+export { quoteExpectedProfit, quoteOpportunityValue } from './rollout-planner.js';
 
 // Use a reproducible, independent scenario to compare future cash. Never use the
 // saved game's upcoming RNG draws to decide which customer will win or pay.
@@ -23,11 +23,12 @@ function visibleFloor(state) {
   return visibleForecastCache.get(state);
 }
 
-function expectedMetrics(state, offer, availableCapital) {
+function expectedMetrics(state, offer, availableCapital, headroom=availableCapital) {
   const expected = quoteExpectedProfit(state, offer);
   const duration = Math.max(0, offer.expectedPayWeek - state.week);
   const tiedCapital = Math.max(0, offer.workingCapital ?? offer.upfront ?? 0);
-  return { expected, discounted: expected / (1 + duration * .04 + tiedCapital / Math.max(1, availableCapital) * .15) };
+  const adjusted=quoteOpportunityValue(state,offer,headroom);
+  return { expected, discounted: adjusted / (1 + duration * .04 + tiedCapital / Math.max(1, availableCapital) * .15) };
 }
 
 const configFields = ['source', 'ratio', 'extraTerms', 'staffId', 'financing', 'branded', 'brandUnitPrice'];
@@ -50,7 +51,7 @@ function rank(node, rootFloor) {
 // Candidate generation belongs to the coach (price, source, staff, finance,
 // brand). Diversify across customers before considering extra price/source
 // variants so a single very large customer cannot fill every beam position.
-function candidatesFor(node, inquiries, recommendations, availableCapital, branchLimit) {
+function candidatesFor(node, inquiries, recommendations, availableCapital, branchLimit, reserve, onOpportunityDeferred) {
   const submitted = new Set(node.state.bids.map(bid => bid.inquiryId));
   const options = [];
   for (const inquiry of inquiries) {
@@ -67,8 +68,9 @@ function candidatesFor(node, inquiries, recommendations, availableCapital, branc
       unique.add(key);
       const offer = recommendation.offer ?? quote(node.state, inquiry, config);
       if (offer.error || offer.profit <= 0 || offer.probability <= 0) continue;
-      const metrics = expectedMetrics(node.state, offer, availableCapital);
-      if (!(metrics.expected > 0 && Number.isFinite(metrics.discounted))) continue;
+      const metrics = expectedMetrics(node.state, offer, availableCapital, Math.min(node.state.cash,node.scenarioFloor)-reserve);
+      if(metrics.expected>0&&metrics.discounted<=0)onOpportunityDeferred();
+      if (!(metrics.expected > 0 && metrics.discounted>0 && Number.isFinite(metrics.discounted))) continue;
       variants.push({ inquiry, recommendation: { ...recommendation, config }, metrics });
     }
     variants.sort((a, b) => b.metrics.discounted - a.metrics.discounted);
@@ -114,8 +116,9 @@ export function planQuoteBundle(state, { recommendations, filter, reserve = defa
   const finalists = [];
   let frontier = [root];
   let examined = 0;
+  let opportunityDeferred=false;
   for (let level = 0; level < depth && frontier.length; level++) {
-    const lists = frontier.map(node => ({ node, options: candidatesFor(node, inquiries, recommendations, availableCapital, branches) }));
+    const lists = frontier.map(node => ({ node, options: candidatesFor(node, inquiries, recommendations, availableCapital, branches,cashReserve,()=>{opportunityDeferred=true;}) }));
     const next = [];
     const allowance = level === 0 ? branches : budget.branchAllowance;
     let evaluated = 0;
@@ -133,12 +136,14 @@ export function planQuoteBundle(state, { recommendations, filter, reserve = defa
         const outcome = act(node.state, { ...recommendation.config, type: 'bid', inquiryId: inquiry.id });
         if (outcome.error || outcome.state === node.state) continue;
         const offer = outcome.state.bids.at(-1);
-        const metrics = expectedMetrics(node.state, offer, availableCapital);
-        if (!(offer.profit > 0 && metrics.expected > 0 && Number.isFinite(metrics.discounted))) continue;
+        if (!(offer.profit > 0 && quoteExpectedProfit(node.state,offer)>0)) continue;
         visited.add(key);
         evaluated++; examined++;
         const scenarioFloor = floor(plannerForecast(outcome.state));
         if (scenarioFloor < cashReserve || !Number.isFinite(scenarioFloor)) continue;
+        const metrics=expectedMetrics(node.state,offer,availableCapital,Math.min(outcome.state.cash,scenarioFloor)-cashReserve);
+        if(metrics.expected>0&&metrics.discounted<=0)opportunityDeferred=true;
+        if(!(metrics.discounted>0&&Number.isFinite(metrics.discounted)))continue;
         const child = {
           state: outcome.state, previous: node, scenarioFloor,
           steps: [...node.steps, { inquiry, recommendation: { ...recommendation, offer, score: metrics.discounted, scenarioFloor } }],
@@ -184,7 +189,7 @@ export function planQuoteBundle(state, { recommendations, filter, reserve = defa
     safe.push({ node, steps, cashFloor: prefixes.at(-1) });
     if (!lookahead || (safe.length >= 8 && new Set(safe.map(candidate => candidate.steps.length)).size === possibleDepths.size)) break;
   }
-  if (!safe.length) return empty(examined);
+  if (!safe.length) return empty(examined,{opportunityDeferred});
   const build = ({ node, steps, cashFloor }, extra = {}) => ({ steps, cashFloor, scenarioFloor: node.scenarioFloor,
     expectedProfit: node.expectedProfit, discountedExpectedProfit: node.discountedExpectedProfit, score: node.score, examined,
     reserve: cashReserve, projectedWeeks: 12, ...context, ...extra });
@@ -227,7 +232,7 @@ export function planQuoteBundle(state, { recommendations, filter, reserve = defa
   // If waiting leads to a materially stronger estimated position, do not add
   // another quote just for its own sake. A small sample difference alone is
   // insufficient; the deal's positive expectation still matters.
-  if (!best || best.rolloutScore < -Math.max(250, cashReserve * .05)) {
+  if (!best || best.rolloutScore < -Math.max(250, cashReserve * .05) || (best.node.score<=0&&best.rolloutDelta<=0)) {
     return empty(examined, { ...metrics, rollout: baselineRollout, rolloutDelta: 0, rolloutScore: 0, waitPreferred: true });
   }
   return build(best, { ...metrics, rollout: best.rollout, rolloutDelta: best.rolloutDelta, rolloutScore: best.rolloutScore });

@@ -3,7 +3,7 @@ import { decisionInfo, marketProgress } from '../engine/expansion.js';
 import { quote, quoteCapacity } from '../engine/quotes.js';
 import { VENTURES, strategyAssets } from '../engine/strategy.js';
 import { lifeAssets } from '../engine/life.js';
-import { ACTIVE_ORDER, OPEN_RECEIVABLE, orderMargin, receivableValue } from '../engine/treasury.js';
+import { ACTIVE_ORDER, OPEN_RECEIVABLE, orderMargin, receivableValue, staffAbility } from '../engine/treasury.js';
 
 // Common, representative scenario seeds independent of the saved game's RNG.
 // Every finalist sees the same samples. Choices can react only to the state
@@ -36,9 +36,46 @@ export function rolloutBudget(state) {
     : { scenarioCount: 3, futureBidLimit, currentDepth: 4, currentPlans: 4, beamWidth: 4, branchLimit: 10, branchAllowance: 16 };
 }
 
+// An actual factory award can suffer the game's one- or two-week disruption.
+// Estimate the cheaper of restoring the promised schedule and the contractual
+// late penalties; count only costs that the actual quoted schedule is exposed to.
+function expectedFactoryDisruption(state,offer) {
+  if(offer.source!=='factory')return 0;
+  const chance=Math.max(.01,.13-staffAbility(state,'operations',offer.staffId)*.009-(offer.factoryLevel??0)*.026);
+  const rush=Math.max(300,Math.round(offer.cost*.06));
+  const late=delay=>Math.max(0,(offer.deliverWeek??state.week)+delay-(offer.dueWeek??state.week));
+  return chance*(Math.min(rush,late(1)*offer.total*.03)+Math.min(rush,late(2)*offer.total*.03))/2;
+}
 export function quoteExpectedProfit(state, offer) {
   const expectedLoss = Math.max(0, offer.total - offer.deposit) * (1 - recovery(state, offer));
-  return clamp(offer.probability, 0, 1) * (offer.profit + (offer.rebateEstimate ?? 0) - expectedLoss);
+  return clamp(offer.probability, 0, 1) * (offer.profit + (offer.rebateEstimate ?? 0) - expectedLoss - expectedFactoryDisruption(state,offer));
+}
+
+const opportunityCache=new WeakMap();
+const quantile=(values,p)=>{const sorted=[...values].sort((a,b)=>a-b);return sorted[Math.floor((sorted.length-1)*p)]??0;};
+export function capitalOpportunityProfile(state){
+  if(opportunityCache.has(state))return opportunityCache.get(state);
+  const recent=state.orders.filter(order=>order.contractWeek>=state.week-8&&order.contractWeek<state.week&&!['cancelled','bad-debt'].includes(order.status));
+  const cohorts=new Map();const rates=[];
+  for(const order of recent){
+    const tied=Math.max(0,order.workingCapital??((order.cost??0)+(order.shipping??0)-(order.deposit??0)));
+    cohorts.set(order.contractWeek,(cohorts.get(order.contractWeek)??0)+tied);
+    if(tied>0&&order.profit>0)rates.push(order.profit/(tied*Math.max(1,(order.expectedPayWeek??state.week)-order.contractWeek)));
+  }
+  const result={typicalCapital:quantile([...cohorts.values()].filter(x=>x>0),.5),weeklyReturn:quantile(rates,.75)};
+  opportunityCache.set(state,result);return result;
+}
+// No absolute earnings cutoff: a fast, little-capital offer can remain worth
+// taking. Only scarce funding competes with the firm's observed next orders.
+export function quoteOpportunityValue(state,offer,headroom){
+  const expected=quoteExpectedProfit(state,offer);
+  const {typicalCapital,weeklyReturn}=capitalOpportunityProfile(state);
+  if(!typicalCapital||!weeklyReturn)return expected;
+  const desired=typicalCapital*1.5;
+  const pressure=clamp(1-Math.max(0,headroom)/desired,0,1);
+  const duration=Math.max(1,offer.expectedPayWeek-state.week);
+  const tied=Math.max(0,offer.workingCapital??offer.upfront??0);
+  return expected-tied*duration*weeklyReturn*.5*pressure;
 }
 
 function reserveFor(state, requested = 0) {
@@ -130,7 +167,7 @@ function nextQuote(state, reserve) {
     const consider = config => {
       const offer = quote(state, inquiry, config);
       if (offer.error || offer.profit <= 0 || offer.probability <= 0 || offer.workingCapital > room || offer.upfront > room) return;
-      const expected = quoteExpectedProfit(state, offer);
+      const expected = quoteOpportunityValue(state, offer, Math.max(0,room-(offer.workingCapital??0)));
       if (!(expected > 0)) return;
       const score = expected / (1 + Math.max(0, offer.expectedPayWeek - state.week) * .055 + offer.workingCapital / Math.max(1, room) * .3);
       if (!best || score > best.score) best = { inquiry, config, score, expected, offer };

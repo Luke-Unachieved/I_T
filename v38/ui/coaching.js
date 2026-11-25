@@ -6,7 +6,7 @@ import { LIFE_CATALOG, outingLockHint } from '../engine/life.js';
 import { quote, quoteCapacity } from '../engine/quotes.js';
 import { ipoProgress, VENTURES, ventureProgress } from '../engine/strategy.js';
 import { ACTIVE_ORDER, OPEN_RECEIVABLE } from '../engine/treasury.js';
-import { planQuoteBundle, plannerForecast, quoteExpectedProfit } from './quote-planner.js';
+import { planQuoteBundle, plannerForecast, quoteExpectedProfit, quoteOpportunityValue } from './quote-planner.js';
 import { planDevelopment } from './development-planner.js';
 import { planEventSafety, planEventRollouts } from './event-planner.js';
 
@@ -285,7 +285,9 @@ function verifyRecommendation(state, recommendation) {
   if (!recommendation) return null;
   if (recommendation.scenarioFloor === undefined) recommendation.scenarioFloor = Math.min(...plannerForecast(state, recommendation.offer).map(row => row.hypothetical));
   if (recommendation.cashFloor === undefined) recommendation.cashFloor = Math.min(...forecast(state, recommendation.offer).map(row => row.hypothetical));
-  return [recommendation.scenarioFloor,recommendation.cashFloor].every(Number.isFinite)&&Math.min(recommendation.scenarioFloor, recommendation.cashFloor)>=estimates(state).reserve ? recommendation : null;
+  const reserve=estimates(state).reserve;
+  if(![recommendation.scenarioFloor,recommendation.cashFloor].every(Number.isFinite)||Math.min(recommendation.scenarioFloor,recommendation.cashFloor)<reserve)return null;
+  return quoteOpportunityValue(state,recommendation.offer,Math.min(state.cash,recommendation.scenarioFloor)-reserve)>0?recommendation:null;
 }
 
 function quoteBundle(state, filter = {}) {
@@ -352,6 +354,7 @@ function inquiryAdvice(state, filter, onInquiryPage = true) {
   if (filtered && bestInquiry(state,{excludedIds:filter?.excludedIds})) return note('当前筛选没有合适的方案', '全部来信中还有利润和资金都合适的询盘，建议取消筛选再挑选。', onInquiryPage ? { ui: 'coach-all-inquiries', label: '查看全部询盘' } : page('inquiries', '查看询盘并调整筛选'));
   const waiting=quoteBundle(state,filter);
   if(waiting.waitPreferred)return note('先把资金留给后续机会',`${progress}我按 ${waiting.rollout.scenarioCount} 种可能情况，比较了接下来 ${waiting.rollout.horizon} 周的生意。现在留下资金，更有利于之后接单和周转。其余询盘并非都亏损，你仍可自行报价。${projectedCreditNote(state)}`,settle());
+  if(waiting.opportunityDeferred)return note('先把资金留给后续机会',`${progress}参照近期实际订单的利润和占款时间，目前其他可考虑报价的回报不足以值得继续占用周转资金。留给下一次更好的机会，不必为了填满处理能力而接单。${projectedCreditNote(state)}`,settle());
   const remaining = pending.some(inquiry => !filter?.excludedIds?.includes(inquiry.id));
   return note(submitted ? '先把利润和周转守住' : '先别急着发新报价', `${progress}${remaining ? '其余询盘暂时没有同时满足交期、利润和周转资金预留的方案。' : '本周已略过其余来信，仍可自行打开。'}结算会让新询盘和现有业务继续推进。${projectedCreditNote(state)}`, settle());
 }
@@ -1135,20 +1138,23 @@ export function pageCoach(state, ui) {
   return card(state, advice, { extra, progress: step, overview: ui.page === 'company' && ui.developmentOverview, introProgress:advice?.introduction?advice.introProgress:null, equal:Boolean(advice?.quietWeek&&advice?.nextAction) });
 }
 
-function manualQuoteAdvice(state,inquiry,model,selected) {
+function manualQuoteAdvice(state,inquiry,model,selected,globalDeferred=false) {
   const draft=quote(state,inquiry,model);
   const apply=selected?{ui:'coach-apply-quote',label:'采用助理方案'}:null;
   if (draft.error) return note('当前改动还不能提交',draft.error,apply);
   const floor=Math.min(...forecast(state,draft).map(row=>row.hypothetical));
   const value=quoteExpectedProfit(state,draft);
+  const reserve=estimates(state).reserve;
+  const neutralFloor=Math.min(...plannerForecast(state,draft).map(row=>row.hypothetical));
+  const marginal=quoteOpportunityValue(state,draft,Math.min(state.cash,neutralFloor)-reserve);
   const previous=selected?quoteExpectedProfit(state,selected.offer):null;
   const delta=previous===null?null:value-previous;
   const tradeoff=delta===null?'':Math.abs(delta)<50?' 考虑成交机会和回款风险，两种方案预计收益接近。':` 考虑成交机会和回款风险，相比助理方案预计收益${delta>0?'增加':'减少'}约 ${cash(Math.abs(delta))}。`;
   const details=`你的方案预计中单率 ${percent(draft.probability)}，订单利润 ${cash(draft.profit)}，若本周报价全部成交，预计最低余额 ${cash(floor)}。${tradeoff}`;
   const review={ui:'coach-review-submit',label:'保留我的方案，查看提交 ↓'};
-  const safe=draft.profit>0&&draft.probability>0&&value>0&&floor>=estimates(state).reserve;
-  if (safe) return {...note('你的报价方案可保留',`${details}${!selected?' 单笔可盈利，但仍要留意整周经营安排。':' 仍保留必要资金，可以维持你的选择。'}`,review),nextAction:apply};
-  const risk=draft.probability<=0?'当前价格没有中单机会。':draft.profit<=0?'即使成交也没有正利润。':value<=0?'算上回款与履约风险后，预计收益不足以承担风险。':`最低现金低于建议预留 ${cash(estimates(state).reserve)}，会挤占周转。`;
+  const safe=draft.profit>0&&draft.probability>0&&value>0&&marginal>0&&Math.min(floor,neutralFloor)>=reserve;
+  if (safe) return {...note('你的报价方案可保留',`${details}${globalDeferred?' 单笔可盈利，不过本周整体安排更适合把资金留给后续生意，这笔仍可由你自行选择。':!selected?' 单笔可盈利，但仍要留意整周经营安排。':' 仍保留必要资金，可以维持你的选择。'}`,globalDeferred?{...review,quiet:true}:review),nextAction:globalDeferred&&apply?{...apply,quiet:true}:apply};
+  const risk=draft.probability<=0?'当前价格没有中单机会。':draft.profit<=0?'即使成交也没有正利润。':value<=0?'算上回款与履约风险后，预计收益不足以承担风险。':Math.min(floor,neutralFloor)<reserve?`最低现金低于建议预留 ${cash(reserve)}，会挤占周转。`:'结合近期实际订单的收益和占款时间，这笔回报不足以值得继续占用周转资金。';
   return {...note('你的改动有经营风险',`${details} ${risk} 仍由你决定是否提交。`,apply??review),nextAction:apply?{...review,quiet:true}:null};
 }
 
@@ -1159,18 +1165,21 @@ export function quoteCoach(state, inquiry, model, filter, initial={}) {
   const capacity=quoteCapacity(state);
   if (state.bids.length>=capacity) return card(state,note('团队本周报价能力已满',`${state.bids.length>capacity?`已报价 ${state.bids.length} 笔（当前能力 ${capacity} 笔）。`:`本周已报价 ${state.bids.length} / ${capacity} 笔。`}可以查看来信条款，也可返回已提交报价，撤回不再合适的询盘。已经提交的报价仍然有效。`),{preview:true});
   const recommended = quoteRecommendation(state, inquiry, filter);
+  const globalPlan=quoteBundle(state,filter);
+  const globalDeferred=Boolean(globalPlan.waitPreferred||globalPlan.opportunityDeferred);
   const applied=recommended&&Object.entries(recommended.config).every(([name,value])=>name==='brandUnitPrice'&&!recommended.config.branded||String(model[name]??'')===String(value));
   const edited=Object.keys(initial).length>0&&Object.entries(initial).some(([name,value])=>!(name==='brandUnitPrice'&&!model.branded)&&String(model[name]??'')!==String(value??''));
-  if(edited&&!applied)return card(state,manualQuoteAdvice(state,inquiry,model,recommended),{preview:true});
-  if (!recommended) return card(state, note('暂时不建议提交这笔报价', '请检查利润、交期、回款和现金预测。若资金不足，可以挑其他询盘，不必为了中单而降到亏损价。'), { preview: true });
+  if(edited&&!applied)return card(state,manualQuoteAdvice(state,inquiry,model,recommended,globalDeferred),{preview:true});
+  if (!recommended) return card(state, note('暂时不建议提交这笔报价', globalDeferred?'目前整体安排更适合留下周转资金，结合近期实际利润和占款时间，不必为了多接一笔而报价；仍然可以自行核对和决定。':'请检查利润、交期、回款和现金预测。若资金不足，可以挑其他询盘，不必为了中单而降到亏损价。'), { preview: true });
   const { offer, config, cashFloor } = recommended;
   const currency = { CNY: '人民币', USD: '美元', EUR: '欧元' }[offer.currency] ?? offer.currency ?? '人民币';
   const price = offer.branded ? `自有品牌单价定为 ${offer.unitPrice} ${currency}${inquiry.unit ? `/${inquiry.unit}` : ''}` : `按目标价的 ${offer.ratio}% 报价`;
   const terms = offer.extraTerms ? `在原账期基础上延长 ${offer.extraTerms} 周` : '沿用买家原账期';
   const financing = offer.financing === 'standard' ? '' : `，采用${financingNames[offer.financing] ?? '当前回款方式'}`;
   const staff = state.staff.find(person => person.id === offer.staffId);
-  const text = `${price}，采用${sourceNames[offer.source]}，${terms}${financing}，${staff ? `由${staff.name}跟进` : '由你亲自跟进'}。预计中单率 ${percent(offer.probability)}，订单利润 ${cash(offer.profit)}，最低预测余额 ${cash(cashFloor)}。${applied?'报价表已填入，尚未提交。':'采用后仍需你确认提交。'}`;
-  return card(state, note(applied ? '已采用当前建议方案' : '建议先用这套报价方案', text, applied ? { ui: 'coach-review-submit', label: '向下查看明细与提交 ↓' } : { ui: 'coach-apply-quote', label: '采用助理方案' }), { preview: true });
+  const text = `${price}，采用${sourceNames[offer.source]}，${terms}${financing}，${staff ? `由${staff.name}跟进` : '由你亲自跟进'}。预计中单率 ${percent(offer.probability)}，订单利润 ${cash(offer.profit)}，最低预测余额 ${cash(cashFloor)}。${globalDeferred?'这笔仅供参考，整体经营仍建议先留资金。':''}${applied?'报价表已填入，尚未提交。':'采用后仍需你确认提交。'}`;
+  const action=applied?{ui:'coach-review-submit',label:'向下查看明细与提交 ↓'}:{ui:'coach-apply-quote',label:'采用助理方案'};
+  return card(state, note(applied ? '已采用当前建议方案' : globalDeferred?'这笔报价仅供参考':'建议先用这套报价方案', text,globalDeferred?{...action,quiet:true}:action), { preview: true });
 }
 
 export function eventCoach(state, event, choices) {

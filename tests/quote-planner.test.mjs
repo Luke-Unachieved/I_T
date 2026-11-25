@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { act, forecast, newGame } from '../v38/engine/game.js';
 import { quote, quoteCapacity } from '../v38/engine/quotes.js';
-import { planQuoteBundle, plannerForecast, quoteExpectedProfit } from '../v38/ui/quote-planner.js';
+import { planQuoteBundle, plannerForecast, quoteExpectedProfit, quoteOpportunityValue } from '../v38/ui/quote-planner.js';
+import { pageCoach, quoteCoach, quoteRecommendation } from '../v38/ui/coaching.js';
 
 const config = { source: 'stock', ratio: 95, extraTerms: 0, financing: 'standard' };
 const recommendations = (state, inquiry) => ({ offer: quote(state, inquiry, config), config });
@@ -26,7 +27,10 @@ test('bounded lookahead finds two smaller profitable quotes that a greedy first 
   const large = quote(state, state.inquiries[0], config);
   const small = quote(state, state.inquiries[1], config);
   assert.ok(quoteExpectedProfit(state, large) > quoteExpectedProfit(state, small));
-  const greedy = planQuoteBundle(state, { recommendations, reserve: 5000, beamWidth: 1 });
+  // Isolate the single-path greedy current-week search. Even with a narrow
+  // beam the future simulator may now notice that waiting beats the large
+  // order; the wider beam can actually discover the superior pair.
+  const greedy = planQuoteBundle(state, { recommendations, reserve: 5000, beamWidth: 1,lookahead:false });
   assert.deepEqual(ids(greedy), ['large']);
   const lookahead = planQuoteBundle(state, { recommendations, reserve: 5000 });
   assert.deepEqual(ids(lookahead), ['small-a', 'small-b']);
@@ -44,6 +48,48 @@ test('bounded lookahead finds two smaller profitable quotes that a greedy first 
   }
   assert.equal(lookahead.cashFloor, minimum(forecast(replay)));
   assert.deepEqual(state, snapshot, 'planning cannot change the live game');
+});
+
+test('expected factory return prices real delivery disruption and preserves timely contracts',()=>{
+  const state=newGame({difficulty:'casual',seed:381});
+  const inquiry=state.inquiries.find(item=>item.id==='w1-7');
+  const settings={source:'factory',ratio:93,extraTerms:0};
+  const baseline=quote(state,inquiry,settings);assert.ifError(baseline.error);
+  const tight=quote(state,{...inquiry,dueWeek:baseline.deliverWeek},settings);
+  const roomy=quote(state,{...inquiry,dueWeek:baseline.deliverWeek+2},settings);
+  assert.ifError(tight.error);assert.ifError(roomy.error);
+  assert.equal(tight.profit,roomy.profit);
+  const rush=Math.max(300,Math.round(tight.cost*.06));
+  const expectedDisruption=tight.probability*.13*(Math.min(rush,tight.total*.03)+Math.min(rush,tight.total*.06))/2;
+  assert.ok(Math.abs((quoteExpectedProfit(state,roomy)-quoteExpectedProfit(state,tight))-expectedDisruption)<1e-6);
+});
+
+test('scarce funding is preserved for historically better opportunities, not a fixed quote count or minimum nominal profit',()=>{
+  const state=newGame({difficulty:'casual',seed:381});
+  const reference=state.inquiries[0];
+  const actual=act(act(state,{type:'bid',inquiryId:reference.id,source:'stock',ratio:80}).state,{type:'end-week'}).state.orders[0];
+  assert.ok(actual);
+  state.week=10;state.cash=30000;state.tutorial.done=true;
+  state.orders=Array.from({length:8},(_,i)=>({...structuredClone(actual),id:`historical-${i}`,status:'settled',contractWeek:i+2,deliveredWeek:i+3,expectedPayWeek:i+6,workingCapital:20000,profit:6000}));
+  state.inquiries=[{...reference,id:'weak',quantity:100,targetPrice:64,dueWeek:14,expiresWeek:10,terms:7,depositRate:0,rivals:[{name:'同行',price:64,style:'稳健'}],buyer:{...reference.buyer,id:'weak',credit:'AAA'}}];
+  const inquiry=state.inquiries[0],offer=quote(state,inquiry,config);assert.ifError(offer.error);
+  assert.ok(quoteExpectedProfit(state,offer)>0);
+  const reserve=5500,postFloor=minimum(plannerForecast(state,offer));
+  assert.ok(postFloor>=reserve&&minimum(forecast(state,offer))>=reserve,'this is a genuine positive order with hard cash reserve intact');
+  assert.ok(quoteOpportunityValue(state,offer,Math.min(state.cash,postFloor)-reserve)<0,'recent actual trading returns make the slow low-return commitment unattractive');
+  const deferred=planQuoteBundle(state,{recommendations,reserve});
+  assert.deepEqual(deferred.steps,[]);assert.equal(deferred.opportunityDeferred,true);
+  assert.equal(quoteRecommendation(state,inquiry),null,'manually opening the weak inquiry must not resurrect an inferior automatic recommendation');
+  assert.match(pageCoach(state,{page:'inquiries'}),/留下|留给后续机会|周转资金/);
+  const manual=quoteCoach(state,inquiry,config,{}, {...config,ratio:100});
+  assert.match(manual,/经营风险.*占用周转资金/s);
+  assert.doesNotMatch(manual,/data-ui="coach-apply-quote"/);
+  // The same offer has no opportunity charge with ample free capital, while
+  // a fast, valuable proposal is still possible in the original tight firm.
+  assert.equal(quoteOpportunityValue(state,offer,100000),quoteExpectedProfit(state,offer));
+  const stronger={...state,inquiries:[{...inquiry,id:'strong',targetPrice:110,terms:0,depositRate:35,rivals:[{name:'同行',price:110,style:'稳健'}]}]};
+  const plan=planQuoteBundle(stronger,{recommendations,reserve});
+  assert.deepEqual(ids(plan),['strong']);assert.ok(plan.cashFloor>=reserve);
 });
 
 test('plans respect fixed existing bids, real inventory capacity and category filter without a three-quote ceiling', () => {
