@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { access } from 'node:fs/promises';
-import { newGame, act, endWeek, forecast, factorValue } from '../v38/engine/game.js';
+import { newGame, act, endWeek, forecast, factorValue, creditLimit } from '../v38/engine/game.js';
 import { generateInquiries, quote } from '../v38/engine/quotes.js';
-import { certProgress } from '../v38/engine/expansion.js';
+import { certProgress, growthWeek } from '../v38/engine/expansion.js';
 import { MARKETS, STAFF_ROLES, clientComic } from '../v38/data/expansion.js';
 import { TRADE_EVENTS } from '../v38/data/events.js';
 
@@ -68,6 +68,15 @@ test('founding assistant is an employee; hiring sales increases arrivals and ass
   assert.ok(assigned.probability > ordinary.probability);
   const next = endWeek(hired);
   assert.equal(next.summary.outflow, 1200 + hired.staff.reduce((sum, person) => sum + person.salary, 0));
+});
+
+test('founding assistant cannot be dismissed but regular employees can leave', () => {
+  const state = fresh();
+  assert.match(act(state, { type: 'dismiss-staff', id: state.assistant }).error, /创业搭档/);
+  const candidate = state.candidates.find(person => !person.original);
+  const hired = apply(state, { type: 'hire', id: candidate.id });
+  const dismissed = apply(hired, { type: 'dismiss-staff', id: candidate.id });
+  assert.deepEqual(dismissed.staff.map(person => person.id), [state.assistant]);
 });
 
 test('one employee cannot handle more than three simultaneous bids or orders', () => {
@@ -199,9 +208,52 @@ test('underpaid staff receive a real poaching decision and can be retained at th
   const state = endWeek(initial);
   const event = state.events.find(item => item.type === 'staff-poach');
   assert.ok(event);
+  assert.deepEqual(event.choices.map(choice => choice.id), ['retain', 'defer']);
+  assert.ok(act(state, { type: 'resolve-event', eventId: event.id, choice: 'release' }).error);
+  const deferred = apply(state, { type: 'resolve-event', eventId: event.id, choice: 'defer' });
+  assert.equal(deferred.staff[0].id, state.assistant);
+  assert.equal(deferred.staff[0].salary, 1);
   const retained = apply(state, { type: 'resolve-event', eventId: event.id, choice: 'retain' });
   assert.equal(retained.staff[0].salary, event.raise);
   assert.ok(retained.staff[0].salary >= STAFF_ROLES[retained.staff[0].role].salary);
+});
+
+test('talent rotation never offers a character already working for the company', () => {
+  const initial = fresh();
+  const candidate = initial.candidates.find(person => !person.original);
+  const hired = apply(initial, { type: 'hire', id: candidate.id });
+  hired.rivals = [];
+  const ops = { id: () => 'test', log: () => {} };
+  for (const currentWeek of [4, 8, 12, 16, 20]) {
+    hired.week = currentWeek;
+    hired.events = [];
+    growthWeek(hired, { delivered: [], revenue: 0 }, ops);
+    assert.ok(hired.candidates.every(person => person.name !== candidate.name));
+  }
+  const stale = { ...candidate, id: 'candidate-stale' };
+  hired.candidates.push(stale);
+  assert.match(act(hired, { type: 'hire', id: stale.id }).error, /已在公司任职/);
+});
+
+test('certificate and market expenses refresh credit before a later mortgage adds collateral', () => {
+  let state = fresh();
+  state.cash = 300000;
+  state.company.rep = 75;
+  state.year.deliveries = 10;
+  state.creditLine = creditLimit(state);
+  for (const action of [
+    { type: 'buy-cert', id: 'export' },
+    { type: 'open-market', id: 'se-asia' },
+    { type: 'invest-venture', id: 'warehouse' },
+    { type: 'buy-property', id: 'city-flat' },
+  ]) {
+    state = apply(state, action);
+    assert.equal(state.creditLine, creditLimit(state), action.type);
+  }
+  const prior = state.creditLine;
+  state = apply(state, { type: 'mortgage', id: 'city-flat' });
+  assert.equal(state.creditLine - prior, 34100);
+  assert.equal(state.creditLine, creditLimit(state));
 });
 
 test('third delivery creates an illustrated key client and monthly replenishment inquiry', async () => {
@@ -229,4 +281,48 @@ test('event catalog has selectable consequences and all key-client comics reuse 
     await access(new URL(`../${art}`, import.meta.url));
   }
   assert.equal(MARKETS.length, 8);
+});
+
+test('new trade event illustrations survive event generation, with matching descriptions and local files', async () => {
+  const seeds = { quality: 4, materials: 9, 'port-backlog': 13, 'supplier-demo': 15, 'buyer-crisis': 29 };
+  for (const [code, seed] of Object.entries(seeds)) {
+    const state = fresh();
+    state.week = 6;
+    state.seed = seed;
+    state.rivals = [];
+    state.orders = [
+      { id: 'prod', status: 'production', market: 'domestic' },
+      { id: 'ship', status: 'transit', market: 'se-asia' },
+    ];
+    state.receivables = [{ id: 'invoice', status: 'open', market: 'se-asia', currency: 'USD' }];
+    growthWeek(state, { delivered: [], revenue: 0 }, { id: () => 'test', log: () => {} });
+    const event = state.events[0];
+    assert.equal(event.code, code);
+    assert.equal(event.comic, `assets/v38-event-${code}.webp`);
+    assert.ok(event.comicAlt);
+    await access(new URL(`../${event.comic}`, import.meta.url));
+  }
+});
+
+test('staff portraits follow their identities through candidate rotation and hiring', async () => {
+  const state = fresh();
+  state.rivals = [];
+  const portraits = new Map();
+  for (const currentWeek of [1, 4, 8, 12, 16, 20]) {
+    if (currentWeek > 1) {
+      state.week = currentWeek;
+      state.events = [];
+      growthWeek(state, { delivered: [], revenue: 0 }, { id: () => 'test', log: () => {} });
+    }
+    for (const person of state.candidates.filter(item => !item.original)) {
+      if (portraits.has(person.name)) assert.equal(person.portrait, portraits.get(person.name));
+      else portraits.set(person.name, person.portrait);
+      await access(new URL(`../${person.portrait}`, import.meta.url));
+    }
+  }
+  assert.equal(portraits.size, 10);
+  assert.equal(new Set(portraits.values()).size, 10);
+  const candidate = state.candidates.find(item => !item.original);
+  const hired = apply(state, { type: 'hire', id: candidate.id });
+  assert.equal(hired.staff.find(item => item.id === candidate.id).portrait, candidate.portrait);
 });

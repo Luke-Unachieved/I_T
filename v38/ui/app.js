@@ -1,10 +1,12 @@
 import { act, newGame } from '../engine/game.js';
 import { quote } from '../engine/quotes.js';
 import { inquiriesPage, ordersPage, quoteDialog, stockPurchasePreview } from './trade.js';
-import { growthPanel } from './growth.js';
-import { lifePanel, officeFeatures, optionDescription, scenarioFields } from './life-view.js';
-import { companyPage, dialogContent, esc, officePage, offworkPage, opening, shell, tourTarget, yuan } from './shell.js';
-import { strategyPanel } from './strategy.js';
+import { growthSections } from './growth.js';
+import { eraIllustration, lifeDisclosureIds, lifePanel, officeFeatures, optionDescription, scenarioFields } from './life-view.js';
+import { companyPage, developmentTabs, dialogContent, esc, officePage, offworkPage, opening, saveWarning, saveWarningMessage, shell, tourTarget, yuan } from './shell.js';
+import { strategySections } from './strategy.js';
+import { readSave, SAVE_KEY, writeSave } from './save.js';
+import { quoteRecommendation } from './coaching.js';
 
 const mount = document.querySelector('#v38-root');
 const dialog = document.createElement('dialog');
@@ -19,36 +21,45 @@ mount.after(dialog, bankStatus);
 
 let state;
 let focusAfterDialog;
+let dialogPointer;
+let dismissedPointer;
+let formPointer;
 let ui = freshUi();
+let stored = readSave();
+let openingMode = stored.status === 'empty' ? 'form' : 'saved';
 
 function freshUi() {
   return {
     page: 'office', dialog: '', quoteId: '', quote: {}, quoteDefault: {}, quoteOrigin: null,
-    quoteDrafts: new Map(), quoteDraftRestored: false, bankGuard: new Map(),
+    quoteDrafts: new Map(), quoteDraftRestored: false, bankGuard: new Map(), actionGesture: null,
     filters: { category: '', availability: 'all' }, notice: '', tutorialStep: 0, showMacro: false,
+    saveStatus: 'ready', developmentTab: 'finance', lifeCollapsed: [],
   };
 }
+
+const developmentViews = { ...growthSections, ...strategySections };
+const validDevelopmentTab = id => developmentTabs.some(([key]) => key === id);
 
 const pageViews = {
   office: current => officePage(current, officeFeatures(current)),
   inquiries: inquiriesPage,
   orders: ordersPage,
-  company: (current, model) => companyPage(current, `${growthPanel(current, model)}${strategyPanel(current)}`),
-  offwork: current => offworkPage(current, lifePanel(current)),
+  company: (current, model) => companyPage(current, model.developmentTab, developmentViews[model.developmentTab]?.(current)),
+  offwork: (current, model) => offworkPage(current, lifePanel(current, model.lifeCollapsed), model.saveStatus),
 };
 const notices = {
   bid: '报价已提交，本周末开结果。', 'withdraw-bid': '已撤回报价。',
   expedite: '加急已安排，船期提前一周。', collect: '已发出催款提醒。', sue: '已付诉讼费，等待追回。', liquidate: '库存已清仓。',
   hire: '已办理入职。', 'dismiss-staff': '已办理离职。', 'buy-cert': '已取得认证。', 'open-market': '已进入新市场。',
   exhibit: '已报名参展。', referral: '已请客户引荐。', factor: '保理款已到账。',
-  'invest-venture': '产业投资已完成。', 'strategic-investment': '战略投资款已到账。', restructure: '已完成股份制改造。', ipo: '成功上市。可以继续经营。',
+  'invest-venture': '产业投资已完成。', 'strategic-investment': '战略投资款已到账。', restructure: '已完成股份制改造。',
   'purchase-stock': '采购已入库。', 'buy-property': '已买入房产。', 'sell-property': '房产出售款已到账。', mortgage: '已办理抵押，授信额度提高。',
   unmortgage: '已解除房产抵押。', 'buy-car': '已买入车辆。', 'sell-car': '卖车款已到账。', outing: '已结束这次活动。',
 };
 
 function render() {
   if (!state) {
-    mount.innerHTML = opening(ui.notice, scenarioFields());
+    mount.innerHTML = opening(ui.notice, scenarioFields(), stored, openingMode);
   } else {
     ui.tutorialStep = state.tutorial.done ? -1 : state.tutorial.step;
     const view = pageViews[ui.page];
@@ -60,7 +71,15 @@ function render() {
 
 function renderDialog() {
   if (!state || !ui.dialog) {
-    if (dialog.open) dialog.close();
+    if (dialog.open) {
+      dismissedPointer = dialogPointer && { ...dialogPointer, at: performance.now() };
+      dialogPointer = undefined;
+      dialog.close();
+      // Quote/summary dismissal may restore its page position later in the
+      // same handler. Capture the final underlying position before another tap.
+      const dismissed = dismissedPointer;
+      if (dismissed) queueMicrotask(() => Object.assign(dismissed, scrollPosition()));
+    }
     delete dialog.dataset.view;
     dialog.replaceChildren();
     return;
@@ -69,12 +88,13 @@ function renderDialog() {
   const detail = isQuote ? ui.quoteId : ui.dialog === 'event' ? state.events[0]?.id : ui.dialog === 'summary' ? state.summary?.week : '';
   const view = `${ui.dialog}:${detail ?? ''}`;
   const entering = !dialog.open || dialog.dataset.view !== view;
+  if (entering) dialogPointer = undefined;
   const top = entering ? 0 : dialog.scrollTop;
   const summaryTop = entering ? 0 : dialog.querySelector('.summary-scroll')?.scrollTop ?? 0;
   const headingId = isQuote ? 'quote-title' : 'modal-title';
   dialog.dataset.view = view;
   dialog.setAttribute('aria-labelledby', headingId);
-  dialog.innerHTML = `${ui.notice && isQuote ? `<p class="notice negative" id="dialog-notice" role="alert">${esc(ui.notice)}</p>` : '<span id="dialog-notice" hidden></span>'}${dialogContent(state, ui, isQuote ? quoteDialog(state, ui) : '')}`;
+  dialog.innerHTML = `${ui.notice && isQuote ? `<p class="notice negative" id="dialog-notice" role="alert">${esc(ui.notice)}</p>` : '<span id="dialog-notice" hidden></span>'}${saveWarning(ui.saveStatus)}${dialogContent(state, ui, isQuote ? quoteDialog(state, ui) : '')}`;
   const heading = dialog.querySelector(`#${headingId}`);
   if (heading) {
     heading.tabIndex = -1;
@@ -111,6 +131,110 @@ function modalAfterAction() {
   return '';
 }
 
+function savedView() {
+  const active = new Set(state.inquiries.filter(inquiry => !state.bids.some(bid => bid.inquiryId === inquiry.id)).map(inquiry => inquiry.id));
+  ui.quoteDrafts = new Map([...ui.quoteDrafts].filter(([id]) => active.has(id)));
+  return {
+    page: ui.page, filters: ui.filters, showMacro: ui.showMacro, developmentTab: ui.developmentTab, lifeCollapsed: ui.lifeCollapsed,
+    drafts: [...ui.quoteDrafts],
+    quote: ui.dialog === 'quote' && active.has(ui.quoteId) ? { id: ui.quoteId, proposal: ui.quote } : null,
+  };
+}
+
+function setSaveStatus(status) {
+  ui.saveStatus = status;
+  for (const element of document.querySelectorAll('[data-save-warning]')) {
+    element.hidden = status === 'ready';
+    element.querySelector('[data-save-message]').textContent = saveWarningMessage(status);
+    element.querySelector('[data-ui="reload-save"]').hidden = status !== 'conflict';
+  }
+  const indicator = mount.querySelector('[data-save-indicator]');
+  if (indicator) indicator.textContent = status === 'ready' ? '已自动存档' : '当前进度尚未存档';
+}
+
+function saveProgress() {
+  if (!state) return;
+  const next = writeSave(state, savedView(), stored.raw);
+  if (next.status === 'ready') stored = next;
+  setSaveStatus(next.status);
+}
+
+function rereadOpening() {
+  stored = readSave();
+  openingMode = stored.status === 'empty' ? 'form' : 'saved';
+  ui.notice = '';
+  render();
+}
+
+function quoteDefaults(inquiry) {
+  const choices = ['stock', 'factory', 'inventory'];
+  const proposal = { ratio: 100, extraTerms: 0, staffId: null, financing: 'standard', branded: false, brandUnitPrice: inquiry.targetPrice };
+  proposal.source = choices.find(source => !quote(state, inquiry, { ...proposal, source }).error) ?? 'stock';
+  return proposal;
+}
+
+function normalizeProposal(value) {
+  if (!value || typeof value !== 'object') return {};
+  const proposal = {};
+  for (const key of ['ratio', 'extraTerms', 'brandUnitPrice']) {
+    if (Number.isFinite(value[key])) proposal[key] = value[key];
+  }
+  for (const key of ['source', 'financing', 'staffId']) {
+    if (typeof value[key] === 'string' || (key === 'staffId' && value[key] === null)) proposal[key] = value[key];
+  }
+  if (typeof value.branded === 'boolean') proposal.branded = value.branded;
+  return proposal;
+}
+
+function resumeSaved() {
+  stored = readSave();
+  if (stored.status !== 'ready') {
+    openingMode = stored.status === 'empty' ? 'form' : 'saved';
+    render();
+    return;
+  }
+  try {
+    state = stored.record.state;
+    const view = stored.record.view ?? {};
+    ui = freshUi();
+    if (Object.hasOwn(pageViews, view.page)) ui.page = view.page;
+    if (validDevelopmentTab(view.developmentTab)) ui.developmentTab = view.developmentTab;
+    if (Array.isArray(view.lifeCollapsed)) ui.lifeCollapsed = lifeDisclosureIds.filter(id => view.lifeCollapsed.includes(id));
+    if (typeof view.filters?.category === 'string') ui.filters.category = view.filters.category;
+    if (typeof view.filters?.availability === 'string') ui.filters.availability = view.filters.availability;
+    ui.showMacro = view.showMacro === true;
+    if (Array.isArray(view.drafts)) {
+      for (const entry of view.drafts) {
+        if (!Array.isArray(entry) || typeof entry[0] !== 'string') continue;
+        ui.quoteDrafts.set(entry[0], normalizeProposal(entry[1]));
+      }
+    }
+    ui.dialog = modalAfterAction();
+    if (!ui.dialog && view.quote?.id) {
+      const inquiry = state.inquiries.find(item => item.id === view.quote.id && !state.bids.some(bid => bid.inquiryId === item.id));
+      if (inquiry) {
+        ui.page = 'inquiries';
+        ui.dialog = 'quote';
+        ui.quoteId = inquiry.id;
+        ui.quoteDefault = quoteDefaults(inquiry);
+        ui.quote = { ...ui.quoteDefault, ...normalizeProposal(view.quote.proposal) };
+        ui.quoteDraftRestored = true;
+      }
+    }
+    render();
+    if (!ui.dialog) mount.querySelector('#page-title')?.focus({ preventScroll: true });
+    window.scrollTo(0, 0);
+  } catch {
+    // A partially damaged record can fail deeper than the format checks.
+    // Leave the stored bytes untouched and allow an explicit recovery choice.
+    state = undefined;
+    ui = freshUi();
+    stored = { status: 'invalid', raw: stored.raw };
+    openingMode = 'saved';
+    render();
+  }
+}
+
 function perform(action, trigger, onError) {
   const beforeWeek = state.week;
   const beforeEvents = state.events.length;
@@ -132,6 +256,7 @@ function perform(action, trigger, onError) {
     case 'bid':
       if (state.tutorial.step <= 2) advanceTutorial(3);
       ui.dialog = '';
+      ui.quoteDrafts.delete(ui.quoteId);
       break;
     case 'end-week':
     case 'advance-four':
@@ -149,9 +274,14 @@ function perform(action, trigger, onError) {
       }
       break;
   }
+  saveProgress();
   render();
   if (finance) bankStatus.textContent = finance;
-  if (!ui.dialog) restoreFocus(focusKey(trigger));
+  if (!ui.dialog && action.type === 'outing') {
+    const result = mount.querySelector('#latest-outing');
+    result?.scrollIntoView({ block: 'start', behavior: 'instant' });
+    result?.querySelector('h3')?.focus({ preventScroll: true });
+  } else if (!ui.dialog) restoreFocus(focusKey(trigger));
   return true;
 }
 
@@ -177,7 +307,17 @@ function quoteRow(id) {
 function returnFromQuote(weeklyTarget = false) {
   const origin = ui.quoteOrigin;
   ui.quoteOrigin = null;
-  if (!origin) return;
+  if (!origin) {
+    // A restored quote no longer has a viewport anchor from the previous tab.
+    const row = quoteRow(ui.quoteId);
+    const trigger = row?.querySelector('[data-ui="quote-open"]');
+    const fallback = row?.querySelector('strong') ?? row;
+    if (!trigger && fallback) fallback.tabIndex = -1;
+    const focus = weeklyTarget ? mount.querySelector('[data-tour="end-week"]') : trigger ?? fallback;
+    focus?.scrollIntoView({ block: 'center', behavior: 'instant' });
+    focus?.focus({ preventScroll: true });
+    return;
+  }
   const trigger = focusTarget(origin.key);
   const row = quoteRow(origin.id);
   const offset = trigger ? origin.triggerTop : origin.rowTop;
@@ -216,6 +356,7 @@ function dismissDialog({ weeklyTarget = false, viewOrders = false } = {}) {
   } else {
     ui.dialog = '';
   }
+  saveProgress();
   render();
   if (viewOrders) window.scrollTo(0, 0);
   if (!ui.dialog) {
@@ -229,9 +370,7 @@ function dismissDialog({ weeklyTarget = false, viewOrders = false } = {}) {
 function openQuote(button) {
   const inquiry = state.inquiries.find(item => item.id === button.dataset.id);
   if (!inquiry) return;
-  const choices = ['stock', 'factory', 'inventory'];
-  const proposal = { ratio: 100, extraTerms: 0, staffId: null, financing: 'standard', branded: false, brandUnitPrice: inquiry.targetPrice };
-  proposal.source = choices.find(source => !quote(state, inquiry, { ...proposal, source }).error) ?? 'stock';
+  const proposal = quoteDefaults(inquiry);
   const draft = ui.quoteDrafts.get(inquiry.id);
   ui.quoteId = inquiry.id;
   ui.quoteDefault = proposal;
@@ -244,6 +383,7 @@ function openQuote(button) {
     triggerTop: button.getBoundingClientRect().top, rowTop: quoteRow(inquiry.id)?.getBoundingClientRect().top,
   };
   if (state.tutorial.step < 2) advanceTutorial(2);
+  saveProgress();
   renderDialog();
   highlightTutorial();
 }
@@ -260,19 +400,67 @@ function refreshQuote(updatePriceControl = false) {
   highlightTutorial();
 }
 
+function applyRecommendedQuote() {
+  if (state.difficulty !== 'casual' || ui.dialog !== 'quote') return;
+  const inquiry = state.inquiries.find(item => item.id === ui.quoteId);
+  const recommendation = quoteRecommendation(state, inquiry);
+  if (!recommendation || recommendation.cashFloor == null || recommendation.cashFloor < 0) return;
+  ui.quote = { ...ui.quote, ...recommendation.config };
+  saveProgress();
+  renderDialog();
+  dialog.querySelector('[data-quote-preview="coach"]')?.focus({ preventScroll: true });
+}
+
+function revealCoachTarget(control) {
+  const { coachAction, coachForm, id } = control.dataset;
+  const target = coachForm
+    ? [...mount.querySelectorAll('form[data-form]')].find(item => item.dataset.form === coachForm)?.querySelector('[name="amount"],button[type="submit"]')
+    : [...mount.querySelectorAll('button[data-action]')].find(item => item.dataset.action === coachAction && (!id || item.dataset.id === id) && !item.disabled);
+  if (!target || target.disabled) return;
+  for (let section = target.closest('details'); section; section = section.parentElement?.closest('details')) section.open = true;
+  target.focus({ preventScroll: true });
+  target.scrollIntoView({ block: 'center' });
+}
+
 function selectPage(page) {
   if (!Object.hasOwn(pageViews, page)) return;
   ui.page = page;
   ui.notice = '';
   if (page === 'inquiries' && state.tutorial.step === 0) advanceTutorial(1);
+  saveProgress();
   render();
   mount.querySelector('#page-title')?.focus({ preventScroll: true });
   window.scrollTo(0, 0);
 }
 
+function selectDevelopmentTab(id) {
+  if (ui.page !== 'company' || !validDevelopmentTab(id) || ui.developmentTab === id) return;
+  ui.developmentTab = id;
+  ui.notice = '';
+  saveProgress();
+  render();
+  mount.querySelector(`[data-ui="development-tab"][data-id="${id}"]`)?.focus({ preventScroll: true });
+  window.scrollTo(0, 0);
+}
+
+function showLifeSection(id) {
+  if (ui.page !== 'offwork' || !['life-rest', 'life-property', 'life-car'].includes(id)) return;
+  const section = document.getElementById(id);
+  if (!section) return;
+  section.open = true;
+  if (ui.lifeCollapsed.includes(id)) {
+    ui.lifeCollapsed = ui.lifeCollapsed.filter(key => key !== id);
+    saveProgress();
+  }
+  section.scrollIntoView({ block: 'start', behavior: 'instant' });
+  section.querySelector('summary')?.focus({ preventScroll: true });
+}
+
 function restart() {
   state = undefined;
   ui = freshUi();
+  stored = readSave();
+  openingMode = 'form';
   focusAfterDialog = undefined;
   bankStatus.textContent = '';
   render();
@@ -282,6 +470,7 @@ function restart() {
 
 dialog.addEventListener('cancel', event => {
   event.preventDefault();
+  dialogPointer = undefined;
   dismissDialog();
 });
 
@@ -293,15 +482,87 @@ function actionFrom(element) {
   return { type, id, ...details };
 }
 
+function scrollPosition() {
+  return {
+    scrollX: window.scrollX, scrollY: window.scrollY,
+    dialogScroll: dialog.open ? dialog.scrollTop : 0,
+    summaryScroll: dialog.open ? dialog.querySelector('.summary-scroll')?.scrollTop ?? 0 : 0,
+  };
+}
+
+function repeatedPoint(event, prior) {
+  if (!prior || event.detail <= 0 || performance.now() - prior.at >= 400 ||
+      Math.hypot(event.clientX - prior.x, event.clientY - prior.y) > 8) return false;
+  if (!Number.isFinite(prior.x) || !Number.isFinite(prior.y)) return false;
+  const current = scrollPosition();
+  return event.detail > 1 || Object.keys(current).every(key => Math.abs(current[key] - prior[key]) < 1);
+}
+
+function rememberActionGesture(key, pointer) {
+  ui.actionGesture = { key, at: performance.now(), x: pointer?.clientX, y: pointer?.clientY, ...scrollPosition() };
+}
+
+function performGuarded(action, trigger, pointer) {
+  const key = action.type === 'invest-venture' ? `venture:${action.id}:${action.target ?? ''}` : null;
+  const prior = ui.actionGesture;
+  // A retained investment submit can fire twice from repeated keyboard/form
+  // submissions; real pointer gestures are checked by their screen position.
+  if (key && !pointer && prior?.key === key && performance.now() - prior.at < 450) return false;
+  const accepted = perform(action, trigger);
+  if (accepted) rememberActionGesture(key, pointer);
+  return accepted;
+}
+
 function click(event) {
+  // A modal can disappear between two taps, revealing an unrelated action at
+  // the same screen point. Ignore only the immediate repeated pointer gesture.
+  if (event.currentTarget === mount && !dialog.open && dismissedPointer && event.detail > 0) {
+    if (repeatedPoint(event, dismissedPointer)) {
+      event.preventDefault();
+      return;
+    }
+    dismissedPointer = undefined;
+  }
+  const prior = ui.actionGesture;
+  if (event.detail > 0 && prior && Number.isFinite(prior.x) && Number.isFinite(prior.y)) {
+    // Successful operations can remove a row or expose a different button
+    // before the second tap. Scrolling to another control is a separate action.
+    if (repeatedPoint(event, prior)) {
+      event.preventDefault();
+      return;
+    }
+    prior.x = undefined;
+    prior.y = undefined;
+  }
+  const pointer = event.detail > 0 ? { clientX: event.clientX, clientY: event.clientY } : undefined;
+  const submitter = event.target.closest('button[type="submit"]');
+  formPointer = pointer && submitter?.form ? { ...pointer, form: submitter.form, at: performance.now() } : undefined;
   const control = event.target.closest('button[data-ui],button[data-action]');
-  if (!state || !control || control.disabled) return;
+  if (!control || control.disabled) return;
+  if (!state) {
+    switch (control.dataset.ui) {
+      case 'resume-save': resumeSaved(); break;
+      case 'reread-save': rereadOpening(); break;
+      case 'prepare-new-game': openingMode = 'confirm'; render(); break;
+      case 'confirm-new-game': openingMode = 'form'; render(); break;
+      case 'cancel-new-game': openingMode = 'saved'; render(); break;
+      default: break;
+    }
+    return;
+  }
   if (control.dataset.action) {
-    perform(actionFrom(control), control);
+    performGuarded(actionFrom(control), control, pointer);
     return;
   }
   switch (control.dataset.ui) {
-    case 'page': selectPage(control.dataset.page); break;
+    case 'page':
+      if (control.dataset.page === 'company' && validDevelopmentTab(control.dataset.coachTab)) ui.developmentTab = control.dataset.coachTab;
+      selectPage(control.dataset.page);
+      break;
+    case 'coach-target': revealCoachTarget(control); break;
+    case 'coach-apply-quote': applyRecommendedQuote(); break;
+    case 'development-tab': selectDevelopmentTab(control.dataset.id); break;
+    case 'life-anchor': showLifeSection(control.dataset.id); break;
     case 'quote-open': openQuote(control); break;
     case 'close-dialog': dismissDialog(); break;
     case 'view-first-order':
@@ -310,6 +571,7 @@ function click(event) {
     case 'skip-tutorial':
     case 'finish-tutorial':
       advanceTutorial(state.tutorial.step, true);
+      saveProgress();
       render();
       break;
     case 'tutorial-next':
@@ -329,6 +591,10 @@ function click(event) {
       renderDialog();
       break;
     case 'restart': restart(); break;
+    case 'retry-save': saveProgress(); break;
+    case 'reload-save':
+      if (window.confirm('放弃本页未保存的进度，重新读取本机存档？')) window.location.reload();
+      break;
     default: break;
   }
 }
@@ -353,7 +619,7 @@ function fieldFeedback(form, field, message = '') {
   } else field.removeAttribute('aria-invalid');
 }
 
-function submitBank(form, type) {
+function submitBank(form, type, pointer) {
   if (performance.now() - (ui.bankGuard.get(type) ?? -Infinity) < 450) return;
   const input = form.elements.amount;
   const amount = input.valueAsNumber;
@@ -367,6 +633,7 @@ function submitBank(form, type) {
     return;
   }
   if (perform({ type, amount }, undefined, error => fieldFeedback(form, input, error))) {
+    rememberActionGesture(null, pointer);
     ui.bankGuard.set(type, performance.now());
     const next = mount.querySelector(`[data-form="${type}"] [name="amount"]`);
     if (next) {
@@ -380,6 +647,8 @@ function submit(event) {
   const form = event.target.closest('form[data-form]');
   if (!form) return;
   event.preventDefault();
+  const pointer = formPointer?.form === form && performance.now() - formPointer.at < 400 ? formPointer : undefined;
+  formPointer = undefined;
   const data = Object.fromEntries(new FormData(form));
   if (form.dataset.form === 'new-game') {
     if (!data.name?.trim()) {
@@ -390,14 +659,16 @@ function submit(event) {
     crypto.getRandomValues(seed);
     state = newGame({ ...data, seed: seed[0] });
     ui = freshUi();
+    saveProgress();
     render();
     mount.querySelector('#page-title')?.focus({ preventScroll: true });
     window.scrollTo(0, 0);
+    rememberActionGesture(null, pointer);
     return;
   }
   if (!state) return;
   if (bankForms.has(form.dataset.form)) {
-    submitBank(form, form.dataset.form);
+    submitBank(form, form.dataset.form, pointer);
     return;
   }
   if (form.dataset.form === 'quote') {
@@ -408,15 +679,18 @@ function submit(event) {
     proposal.brandUnitPrice = Number(proposal.brandUnitPrice);
     const submitted = perform({ type: 'bid', inquiryId: ui.quoteId, ...proposal });
     if (submitted) {
-      ui.quoteDrafts.delete(ui.quoteId);
       returnFromQuote(!state.tutorial.done && state.tutorial.step === 3);
     }
     return;
   }
-  perform({ type: form.dataset.form, ...data });
+  performGuarded({ type: form.dataset.form, ...data }, undefined, pointer);
 }
 
 function input(event) {
+  if (event.isTrusted) {
+    ui.actionGesture = null;
+    formPointer = undefined;
+  }
   const control = event.target;
   const form = control.form;
   if (form?.dataset.form === 'new-game' && control.name === 'name') fieldFeedback(form, control);
@@ -437,6 +711,7 @@ function input(event) {
   if (control.type === 'radio' && !control.checked) return;
   if (control.name === 'branded') ui.quote.branded = control.checked;
   else ui.quote[control.name] = ['ratio', 'extraTerms', 'brandUnitPrice'].includes(control.name) ? Number(control.value) : control.value;
+  saveProgress();
   refreshQuote(control.name === 'branded');
 }
 
@@ -445,13 +720,22 @@ function change(event) {
   if (control.dataset.ui === 'scenario-option') {
     const description = document.getElementById(control.getAttribute('aria-describedby'));
     if (description) description.textContent = optionDescription(control.name, control.value) ?? '';
+    if (control.name === 'era') {
+      const preview = control.closest('.scenario-settings')?.querySelector('[data-era-art]');
+      if (preview) preview.innerHTML = eraIllustration(control.value);
+    }
     return;
   }
   if (!state || control.dataset.ui !== 'inquiry-filter' || !Object.hasOwn(ui.filters, control.name)) return;
   ui.filters[control.name] = control.value;
+  saveProgress();
   render();
   mount.querySelector(`[data-ui="inquiry-filter"][name="${control.name}"]`)?.focus({ preventScroll: true });
 }
+
+dialog.addEventListener('click', event => {
+  dialogPointer = event.detail > 0 ? { x: event.clientX, y: event.clientY } : undefined;
+}, { capture: true });
 
 for (const root of [mount, dialog]) {
   root.addEventListener('click', click);
@@ -461,8 +745,25 @@ for (const root of [mount, dialog]) {
 }
 
 mount.addEventListener('toggle', event => {
-  if (event.target.matches('details[data-ui="macro-disclosure"]')) ui.showMacro = event.target.open;
+  if (state && event.target.matches('details[data-ui="macro-disclosure"]') && ui.showMacro !== event.target.open) {
+    ui.showMacro = event.target.open;
+    saveProgress();
+  }
+  const id = event.target.dataset.lifeDisclosure;
+  if (state && lifeDisclosureIds.includes(id)) {
+    const collapsed = !event.target.open;
+    if (ui.lifeCollapsed.includes(id) !== collapsed) {
+      ui.lifeCollapsed = collapsed ? [...ui.lifeCollapsed, id] : ui.lifeCollapsed.filter(key => key !== id);
+      saveProgress();
+    }
+  }
 }, { capture: true });
+
+window.addEventListener('storage', event => {
+  if (event.key !== SAVE_KEY && event.key !== null) return;
+  if (state && event.newValue !== stored.raw) setSaveStatus('conflict');
+  else if (!state && openingMode === 'saved') rereadOpening();
+});
 
 render();
 mount.removeAttribute('aria-busy');

@@ -33,6 +33,14 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 
       await createCompany(page, `${viewport.name} 贸易验收`);
       assert.match(await page.evaluate('document.querySelector(".tutorial").innerText'), /1 \/ 5/);
       await noOverflow(page, 'office');
+      const officeArt = await page.evaluate(`(()=>{const a=document.querySelector('.hero-art').getBoundingClientRect(), b=document.querySelector('.office-picture-note').getBoundingClientRect(), c=document.querySelector('.port-overlay').getBoundingClientRect(); const overlaps=(r,s)=>r.left<s.right&&s.left<r.right&&r.top<s.bottom&&s.top<r.bottom; return {ratio:a.width/a.height, captionOverlap:overlaps(a,b), portOverlap:overlaps(a,c), fit:getComputedStyle(document.querySelector('.hero-art img')).objectFit};})()`);
+      assert.ok(Math.abs(officeArt.ratio - 1.5) < .01 && officeArt.fit === 'contain', `Office picture is cropped: ${JSON.stringify(officeArt)}`);
+      assert.equal(officeArt.captionOverlap || officeArt.portOverlap, false, 'Office image must be free of text and port overlays');
+      await page.click('[data-ui="macro-disclosure"] > summary');
+      const overviewLayout = await page.evaluate('Array.from(document.querySelectorAll(".workspace > .kpi-grid, .macro-disclosure .kpi-grid")).map(grid => ({width: grid.clientWidth, scroll: grid.scrollWidth, cards: grid.children.length}))');
+      assert.deepEqual(overviewLayout.map(grid => grid.cards), [5, 7]);
+      assert.ok(overviewLayout.every(grid => grid.scroll <= grid.width + 1), JSON.stringify(overviewLayout));
+      await page.click('[data-ui="macro-disclosure"] > summary');
       await page.click('[data-ui="page"][data-page="inquiries"]');
       assert.match(await page.evaluate('document.querySelector(".tutorial").innerText'), /2 \/ 5/);
       await page.waitFor(present('[data-ui="quote-open"]'));
@@ -91,6 +99,44 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 
   });
 }
 
+test('real Chromium: development sections switch independently, wrap on mobile and restore with the save', { skip: !enabled, timeout: 120_000 }, async () => {
+  const sections = ['finance', 'team', 'certifications', 'markets', 'economy', 'rivalry', 'partners', 'board-goals', 'ventures', 'listing', 'company-record'];
+  for (const width of [1440, 390, 320]) {
+    const browser = await launchBrowser(root);
+    try {
+      const page = await browser.page({ width, height: width === 1440 ? 900 : 720, mobile: width !== 1440 });
+      await createCompany(page, '发展分区验收');
+      await page.click('[data-ui="skip-tutorial"]');
+      await page.click('[data-ui="page"][data-page="company"]');
+      assert.equal(await page.evaluate('document.querySelector("#page-title").textContent'), '发展');
+      assert.equal(await page.evaluate('document.querySelector(".nav [data-page=company]").innerText.trim()'), '发展');
+      assert.equal(await page.evaluate('document.querySelector("[data-development-panel]").dataset.developmentPanel'), 'finance');
+      const layout = await page.evaluate(`(()=>{const nav=document.querySelector(".development-tabs");return {width:nav.clientWidth,scroll:nav.scrollWidth,tabs:[...nav.querySelectorAll("button")].map(button=>({id:button.dataset.id,width:button.offsetWidth,height:button.offsetHeight}))}})()`);
+      assert.deepEqual(layout.tabs.map(tab => tab.id), sections);
+      assert.ok(layout.scroll <= layout.width + 1 && layout.tabs.every(tab => tab.width >= 44 && tab.height >= 44), JSON.stringify(layout));
+      for (const section of sections) {
+        await page.click(`[data-ui="development-tab"][data-id="${section}"]`);
+        assert.equal(await page.evaluate('document.querySelector("[data-development-panel]").dataset.developmentPanel'), section);
+        assert.deepEqual(await page.evaluate('[...document.querySelectorAll(".development-tab[aria-pressed=true]")].map(button=>button.dataset.id)'), [section]);
+        assert.deepEqual(await page.evaluate('[...document.querySelectorAll(".growth-section,.strategy-section")].map(panel=>panel.id)'), section === 'finance' ? [] : [section]);
+        assert.equal(await page.evaluate(present('[data-form="borrow"]')), section === 'finance');
+        await noOverflow(page, `development ${section} ${width}px`);
+      }
+      await page.click('[data-ui="development-tab"][data-id="team"]');
+      await page.screenshot(`/tmp/trade-v38-development-${width}.png`);
+      await page.click('[data-ui="page"][data-page="office"]');
+      await page.click('[data-ui="page"][data-page="company"]');
+      assert.equal(await page.evaluate('document.querySelector("[data-development-panel]").dataset.developmentPanel'), 'team');
+      await page.goto();
+      await page.waitFor(present('[data-ui="resume-save"]'));
+      await page.click('[data-ui="resume-save"]');
+      await page.waitFor(present('[data-development-panel="team"]'));
+      assert.deepEqual(await page.evaluate('[...document.querySelectorAll(".development-tab[aria-pressed=true]")].map(button=>button.dataset.id)'), ['team']);
+      assert.deepEqual(page.errors, []);
+    } finally { await browser.close(); }
+  }
+});
+
 test('real Chromium: illustrated key-client decision and cash-emergency bankruptcy can be handled', { skip: !enabled, timeout: 120_000 }, async () => {
   const browser = await launchBrowser(root, { scenarios: true });
   try {
@@ -104,8 +150,8 @@ test('real Chromium: illustrated key-client decision and cash-emergency bankrupt
       await page.click('dialog [data-ui="close-dialog"]');
       if (!(await currentState(page)).events.some(item => item.type === 'key-client')) await dismissDecisions(page);
     }
-    await page.waitFor(present('dialog[open] img.event-comic'));
-    await page.waitFor('document.querySelector("dialog img.event-comic")?.naturalWidth>0');
+    await page.waitFor(present('dialog[open] .event-comic img'));
+    await page.waitFor('document.querySelector("dialog .event-comic img")?.naturalWidth>0');
     assert.match(await page.evaluate('document.querySelector("dialog").innerText'), /重点客户/);
     await noOverflow(page, 'key-client comic');
     await page.screenshot('/tmp/trade-v38-key-client-iphone13.png');
@@ -129,9 +175,15 @@ test('real Chromium: all five era choices open actual games with the chosen orig
     const page = await browser.page({ width: 390, height: 844, mobile: true });
     for (const era of ['2001', '2008', '2018', '2021', '2026']) {
       await page.goto();
+      if (era !== '2001') {
+        await page.waitFor(present('[data-ui="prepare-new-game"]'));
+        await page.click('[data-ui="prepare-new-game"]');
+        await page.click('[data-ui="confirm-new-game"]');
+      }
       await page.waitFor(present('[data-form="new-game"] select[name="era"]'));
       await page.evaluate(`(()=>{for(const [name,value] of [['era',${JSON.stringify(era)}],['origin','factory-heir'],['difficulty','casual']]){const e=document.querySelector('[data-form=new-game] [name='+name+']');e.value=value;e.dispatchEvent(new Event('change',{bubbles:true}));}})()`);
       await page.fill('[data-form="new-game"] [name="name"]', `${era} 时代开局验收`);
+      await page.waitFor(`(() => {const image=document.querySelector('[data-era-art] img');return image?.complete && image.naturalWidth > 0 && image.getAttribute('src') === 'assets/v38-era-${era}.webp';})()`);
       await noOverflow(page, `${era} opening options`);
       await page.click('[data-form="new-game"] button[type="submit"]');
       await page.waitFor(present('#page-title'));
@@ -156,6 +208,7 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 
       await page.waitFor(present('[data-form="new-game"]'));
       await loadScenario(page, `(game,quotes)=>{const state=game.newGame({name:'产业与上市界面验收',assistant:'fang',seed:381});state.cash=3000000;state.week=105;state.year.number=3;state.company.rep=88;state.company.certs=['export','audit','supplier'];state.company.markets=['domestic','se-asia'];state.cumulativeRevenue=2600000;state.energy=10;state.history=Array.from({length:52},(_,i)=>({week:53+i,revenue:25000,profit:4000,cash:3000000,rep:88,inflow:25000,outflow:21000,receivables:0,orders:0,loan:0,macro:{...state.macro}}));state.year.records=[{number:1,revenue:1200000,profit:120000,deliveries:40,late:0},{number:2,revenue:1400000,profit:130000,deliveries:45,late:0}];state.tutorial.done=true;state.inquiries=quotes.generateInquiries(state);state.creditLine=game.creditLimit(state);return state;}`);
       await page.click('[data-ui="page"][data-page="company"]');
+      await page.click('[data-ui="development-tab"][data-id="ventures"]');
       await page.click('[data-action="invest-venture"][data-id="warehouse"]');
       await page.click('form[data-form="invest-venture"]:has([name="id"][value="factory"]) button[type="submit"]');
       await page.click('form[data-form="invest-venture"]:has([name="id"][value="overseas"]) button[type="submit"]');
@@ -167,6 +220,11 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 
       assert.equal(built.ventures.overseas['se-asia'], 1);
       assert.equal(built.ventures.brand, 1);
       assert.equal(built.ventures.ecommerce, 1);
+      for (const filename of ['v38-industry-factory.webp', 'v38-industry-ecommerce.webp']) {
+        const imageSelector = `.venture-image img[src="assets/${filename}"]`;
+        await page.evaluate(`document.querySelector(${JSON.stringify(imageSelector)}).scrollIntoView({block:'center'})`);
+        await page.waitFor(`document.querySelector(${JSON.stringify(imageSelector)})?.naturalWidth > 0`);
+      }
       await noOverflow(page, 'all industry cards');
       await page.click('[data-ui="page"][data-page="orders"]');
       await page.waitFor(present('form[data-form="purchase-stock"]'));
@@ -192,6 +250,7 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 
       await page.click('dialog [data-form="quote"] button[type="submit"]');
       assert.equal((await currentState(page)).bids[0].branded, true);
       await page.click('[data-ui="page"][data-page="company"]');
+      await page.click('[data-ui="development-tab"][data-id="listing"]');
       await page.click('[data-action="strategic-investment"]');
       assert.equal((await currentState(page)).listing.stage, 'funded');
       await page.click('[data-action="restructure"]');
@@ -199,9 +258,16 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 
       await page.click('[data-action="ipo"]');
       await page.waitFor('document.querySelector("dialog[open] #modal-title")?.textContent.includes("上市成功")');
       assert.equal((await currentState(page)).listing.stage, 'public');
+      await page.waitFor('document.querySelector(\'dialog img[src="assets/v38-milestone-ipo.webp"]\')?.naturalWidth > 0');
+      assert.equal(await page.evaluate('document.querySelector("dialog .dialog-header .eyebrow").textContent'), '企业里程碑');
+      assert.equal(await page.evaluate(present('dialog .dialog-body .notice.negative:not([hidden])')), false);
+      assert.equal(await page.evaluate(present('dialog button.primary[data-action="resolve-event"]')), true);
       await noOverflow(page, 'IPO celebration');
       await page.screenshot(`/tmp/trade-v38-phase3-${viewport.name}-ipo.png`);
       await dismissDecisions(page);
+      await page.click('[data-ui="development-tab"][data-id="company-record"]');
+      await page.evaluate('document.querySelector(".milestone-gallery").scrollIntoView({block:"center"})');
+      await page.waitFor('document.querySelector(\'.milestone-gallery img[src="assets/v38-milestone-ipo.webp"]\')?.naturalWidth > 0');
       await page.click('#company-record details:has(.biography) > summary');
       assert.match(await page.evaluate('document.querySelector(".biography").innerText'), /完成上市/);
       await noOverflow(page, 'biography');
@@ -222,6 +288,9 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 
       await page.screenshot(`/tmp/trade-v38-phase3-${viewport.name}-life.png`);
       await page.click('[data-ui="page"][data-page="office"]');
       assert.match(await page.evaluate('document.querySelector(".port-overlay").getAttribute("aria-label")'), /海外 1 个市场.*仓库 1 级/);
+      assert.equal(await page.evaluate('document.querySelectorAll(".port-ship").length'), 1);
+      assert.equal(await page.evaluate('document.querySelectorAll(".port-warehouse").length'), 1);
+      await page.waitFor('document.querySelector(".port-background img")?.naturalWidth > 0 && document.querySelector(".port-background")?.dataset.mediaState === "loaded"');
       await noOverflow(page, 'grown harbor');
       await page.screenshot(`/tmp/trade-v38-phase3-${viewport.name}-harbor.png`);
       assert.doesNotMatch(await page.evaluate(content), /NaN|undefined|\[object Object\]/);
@@ -229,6 +298,43 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 
     } finally { await browser.close(); }
   });
 }
+
+test('real Chromium: first million-order and overseas-delivery artwork appears at settlement and in company records', { skip: !enabled, timeout: 120_000 }, async () => {
+  for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 'iphone13', width: 390, height: 844, mobile: true }]) {
+    const browser = await launchBrowser(root, { scenarios: true });
+    try {
+      const page = await browser.page(viewport);
+      await page.goto();
+      await page.waitFor(present('[data-form="new-game"]'));
+      await loadScenario(page, `(game,quotes)=>{let state=game.newGame({name:'成就插画验收',assistant:'fang',seed:381});state.cash=3000000;state.company.rep=88;state.year.deliveries=10;state.tutorial.done=true;state=game.act(state,{type:'buy-cert',id:'export'}).state;state=game.act(state,{type:'open-market',id:'se-asia'}).state;state.week=4;state.inquiries=quotes.generateInquiries(state);const inquiry=state.inquiries.find(item=>item.market==='se-asia');inquiry.quantity*=Math.ceil(1300000/(inquiry.quantity*inquiry.targetPrice*.8*state.macro.usd));inquiry.terms=3;return game.act(state,{type:'bid',inquiryId:inquiry.id,source:'stock',ratio:80}).state;}`);
+      const files = { landmark: 'v38-milestone-million.webp', 'export-shipment': 'v38-milestone-export.webp' };
+      const illustrated = [];
+      for (let i = 0; i < 12 && illustrated.length < 2; i++) {
+        await page.click('[data-action="end-week"]');
+        const state = await currentState(page);
+        for (const id of state.summary.illustratedMilestones ?? []) {
+          const selector = `dialog .milestone-image img[src="assets/${files[id]}"]`;
+          await page.evaluate(`document.querySelector(${JSON.stringify(selector)}).scrollIntoView({block:'center'})`);
+          await page.waitFor(`document.querySelector(${JSON.stringify(selector)})?.naturalWidth > 0`);
+          await noOverflow(page, 'milestone summary');
+          assert.equal(await page.evaluate('document.querySelector("dialog").scrollWidth <= document.querySelector("dialog").clientWidth + 1'), true);
+          await page.screenshot(`/tmp/trade-v38-milestone-${viewport.name}-${id}.png`);
+          illustrated.push(id);
+        }
+        await dismissDecisions(page);
+      }
+      assert.deepEqual(illustrated, ['landmark', 'export-shipment']);
+      await page.click('[data-ui="page"][data-page="company"]');
+      await page.click('[data-ui="development-tab"][data-id="company-record"]');
+      for (const filename of Object.values(files)) {
+        const selector = `.milestone-gallery img[src="assets/${filename}"]`;
+        await page.evaluate(`document.querySelector(${JSON.stringify(selector)}).scrollIntoView({block:'center'})`);
+        await page.waitFor(`document.querySelector(${JSON.stringify(selector)})?.naturalWidth > 0`);
+      }
+      assert.deepEqual(page.errors, []);
+    } finally { await browser.close(); }
+  }
+});
 
 test('real Chromium: preserved classic and legacy pages both boot at their distinct URLs', { skip: !enabled, timeout: 60_000 }, async () => {
   const browser = await launchBrowser(root);
@@ -283,12 +389,15 @@ for (const viewport of [{ name: 'desktop', width: 1440, height: 1000 }, { name: 
       await page.waitFor(present('[data-form="new-game"]'));
       await loadScenario(page, `(game)=>{const state=game.newGame({name:'扩张界面验收',assistant:'fang',seed:381});state.cash=300000;state.company.rep=75;state.year.deliveries=10;state.tutorial.done=true;return state;}`);
       await page.click('[data-ui="page"][data-page="company"]');
+      await page.click('[data-ui="development-tab"][data-id="team"]');
       const initial = await currentState(page);
       const candidate = initial.candidates.find(person => person.role === 'sales');
       await page.click(`[data-action="hire"][data-id="${candidate.id}"]`);
       assert.equal((await currentState(page)).staff.length, initial.staff.length + 1);
+      await page.click('[data-ui="development-tab"][data-id="certifications"]');
       await page.click('[data-action="buy-cert"][data-id="export"]');
       assert.ok((await currentState(page)).company.certs.includes('export'));
+      await page.click('[data-ui="development-tab"][data-id="markets"]');
       await page.click('[data-action="open-market"][data-id="se-asia"]');
       assert.ok((await currentState(page)).company.markets.includes('se-asia'));
       await noOverflow(page, 'expanded company');

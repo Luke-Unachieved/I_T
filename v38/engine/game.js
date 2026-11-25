@@ -634,21 +634,19 @@ export function act(state, action = {}) {
     case 'dismiss-summary': s.summary = null; break;
     case 'tutorial': {
       const step = Number(action.step ?? s.tutorial.step + 1);
-      if (!Number.isSafeInteger(step) || step < 0 || step > 5) return fail('教程步骤无效。');
+      if (!Number.isSafeInteger(step) || step < 0 || step > 5) return fail('这一步暂时无法继续，请返回当前页面重试。');
       s.tutorial = { step: Math.min(4, step), done: s.tutorial.done || Boolean(action.done) || step === 5 };
       break;
     }
     default: {
       const ops = operations(s, s.period);
       const result = growthAction(s, action, ops) ?? strategyAction(s, action, ops) ?? lifeAction(s, action, ops);
-      if (!result) return fail('未知操作。');
+      if (!result) return fail('这项操作暂时无法完成，请返回当前页面重试。');
       if (result.error) return fail(result.error);
-      if (['mortgage', 'unmortgage', 'sell-property', 'sell-car', 'strategic-investment', 'ipo'].includes(action.type)) {
-        s.creditLine = creditLimit(s);
-      }
     }
   }
   for (const order of s.orders) updateOrderProjection(s, order);
+  s.creditLine = creditLimit(s);
   strategyMilestones(s, operations(s, s.period));
   return { state: s };
 }

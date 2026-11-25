@@ -2,6 +2,8 @@ import { STAFF_ROLES, tradePolicy } from '../data/expansion.js';
 import { certProgress, marketProgress } from '../engine/expansion.js';
 import { netAssets } from '../engine/game.js';
 import { count, esc, yuan } from './shell.js';
+import { imageFrame } from './media.js';
+import { buyerPortrait } from './buyer-portrait.js';
 
 const activeOrders = new Set(['procurement', 'production', 'transit']);
 const mapPoints = {
@@ -48,7 +50,8 @@ function staffPortrait(person) {
       /^\d+(?:\.\d+)?% \d+(?:\.\d+)?%$/.test(person.portraitPosition ?? '')) {
     return `<span class="portrait" aria-hidden="true" style="background-image:url('${esc(person.portrait)}');background-position:${esc(person.portraitPosition)}"></span>`;
   }
-  return picture(person.portrait, 'growth-headshot') || `<span class="growth-headshot placeholder-headshot" aria-hidden="true">${esc([...person.name][0])}</span>`;
+  const initial = [...person.name][0];
+  return imageFrame(person.portrait, { className: 'growth-headshot', fallback: initial }) || `<span class="growth-headshot placeholder-headshot" aria-hidden="true">${esc(initial)}</span>`;
 }
 
 function section(id, title, caption, body) {
@@ -67,16 +70,17 @@ function staffCard(person, state, candidate) {
   const assigned = state.orders.filter(order => order.staffId === person.id && activeOrders.has(order.status)).length +
     state.bids.filter(bid => bid.staffId === person.id).length;
   const blocked = state.staff.length >= 18 ? '办公室已满员' : state.cash < person.salary ? '现金不足以支付首周工资' : '';
+  const dismissBlocked = person.id === state.assistant ? '创业搭档将一直协助经营' : assigned > 0 ? '还有经手的报价或订单' : '';
   return `<article class="growth-card"><header class="growth-person">${staffPortrait(person)}<div><h3>${esc(person.name)}</h3><p>${esc(nameOfRole(person.role))} · ${esc(person.trait)}</p></div></header>
     <dl class="key-values growth-metrics">${stat('能力', `${count(person.ability)} / 10`)}${stat('周薪', yuan(person.salary))}${stat('提成', percentage.format(person.commission ?? 0))}${candidate ? '' : stat('经手', `${assigned} / 3 单`)}</dl>
-    <div class="toolbar">${candidate ? button('hire', person.id, '聘用', 'secondary', Boolean(blocked)) : button('dismiss-staff', person.id, '解聘', 'quiet', assigned > 0)}
-      ${candidate && blocked ? `<small class="muted">${blocked}</small>` : !candidate && assigned > 0 ? '<small class="muted">还有经手的报价或订单</small>' : ''}</div></article>`;
+    <div class="toolbar">${candidate ? button('hire', person.id, '聘用', 'secondary', Boolean(blocked)) : button('dismiss-staff', person.id, '解聘', 'quiet', Boolean(dismissBlocked))}
+      ${candidate && blocked ? `<small class="muted">${blocked}</small>` : !candidate && dismissBlocked ? `<small class="muted">${dismissBlocked}</small>` : ''}</div></article>`;
 }
 
 function teamSection(state) {
   const current = state.staff ?? [];
-  const employed = new Set(current.map(person => person.id));
-  const candidates = (state.candidates ?? []).filter(person => !employed.has(person.id));
+  const employed = new Set(current.map(person => person.name));
+  const candidates = (state.candidates ?? []).filter(person => !employed.has(person.name));
   return section('team', '团队与人才市场', '业务员带来询盘，跟单员守交期，财务帮助回款。每位员工最多同时经手三单。',
     `<h3 class="growth-subheading">在职员工</h3>${current.length ? `<div class="growth-cards">${current.map(person => staffCard(person, state, false)).join('')}</div>` : '<p class="empty-state">目前由你独立经营。</p>'}
     <h3 class="growth-subheading">待聘人选</h3>${candidates.length ? `<div class="growth-cards">${candidates.map(person => staffCard(person, state, true)).join('')}</div>` : '<p class="empty-state">目前没有可聘人选，人才市场每四周更新。</p>'}`);
@@ -145,7 +149,7 @@ function rivalrySection(state) {
   const rivals = [...state.rivals, own].sort((a, b) => Number(b.active) - Number(a.active) || b.annualSales - a.annualSales);
   const headers = ['排名', '公司', '经营风格', '近 52 周营收', '状态'];
   const rows = rivals.map((rival, index) => {
-    const status = rival.status === 'failed' ? '已倒闭' : rival.status === 'acquired' ? '已收购' : rival.own ? '本公司' : `规模 ${count(rival.scale)} · 健康度 ${count(rival.health)}`;
+    const status = rival.status === 'failed' ? '已倒闭' : rival.status === 'acquired' ? '已收购' : rival.own ? '本公司' : `经营规模 ${count(rival.scale)} 级 · 经营状况 ${count(rival.health)}/100`;
     return [rival.active ? count(index + 1) : '—', rival.name, rival.style, yuan(rival.annualSales), status];
   });
   return section('rivalry', '同行排行', '营收、市况和各家公司的经营会随周结算变化。',
@@ -158,13 +162,17 @@ function relationshipsSection(state) {
     partners.length ? `<div class="growth-cards">${partners.map(partner => {
       const buyer = partner.buyer ?? {};
       const artwork = picture(partner.comic ?? buyer.comic, 'growth-comic');
-      return `<article class="growth-card"><header class="growth-person">${picture(buyer.portrait, 'growth-headshot')}<div><h3>${esc(buyer.name ?? partner.name ?? '重点客户')}</h3><p>${esc(buyer.type ?? '')}</p></div></header>
+      return `<article class="growth-card"><header class="growth-person">${buyerPortrait(buyer, 'growth-headshot')}<div><h3>${esc(buyer.name ?? partner.name ?? '重点客户')}</h3><p>${esc(buyer.type ?? '')}</p></div></header>
         <dl class="key-values growth-metrics">${stat('累计交付', `${count(partner.deliveries)} 笔`)}${stat('关系', `${count(partner.rep)} / 100`)}</dl>
         ${artwork ? `<details><summary>查看合作漫画</summary>${artwork}</details>` : ''}</article>`;
     }).join('')}</div>` : '<p class="empty-state">目前还没有达到三次交付的客户。可以在询盘里留意熟客复购。</p>');
 }
 
-export function growthPanel(state) {
-  return `<nav class="growth-shortcuts toolbar" aria-label="公司经营分区"><a class="button quiet" href="#team">团队</a><a class="button quiet" href="#certifications">资质</a><a class="button quiet" href="#markets">市场</a><a class="button quiet" href="#economy">宏观</a><a class="button quiet" href="#rivalry">同行</a><a class="button quiet" href="#partners">客户</a></nav>
-    ${teamSection(state)}${certificationSection(state)}${marketsSection(state)}${macroSection(state)}${rivalrySection(state)}${relationshipsSection(state)}`;
-}
+export const growthSections = {
+  team: teamSection,
+  certifications: certificationSection,
+  markets: marketsSection,
+  economy: macroSection,
+  rivalry: rivalrySection,
+  partners: relationshipsSection,
+};

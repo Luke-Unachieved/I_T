@@ -6,10 +6,10 @@ import { amount } from './treasury.js';
 
 export const VENTURES = [
   { id: 'warehouse', label: '自建仓库', description: '先备好常卖货品，缩短现货备货时间。', asset: 'assets/deal-warehouse-starter.webp', costs: [18000, 32000, 61000], upkeep: 170 },
-  { id: 'factory', label: '投资工厂', description: '给一个品类建立稳定产线，降低采购成本和延误。', asset: 'assets/deal-project-automated-warehouse.webp', costs: [45000, 74000, 124000], upkeep: 380 },
+  { id: 'factory', label: '投资工厂', description: '给一个品类建立稳定产线，降低采购成本和延误。', asset: 'assets/v38-industry-factory.webp', costs: [45000, 74000, 124000], upkeep: 380 },
   { id: 'overseas', label: '海外仓', description: '在已开拓的市场提前配货，压缩跨境交付时间。', asset: 'assets/deal-warehouse-transit.webp', costs: [35000, 59000, 106000], upkeep: 310 },
   { id: 'brand', label: '自有品牌', description: '建立自己的品牌，拿到可以自主定价的询盘。', asset: 'assets/deal-work-product-thermos-branded.webp', costs: [25000, 45000, 85000], upkeep: 260 },
-  { id: 'ecommerce', label: '跨境电商', description: '运营零售店铺，按周结算小额销售、进货及广告。', asset: 'assets/deal-warehouse-carton-paint.webp', costs: [16000, 28000, 52000], upkeep: 340 },
+  { id: 'ecommerce', label: '跨境电商', description: '运营零售店铺，按周结算小额销售、进货及广告。', asset: 'assets/v38-industry-ecommerce.webp', costs: [16000, 28000, 52000], upkeep: 340 },
 ];
 
 const CAPACITY = [0, 600, 1400, 3600];
@@ -28,6 +28,22 @@ export function strategyAssets(s) {
 function chronicle(s, type, text) {
   s.chronicle.unshift({ week: s.week, type, text });
   if (s.chronicle.length > 160) s.chronicle.pop();
+}
+
+function foundingStory(s) {
+  const eraContext = {
+    '2001': '当时，出口行业的机会不断增多。',
+    '2008': '全球金融危机让海外需求和信用环境承压。',
+    '2018': '国际贸易摩擦推高了北美关税。',
+    '2021': '海运价格上涨，交付周期也随之拉长。',
+    '2026': '',
+  };
+  const originContext = {
+    'self-made': '创始人白手起家，开启贸易事业。',
+    'factory-heir': '创始人依托家里的餐具工厂开展贸易业务。',
+    buyer: '创始人凭借外企采购经验和已有客户关系开展贸易业务。',
+  };
+  return `${s.company.name}于 ${s.startYear} 年成立。${eraContext[s.era] ?? ''}${originContext[s.origin] ?? originContext['self-made']}`;
 }
 
 function annualGoal(s, year) {
@@ -69,7 +85,7 @@ export function initStrategy(s) {
     const buyer = TUTORIAL_BUYERS[0];
     s.relationships[buyer.id] = { buyer, market: 'domestic', deliveries: 3, rep: 48, comic: buyer.comic, productId: buyer.productId };
   }
-  chronicle(s, 'founded', `${era.year} 年，${s.company.name}以${origin.label}的身份成立。`);
+  chronicle(s, 'founded', foundingStory(s));
 }
 
 export function ventureProgress(s) {
@@ -84,8 +100,8 @@ export function ventureProgress(s) {
       const condition = id === 'overseas' && !s.company.markets.includes(target) ? '先开拓这个市场。'
         : id === 'brand' && !s.company.certs.includes('audit') ? '先取得验厂认证。'
           : id === 'ecommerce' && s.company.markets.length < 2 ? '至少开拓一个海外市场。' : '';
-      const reason = condition || (nextCost != null && s.cash < nextCost ? '现金不足。' : '');
-      return { target, label, level, nextCost, available: nextCost != null && !reason, reason };
+      const reason = condition || (nextCost != null && s.cash < nextCost ? `现金不足，还差 ${cny(nextCost - s.cash)}。` : '');
+      return { target, label, level, nextCost, condition, available: nextCost != null && !reason, reason };
     });
     return { ...record, options };
   });
@@ -153,7 +169,12 @@ export function ipoProgress(s, assets) {
 
 const funded = (s) => ['funded', 'corporation', 'public'].includes(s.listing.stage);
 const incorporated = (s) => ['corporation', 'public'].includes(s.listing.stage);
-const earned = (id, label, description, check) => ({ id, label, description, check });
+const milestoneArt = {
+  'export-shipment': { asset: 'assets/v38-milestone-export.webp', alt: '贸易伙伴在港口庆祝首批出口交付' },
+  landmark: { asset: 'assets/v38-milestone-million.webp', alt: '贸易伙伴签署百万订单合同' },
+  ipo: { asset: 'assets/v38-milestone-ipo.webp', alt: '公司创始人在上市庆典敲钟' },
+};
+const earned = (id, label, description, check) => ({ id, label, description, check, ...milestoneArt[id] });
 export const ACHIEVEMENTS = [
   earned('quote', '先报一单', '提交第一份报价。', (s, ops, flow) => s.bids.length || flow?.won.length || flow?.lost.length),
   earned('won', '第一份合同', '在竞价中取得一笔订单。', (s) => s.orders.length),
@@ -199,15 +220,13 @@ export function strategyMilestones(s, ops, flow) {
     s.achievements.push(item.id);
     chronicle(s, 'achievement', item.label);
     ops.log('achievement', `达成成就：${item.label}。`);
+    if (flow && item.asset) (flow.illustratedMilestones ??= []).push(item.id);
   }
 }
 
 export function biography(s) {
-  const era = selection(ERAS, s.era, '2026');
-  const birthplace = selection(ORIGINS, s.origin, 'self-made');
-  const name = s.company.name;
   const foreignCount = s.company.markets.length - 1;
-  const paragraph = [`${name}于 ${s.startYear} 年成立，时处“${era.label}”，团队从${birthplace.label}出发。`];
+  const paragraph = [foundingStory(s)];
   const delivered = successful(s).length;
   if (delivered) paragraph.push(`截至经营第 ${s.week} 周，公司累计交付 ${delivered} 单，近 52 周营收 ${cny(rolling(s, 'revenue'))}，已开拓 ${foreignCount} 个海外市场。`);
   const used = ventureProgress(s).filter((row) => row.options.some((option) => option.level > 0)).map((row) => row.label);
@@ -263,6 +282,7 @@ export function strategyAction(s, action, ops) {
     s.listing.publicWeek = s.week;
     s.events.push({ id: ops.id('event'), type: 'ipo-celebration', title: '上市成功',
       text: '公司已完成上市。以后仍可继续经营、扩张和挑战新的年度目标。',
+      comic: milestoneArt.ipo.asset, comicAlt: milestoneArt.ipo.alt,
       choices: [{ id: 'continue', label: '继续经营' }] });
   }
   if (proposed.cashIn) s.listing.capital += ops.receiveCapital(proposed.cashIn);

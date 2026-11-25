@@ -1,8 +1,9 @@
 import { ASSISTANTS } from '../data/core.js';
 import { decisionInfo } from '../engine/expansion.js';
 import { forecast, creditLimit, netAssets } from '../engine/game.js';
-import { nationalRank, valuation } from '../engine/strategy.js';
+import { ACHIEVEMENTS, nationalRank, valuation } from '../engine/strategy.js';
 import { imageFrame } from './media.js';
+import { eventCoach, pageCoach } from './coaching.js';
 
 const fmt = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 0 });
 export const count = value => fmt.format(Number.isFinite(value) ? value : 0);
@@ -16,13 +17,19 @@ const pages = [
   ['office', '办公室', 'M3 22h18M5 22V7l7-4 7 4v15m-9 0v-6h4v6m-6-11h2m4 0h2'],
   ['inquiries', '询盘', 'M3 4h18v16H3zM3 5l9 7 9-7'],
   ['orders', '订单', 'M4 7l8-4 8 4v10l-8 4-8-4V7zm0 0 8 4 8-4m-8 4v10m-4-16 8 4'],
-  ['company', '公司', 'M3 22h18M6 22V9h4m0 13V3h8v19m-5-14h2m-2 4h2m-2 4h2'],
+  ['company', '发展', 'M3 22h18M6 22V9h4m0 13V3h8v19m-5-14h2m-2 4h2m-2 4h2'],
   ['offwork', '下班', 'M18 15.5A7.5 7.5 0 0 1 8.5 6 8.2 8.2 0 1 0 18 15.5zM17 3v5m-2.5-2.5h5'],
 ];
 const captions = {
   office: '本周经营与现金安排', inquiries: '挑选询盘，并比较报价的利润和风险', orders: '跟进生产、交付、收款和库存',
-  company: '管理授信、经营趋势和年度业绩', offwork: '结束这一周，安排接下来的经营',
+  company: '管理团队、拓展市场与规划企业成长', offwork: '结束这一周，安排接下来的经营',
 };
+
+export const developmentTabs = [
+  ['finance', '财务'], ['team', '团队'], ['certifications', '资质'], ['markets', '市场'],
+  ['economy', '宏观'], ['rivalry', '同行'], ['partners', '客户'], ['board-goals', '年度目标'],
+  ['ventures', '产业链'], ['listing', '估值上市'], ['company-record', '成就记事'],
+];
 
 export const assistantFor = id => ASSISTANTS.find(person => person.id === id) ?? ASSISTANTS[0];
 const icon = path => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"></path></svg>`;
@@ -34,25 +41,59 @@ const openInvoice = bill => bill.status === 'open' || bill.status === 'overdue';
 const moneyDue = state => state.receivables.reduce((sum, bill) => sum + (openInvoice(bill) ? bill.remaining ?? bill.amount : 0), 0);
 const history4 = state => state.history.slice(-4).reduce((sum, row) => sum + row.profit, 0);
 
-export function opening(notice = '', settings = '') {
+function openingSaveControls(stored, mode) {
+  const saved = stored.status === 'ready' ? stored.record.state : null;
+  if (mode === 'confirm') {
+    return `<section class="panel" aria-label="确认重新开局">
+      <h2>重新开局？</h2><p>创立新的工作室后，本机原有的存档会被覆盖。</p>
+      <div class="toolbar"><button type="button" class="button secondary" data-ui="cancel-new-game">取消</button><button type="button" class="button primary" data-ui="confirm-new-game">确认重新开局</button></div>
+    </section>`;
+  }
+  if (mode === 'form') {
+    if (stored.status === 'empty') return '';
+    return `<div class="notice"><p>${stored.status === 'unavailable' ? '当前无法访问本机存档。开局后请留意保存状态。' : '创立新工作室后会覆盖原有存档。'} </p><button type="button" class="button quiet" data-ui="cancel-new-game">返回存档</button></div>`;
+  }
+  if (saved) {
+    return `<section class="panel" aria-label="本机存档"><h2>${esc(saved.company.name)}</h2>
+      <p>${yearWeek(saved.week)} · 可用资金 ${yuan(saved.cash)}${saved.bankrupt ? ' · 公司已破产' : ''}</p><div class="toolbar">
+      <button type="button" class="button primary" data-ui="resume-save">继续经营</button><button type="button" class="button secondary" data-ui="prepare-new-game">重新开局</button></div></section>`;
+  }
+  return `<section class="notice negative" role="alert"><p>${stored.status === 'invalid' ? '存档无法读取，原有数据还在本机。可以重试读取，或确认重新开局。' : '浏览器暂时无法访问存档。请检查隐私设置或存储权限后重试。'}</p><div class="toolbar"><button type="button" class="button primary" data-ui="reread-save">重试读取</button><button type="button" class="button secondary" data-ui="prepare-new-game">重新开局</button></div></section>`;
+}
+
+export function opening(notice = '', settings = '', stored = { status: 'empty' }, mode = 'form') {
   return `<main class="opening">
     ${imageFrame('assets/deal-office-original-desktop.webp', { className: 'opening-art', fallback: '办公室插画暂时无法显示', alt: '', lazy: false, retry: true })}
     <section class="opening-card" aria-labelledby="opening-title">
       <p class="eyebrow">贸易工作室 · V38</p>
       <h1 id="opening-title">再开一单就下班</h1>
       <p>从一人工作室起步。每周报价、交货、收款，把生意慢慢做大。</p>
-      <p class="session-warning" data-session-warning="opening">本局只在当前页面运行。刷新或关闭页面会结束本局。</p>
+      <p class="session-warning" data-session-warning="opening">经营进度自动存档到当前浏览器。刷新或关闭页面后，可以继续经营。</p>
       ${notice ? `<p class="notice negative" role="alert">${esc(notice)}</p>` : ''}
-      <form data-form="new-game" class="opening-form" novalidate>
+      ${openingSaveControls(stored, mode)}
+      ${mode === 'form' ? `<form data-form="new-game" class="opening-form" novalidate>
         <div class="form-field"><label for="opening-company-name">公司名</label><input id="opening-company-name" name="name" type="text" placeholder="例如：海港贸易工作室" maxlength="32" required autocomplete="off" aria-describedby="new-game-error"><p class="negative" id="new-game-error" data-field-error role="alert" hidden></p></div>
         <fieldset class="assistant-grid"><legend>选择一位助理</legend>
           ${ASSISTANTS.map((person, i) => `<label class="assistant-choice"><input type="radio" name="assistant" value="${esc(person.id)}"${i === 0 ? ' checked' : ''}>${portrait(person)}<span><strong>${esc(person.name)}</strong><small>${esc(person.description)}</small></span></label>`).join('')}
         </fieldset>
         ${settings}
         <button class="button primary" type="submit">创立工作室</button>
-      </form>
+      </form>` : ''}
     </section>
   </main>`;
+}
+
+export function saveWarningMessage(status) {
+  return status === 'conflict'
+    ? '其他页面已更新本机存档。本页进度尚未保存，避免关闭本页。'
+    : '自动存档失败，可能是浏览器存储空间不足或没有存储权限。当前进度仍在本页，请重试保存。';
+}
+
+export function saveWarning(status = 'ready') {
+  return `<div class="notice negative save-warning" data-save-warning role="alert" ${status === 'ready' ? 'hidden' : ''}>
+    <p data-save-message>${saveWarningMessage(status)}</p><div class="toolbar">
+    <button type="button" class="button secondary" data-ui="retry-save">重试保存</button>
+    <button type="button" class="button quiet" data-ui="reload-save" ${status === 'conflict' ? '' : 'hidden'}>重新读取本机存档</button></div></div>`;
 }
 
 function sparkline(series) {
@@ -147,9 +188,11 @@ export function shell(state, ui, content, extraIndicators = '') {
     </aside>
     <main class="workspace" id="work-area" aria-labelledby="page-title">
       <header class="page-header"><div><p class="eyebrow">${esc(state.company.name)} · ${yearWeek(state.week)}</p><h1 id="page-title" tabindex="-1">${title}</h1><p>${captions[ui.page]}</p>${overview ? '' : `<p class="compact-cash">可用资金 <strong class="${state.cash < 0 ? 'negative' : ''}">${yuan(state.cash)}</strong></p>`}</div><span class="badge">V38</span></header>
-      <div class="app-notices" aria-live="polite" aria-atomic="true">${ui.notice ? `<p class="notice" role="status">${esc(ui.notice)}</p>` : ''}${state.cash < 0 && !state.bankrupt ? `<div class="notice negative" role="alert"><strong>资金链告急</strong><p>还差 ${yuan(-state.cash)}。可以到订单页清仓，或到公司页借款。连续两周资金为负会破产。</p></div>` : ''}${state.events.length ? `<p class="notice">有 ${count(state.events.length)} 件事需要你决定。<button type="button" class="button quiet" data-ui="show-event">查看事项</button></p>` : ''}</div>
+      <div class="app-notices" aria-live="polite" aria-atomic="true">${state.cash < 0 && !state.bankrupt ? `<div class="notice negative" role="alert"><strong>资金链告急</strong><p>还差 ${yuan(-state.cash)}。可以到订单页清仓，或到发展页的「财务」借款。连续两周资金为负会破产。</p></div>` : ''}${state.events.length ? `<p class="notice">有 ${count(state.events.length)} 件事需要你决定。<button type="button" class="button quiet" data-ui="show-event">查看事项</button></p>` : ''}</div>
+      ${ui.notice ? `<p class="notice action-feedback" role="status">${esc(ui.notice)}</p>` : ''}
+      ${saveWarning(ui.saveStatus)}
       ${overview ? `${indicators(state)}${macroIndicators(state, ui)}` : ''}${extraIndicators}
-      ${tutorialNote(state)}
+      ${state.difficulty === 'casual' ? pageCoach(state, ui) : tutorialNote(state)}
       <div class="page-content">${content}</div>
     </main>
   </div>`;
@@ -157,34 +200,45 @@ export function shell(state, ui, content, extraIndicators = '') {
 
 function shortYuan(n) {
   const magnitude = Math.abs(n);
+  if (magnitude >= 100_000_000) return `${n < 0 ? '−' : ''}${Number((magnitude / 100_000_000).toFixed(1))} 亿`;
   return magnitude >= 10_000 ? `${n < 0 ? '−' : ''}${Number((magnitude / 10_000).toFixed(1))} 万` : `${n < 0 ? '−' : ''}${count(magnitude)}`;
+}
+
+function cashScale(high, floor) {
+  const roughStep = Math.max(1, (high - floor) / 4);
+  const unit = 10 ** Math.floor(Math.log10(roughStep));
+  const step = [1, 2, 5, 10].map(value => value * unit).find(value => value >= roughStep);
+  const lower = Math.floor(floor / step);
+  const upper = Math.ceil(high / step);
+  return Array.from({ length: upper - lower + 1 }, (_, index) => (lower + index) * step).reverse();
 }
 
 export function forecastPanel(rows, state) {
   const totalLow = rows.reduce((low, row) => (row.hypothetical ?? row.cash) < (low.hypothetical ?? low.cash) ? row : low, rows[0]);
   const low = totalLow.hypothetical ?? totalLow.cash;
-  const width = 680, height = 248, left = 61, right = 24, top = 35, bottom = 38;
+  const width = 680, height = 300, left = 102, right = 32, top = 34, bottom = 58;
   const span = width - left - right;
-  const high = Math.max(1, ...rows.flatMap(row => [row.inflow, row.cash, row.hypothetical ?? row.cash]));
-  const floor = Math.min(0, ...rows.flatMap(row => [-row.outflow, row.cash, row.hypothetical ?? row.cash]));
+  const guides = cashScale(
+    Math.max(1, ...rows.flatMap(row => [row.inflow, row.cash, row.hypothetical ?? row.cash])),
+    Math.min(0, ...rows.flatMap(row => [-row.outflow, row.cash, row.hypothetical ?? row.cash])),
+  );
+  const high = guides[0], floor = guides.at(-1);
   const x = i => left + (i + .5) * span / rows.length;
   const y = n => top + (high - n) * (height - top - bottom) / (high - floor);
   const path = get => rows.map((row, i) => `${i === 0 ? 'M' : 'L'}${x(i).toFixed(2)} ${y(get(row)).toFixed(2)}`).join(' ');
   const line = row => row.cash;
   const hypothetical = row => row.hypothetical ?? row.cash;
   const showHypothesis = rows.some(row => hypothetical(row) !== line(row));
-  const guides = [...new Set([high, high * .5, 0, floor])];
   const zero = y(0);
   const lowX = x(rows.indexOf(totalLow)), lowY = y(low);
-  const lowTextX = Math.max(100, Math.min(width - 68, lowX));
   const assumption = showHypothesis ? ' 虚线假设已提交的报价全部中单。' : '';
-  return `<section class="panel forecast-panel" data-tour="cash-forecast"><header class="panel-heading"><div><h2>未来 12 周现金预测</h2><p>根据手头的订单、报价和开支推算，不计还未报价的新单。${assumption}</p></div><span class="badge${low < 0 ? ' negative' : ''}">${low < 0 ? '预计资金缺口' : '最低余额'} ${yuan(Math.abs(low))}</span></header>
+  return `<section class="panel forecast-panel" data-tour="cash-forecast"><header class="panel-heading"><div><h2>未来 12 周现金预测</h2><p>根据手头的订单、报价和开支推算，不计还未报价的新单。${assumption}</p></div><span class="badge${low < 0 ? ' negative' : ''}">${low < 0 ? '预计资金缺口' : '最低余额'} ${yuan(Math.abs(low))} · ${weekLabel(totalLow.week)}</span></header>
     <figure class="chart forecast-chart" aria-label="未来十二周现金收支图">
       <svg class="forecast-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="最低现金 ${yuan(low)}，出现在${weekLabel(totalLow.week)}">
-        ${guides.map(value => `<line class="chart-grid${value === 0 ? ' chart-axis' : ''}" x1="${left}" y1="${y(value)}" x2="${width - right}" y2="${y(value)}"></line><text class="chart-label" x="${left - 9}" y="${y(value) + 4}" text-anchor="end">${shortYuan(value)}</text>`).join('')}
-        ${rows.map((row, i) => `<rect class="chart-income" x="${x(i) - 11}" y="${y(row.inflow)}" width="9" height="${Math.max(0, zero - y(row.inflow))}" rx="1.5"></rect><rect class="chart-expense" x="${x(i) + 2}" y="${zero}" width="9" height="${Math.max(0, y(-row.outflow) - zero)}" rx="1.5"></rect><text class="chart-label" x="${x(i)}" y="${height - 11}" text-anchor="middle">${i % 2 === 0 || i === rows.length - 1 ? count(row.week) : ''}</text>`).join('')}
+        ${guides.map(value => `<line class="chart-grid${value === 0 ? ' chart-axis' : ''}" x1="${left}" y1="${y(value)}" x2="${width - right}" y2="${y(value)}"></line><text class="chart-label chart-label-y" x="${left - 12}" y="${y(value)}" dominant-baseline="middle" text-anchor="end">${shortYuan(value)}</text>`).join('')}
+        ${rows.map((row, i) => `<rect class="chart-income" x="${x(i) - 11}" y="${y(row.inflow)}" width="9" height="${Math.max(0, zero - y(row.inflow))}" rx="1.5"></rect><rect class="chart-expense" x="${x(i) + 2}" y="${zero}" width="9" height="${Math.max(0, y(-row.outflow) - zero)}" rx="1.5"></rect>${i % 3 === 0 || i === rows.length - 1 ? `<text class="chart-label chart-label-x" x="${x(i)}" y="${height - 19}" text-anchor="middle">${count(row.week)}</text>` : ''}`).join('')}
         <path d="${path(line)}" class="chart-cash" fill="none"></path>${showHypothesis ? `<path d="${path(hypothetical)}" class="chart-hypothesis" fill="none" stroke-dasharray="5 4"></path>` : ''}
-        <circle class="chart-point${low < 0 ? ' chart-low' : ''}" cx="${lowX}" cy="${lowY}" r="4"></circle><text class="chart-label${low < 0 ? ' chart-low' : ''}" x="${lowTextX}" y="${lowY < 48 ? lowY + 20 : lowY - 8}" text-anchor="middle">${shortYuan(low)}</text>
+        <circle class="chart-point${low < 0 ? ' chart-low' : ''}" cx="${lowX}" cy="${lowY}" r="4"></circle>
       </svg>
       <figcaption class="chart-legend"><span class="positive">▉ ＋现金流入</span><span class="negative">▉ −支出</span><span>━ 预计余额</span>${showHypothesis ? '<span class="pending">┄ 若中单</span>' : ''}</figcaption>
     </figure>
@@ -237,21 +291,26 @@ export function officePage(state, feature = {}) {
   const person = assistantFor(state.assistant);
   const open = openOrders(state).length;
   const due = state.receivables.filter(item => openInvoice(item) && item.dueWeek <= state.week).length;
-  return `<section class="hero panel">${imageFrame(feature.officeImage ?? person.office, { className: 'hero-art', fallback: '办公室插画暂时无法显示', alt: '', lazy: false, retry: true })}<div class="hero-copy"><p>${Number.isSafeInteger(feature.year) ? `${feature.year} 年 · ` : ''}${yearWeek(state.week)} · ${['晴间多云', '晴', '微风', '阵雨'][state.week % 4]}</p><h2>${esc(state.company.name)}</h2><p>${esc(person.name)}已就位。把本周的生意一单一单理清。</p></div>${feature.port ?? ''}</section>
-    <div class="office-grid"><section class="panel"><header class="panel-heading"><div><h2>本周待办</h2><p>结算前看一下手上的事。</p></div></header><div class="todo-list">
+  return `<div class="office-scenes"><section class="office-picture">${imageFrame(feature.officeImage ?? person.office, { className: 'hero-art', fallback: '办公室插画暂时无法显示', alt: '', lazy: false, retry: true })}
+    <div class="office-picture-note adviser"><header class="panel-heading"><div><h2>${state.difficulty === 'casual' ? '办公室助理' : '助理建议'}</h2><p class="muted">${esc(person.name)}</p></div>${Number.isSafeInteger(feature.year) ? `<p class="muted">${feature.year} 年</p>` : ''}</header>${state.difficulty === 'casual' ? '' : `<p class="adviser-note">${adviserTip(state, rows)}</p>`}</div></section>
+    <div class="office-activity">${feature.port ?? ''}<section class="panel"><header class="panel-heading"><div><h2>本周待办</h2><p>结算前看一下手上的事。</p></div></header><div class="todo-list">
       <button type="button" data-ui="page" data-page="inquiries"><span><strong>${count(state.inquiries.length)} 条询盘</strong><small>已提交 ${count(state.bids.length)} / 3 个报价</small></span><span aria-hidden="true">→</span></button>
       <button type="button" data-ui="page" data-page="orders"><span><strong>${count(open)} 笔待交付订单</strong><small>${due ? `本周 ${count(due)} 笔待收款` : '查看交付、回款与库存'}</small></span><span aria-hidden="true">→</span></button>
-    </div></section>
-    <section class="panel adviser"><header class="panel-heading"><div><h2>助理建议</h2><p>${esc(person.name)}</p></div>${portrait(person)}</header><p class="adviser-note">${adviserTip(state, rows)}</p></section></div>
+    </div></section></div></div>
     ${forecastPanel(rows, state)}
     <section class="panel"><header class="panel-heading"><h2>经营动态</h2></header>${state.log.length ? `<ol class="activity-list">${state.log.slice(0, 10).map(item => `<li><span class="badge">${weekLabel(item.week)}</span><p>${esc(item.text)}</p></li>`).join('')}</ol>` : '<p class="empty">开张第一周，等你发出首笔报价。</p>'}</section>`;
 }
 
-export function companyPage(state, extra = '') {
+export function companyPage(state, selected, detail = '') {
+  const navigation = `<nav class="development-tabs" aria-label="发展分区">${developmentTabs.map(([id, label]) => `<button type="button" class="button development-tab" data-ui="development-tab" data-id="${id}" aria-pressed="${selected === id}">${label}</button>`).join('')}</nav>`;
+  const content = selected === 'finance' ? financeSection(state) : selected === 'board-goals' ? detail + annualSection(state) : detail;
+  return `${navigation}<div class="page-content development-content" data-development-panel="${selected}">${content}</div>`;
+}
+
+function financeSection(state) {
   const limit = state.creditLine ?? creditLimit(state);
   const remaining = Math.max(0, limit - state.loan);
   const payable = Math.max(0, Math.min(state.cash, state.loan));
-  const year = state.year;
   return `<div class="company-grid"><section class="panel"><header class="panel-heading"><div><h2>银行授信</h2><p>按周计息。到期款遇到资金不足时，系统会先动用剩余授信。</p></div></header>
     <dl class="key-values"><div><dt>总额度</dt><dd>${yuan(limit)}</dd></div><div><dt>已借款</dt><dd>${yuan(state.loan)}</dd></div><div><dt>可用额度</dt><dd>${yuan(remaining)}</dd></div></dl>
     <div class="finance-forms">
@@ -259,9 +318,12 @@ export function companyPage(state, extra = '') {
       ${financeForm('repay', '还款', payable, state.loan > 0 ? '现金不足' : '没有未还借款')}
     </div></section>
     <section class="panel"><header class="panel-heading"><div><h2>信誉与净资产</h2><p>按时交付能积累信誉。信誉影响哪些询盘可以报价、中单机会和授信额度。</p></div></header><dl class="key-values"><div><dt>信誉</dt><dd>${count(state.company.rep)} / 100</dd></div><div><dt>净资产</dt><dd>${yuan(netAssets(state))}</dd></div></dl><progress max="100" value="${state.company.rep}" aria-label="公司信誉"></progress></section></div>
-    <section class="panel"><header class="panel-heading"><h2>年度经营</h2></header>${table(['年度', '营收', '净利', '交付', '逾期'], [...(year.records ?? []), year].slice(-8).map(row => [`第 ${count(row.number)} 年`, yuan(row.revenue), yuan(row.profit), `${count(row.deliveries)} 单`, `${count(row.late)} 单`]))}</section>
-    ${extra}
     <section class="panel"><header class="panel-heading"><h2>最近 12 周</h2></header>${recentTrends(state.history)}${table(['周次', '营收', '净利', '周末现金', '信誉'], state.history.slice(-12).reverse().map(row => [weekLabel(row.week), yuan(row.revenue), yuan(row.profit), yuan(row.cash), count(row.rep)]), '结算后，这里会列出每周经营记录。')}</section>`;
+}
+
+function annualSection(state) {
+  const year = state.year;
+  return `<section class="panel"><header class="panel-heading"><h2>年度经营</h2></header>${table(['年度', '营收', '净利', '交付', '逾期'], [...(year.records ?? []), year].slice(-8).map(row => [`第 ${count(row.number)} 年`, yuan(row.revenue), yuan(row.profit), `${count(row.deliveries)} 单`, `${count(row.late)} 单`]))}</section>`;
 }
 
 function financeForm(type, label, max, unavailable) {
@@ -281,10 +343,10 @@ function recentTrends(history) {
   }).join('')}</div>`;
 }
 
-export function offworkPage(state, extra = '') {
+export function offworkPage(state, extra = '', saveStatus = 'ready') {
   const pending = state.bids.length ? `还有 ${count(state.bids.length)} 笔报价等本周结算。` : '这周没有待出结果的报价。';
   return `<section class="panel"><header class="panel-heading"><div><h2>收好这周的账本</h2><p>${pending}</p></div></header><p>结算会推进生产、运输和回款，同时扣除本周开支。</p><div class="toolbar"><button type="button" class="button primary" data-action="end-week"${state.events.length || state.bankrupt ? ' disabled' : ''}>结束本周 →</button><button type="button" class="button secondary" data-action="advance-four"${state.events.length || state.bankrupt ? ' disabled' : ''}>连推四周</button></div></section>
-  ${extra}<section class="panel"><header class="panel-heading"><h2>离开本局</h2></header><p class="session-warning" data-session-warning="leaving">重新开局、刷新或关闭页面都会结束本局。</p><button type="button" class="button quiet" data-ui="request-restart">重新开局</button></section>`;
+  ${extra}<section class="panel"><header class="panel-heading"><h2>离开本局</h2></header><p class="session-warning" data-session-warning="leaving">经营进度自动保存到当前浏览器，刷新或关页后可以继续经营。</p><p class="muted" data-save-indicator role="status">${saveStatus === 'ready' ? '已自动存档' : '当前进度尚未存档'}</p><button type="button" class="button quiet" data-ui="request-restart">重新开局</button></section>`;
 }
 
 const cashLabels = {
@@ -323,6 +385,11 @@ function summaryCash(weeks) {
   };
 }
 
+export function milestoneGallery(milestoneIds) {
+  const illustrated = ACHIEVEMENTS.filter(item => item.asset && milestoneIds.has(item.id));
+  return illustrated.length ? `<div class="growth-cards milestone-gallery" aria-label="已达成的里程碑">${illustrated.map(item => `<figure class="milestone-card">${imageFrame(item.asset, { className: 'milestone-image', alt: item.alt, fallback: '纪念插画暂时无法显示', retry: true })}<figcaption>${esc(item.label)}</figcaption></figure>`).join('')}</div>` : '';
+}
+
 function summaryContent(summary, tutorial, firstOrder) {
   const multiWeek = (summary.weeks?.length ?? 0) > 1;
   const weeks = multiWeek ? summary.weeks : [summary];
@@ -332,6 +399,7 @@ function summaryContent(summary, tutorial, firstOrder) {
   const inflow = weeks.reduce((sum, row) => sum + row.inflow, 0);
   const outflow = weeks.reduce((sum, row) => sum + row.outflow, 0);
   const messages = weeks.flatMap(row => row.messages ?? []);
+  const milestones = new Set(weeks.flatMap(row => row.illustratedMilestones ?? []));
   const buyerName = bid => bid.buyer?.name ?? bid.buyer;
   const cash = summaryCash(weeks);
   return `<header class="dialog-header"><div><p class="eyebrow">${multiWeek ? `${weekLabel(weeks[0].week)}至${weekLabel(summary.week)}` : weekLabel(summary.week)}</p><h2 id="modal-title" tabindex="-1">${multiWeek ? '经营小结' : '本周小结'}</h2></div></header>
@@ -340,6 +408,7 @@ function summaryContent(summary, tutorial, firstOrder) {
     ${won.length ? `<h3>中单通知</h3>${table(['买家', '成交价'], won.map(bid => [buyerName(bid), contractPrice(bid)]))}` : ''}
     ${firstOrder ? '<p>每周结算会自动推进备货、运输和交付。到「订单」可以查看交期和预计回款。</p>' : ''}
     ${lost.length ? `<h3>未中单</h3>${table(['买家', '胜出同行', '成交价'], lost.map(bid => [buyerName(bid), bid.winner, contractPrice(bid)]))}` : ''}
+    ${milestoneGallery(milestones)}
     ${messages.length ? `<ul class="summary-messages">${messages.map(message => `<li>${esc(message)}</li>`).join('')}</ul>` : ''}
     ${summary.annual ? `<section class="annual-summary"><h3>年度结算 · 第 ${count(summary.annual.number)} 年</h3><p>营收 ${yuan(summary.annual.revenue)} · 净利 ${yuan(summary.annual.profit)} · 交付 ${count(summary.annual.deliveries)} 单 · 逾期 ${count(summary.annual.late)} 单</p>${annualGoalResult(summary.annual.goal)}</section>` : ''}
     </div><div data-tour="week-summary">${tutorial}</div></div>`;
@@ -353,19 +422,20 @@ function annualGoalResult(goal) {
 
 function eventContent(state, event, notice) {
   const { context, choices } = decisionInfo(state, event);
-  const comic = /^assets\/[\w.-]+\.(?:webp|png|jpe?g|svg)$/i.test(event.comic ?? '')
-    ? `<img class="event-comic" src="${esc(event.comic)}" alt="${esc(event.comicAlt ?? '客户插画')}" loading="lazy" decoding="async">` : '';
-  const button = (choice, description = '') => `<button type="button" class="button secondary" data-action="resolve-event" data-id="${esc(event.id)}" data-choice="${esc(choice.id)}"${description}${choice.disabled ? ' disabled' : ''}>${esc(choice.label)}</button>`;
+  const recommendation = eventCoach(state, event, choices);
+  const celebration = event.type === 'ipo-celebration';
+  const comic = imageFrame(event.comic, { className: 'event-comic', alt: event.comicAlt ?? '经营场景插画', fallback: '插画暂时无法显示', retry: true });
+  const button = (choice, description = '') => `<button type="button" class="button ${celebration || recommendation?.id === choice.id ? 'primary' : 'secondary'}" data-action="resolve-event" data-id="${esc(event.id)}" data-choice="${esc(choice.id)}"${description}${choice.disabled ? ' disabled' : ''}>${esc(choice.label)}${recommendation?.id === choice.id ? ' · 助理推荐' : ''}</button>`;
   const explained = choices.some(choice => choice.details.length);
   const decisionList = explained ? `<ul class="decision-choices" aria-label="处理方式">${choices.map((choice, i) => {
     const descriptionId = `decision-option-${i + 1}`;
     const details = choice.details.length ? `<ul class="decision-detail" id="${descriptionId}">${choice.details.map(line => `<li>${esc(line)}</li>`).join('')}</ul>` : '';
     return `<li class="decision-option">${button(choice, details ? ` aria-describedby="${descriptionId}"` : '')}${details}</li>`;
   }).join('')}</ul>` : '';
-  return `<header class="dialog-header"><div><p class="eyebrow">需要决定</p><h2 id="modal-title" tabindex="-1">${esc(event.title)}</h2></div></header>
+  return `<header class="dialog-header"><div><p class="eyebrow">${celebration ? '企业里程碑' : '需要决定'}</p><h2 id="modal-title" tabindex="-1">${esc(event.title)}</h2></div></header>
     <div class="dialog-body">${comic}<p>${esc(event.text ?? event.description)}</p>
     ${context.length ? `<ul class="decision-context" aria-label="涉及业务">${context.map(line => `<li>${esc(line)}</li>`).join('')}</ul>` : ''}
-    ${notice ? `<p role="alert" class="notice negative">${esc(notice)}</p>` : ''}${decisionList}</div>
+    ${notice ? `<p role="alert" class="notice negative">${esc(notice)}</p>` : ''}${recommendation?.html ?? ''}${decisionList}</div>
     ${explained ? '' : `<footer class="dialog-footer">${choices.map(choice => button(choice)).join('')}</footer>`}`;
 }
 
@@ -382,6 +452,6 @@ export function dialogContent(state, ui, quote) {
   }
   if (ui.dialog === 'event' && state.events.length) return eventContent(state, state.events[0], ui.notice);
   if (ui.dialog === 'bankruptcy') return `<header class="dialog-header"><div><p class="eyebrow">${weekLabel(state.week - 1)} · 本局结束</p><h2 id="modal-title" tabindex="-1">公司破产</h2></div></header><div class="dialog-body"><p>连续两周资金为负，授信已无法覆盖到期支出。</p><p>期末现金 <strong class="negative">${yuan(state.cash)}</strong></p></div><footer class="dialog-footer"><button type="button" class="button primary" data-ui="restart">重新开局</button></footer>`;
-  if (ui.dialog === 'restart') return '<header class="dialog-header"><h2 id="modal-title" tabindex="-1">重新开局？</h2></header><div class="dialog-body"><p data-session-warning="restart">重新开局会结束本局，当前进度无法恢复。</p></div><footer class="dialog-footer"><button type="button" class="button secondary" data-ui="close-dialog">继续本局</button><button type="button" class="button primary" data-ui="restart">重新开局</button></footer>';
+  if (ui.dialog === 'restart') return '<header class="dialog-header"><h2 id="modal-title" tabindex="-1">重新开局？</h2></header><div class="dialog-body"><p data-session-warning="restart">创立新的工作室后，将覆盖本机原有的存档。</p></div><footer class="dialog-footer"><button type="button" class="button secondary" data-ui="close-dialog">继续本局</button><button type="button" class="button primary" data-ui="restart">重新开局</button></footer>';
   return '';
 }

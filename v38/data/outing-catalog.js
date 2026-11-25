@@ -1,0 +1,2374 @@
+// The original V37 authored travel routes and friend scenes, adapted to a single
+// weekly outing action. Keep the source fiction and choices independent of V37 runtime.
+export const OUTING_COMPANIONS = [
+  {
+    "id": "fang",
+    "name": "方文斌"
+  },
+  {
+    "id": "liang",
+    "name": "梁佳音"
+  },
+  {
+    "id": "tao",
+    "name": "陶乐"
+  },
+  {
+    "id": "xu",
+    "name": "许明珊"
+  }
+];
+
+export const TRAVEL_OUTINGS = [
+  {
+    "id": "trip-paper-boat",
+    "kind": "trip",
+    "label": "桥下放纸船",
+    "description": "沿台阶走到桥下。只带张纸，不用买票。水急时就在岸边看。",
+    "asset": "assets/deal-outing-paper-boat-opening.webp",
+    "price": 0,
+    "energy": 10,
+    "duration": "约两小时",
+    "companionLines": {
+      "fang": "别蹲太靠外。坐这级台阶，腿也不用一直绷着。",
+      "liang": "我包里有纸。那张便利贴背面是空的，不拿报销单。",
+      "tao": "桥底下说话有回声。先别喊，听一会儿水。",
+      "xu": "这一段水慢，沿栏杆走过去就行。"
+    },
+    "choices": [
+      {
+        "id": "fold",
+        "label": "重折船头",
+        "price": 0,
+        "energy": 10,
+        "text": "把湿了的船头压出一道新折线。摆在台阶上试了试，它没有再一边高一边低。",
+        "asset": "assets/deal-outing-paper-boat-opening.webp",
+        "companionLines": {
+          "fang": "沿这道旧印折回来，船头就不厚了。",
+          "liang": "折歪也别拆了。我给你看看从正面像不像。",
+          "tao": "我折的这个更像条拖鞋，先别给它下水。",
+          "xu": "折好以后用指甲压两遍。干纸比湿纸好压。"
+        },
+        "epilogue": {
+          "title": "船头没再歪过去",
+          "text": "湿台阶上还留着一块干印。纸船往那儿一搁，两边贴得一样平，只有船头多出一道折痕。",
+          "asset": "assets/deal-trip-extra-paper-boat-fold-step.webp",
+          "alt": "石台阶上的浅色纸船两边立稳，船头有一道加深的折痕。",
+          "companionLines": {
+            "fang": "压的是船头，船底没给压扁。这就对了。",
+            "liang": "留着那道印吧。等它漂远了，说不定还能认出来。",
+            "tao": "刚那样像只湿拖鞋，这会儿总算有点船的意思了。",
+            "xu": "让它在干处放一放。不用把台阶踩湿了再试。"
+          }
+        }
+      },
+      {
+        "id": "float",
+        "label": "从岸边放出去",
+        "price": 0,
+        "energy": 10,
+        "text": "手一松它就往桥洞去。慢慢贴着水边走了一段，看纸船过完第二个桥墩。",
+        "asset": "assets/deal-outing-paper-boat-float.webp",
+        "companionLines": {
+          "fang": "过那个缓弯了。看，刚才折的船头没散。",
+          "liang": "还真没翻！我刚才都准备给它想个落水借口了。",
+          "tao": "水往这边拐的时候它也拐了，像熟门熟路。",
+          "xu": "后面水流快，站这儿看吧。丢了也不下去捞。"
+        },
+        "epilogue": {
+          "title": "过了第二个桥墩",
+          "text": "纸船过了第二个桥墩，折尖还立着。桥洞那头亮起来，船顺着石墩后的缓流转了小半圈，又朝下游去了。",
+          "asset": "assets/deal-trip-extra-paper-boat-pier.webp",
+          "alt": "白色折纸船漂过石桥墩，缓流在船身后泛起一条细波。",
+          "companionLines": {
+            "fang": "往下游去了。刚才那道折痕还在，没泡散。",
+            "liang": "等它漂进亮处，我才看清纸上还留着半条蓝线。",
+            "tao": "在桥墩边打了个转。我都以为卡住了，眨眼又漂出去了。",
+            "xu": "就在台阶上看吧。下游那段水快，用不着跟过去。"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "trip-shadow-show",
+    "kind": "trip",
+    "label": "巷尾皮影夜场",
+    "description": "靠近幕布的位置留好了。没到开场时，可以看看灯后的纸片人。",
+    "asset": "assets/deal-outing-shadow-show-opening.webp",
+    "price": 128,
+    "energy": 18,
+    "duration": "一晚",
+    "companionLines": {
+      "fang": "别把头凑到灯边。等你站好，我再替你扶杆。",
+      "liang": "幕布上一抬手特别有派头，转到背面就细细三根杆。",
+      "tao": "小时候我只顾看马跑。今晚才留意它怎么在半步停住。",
+      "xu": "场里灯暗，坐下再收包，别让肩带搭在过道上。"
+    },
+    "choices": [
+      {
+        "id": "lantern",
+        "label": "看灯后的手法",
+        "price": 128,
+        "energy": 18,
+        "text": "看清了师傅拇指搭在哪里。帘子上的人物看起来是在换步，手下其实只动了一点。",
+        "asset": "assets/deal-outing-shadow-show-lantern.webp",
+        "companionLines": {
+          "fang": "师傅的指头只动了一点，难怪影子没有晃。",
+          "liang": "我刚才以为换了个人。原来还是那只手从左边接过去。",
+          "tao": "灯照着那条细边，跟台下看完全两回事。",
+          "xu": "让师傅收了杆再近一点看。过道留着好走。"
+        },
+        "epilogue": {
+          "title": "旧靴子透了光",
+          "text": "师傅把皮影挂回灯边。靴尖有个针眼，灯一照，就在幕布上多出一颗星。刚才走夜路那场，星星竟是从这儿来的。",
+          "asset": "assets/deal-trip-extra-shadow-boot.webp",
+          "alt": "油灯照过皮靴的镂孔，在暗处投下一点亮光。",
+          "companionLines": {
+            "fang": "刚才他把靴尖往上一抬，那颗星就出来了。",
+            "liang": "我还以为后台有谁专门管星星。",
+            "tao": "一只靴子，台下看是赶夜路，台后看还能管天上的事。",
+            "xu": "先别挪灯。站在这里，正好能同时看到针眼和那点光。"
+          }
+        }
+      },
+      {
+        "id": "puppet",
+        "label": "试抬一下影偶的胳膊",
+        "price": 128,
+        "energy": 18,
+        "text": "抬高就看不清影子，轻轻往下，才像是在跟人招手。师傅笑着收回了细杆。",
+        "asset": "assets/deal-outing-shadow-show-puppet.webp",
+        "companionLines": {
+          "fang": "手降半寸就对了。离幕布远了反倒显得乱。",
+          "liang": "这下像招手了。刚才那下像赶我们走。",
+          "tao": "它动完没立刻收手，是个人才会有的停顿。",
+          "xu": "杆先交回去。带着它转身容易扫到灯。"
+        },
+        "epilogue": {
+          "title": "有人来接戏",
+          "text": "影偶的胳膊还举着，幕布另一头忽然飞来一只小鸟，在它指尖停了一下。师傅隔着幕布问：“这回接住了吧？”",
+          "asset": "assets/deal-trip-extra-shadow-bird.webp",
+          "alt": "皮影戏幕上，一只小鸟正对着影偶举起的手臂。",
+          "companionLines": {
+            "fang": "刚才胳膊停得正好。他等的就是这一下。",
+            "liang": "接住了！我还以为它会在半道拐回去。",
+            "tao": "原来举着胳膊不是招手，是在等鸟啊。",
+            "xu": "别急着放杆。鸟还没飞走呢。"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "trip-tidepool",
+    "kind": "trip",
+    "label": "退潮赶海",
+    "description": "跟向导走安全线内的潮池，回来有热水洗脚。看见活的小东西先让它待在原处。",
+    "asset": "assets/deal-outing-tidepool-opening.webp",
+    "price": 168,
+    "energy": 22,
+    "duration": "半天",
+    "companionLines": {
+      "fang": "脚下那处在滴水，先踩干的石头。往前走不急。",
+      "liang": "那团沙动了一下。蹲低一点就能看见，不用抓。",
+      "tao": "我刚想说是片叶子，它就倒着走了。",
+      "xu": "回程线先记住。等向导点头，再往前看下一个池。"
+    },
+    "choices": [
+      {
+        "id": "look",
+        "label": "伏低些看潮池",
+        "price": 168,
+        "energy": 22,
+        "text": "石头下露出一对很细的触须。等海水退回去又伸出来，你没伸手去碰它。",
+        "asset": "assets/deal-outing-tidepool-look.webp",
+        "companionLines": {
+          "fang": "等眼睛习惯一点，能看见里面还有一只小的。",
+          "liang": "我有点想喊你看，怕一喊它又缩回去了。",
+          "tao": "它躲着的时候石头跟普通石头一样。",
+          "xu": "鞋往后挪一点。水线还在这儿。"
+        },
+        "epilogue": {
+          "title": "石缝还开着",
+          "text": "一阵薄水盖过去，石缝里只剩一条亮线。等水退下去，那两根细须又从同一个地方伸出来。",
+          "asset": "assets/deal-trip-extra-tidepool-feelers.webp",
+          "alt": "浅潮池石缝里探出的两根触须；一层海水正沿石面退去。",
+          "companionLines": {
+            "fang": "先别动。水过去了，你看，还是从那条缝出来。",
+            "liang": "刚才亮得看不清。我还以为它连家都搬了。",
+            "tao": "露两根须就缩回去，像出来瞄一眼谁在敲门。",
+            "xu": "站在干的这块就看得到，不必再往水边挪。"
+          }
+        }
+      },
+      {
+        "id": "map",
+        "label": "在地图上标一处水线",
+        "price": 168,
+        "energy": 22,
+        "text": "向导摊开图。这条线看起来离岸很近，但一涨潮，来时那块石头就看不见了。",
+        "asset": "assets/deal-outing-tidepool-opening.webp",
+        "companionLines": {
+          "fang": "把近岸这条也画上。回程能用眼睛对上。",
+          "liang": "我用笔点一下那块大石头，省得回头说各自记错地方。",
+          "tao": "原来直着走的那段路，有一半后来都成了水。",
+          "xu": "图折好放外兜，走的时候向导还会再说一遍。"
+        },
+        "epilogue": {
+          "title": "回去就认那块石头",
+          "text": "图角被小石子压住。往纸外一看，岸边那块大石头从中间裂开，果然和向导指的是同一块。",
+          "asset": "assets/deal-trip-extra-tidepool-map-rock.webp",
+          "alt": "摊开的潮线图放在干石上，远处水边有一块裂开的黑石。",
+          "companionLines": {
+            "fang": "裂缝朝岸上，远远就看得出来。",
+            "liang": "线画得再细，也不如那道缝好认。",
+            "tao": "我刚还说石头都长一个样。就这块，裂得跟切过似的。",
+            "xu": "记住就回来。走哪一段还得等向导说，别光凭图。"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "trip-pottery",
+    "kind": "trip",
+    "label": "陶房拉坯",
+    "description": "坐到轮盘前，从一团泥做起。店里代烧，约好取件再走。",
+    "asset": "assets/deal-outing-pottery-opening.webp",
+    "price": 480,
+    "energy": 28,
+    "duration": "半天",
+    "companionLines": {
+      "fang": "肘别悬着，能省不少力。手稳了再接着抬。",
+      "liang": "把腕子搁这儿。再歪一点也无所谓，正好当作有记号的那只。",
+      "tao": "我那只已经长成小碗了。你先做自己的，别被我的带跑了。",
+      "xu": "底上写个名字和日期，取件时不用靠猜。"
+    },
+    "choices": [
+      {
+        "id": "center",
+        "label": "把泥往轮盘中心收",
+        "price": 480,
+        "energy": 28,
+        "text": "泥在手心不停往外抖。肘放稳、松一点劲，才慢慢回到轮盘中心。",
+        "asset": "assets/deal-outing-pottery-opening.webp",
+        "companionLines": {
+          "fang": "肘贴着腿，盘开慢点。刚上手不用非弄成圆的。",
+          "liang": "我看着它越转越偏，手稍一松反而回来了。",
+          "tao": "这和我包饺子一个毛病，怕它跑就压得太重。",
+          "xu": "只加一点水。底座软了才真扶不回来。"
+        },
+        "epilogue": {
+          "title": "泥终于不跑了",
+          "text": "轮盘还在转，泥团却像停在了中间。边上留了几圈浅浅的泥水印，再也没新的一圈往外走。",
+          "asset": "assets/deal-trip-extra-pottery-center-wheel.webp",
+          "alt": "陶轮中央是一团揉稳的湿泥，边缘有同心的泥水印。",
+          "companionLines": {
+            "fang": "这下稳了，先别急着往上提。",
+            "liang": "刚才恨不得追着它转，现在总算能好好看它了。",
+            "tao": "它要是再跑一圈，我都快给它买张车票了。",
+            "xu": "手先放松一会儿。下一步等师傅把轮盘调慢。"
+          }
+        }
+      },
+      {
+        "id": "shape",
+        "label": "慢慢收一次杯口",
+        "price": 480,
+        "energy": 28,
+        "text": "杯口最后还有一点斜。桌上摆了一排太圆的样杯，你还是留下了自己这只。",
+        "asset": "assets/deal-outing-pottery-shape.webp",
+        "companionLines": {
+          "fang": "拇指松一下，再顺着杯口轻轻收。",
+          "liang": "我喜欢这一圈不太均匀的线。先别拿海绵抹没了。",
+          "tao": "喝起水来会朝斜的那边流么？烧好我也想试试。",
+          "xu": "把取件单拿好，等师傅做完记号再起身。"
+        },
+        "epilogue": {
+          "title": "架子上那只斜口杯",
+          "text": "陶工把湿坯搁上晾架，轻轻拨了半圈。斜的那一边正对着门口，和旁边一排圆杯分得清清楚楚。",
+          "asset": "assets/deal-trip-extra-pottery-rim.webp",
+          "alt": "陶工把口沿略斜的湿泥杯摆上木架，旁边一排杯口整齐。",
+          "companionLines": {
+            "fang": "别再扶了。刚离轮的泥软，让它自己站稳。",
+            "liang": "下回来取，我从门口就能认出来。",
+            "tao": "这一排都站得板板正正，就这只像刚歪头听了句什么。",
+            "xu": "让师傅把它往里挪一点吧。门口来来往往的，袖子容易扫到。"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "trip-cave-boat",
+    "kind": "trip",
+    "label": "溶洞泛舟",
+    "description": "地面凉，跟船工从明水走进洞里。窄处不探身，沿程灯光会暗下来。",
+    "asset": "assets/deal-outing-cave-boat-opening.webp",
+    "price": 1180,
+    "energy": 42,
+    "duration": "一日往返",
+    "companionLines": {
+      "fang": "坐稳。洞里觉得船没动，抬头看石壁就知道还在走。",
+      "liang": "灯一暗，我刚才差点把倒影当成了路。",
+      "tao": "平常岸边滴水没什么，到这里每一滴都听得见。",
+      "xu": "衣服别搭出船边。等过了窄处，船工会放慢。"
+    },
+    "choices": [
+      {
+        "id": "echo",
+        "label": "收住话听一次回音",
+        "price": 1180,
+        "energy": 42,
+        "text": "船工停了拨水的手。前头滴下来的一点水，听着像是从背后响的。",
+        "asset": "assets/deal-outing-cave-boat-echo.webp",
+        "companionLines": {
+          "fang": "先把话停一下。我听见一滴水响了不止一次。",
+          "liang": "我以为是隔壁有人划船，原来这会儿就我们。",
+          "tao": "家里屋檐漏水可没这种好听法。",
+          "xu": "话音走得远。后面别人说话时也给他们留一点安静。"
+        },
+        "epilogue": {
+          "title": "桨抬起来以后",
+          "text": "船工把桨横放在膝上。水面暗下来，最后一圈涟漪到了石壁，洞里只剩从远处折回来的一声。",
+          "asset": "assets/deal-trip-extra-cave-ripple.webp",
+          "alt": "洞船船工横放木桨，最后一圈小涟漪靠近岩壁。",
+          "companionLines": {
+            "fang": "桨早就没动了。隔这么久，还能听见一点。",
+            "liang": "从那边回来的吧？刚才我差点转头跟它说话。",
+            "tao": "我本来想接一声，自己把嘴捂住了。难得有人肯听完。",
+            "xu": "等船工重新下桨再说话，这么静的时候，连水声走多远都听得出。"
+          }
+        }
+      },
+      {
+        "id": "outline",
+        "label": "记住石壁转弯的轮廓",
+        "price": 1180,
+        "energy": 42,
+        "text": "先看到亮处，后看见亮处下面一道黑线。出洞时回头，它已经跟岸边一样暗了。",
+        "asset": "assets/deal-outing-cave-boat-outline.webp",
+        "companionLines": {
+          "fang": "灯挪过去才看见石壁是在往外凸，不是个洞。",
+          "liang": "我差一点要拿手机。看清楚了就算记下来，不用事事拍。",
+          "tao": "转过去那道像没擦净的铅笔线，再回头就找不到了。",
+          "xu": "斗篷往里收一下。等船出这个弯再转身。"
+        },
+        "epilogue": {
+          "title": "那条线留在弯里",
+          "text": "船出了洞口，眼睛慢慢适应了天光。回望时，刚才鼓出来的石壁已经藏进一条深色弯线，只剩水面还认得那个转角。",
+          "asset": "assets/deal-trip-extra-cave-outline.webp",
+          "alt": "洞内的灯照出凸起的石壁与水线；出洞回望，弯道已暗。",
+          "companionLines": {
+            "fang": "我刚才拿水线当尺了。没那条线，还真看不出石头鼓到哪儿。",
+            "liang": "照片大概只会剩黑乎乎的一块。记住它是个弯就够了。",
+            "tao": "像小时候关台灯，书上有句话还亮在脑子里。",
+            "xu": "已经到明水了。从这里回头看，反而不用伸着脖子找。"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "trip-night-train",
+    "kind": "trip",
+    "label": "坐夜车看海",
+    "description": "晚上上车，天亮到海边。卧铺和站外早餐都排好了，出站不用赶第一班接驳。",
+    "asset": "assets/deal-outing-night-train-opening.webp",
+    "price": 2280,
+    "energy": 54,
+    "duration": "周末两天",
+    "companionLines": {
+      "fang": "前半夜我守着小灯。到了能看海的时候叫你。",
+      "liang": "先别收枕头，还早。窗帘缝里才刚有点光。",
+      "tao": "火车没停的时候海就在旁边，悄悄跑了好一段。",
+      "xu": "车票和证件都收进同一个口袋，吃完早饭再翻。"
+    },
+    "choices": [
+      {
+        "id": "wake",
+        "label": "赶在日出前推开窗帘",
+        "price": 2280,
+        "energy": 54,
+        "text": "玻璃上还映着车厢。再亮一点，能分出黑黑的一条海岸，不是平时早起看到的楼顶。",
+        "asset": "assets/deal-outing-night-train-wake.webp",
+        "companionLines": {
+          "fang": "玻璃起雾了，别急着擦。等车转过去，外边会亮些。",
+          "liang": "我早醒了，一直没拉帘。想等能看见岸线再一起看。",
+          "tao": "楼顶和海岸在天没亮时真像。多瞧一会儿才分出来。",
+          "xu": "先从铺上坐稳。等它离站远点再拍，免得反光。"
+        },
+        "epilogue": {
+          "title": "红浮标",
+          "text": "列车过了海堤，窗外闪过一枚红浮标。下一扇窗又看见它，原来是铁路线在岸边拐了个弯。",
+          "asset": "assets/deal-trip-extra-train-buoy.webp",
+          "alt": "晨光里的海堤和红浮标。",
+          "companionLines": {
+            "fang": "就是刚才那枚。看，顶上掉了块漆。",
+            "liang": "我换了边窗户，它居然还在。",
+            "tao": "像不像它抄了条近路，跑到火车前头了？",
+            "xu": "再过一个弯就看不见了。这边角度正好。"
+          }
+        }
+      },
+      {
+        "id": "breakfast",
+        "label": "下车吃一顿热早餐",
+        "price": 2280,
+        "energy": 54,
+        "text": "咸豆浆端来时，站外的风把窗纸吹响。慢慢吃完才往海边走，谁也没催。",
+        "asset": "assets/deal-outing-night-train-breakfast.webp",
+        "companionLines": {
+          "fang": "加点热水，不必为了快出门把这口喝烫了。",
+          "liang": "这一碗暖和得刚好。我坐了一夜，先别催我挪地方。",
+          "tao": "昨晚我就惦记这个饼。你听，掰开都是脆的。",
+          "xu": "等盘子吃完再走。出门还有一道立交得绕。"
+        },
+        "epilogue": {
+          "title": "碗底那几粒虾皮",
+          "text": "豆浆见了底，才发现碗底沉着几粒虾皮。隔壁桌一叫“照旧”，厨房就应了声：“知道，不放葱。”",
+          "asset": "assets/deal-trip-extra-train-bowl.webp",
+          "alt": "早餐店桌上见底的豆浆碗和一碟饼屑。",
+          "companionLines": {
+            "fang": "原来虾皮都在碗底。怪不得喝着这么鲜。",
+            "liang": "我想在这儿住两天。下回也试试喊一声“照旧”。",
+            "tao": "我刚才光顾着吃饼了。给我看看，还真有。",
+            "xu": "不赶车就是好。坐到现在，碗里的东西才算吃明白了。"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "trip-balloon",
+    "kind": "trip",
+    "label": "山谷热气球",
+    "description": "天刚亮集合，风和能见度合适才起飞。地面车会跟到落地点。",
+    "asset": "assets/deal-outing-balloon-opening.webp",
+    "price": 3980,
+    "energy": 66,
+    "duration": "周末两天",
+    "companionLines": {
+      "fang": "觉得晕就看前面那座山，别连着低头。",
+      "liang": "刚起来我还能看见咱们坐的车。再一抬头，屋顶都快分不清了。",
+      "tao": "下面不是没有声音，是声音跟不上。",
+      "xu": "手机先收好。落地听飞行员的，不用抢着先出去。"
+    },
+    "choices": [
+      {
+        "id": "rise",
+        "label": "俯看上升时的田埂",
+        "price": 3980,
+        "energy": 66,
+        "text": "田里的路从清清楚楚的一条，变成了几道细线。整片雾慢半拍才从地里退开。",
+        "asset": "assets/deal-outing-balloon-rise.webp",
+        "companionLines": {
+          "fang": "下面那条连着水田的路刚还看得到，已经被雾吃掉了。",
+          "liang": "我看见一户人家的蓝屋顶了。刚想指给你，它就转到背面去了。",
+          "tao": "我明明走过这一带，从上头看，连来时那条路都认不出来。",
+          "xu": "靠里站。要往下看，把相机带先绕好。"
+        },
+        "epilogue": {
+          "title": "雾里让出的那条田埂",
+          "text": "山谷起初像蒙着一层白布。一条田埂先露出来，拐到蓝屋顶旁边，又钻回雾里。",
+          "asset": "assets/deal-trip-extra-balloon-dike.webp",
+          "alt": "俯视晨雾里的田野，一段弯曲田埂从雾中露出，旁边是一座蓝屋顶。",
+          "companionLines": {
+            "fang": "从这儿才看得清，田埂在蓝屋顶后头拐了两个弯。",
+            "liang": "屋顶倒是认出来了。刚才我怎么找也找不到那条回去的路。",
+            "tao": "真像有人拿橡皮擦到一半，突然想起得留一条路。",
+            "xu": "先看远处，别一直低头。等雾自己过去，那一格田也会露出来。"
+          }
+        }
+      },
+      {
+        "id": "land",
+        "label": "听从指示稳稳站好",
+        "price": 3980,
+        "energy": 66,
+        "text": "落地前没再找角度拍照。先站稳，等他们把吊篮扶正，才敢松开手。",
+        "asset": "assets/deal-outing-balloon-land.webp",
+        "companionLines": {
+          "fang": "先别撒手。等师傅说停稳再抬头。",
+          "liang": "刚刚路还细得像根线，一落地，草就又齐膝了。",
+          "tao": "风一停，树叶响得也不一样。回去那一路我想开着窗。",
+          "xu": "还有一下颠。腿先别打直，照刚才教的站。"
+        },
+        "epilogue": {
+          "title": "草尖靠回篮边",
+          "text": "地面队把吊篮扶正，草叶重新靠到篮边。飞行员示意可以松手，远处那条田埂又成了一段走得到的路。",
+          "asset": "assets/deal-trip-extra-balloon-landing.webp",
+          "alt": "热气球已落在谷地草场，地面人员在藤篮旁，草叶靠着篮底。",
+          "companionLines": {
+            "fang": "脚下不晃了。原来刚才那一下，我连肩膀都绷着。",
+            "liang": "从上面看，这片草只有一种颜色。现在我数得出三种绿。",
+            "tao": "我想把那条田埂走一遍。从地上走，应该比刚才长得多。",
+            "xu": "等人家把绳收完再走。你看篮边这草，都慢慢弹回来了。"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "trip-sail-charter",
+    "kind": "trip",
+    "label": "包一艘夜航帆船",
+    "description": "有船员操船，日落前从内港出发。海况不合适不离港，晚餐和返航都在这趟里。",
+    "asset": "assets/deal-outing-sail-charter-opening.webp",
+    "price": 39800,
+    "energy": 95,
+    "duration": "两天一夜",
+    "companionLines": {
+      "fang": "缆绳这边让船员来。想吹风，往船尾空一点的地方坐。",
+      "liang": "我以为到海上什么都看不见。等眼睛习惯了，连后面的浪都能分开。",
+      "tao": "远处的岸灯比近处的浪还慢。坐这里一会儿，就不惦记手机了。",
+      "xu": "风大了先回舱。看完灯再出来，不必一直站外面。"
+    },
+    "choices": [
+      {
+        "id": "twilight",
+        "label": "在船尾看日落",
+        "price": 39800,
+        "energy": 95,
+        "text": "刚出港还有说话声。岸上最后一块亮窗转到后面，才想把手里的外套披起来。",
+        "asset": "assets/deal-outing-sail-charter-twilight.webp",
+        "companionLines": {
+          "fang": "船尾风大，外套先披上。还有时间看，不用赶。",
+          "liang": "岸上倒是最后一扇窗赢了，再暗一点才轮到我们点灯。",
+          "tao": "刚上船我还找灯下有什么字。现在只剩那一小块亮。",
+          "xu": "给船员让一下。从我这边也能看见。"
+        },
+        "epilogue": {
+          "title": "最后一扇亮窗",
+          "text": "船尾的浪一层层往外摊。岸上只剩一扇亮窗，在水上拉出一截金线；等船身转过一点，连那截金线也看不见了。",
+          "asset": "assets/deal-trip-extra-sail-twilight.webp",
+          "alt": "帆船船尾掠过渐暗的水面；岸边孤零零的一扇亮窗映出细长金光。",
+          "companionLines": {
+            "fang": "再看一会儿吧。外套披好了就不着急回去。",
+            "liang": "窗没灭，是咱们转了个角度。差点替人家把灯关了。",
+            "tao": "我赌那屋里的人根本不知道，这边有人看他的窗看了半天。",
+            "xu": "往栏杆里让一点。这个位置还能看着水，也不挡船员。"
+          }
+        }
+      },
+      {
+        "id": "return",
+        "label": "看返港时的红绿灯",
+        "price": 39800,
+        "energy": 95,
+        "text": "航道边红灯一闪一闪，认不出哪盏是起航时那一盏。等缆绳都系好，才从船尾挪到舷梯。",
+        "asset": "assets/deal-outing-sail-charter-return.webp",
+        "companionLines": {
+          "fang": "缆绳收好才过去，这段不用帮他们拉。",
+          "liang": "刚才海上吹了一整晚，这会儿闻到陆地的味道了。",
+          "tao": "上船时没觉得港口有声，一回来就听见铁链碰岸。",
+          "xu": "东西拿齐再走，舷梯窄，不在梯上回头。"
+        },
+        "epilogue": {
+          "title": "缆绳绷住的那一刻",
+          "text": "缆绳系好以后，船身轻轻往岸边靠了一下。红绿灯还在水里晃，岸上便利店那盏白灯已经不动了。",
+          "asset": "assets/deal-trip-extra-sail-mooring.webp",
+          "alt": "夜里系好缆绳的帆船和红绿灯倒影，岸边亮着一盏白灯。",
+          "companionLines": {
+            "fang": "绳绷住了。等船员开口咱们再下去，不抢这一步。",
+            "liang": "刚才海上见不着一扇窗。现在岸上随便哪盏灯都像还开着门。",
+            "tao": "船一停，绳子擦过木桩的声音倒比在海上听得清。",
+            "xu": "你听，连街上冰柜的声音都传到这儿了。已经离岸很近了。"
+          }
+        }
+      }
+    ]
+  }
+];
+
+export const FRIEND_OUTINGS = [
+  {
+    "id": "friend-book-return",
+    "kind": "friend",
+    "group": "fang",
+    "label": "去图书馆还书",
+    "description": "回家路过图书馆，有本拖了几天的书还在包里。",
+    "asset": null,
+    "price": 0,
+    "energy": 10,
+    "companionId": "fang",
+    "companionLines": {
+      "fang": "还书箱应该还开着。我也有一本，借你的手一起投了吧。",
+      "liang": "你那本我记得，封面是绿的。上回我还以为你舍不得还。",
+      "tao": "我借书最勤快的时候，就是快到还书那两天。",
+      "xu": "要是还想借，先看看里头有没有人值班。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "在还书箱投进去",
+        "price": 0,
+        "energy": 10,
+        "text": "书脊轻轻磕了一声。终于不用再把它从包里挪到桌上。"
+      },
+      {
+        "id": "second",
+        "label": "借本薄的再走",
+        "price": 0,
+        "energy": 10,
+        "text": "挑了本不厚的散文。开头两页留给回家路上。"
+      }
+    ]
+  },
+  {
+    "id": "friend-river-bench",
+    "kind": "friend",
+    "group": "outdoors",
+    "label": "河边空长椅",
+    "description": "晚饭前还有点亮，河边那张长椅刚好没人。",
+    "asset": "assets/deal-outing-reel-river-bench.webp",
+    "price": 0,
+    "energy": 6,
+    "companionLines": {
+      "fang": "坐这头吧，椅背那块还没干。",
+      "liang": "我喜欢对岸开灯那一会儿。咱们是不是来得正好？",
+      "tao": "咦，跑步那大哥又转回来了。咱来了多久了？",
+      "xu": "往里坐点，给后面推车的人留个道。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "坐着等下一盏灯亮",
+        "price": 0,
+        "energy": 6,
+        "text": "对岸亮灯时水面先有了一条线。等它散开才起身。"
+      },
+      {
+        "id": "second",
+        "label": "沿河再走一小段",
+        "price": 0,
+        "energy": 6,
+        "text": "拐弯处有人收网。站着看他把网甩干，步子也慢了。"
+      }
+    ]
+  },
+  {
+    "id": "friend-laundry-rain",
+    "kind": "friend",
+    "group": "streets",
+    "label": "洗衣房躲雨",
+    "description": "雨突然大了，街边洗衣房的檐下还有位置。",
+    "asset": "assets/deal-outing-reel-laundry-rain.webp",
+    "price": 0,
+    "energy": 10,
+    "companionLines": {
+      "fang": "往里站，檐口那一排水全往下掉。",
+      "liang": "有家店还开着，闻见茶味没？不想等就去那儿坐。",
+      "tao": "我出门还说肯定下不大。你听这屋顶，打得我都不好意思了。",
+      "xu": "雨水顺着伞柄流了。把伞尖朝下，别弄湿人家的衣服。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "站到雨小",
+        "price": 0,
+        "energy": 6,
+        "text": "滚筒转过最后一圈，屋檐的水也从线变成了点。"
+      },
+      {
+        "id": "second",
+        "label": "去隔壁喝杯热茶",
+        "price": 12,
+        "energy": 10,
+        "text": "捧一会儿杯子再喝，手就暖回来了。出门时雨已经小了。"
+      }
+    ]
+  },
+  {
+    "id": "friend-record-shop",
+    "kind": "friend",
+    "group": "culture",
+    "label": "唱片店最后一首",
+    "description": "唱片店快关门了，店主还肯放最后一面。歌唱到一半，墙那头传来两声快的、一声慢的。你等着听下一句，响声却没了。",
+    "asset": "assets/deal-outing-comic-record.webp",
+    "price": 0,
+    "energy": 14,
+    "companionLines": {
+      "fang": "怪了，换了一首，怎么还是那三下？",
+      "liang": "你也听见了？我还以为是我手指头跟着打拍子呢。",
+      "tao": "这张我家有。这儿该进喇叭，不该敲木头啊。",
+      "xu": "老板没去开门。应该不是有人敲门吧？"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "听完就走",
+        "price": 0,
+        "energy": 6,
+        "text": "没有催着翻面。最后一个音落下后，店里只剩针尖的响声。",
+        "companionLines": {
+          "fang": "唱完了也没再响。行，我可算听清最后那句词了。",
+          "liang": "刚才光顾着等它再响，漏听了一句。最后这段真好听。",
+          "tao": "我不跟你争了。明儿翻出我家那张，听听这儿到底有没有鼓。",
+          "xu": "幸好没过去敲墙。人家要是也在听歌，怪不好意思的。"
+        }
+      },
+      {
+        "id": "second",
+        "label": "淘一张旧唱片",
+        "price": 45,
+        "energy": 14,
+        "text": "内页夹着上一位听众留下的小票。店主把它和唱片一起给你。",
+        "companionLines": {
+          "fang": "你翻一下小票。背面记的是转速，倒没记那三声。回去放放就知道了。",
+          "liang": "这张小票别丢。有人把最喜欢的那一首用铅笔圈起来了。",
+          "tao": "我小时候也拿小票当书签。这张还有折角，夹了不止一回。",
+          "xu": "我来撑开纸袋，你先把内页塞好。买回去头一件事，听听那一段。"
+        }
+      },
+      {
+        "id": "follow-knocks",
+        "label": "循着三声去问问",
+        "price": 0,
+        "energy": 6,
+        "text": "店主抬起唱针，木头又响了三下。后门外，一个排练的姑娘正敲着门框给搭档递拍子。第三声一落，那人恰好唱进来。",
+        "companionLines": {
+          "fang": "难怪换了唱片还响。她手一停，那边的人就知道该进了。",
+          "liang": "我差点给她开门！她压根儿没要进来，是在等里头的人开口呢。",
+          "tao": "行，我那只喇叭还在。这三下是隔壁自己添的。",
+          "xu": "老板刚才没应门，原来是熟了。咱也别应，让人家接完这句。"
+        }
+      }
+    ]
+  },
+  {
+    "id": "friend-night-bus",
+    "kind": "friend",
+    "group": "streets",
+    "label": "坐一站夜班车",
+    "description": "公交到了，但离家只有一站，走路也能到。",
+    "asset": "assets/deal-outing-reel-night-bus.webp",
+    "price": 0,
+    "energy": 10,
+    "companionLines": {
+      "fang": "这趟只坐一站，刷完卡还没坐热就到了。",
+      "liang": "车里亮着灯，外面倒凉快。你想吹风，咱们就走桥上。",
+      "tao": "我刚才差点招手。想了想，我那天坐过了站，也是这么一站。",
+      "xu": "先让下车的人过。要走就从前头的人行道过去。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "步行过桥",
+        "price": 0,
+        "energy": 6,
+        "text": "桥底的水声盖住了车辆声，过桥之后才发现夜里风不冷。"
+      },
+      {
+        "id": "second",
+        "label": "坐到下一站",
+        "price": 3,
+        "energy": 10,
+        "text": "后窗隔着玻璃看街灯，三分钟也算歇了一程。",
+        "asset": "assets/deal-outing-result-night-bus-rear-window.webp"
+      }
+    ]
+  },
+  {
+    "id": "friend-court-lights",
+    "kind": "friend",
+    "group": "outdoors",
+    "label": "学校外的球场",
+    "description": "院墙里的球场没满，常来打球的人问差不差一个。",
+    "asset": "assets/deal-outing-reel-court-lights.webp",
+    "price": 0,
+    "energy": 6,
+    "companionLines": {
+      "fang": "还差一个。你要是上，我坐这儿帮你看着包。",
+      "liang": "你看那人脚步多快，我眼睛差点跟不上。",
+      "tao": "让我先摸一下球，别第一投就给人砸篮板背面。",
+      "xu": "我看分，你们谁也别打完才说刚才那球算三个。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "在场边帮忙记分",
+        "price": 0,
+        "energy": 6,
+        "text": "他们打完只记得最后一球，谁都没追问你前面少记的一分。"
+      },
+      {
+        "id": "second",
+        "label": "下场打一局",
+        "price": 0,
+        "energy": 6,
+        "text": "跑过两个来回就喘了。有人把球传回来，还说下次再来。"
+      }
+    ]
+  },
+  {
+    "id": "friend-flower-market",
+    "kind": "friend",
+    "group": "streets",
+    "label": "花市收摊",
+    "description": "最后一摊正用报纸包花，便宜卖的几枝长短不齐。",
+    "asset": "assets/deal-outing-reel-flower-market.webp",
+    "price": 0,
+    "energy": 10,
+    "companionLines": {
+      "fang": "这么短一截枝子，找个矮瓶反倒刚好。",
+      "liang": "那张报纸给我留着。花回家拆，路上别风干了。",
+      "tao": "那枝朝外弯的挺好，站人家一堆花里我就挑得出它。",
+      "xu": "桶要收的话我搬空的，你别踩那片湿花瓣。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "帮摊主收起空桶",
+        "price": 0,
+        "energy": 6,
+        "text": "最下面那只桶漏着水。摊主接过来，顺手替你抖落鞋上的花瓣。",
+        "asset": "assets/deal-outing-result-flower-market-leaking-bucket.webp"
+      },
+      {
+        "id": "second",
+        "label": "买几枝带回去",
+        "price": 18,
+        "energy": 10,
+        "text": "没有配成一束，回家分到两个空瓶里，每处都刚好能看见。"
+      }
+    ]
+  },
+  {
+    "id": "friend-chess-park",
+    "kind": "friend",
+    "group": "culture",
+    "label": "看棋摊残局",
+    "description": "长廊下两位大爷守着盘残局。一个提议换边，另一个不肯。棋盘旁放着枚蓝瓶盖，上面拿圆珠笔写了个「等」字。",
+    "asset": "assets/deal-outing-comic-chess.webp",
+    "price": 0,
+    "energy": 6,
+    "companionLines": {
+      "fang": "那瓶盖不占格子，怎么换边也跟着挪？",
+      "liang": "谁的字啊？这么小一块地方，「等」底下还点了个点。",
+      "tao": "老爷子刚才把瓶盖扶正了三回，比护他的车还上心。",
+      "xu": "我给你挪个位。这个蓝盖先别碰，人家可能还要用。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "看完最后几步",
+        "price": 0,
+        "energy": 6,
+        "text": "输的那位先把棋子收好，还问明天是不是原来的时间。",
+        "companionLines": {
+          "fang": "赢的没记分，输的先约明天。你说他俩到底谁更爱下？",
+          "liang": "你听他问的，还不是「明天来不来」，是「还这时候吧」。",
+          "tao": "我替他急了一头汗，人家棋子都收得哼起歌来了。",
+          "xu": "他们走了才把蓝盖揣进兜。看来确实不是谁落下的。"
+        }
+      },
+      {
+        "id": "second",
+        "label": "跟着画一张棋谱",
+        "price": 0,
+        "energy": 6,
+        "text": "纸太小，最后几步只写了位置。折起来倒也能塞进口袋。",
+        "companionLines": {
+          "fang": "前六步我认得。后两步你写给我，省得我回去瞎补。",
+          "liang": "背面也能画呀。算了，别翻，铅笔刚写的，一抹全糊。",
+          "tao": "你这张折起来真小。回去展开，我拿花生米跟你摆一遍。",
+          "xu": "到这格纸就没了？你报最后两步，我记手机里。"
+        }
+      },
+      {
+        "id": "ask-blue-cap",
+        "label": "问问蓝瓶盖在等谁",
+        "price": 0,
+        "energy": 6,
+        "text": "大爷把瓶盖翻过来，背面写着「修车」。修车师傅常下到一半被叫走，拿瓶盖压住棋谱，就是这盘还没认输。今天两人争的是谁替他接着下。",
+        "companionLines": {
+          "fang": "怪不得不能换边，修车的回来，该找不着自己的棋了。",
+          "liang": "那换我也得写个「等」。不然补完车胎回来，莫名其妙就输了。",
+          "tao": "我刚还替他们想怎么赢呢。闹半天，两个人下的是第三个人的棋。",
+          "xu": "我收回刚才那句。那盖子不光不能碰，还得让字朝上。"
+        }
+      }
+    ]
+  },
+  {
+    "id": "friend-terrace-dusk",
+    "kind": "friend",
+    "group": "streets",
+    "label": "楼顶收衣服",
+    "description": "天台起风，几件晾着的衣服被吹得挨在一块儿。",
+    "asset": "assets/deal-outing-reel-terrace-dusk.webp",
+    "price": 0,
+    "energy": 6,
+    "companionLines": {
+      "fang": "先收外边那件，肩膀都让风掀起来了。",
+      "liang": "楼下开始做饭了。闻着像葱花一进热油。",
+      "tao": "刚才袜子一甩，我还当楼下飞上来一只鸟。",
+      "xu": "夹子随手放袋里吧，掉一只还要下楼找。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "收完衣服就下楼",
+        "price": 0,
+        "energy": 6,
+        "text": "最后夹住的袜子一直没掉。回屋时还有晒过的味道。"
+      },
+      {
+        "id": "second",
+        "label": "多站一会儿看暮色",
+        "price": 0,
+        "energy": 6,
+        "text": "西边从白往蓝变，不到一刻钟，街坊就陆续开了灯。"
+      }
+    ]
+  },
+  {
+    "id": "friend-rice-roll",
+    "kind": "friend",
+    "group": "meals",
+    "label": "街头粉皮摊",
+    "description": "小摊老板刚揭开第一屉，站着吃不用等座位。",
+    "asset": "assets/deal-outing-reel-rice-roll.webp",
+    "price": 0,
+    "energy": 14,
+    "companionLines": {
+      "fang": "空着肚子就吃一份。辣不辣让老板另搁。",
+      "liang": "这家米香挺实在，掀盖那会儿就闻见了。",
+      "tao": "老板，下一屉起的时候叫我一声。我想看他怎么刮得这么快。",
+      "xu": "往边上挪一下，别站在老板递纸盒的地方。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "只喝温水歇一下",
+        "price": 0,
+        "energy": 6,
+        "text": "下一屉揭开时还在冒气。站到身上不冷了才走。",
+        "asset": "assets/deal-outing-reel-rice-roll.webp"
+      },
+      {
+        "id": "second",
+        "label": "点两份普通肠粉",
+        "price": 24,
+        "energy": 14,
+        "text": "酱汁单装，想淡一点就少倒。纸盒递过来时底下还是烫的。"
+      }
+    ]
+  },
+  {
+    "id": "friend-old-cinema",
+    "kind": "friend",
+    "group": "culture",
+    "label": "旧影院门口",
+    "description": "售票窗还留着原来的木框，散场后墙上贴着几张褪色海报。",
+    "asset": "assets/deal-outing-reel-old-cinema.webp",
+    "price": 0,
+    "energy": 18,
+    "companionLines": {
+      "fang": "售票窗还是原来那扇木框。我记得小时候得踮脚才够得着。",
+      "liang": "这灯一开，我就想起以前散场往外挤的样子。",
+      "tao": "以前我最爱提前十分钟到。有广告也能跟着念两句。",
+      "xu": "先看看今天还让不让进。门口贴的也许是旧海报。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "找找海报上的旧片名",
+        "price": 0,
+        "energy": 6,
+        "text": "有张只剩半边，你们还是从演员姓氏猜出了片名。",
+        "asset": "assets/deal-outing-reel-old-cinema.webp"
+      },
+      {
+        "id": "second",
+        "label": "买今晚的交流场",
+        "price": 68,
+        "energy": 18,
+        "text": "中场有人谈起原来电影院的样子。回去那段路比来时多聊了十分钟。"
+      }
+    ]
+  },
+  {
+    "id": "friend-paper-stall",
+    "kind": "friend",
+    "group": "culture",
+    "label": "修伞摊的旧地图",
+    "description": "修伞师傅拿一张旧地图垫摊，新路在纸上还画成了河滩。",
+    "asset": null,
+    "price": 0,
+    "energy": 6,
+    "companionLines": {
+      "fang": "这把伞从前多半漏这儿。你看，第二根骨都弯了。",
+      "liang": "地名写得挺小。我得把这角压平才看得懂。",
+      "tao": "这图面朝下垫了这么多年，也不知道哪位还认得原先那条路。",
+      "xu": "先问问师傅能不能翻，别把人家正修的伞碰歪。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "看看家附近以前什么样",
+        "price": 0,
+        "energy": 6,
+        "text": "纸上的小桥没有名字。师傅说小时候就是从那里抄近路。"
+      },
+      {
+        "id": "second",
+        "label": "替师傅跑一趟买胶线",
+        "price": 0,
+        "energy": 6,
+        "text": "零钱原样带了回来。师傅把那条旧小路指给你，走起来果然近一些。"
+      }
+    ]
+  },
+  {
+    "id": "friend-silent-gallery",
+    "kind": "friend",
+    "group": "culture",
+    "label": "小画室开放夜",
+    "description": "邻街的画室开了门，里面没人讲解，也没放音乐。",
+    "asset": null,
+    "price": 0,
+    "energy": 6,
+    "companionLines": {
+      "fang": "画挂得低，站远半步反而看得全。",
+      "liang": "有张画跟我家楼下格局很像。我想多看一眼。",
+      "tao": "我刚才找作者名找半天，原来签在椅子腿边。",
+      "xu": "包先背到前面，过那两幅之间别蹭到纸。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "挑一张看得懂的慢慢看",
+        "price": 0,
+        "energy": 6,
+        "text": "小画上是没叠完的一床被子。站久了才看到床脚还有一只鞋。"
+      },
+      {
+        "id": "second",
+        "label": "留一张便签给画的人",
+        "price": 0,
+        "energy": 6,
+        "text": "你没写大道理，只写画里的窗帘像小时候家里的那一块。"
+      }
+    ]
+  },
+  {
+    "id": "friend-dry-umbrella",
+    "kind": "friend",
+    "group": "streets",
+    "label": "店门口晾伞",
+    "description": "淋湿的伞撑了几把，店门开关时地上总带一点水。",
+    "asset": "assets/deal-outing-reel-dry-umbrella.webp",
+    "price": 0,
+    "energy": 6,
+    "companionLines": {
+      "fang": "伞先放这边沥一会儿。滴一地，人家还得擦。",
+      "liang": "雨停了还有屋檐水。等这几滴过去再收。",
+      "tao": "我这把要是合上，车里能抖下来半杯水。",
+      "xu": "伞柄靠墙，不然门一开，人家一脚就踩上了。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "帮忙把倒下的伞立好",
+        "price": 0,
+        "energy": 6,
+        "text": "门口干了一块能落脚的地，下一位来的人没有再踩进水里。"
+      },
+      {
+        "id": "second",
+        "label": "把自己的伞晾一阵",
+        "price": 0,
+        "energy": 6,
+        "text": "甩了三次才不滴水。店员临关门把门多留了一道缝。"
+      }
+    ]
+  },
+  {
+    "id": "friend-bag-mending",
+    "kind": "friend",
+    "group": "culture",
+    "label": "给旧包补两针",
+    "description": "包的提手有一点开线，但底子还结实。",
+    "asset": "assets/deal-outing-reel-bag-mending.webp",
+    "price": 0,
+    "energy": 10,
+    "companionLines": {
+      "fang": "先看开线的是布还是带子。用力拽两下可看不出来。",
+      "liang": "那卷蓝线就能用吧？缝得见也不碍事。",
+      "tao": "里面垫张纸，别把隔层一块儿缝死了。我干过这个。",
+      "xu": "扣子我帮你收着，别跟线头一块扫到地上。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "找旧针线自己补",
+        "price": 0,
+        "energy": 6,
+        "text": "针脚不齐，好在里面看不出来。提起来时不再往外扯。",
+        "asset": "assets/deal-outing-result-bag-mending-stitched.webp"
+      },
+      {
+        "id": "second",
+        "label": "交给修包摊加固",
+        "price": 16,
+        "energy": 10,
+        "text": "师傅顺手把松的扣子也缝上了，接过来提了一试，比原先稳。"
+      }
+    ]
+  },
+  {
+    "id": "friend-pier-ferry",
+    "kind": "friend",
+    "group": "outdoors",
+    "label": "坐渡轮去对岸",
+    "description": "天还早，末班船之后会再加开一班回程。",
+    "asset": "assets/deal-outing-reel-pier-ferry.webp",
+    "price": 0,
+    "energy": 10,
+    "companionLines": {
+      "fang": "从那扇窗能看出船离岸没。别挤到甲板边。",
+      "liang": "那边一排楼还亮着，过去看就知道是店还是住家。",
+      "tao": "渡船一慢下来我就想下船，明知道还有一半水面。",
+      "xu": "等船靠稳再从座位起来。还有人推车要过。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "在岸边看船卸人",
+        "price": 0,
+        "energy": 6,
+        "text": "甲板空了，红灯还没关。到了对岸的人把自行车推上坡，才转身走。"
+      },
+      {
+        "id": "second",
+        "label": "买短线往返票",
+        "price": 14,
+        "energy": 10,
+        "text": "来回坐同一侧，水色却换了。靠岸的时候正好赶上路灯亮起。"
+      }
+    ]
+  },
+  {
+    "id": "friend-street-music",
+    "kind": "friend",
+    "group": "tao",
+    "label": "路过街头演奏",
+    "description": "风不大，路边有人在给小提琴擦松香。",
+    "asset": null,
+    "price": 0,
+    "energy": 10,
+    "companionId": "tao",
+    "companionLines": {
+      "fang": "站这棵树后面听也行，不用非凑到跟前。",
+      "liang": "这一段他拉得轻。街对面有人说笑，正好跟进去了。",
+      "tao": "我以前就听他拉过这首。没到最后别着急走。",
+      "xu": "别围一整圈，给从路口过来的人留半边。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "站在边上听一曲",
+        "price": 0,
+        "energy": 10,
+        "text": "琴手停下来翻谱时，好几个人都还站着，谁也没急着走。"
+      },
+      {
+        "id": "second",
+        "label": "听完往琴盒放零钱",
+        "price": 10,
+        "energy": 10,
+        "text": "对方只抬眼点了点头，下一首接得很轻，刚过街还能听见。"
+      }
+    ]
+  },
+  {
+    "id": "friend-pocket-park",
+    "kind": "friend",
+    "group": "outdoors",
+    "label": "口袋公园喝水",
+    "description": "两栋楼之间有块不大的绿地，树下刚搬来几张椅子。",
+    "asset": "assets/deal-outing-reel-pocket-park.webp",
+    "price": 0,
+    "energy": 6,
+    "companionLines": {
+      "fang": "树根旁那把椅子还温着，坐这儿离马路远一点。",
+      "liang": "这几把椅子才搬过来吧？我前两天从这儿走，树下还空着。",
+      "tao": "我刚拧开水，树上就啪地掉了粒果子，差点进杯里。",
+      "xu": "灯下那张坐着清楚，喝完别把瓶子落这儿。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "带着水坐十分钟",
+        "price": 0,
+        "energy": 6,
+        "text": "水壶的盖子旋了两次才拧紧，周围的谈话声一直不远不近。"
+      },
+      {
+        "id": "second",
+        "label": "步行绕完小公园",
+        "price": 0,
+        "energy": 6,
+        "text": "第三圈才留意墙角有个鸟窝。没凑过去，绕开一点就回家了。"
+      }
+    ]
+  },
+  {
+    "id": "friend-front-stoop",
+    "kind": "friend",
+    "group": "outdoors",
+    "label": "门洞里聊两句",
+    "description": "熟识的修车师傅刚推下卷闸门，还没走。",
+    "asset": null,
+    "price": 0,
+    "energy": 6,
+    "companionLines": {
+      "fang": "门洞里的砖还是凉的。坐一会儿挺好。",
+      "liang": "你靠里点。街坊要是出来了，咱俩还得一块让。",
+      "tao": "这边说话有回声。我说半句，自己还能再听半句。",
+      "xu": "台阶边空着，别把门掩上了。"
+    },
+    "echo": {
+      "requires": {
+        "eventId": "friend-chess-park",
+        "choiceId": "ask-blue-cap"
+      },
+      "asset": "assets/deal-outing-comic-repair.webp",
+      "companionLines": {
+        "fang": "师傅，你那盘残棋到底下完没？上回那两位连换个边都不肯，说得等你。",
+        "liang": "看，他刚从兜里摸出什么了？蓝瓶盖！师傅，今晚那盘还等着你呢？",
+        "tao": "上次我还说谁这么大架子，要两个人守着一盘棋。师傅，原来是你啊。",
+        "xu": "师傅刚才跟我说了，晚上那盘还得他自己走。难怪要在盖子上写个「等」。"
+      }
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "陪他把车推回去",
+        "price": 0,
+        "energy": 6,
+        "text": "两步就到了仓里。他说谢谢，没再追着讲话，转头把门牢牢锁好。"
+      },
+      {
+        "id": "second",
+        "label": "聊聊街坊近况",
+        "price": 0,
+        "energy": 6,
+        "text": "说到的都是小事：面包店换人、大门锁修好、下雨前院里的猫又躲哪儿。"
+      }
+    ]
+  },
+  {
+    "id": "friend-porridge-shop",
+    "kind": "friend",
+    "group": "meals",
+    "label": "半碗夜粥",
+    "description": "粥铺还亮着，老板问要不要续一壶茶。",
+    "asset": null,
+    "price": 0,
+    "energy": 14,
+    "companionLines": {
+      "fang": "半碗就够。要是真饿，等回去再添点别的。",
+      "liang": "看见锅边那层米浆了吗？我妈以前总拿木勺刮下来。",
+      "tao": "我闻着是白粥，看见小菜倒又想加一碟。",
+      "xu": "碗刚端出来烫手，坐下再接，别急着往里挪。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "喝口茶就走",
+        "price": 0,
+        "energy": 6,
+        "text": "老板没让多坐，只换了个干净杯子。走时门外已经凉下来。"
+      },
+      {
+        "id": "second",
+        "label": "点粥和一小碟菜",
+        "price": 22,
+        "energy": 14,
+        "text": "菜有点咸，粥煮得刚好。最后一口放凉了吃，胃里还是暖的。"
+      }
+    ]
+  },
+  {
+    "id": "friend-courier-lane",
+    "kind": "friend",
+    "group": "streets",
+    "label": "绕过快递侧门",
+    "description": "旧楼的小路一到下班就挤，驿站旁今天开了一个新侧门。",
+    "asset": null,
+    "price": 0,
+    "energy": 6,
+    "companionLines": {
+      "fang": "前面有人卸车，咱们贴墙走。",
+      "liang": "那只箱子用红绳捆了好几圈，收的人估计想不到这么牢。",
+      "tao": "小哥才说最后两件，转身又拖出来一车。我当没听见。",
+      "xu": "推车要拐进来，先让过去。走慢点也不碍事。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "试试这条小路",
+        "price": 0,
+        "energy": 6,
+        "text": "拐过去不用跟电动车让路。下次抱着箱子也能从这里走。"
+      },
+      {
+        "id": "second",
+        "label": "沿原路帮人扶下箱子",
+        "price": 0,
+        "energy": 6,
+        "text": "对方把箱子接过去，你腾出手拉了门。两个人各往一个方向就走了。"
+      }
+    ]
+  },
+  {
+    "id": "friend-station-clock",
+    "kind": "friend",
+    "group": "streets",
+    "label": "车站大钟底下",
+    "description": "站外的大钟比手机慢两分钟，旁边刚好有屋檐。",
+    "asset": "assets/deal-outing-reel-station-clock.webp",
+    "price": 0,
+    "energy": 10,
+    "companionLines": {
+      "fang": "先看清是几点，不急着去找车。大钟离得远，分针看着比实际短。",
+      "liang": "钟底下碰头挺好。以后咱们也约这儿吧。站远点，一抬头就找得到。",
+      "tao": "我小时候真信站钟会报时，等了半天，整点也不响。",
+      "xu": "人多的时候别贴着柱子站。往外一点，相约的人好找。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "等钟走到整点",
+        "price": 0,
+        "energy": 6,
+        "text": "表针跳了以后有人正好从地下口出来，你也站起来走。"
+      },
+      {
+        "id": "second",
+        "label": "买杯热豆浆",
+        "price": 8,
+        "energy": 10,
+        "text": "刚拿到时烫嘴。看完一班车出站，也刚好能喝。"
+      }
+    ]
+  },
+  {
+    "id": "friend-matinee",
+    "kind": "friend",
+    "group": "culture",
+    "label": "社区放映厅",
+    "description": "公告栏写着刚翻到一部老纪录片，放映员问要不要留个位置。",
+    "asset": null,
+    "price": 0,
+    "energy": 10,
+    "companionLines": {
+      "fang": "前边别坐。那一排仰着头，看完脖子受不了。",
+      "liang": "看片之前先别打听最后怎么了。我想自己看完。",
+      "tao": "上回放到一半我才认出片头那条街，是我小时候去过的。",
+      "xu": "找个靠边的位置。晚来的人打着手机灯，好让他们过去。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "先读完门口简介",
+        "price": 0,
+        "energy": 6,
+        "text": "小纸上写得比片名清楚。看过的人出来还在争论最后一个镜头。"
+      },
+      {
+        "id": "second",
+        "label": "留下看完整场",
+        "price": 20,
+        "energy": 10,
+        "text": "屋里一度只听得见放映声。字幕出来后有人给旁边人递纸，没说什么。"
+      }
+    ]
+  },
+  {
+    "id": "friend-library-shelf",
+    "kind": "friend",
+    "group": "culture",
+    "label": "看看旧报纸",
+    "description": "图书馆底层留了几盒老报纸，有张的日期正好和今天同月同日。",
+    "asset": "assets/deal-outing-reel-library-shelf.webp",
+    "price": 0,
+    "energy": 6,
+    "companionLines": {
+      "fang": "别拿书角往外扯，旧报纸底下都是碎的。",
+      "liang": "我想找找那年国庆版，看看头条下面还有些什么小事。",
+      "tao": "我先看小广告。从前修电视的还敢留家里座机。",
+      "xu": "放回去照着年份来，不然下一位找不到我们看的这本。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "翻两页就放回去",
+        "price": 0,
+        "energy": 6,
+        "text": "头版新闻不记得了，倒看到那天本地突然降温的消息。",
+        "asset": "assets/deal-outing-reel-library-shelf.webp"
+      },
+      {
+        "id": "second",
+        "label": "抄一条小广告回家",
+        "price": 0,
+        "energy": 6,
+        "text": "广告上的座机只有七位数。你把它夹进自己的书里，做了书签。"
+      }
+    ]
+  },
+  {
+    "id": "friend-porch-soup",
+    "kind": "friend",
+    "group": "meals",
+    "label": "小馆门外的热汤",
+    "description": "厨房窗子正好开着，味道一路飘到街角。",
+    "asset": null,
+    "price": 0,
+    "energy": 14,
+    "companionLines": {
+      "fang": "先尝口汤，不用跟着旁桌一块加胡椒。",
+      "liang": "门里有一股姜味，捧着碗在门槛边都闻得见。",
+      "tao": "光闻着这味儿，我都想跟老板借个勺了。咱俩合点一碗？",
+      "xu": "端着汤别往台阶外站，后面还要过人。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "等下趟再来",
+        "price": 0,
+        "energy": 6,
+        "text": "记下它关门的时间。这一趟只是去看了看，没给账上添消费。"
+      },
+      {
+        "id": "second",
+        "label": "合点一碗汤",
+        "price": 28,
+        "energy": 14,
+        "text": "汤太烫，先分到小碗里。抿过第一口，才想起来桌上的勺子不够。"
+      }
+    ]
+  },
+  {
+    "id": "friend-shade-walk",
+    "kind": "friend",
+    "group": "outdoors",
+    "label": "穿过菜地边的树荫",
+    "description": "太阳还没落，菜地外面的小径先阴了下来。",
+    "asset": null,
+    "price": 0,
+    "energy": 6,
+    "companionLines": {
+      "fang": "脚下那截是菜畦，沿树根旁边走。",
+      "liang": "那片叶子都快翻白了，等晚上浇水兴许就撑回来了。",
+      "tao": "我光闻见韭菜味，愣是没在地里认出来。",
+      "xu": "要是看见浇水的塑料管，从边上绕，别给它踩折。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "走进去再折回",
+        "price": 0,
+        "energy": 6,
+        "text": "篱笆上晒着手套，没人来拿。走到尽头，刚好出了一点汗。"
+      },
+      {
+        "id": "second",
+        "label": "帮花圃提一桶水",
+        "price": 0,
+        "energy": 6,
+        "text": "洇湿的土一会儿就不冒白了。人家只道了声谢，没有拉着你继续帮忙。"
+      }
+    ]
+  },
+  {
+    "id": "friend-stationery",
+    "kind": "friend",
+    "group": "culture",
+    "label": "文具店挑一支笔",
+    "description": "文具店老板说，可以先在纸角写两个字再决定。",
+    "asset": "assets/deal-outing-reel-stationery.webp",
+    "price": 0,
+    "energy": 10,
+    "companionLines": {
+      "fang": "那支笔先在草稿纸上划几下。有的写两行就断墨。",
+      "liang": "不挑最贵的，你试试那支细的。我写小字挺顺手。",
+      "tao": "小时候买一支笔得画满店里一张纸，现在还想这么干。",
+      "xu": "试完盖好笔帽，别把那支买之前就试干了。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "试写完放回原处",
+        "price": 0,
+        "energy": 6,
+        "text": "试纸上留两个字，线条比想象的细。下次需要时知道要来找哪只。"
+      },
+      {
+        "id": "second",
+        "label": "买一支平常用的笔",
+        "price": 11,
+        "energy": 10,
+        "text": "纸带拆开后笔握并不滑。以后收货时签字不用再到处找笔。"
+      }
+    ]
+  },
+  {
+    "id": "friend-awning-coffee",
+    "kind": "friend",
+    "group": "meals",
+    "label": "去露台坐坐",
+    "description": "露台快打烊，窗子里面还有一张朝街的桌。",
+    "asset": "assets/deal-outing-reel-awning-coffee.webp",
+    "price": 0,
+    "energy": 14,
+    "companionLines": {
+      "fang": "要坐外边就坐靠墙那桌，门一开不吹后背。",
+      "liang": "灯箱关了以后，玻璃才不反我自己的脸。现在倒能看清街上了。",
+      "tao": "咱点一杯慢慢喝。要不然端着热杯子赶路，又要烫到。",
+      "xu": "快打烊了，先问还收不收单，别让人家为了咱们再开一回机器。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "在外面坐几分钟",
+        "price": 0,
+        "energy": 6,
+        "text": "街上人少，橱窗里一块灯箱关掉了，看得更清楚。"
+      },
+      {
+        "id": "second",
+        "label": "买一杯滴滤慢慢喝",
+        "price": 26,
+        "energy": 14,
+        "text": "杯口不烫了就喝了一半。剩下半杯带回去，杯套留到家门外才扔。"
+      }
+    ]
+  },
+  {
+    "id": "friend-secondhand-fair",
+    "kind": "friend",
+    "group": "culture",
+    "label": "找一个便宜书架",
+    "description": "二手市集最深处有人收摊，桌上还摆着几只窄书架。",
+    "asset": null,
+    "price": 0,
+    "energy": 14,
+    "companionLines": {
+      "fang": "先量最宽的地方。别买回去发现踢脚线还凸一寸。",
+      "liang": "我想看背板。正面掉点漆没事，买回去总要靠墙。",
+      "tao": "这木头挺沉。我要是抱半路换手，你就把门替我撑一下。",
+      "xu": "量完把尺还给老板，他还得给别人用。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "只量尺寸不买",
+        "price": 0,
+        "energy": 6,
+        "text": "知道窄到什么程度才进得了墙角，空手离开也值这趟。"
+      },
+      {
+        "id": "second",
+        "label": "买只小木架",
+        "price": 58,
+        "energy": 14,
+        "text": "一路抱回家没碰着栏杆。靠墙试了下，还真给桌面留出一截空位。"
+      }
+    ]
+  },
+  {
+    "id": "friend-small-stage",
+    "kind": "friend",
+    "group": "culture",
+    "label": "排练场外听一段",
+    "description": "门只开了半边，里面在排练，有一句还没找准节拍。",
+    "asset": null,
+    "price": 0,
+    "energy": 14,
+    "companionLines": {
+      "fang": "站门边别进去。不打断他们，听到这段过了就行。",
+      "liang": "那句不是忘词，她在等后面的人换气呢。",
+      "tao": "第二遍松了点。听，比刚才那一口气唱过去顺多了。",
+      "xu": "门开半边是留着进出的，咱们站墙边比站门缝好。"
+    },
+    "echo": {
+      "requires": {
+        "eventId": "friend-record-shop",
+        "choiceId": "follow-knocks"
+      },
+      "asset": "assets/deal-outing-comic-rehearsal.webp",
+      "companionLines": {
+        "fang": "听，又是那两快一慢。别着急，第三下之后才轮到里头的人唱。",
+        "liang": "她刚才手一抬我就认出来了。上回隔着唱片店的墙，还当她要进门呢。",
+        "tao": "就是这段！这次站这边听，终于能把墙那头漏掉的半句接上了。",
+        "xu": "那姑娘又在敲门框。咱俩往旁边让一点，别挡着里面的人看她的手。"
+      }
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "站到这一段唱完",
+        "price": 0,
+        "energy": 6,
+        "text": "他们从同一句重来两次才顺下去。你沿街走，没再等下一段。"
+      },
+      {
+        "id": "second",
+        "label": "买张周末小演出门票",
+        "price": 36,
+        "energy": 14,
+        "text": "票上写着座位先到先坐。你把它收进夹层，没排得太满。"
+      }
+    ]
+  },
+  {
+    "id": "friend-hot-bun",
+    "kind": "friend",
+    "group": "meals",
+    "label": "车棚边的包子铺",
+    "description": "这家刚把晚上一屉端出来，笼布掀开时满屋都是白汽。",
+    "asset": null,
+    "price": 0,
+    "energy": 10,
+    "companionLines": {
+      "fang": "素的是哪屉？别让老板夹成肉的，我等着吃晚饭呢。",
+      "liang": "先掰个口晾一晾。刚才那股白汽都扑到窗上去了。",
+      "tao": "闻到包子味我就饿。你跟我讲道理也没用。",
+      "xu": "拿两个刚好，别在车棚挡着人往外取车。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "留着胃口回家吃",
+        "price": 0,
+        "energy": 6,
+        "text": "老板把袋子打开又收好。你出了门，晚饭也还赶得上。"
+      },
+      {
+        "id": "second",
+        "label": "买两个素包",
+        "price": 9,
+        "energy": 10,
+        "text": "夹给你的那只底下有一点焦，咬开烫。坐到车棚里吃完才走。"
+      }
+    ]
+  },
+  {
+    "id": "friend-wind-laundry",
+    "kind": "friend",
+    "group": "streets",
+    "label": "收最后一层毛巾",
+    "description": "公用晾台起风，最外边几块毛巾都撞在栏杆上。",
+    "asset": null,
+    "price": 0,
+    "energy": 6,
+    "companionLines": {
+      "fang": "先把最外头那块收了，马上要给风掀过去。",
+      "liang": "你腾只手。方才对门那块毛巾都卷到咱这边了。",
+      "tao": "我以前找夹子找一早上，最后摸出来两个都在裤兜。",
+      "xu": "剩的夹子留一把，后面来收衣服的人还用得上。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "帮对面邻居取下来",
+        "price": 0,
+        "energy": 6,
+        "text": "她接过去才发现少了一枚夹子，转身从电箱顶上摸出来给你看。"
+      },
+      {
+        "id": "second",
+        "label": "只收自己的回家",
+        "price": 0,
+        "energy": 6,
+        "text": "毛巾已半干，折起来不滴水。你记得留一把夹子在栏杆上。"
+      }
+    ]
+  },
+  {
+    "id": "friend-lantern-neighborhood",
+    "kind": "friend",
+    "group": "streets",
+    "label": "街坊小灯会",
+    "description": "小铺共同挂了几排纸灯，几位住户在门口帮忙看孩子。",
+    "asset": null,
+    "price": 0,
+    "energy": 6,
+    "companionLines": {
+      "fang": "电线这边别踩。我看那边有人专门在收插线板。",
+      "liang": "远处那只纸灯没亮，风一转还是最好看。",
+      "tao": "我今年总算不用给纸灯写谜面。想了三条，全让人一眼猜中。",
+      "xu": "袋上写一下挂的是哪段。明年拿出来不用一盏盏对。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "转一圈看灯",
+        "price": 0,
+        "energy": 6,
+        "text": "最远处的灯没插电，风一吹也会转个面，像在眨眼。"
+      },
+      {
+        "id": "second",
+        "label": "帮忙拆散成几袋",
+        "price": 0,
+        "energy": 6,
+        "text": "颜色各装一袋，袋口不用扎太紧。下回怕找不见，先把名字写上。"
+      }
+    ]
+  },
+  {
+    "id": "friend-covered-market",
+    "kind": "friend",
+    "group": "meals",
+    "label": "从菜场侧门穿过",
+    "description": "收摊时间从菜场绕回去，雨棚能挡住大半阵雨。",
+    "asset": "assets/deal-outing-reel-covered-market.webp",
+    "price": 0,
+    "energy": 10,
+    "companionLines": {
+      "fang": "地上那两块还湿，走干的那边。",
+      "liang": "要是还剩两个好橘子咱就带走。丑一点也不挑。",
+      "tao": "这时候闻得到橘子味，白天一进菜场全是鱼腥气。",
+      "xu": "顺便跟老板说不用袋。我这只还能装。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "从老路穿过去",
+        "price": 0,
+        "energy": 6,
+        "text": "摊位已经擦亮，地面还有两块没干。你踩着边走，鞋底没再喝水。",
+        "asset": "assets/deal-outing-reel-covered-market.webp"
+      },
+      {
+        "id": "second",
+        "label": "挑两个剩下的橘子",
+        "price": 7,
+        "energy": 10,
+        "text": "老板说皮不太漂亮，不碍甜。到家剥开，外头干、里头有汁。"
+      }
+    ]
+  },
+  {
+    "id": "friend-community-vase",
+    "kind": "friend",
+    "group": "culture",
+    "label": "给空瓶挑一个地方",
+    "description": "邻里中心桌上有几个空瓶，可以取走一个也可以留下。",
+    "asset": "assets/deal-outing-reel-community-vase.webp",
+    "price": 0,
+    "energy": 6,
+    "companionLines": {
+      "fang": "底先摸摸平不平。放窗边晃起来，谁也不敢碰。",
+      "liang": "这个灰蓝边挺好。放一枝花进去就够，不用塞满。",
+      "tao": "带回家先给它泡泡。那底下的纸标倒挺牢。",
+      "xu": "桌上那叠画纸帮我推过来，空了以后别人一来就能用。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "把瓶子挪到窗边",
+        "price": 0,
+        "energy": 6,
+        "text": "桌中间空出来，下一组来的人能摊开画纸。玻璃也没被直晒。"
+      },
+      {
+        "id": "second",
+        "label": "领一只旧瓶回去",
+        "price": 0,
+        "energy": 6,
+        "text": "洗干净后底下还有道蓝线，在家里放水就看得见。"
+      }
+    ]
+  },
+  {
+    "id": "friend-ferry-festival",
+    "kind": "friend",
+    "group": "outdoors",
+    "label": "码头开放日",
+    "description": "码头平时进不去，开放日有三种去处。",
+    "asset": null,
+    "price": 0,
+    "energy": 18,
+    "companionLines": {
+      "fang": "防波堤那头不是今天开放的，吹会儿风就在这段回头。",
+      "liang": "鱼丸那边白汽升起来了。咱们先空着手看会儿船，再买也行。",
+      "tao": "我想听讲解员说为什么先卸里边的货。照片上光看得出一堆箱子。",
+      "xu": "咱们离系缆桩远点。要上船就在牌子这边排队。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "沿防波堤吹风",
+        "price": 0,
+        "energy": 6,
+        "text": "没往系缆桩那段走。两边的浪把同一块石头轮流打湿。"
+      },
+      {
+        "id": "second",
+        "label": "吃一次港边鱼丸",
+        "price": 22,
+        "energy": 14,
+        "text": "煮鱼丸的是旧铝锅。拿到纸碗先退到不挡人进出的后墙。"
+      },
+      {
+        "id": "third",
+        "label": "买一张含讲解的船票",
+        "price": 65,
+        "energy": 18,
+        "text": "讲解员提到装卸班次，比照片上的说明多说了为什么先卸靠里的货。"
+      }
+    ]
+  },
+  {
+    "id": "friend-pottery-yard",
+    "kind": "friend",
+    "group": "liang",
+    "label": "陶房轮休日",
+    "description": "店主不烧大窑，门口几只废坯正等着处理。",
+    "asset": null,
+    "price": 0,
+    "energy": 18,
+    "companionId": "liang",
+    "companionLines": {
+      "fang": "废坯不用搬，拿起来摸摸沿口就知道毛不毛。",
+      "liang": "上次只看了半天，手一点都没沾泥。这次我想自己试。",
+      "tao": "我上回画蓝花，烧完才认出来那是竹叶。今天就不替图案起名了。",
+      "xu": "要留件的话把单子放里兜，别和门票一起折丢了。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "摸摸干坯的纹理",
+        "price": 0,
+        "energy": 10,
+        "text": "口沿那条小折痕用手能摸出来。看过以后放回原处，没有硬搬。"
+      },
+      {
+        "id": "second",
+        "label": "彩绘一只试烧碗",
+        "price": 58,
+        "energy": 14,
+        "text": "颜色薄的地方能看见底土，店主说别急着补；留着烧出来才知道。"
+      },
+      {
+        "id": "third",
+        "label": "做一只自己的小杯",
+        "price": 98,
+        "energy": 18,
+        "text": "杯口压偏，手指竖着把它扶回来。杯底写下日期，等烧好再取。"
+      }
+    ]
+  },
+  {
+    "id": "friend-embankment-dawn",
+    "kind": "friend",
+    "group": "xu",
+    "label": "早起看堤外水位",
+    "description": "天刚亮，堤外水位比昨天低。河滩上还有没干的脚印。",
+    "asset": null,
+    "price": 0,
+    "energy": 10,
+    "companionId": "xu",
+    "companionLines": {
+      "fang": "堤下面还有水，沿着台阶看吧，不急着走到滩上。",
+      "liang": "我先不拍。天还没亮透，水反光比太阳先到。",
+      "tao": "你看那串鞋印，到水边突然就断了。站这儿看得最清楚。",
+      "xu": "水退下去了，鞋底还是容易打滑。我们先走堤上。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "在安全线内等日出",
+        "price": 0,
+        "energy": 10,
+        "text": "太阳还没出来，水已经亮了。你往后站一步，没有把脚印踩乱。"
+      },
+      {
+        "id": "second",
+        "label": "买两杯热饮",
+        "price": 16,
+        "energy": 10,
+        "text": "放到手里还带着铁壶的热，喝一口才发现天比前面暖起来了。"
+      },
+      {
+        "id": "third",
+        "label": "拍一张带岸线的照片",
+        "price": 0,
+        "energy": 10,
+        "text": "照片里没赶上太阳完整露头，但水退到哪儿看得很清楚。"
+      }
+    ]
+  },
+  {
+    "id": "friend-fang-stool",
+    "kind": "friend",
+    "group": "fang",
+    "label": "木匠铺门口的矮凳",
+    "description": "木匠铺要交还钥匙。方文斌刚坐下试那张老矮凳，碗里的蓝铅笔就滚到了脚边。",
+    "asset": "assets/deal-outing-comic-fang-stool.webp",
+    "price": 0,
+    "energy": 10,
+    "companionId": "fang",
+    "companionLines": {
+      "fang": "这凳子我爸做的。小时候嫌它矮，现在坐下去，脚倒正好挨地。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "把凳子移到平地试试",
+        "price": 0,
+        "energy": 10,
+        "text": "转过半圈，凳子还是朝同一条腿偏。老方拿蓝铅笔在短腿上画了道线。",
+        "companionLines": {
+          "fang": "不是地不平。这回冤枉人家门槛了。"
+        }
+      },
+      {
+        "id": "second",
+        "label": "翻过来看看凳底",
+        "price": 0,
+        "energy": 10,
+        "text": "凳底写着几个姓，最后一个「方」字只写了一半。老方用袖口擦开旁边的粉笔灰。",
+        "companionLines": {
+          "fang": "我一直当是我家的。你看，前头还有这么多人坐过。"
+        }
+      }
+    ]
+  },
+  {
+    "id": "friend-fang-stool-fit",
+    "kind": "friend",
+    "group": "fang",
+    "label": "给凳脚找块合适的木头",
+    "description": "方文斌沿着上回的蓝线量了量，从边角料里翻出一块木片。收钥匙的人还没到。",
+    "asset": "assets/deal-outing-comic-fang-stool-fit.webp",
+    "price": 0,
+    "energy": 10,
+    "companionId": "fang",
+    "requires": {
+      "eventId": "friend-fang-stool",
+      "choiceId": "first"
+    },
+    "companionLines": {
+      "fang": "别锯长的那三条腿。越修越矮，我下回可站不起来了。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "扶着凳面让他垫平",
+        "price": 0,
+        "energy": 10,
+        "text": "他压牢木片，你把那支蓝铅笔放回凳面。两个人等了半天，铅笔纹丝没动。",
+        "companionLines": {
+          "fang": "行，不拿水平尺了。它自己就会报信。"
+        }
+      },
+      {
+        "id": "second",
+        "label": "请隔壁阿姨坐坐看",
+        "price": 0,
+        "energy": 10,
+        "text": "阿姨坐着扎好鞋带，起来时顺口问明天还摆不摆。老方把凳子往她铺门口挪了半步。",
+        "companionLines": {
+          "fang": "摆。以后谁等人谁坐，不用问我要钥匙。"
+        }
+      }
+    ]
+  },
+  {
+    "id": "friend-fang-stool-note",
+    "kind": "friend",
+    "group": "fang",
+    "label": "凳底那个没写完的姓",
+    "description": "隔壁修鞋的老伯认出了凳底的字。原来谁替铺子看过摊，谁就能在凳子上留个姓。",
+    "asset": "assets/deal-outing-comic-fang-stool-note.webp",
+    "price": 0,
+    "energy": 10,
+    "companionId": "fang",
+    "requires": {
+      "eventId": "friend-fang-stool",
+      "choiceId": "second"
+    },
+    "companionLines": {
+      "fang": "轮到我那天，我爸说有人买钉子。我跑过去找零，这一笔就搁下了。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "把蓝铅笔递给他",
+        "price": 0,
+        "energy": 10,
+        "text": "他补好最后一笔，把凳子翻正。过路人坐上去时，谁也没叫人起来看。",
+        "companionLines": {
+          "fang": "写给我自己认的，不必让街上人人都知道。"
+        }
+      },
+      {
+        "id": "second",
+        "label": "问老伯要不要也留个字",
+        "price": 0,
+        "energy": 10,
+        "text": "老伯说自己早签过了，翻出来一指，那个最像歪钉子的字果然是他的。",
+        "companionLines": {
+          "fang": "怪不得总看成尺寸。您这字，比我爸的还省木头。"
+        }
+      }
+    ]
+  },
+  {
+    "id": "friend-liang-proof",
+    "kind": "friend",
+    "group": "liang",
+    "label": "印刷铺里空着一个名字",
+    "description": "红灯罩底下摊着墨蓝戏单。末班开印前，梁佳音发现谢幕名单上有一行只排了冒号。",
+    "asset": "assets/deal-outing-comic-liang-proof.webp",
+    "price": 0,
+    "energy": 10,
+    "companionId": "liang",
+    "companionLines": {
+      "liang": "人没少，是名字没到。先别拿个「等」字顶上，印出来可真有人叫等了。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "给那行留出空铅字",
+        "price": 0,
+        "energy": 10,
+        "text": "你帮她找出两块空铅。试印单上空出三个字的位置，整张版没再往左歪。",
+        "companionLines": {
+          "liang": "挺好。让人知道这是给谁留着的，不是我们排漏了。"
+        }
+      },
+      {
+        "id": "second",
+        "label": "去隔壁收一条本人留言",
+        "price": 0,
+        "energy": 10,
+        "text": "换景的阿姨不肯报大名，却愿意对着梁佳音的手机说两句。她先问录完能不能听。",
+        "companionLines": {
+          "liang": "当然。先给你听，你不点头，我们就不放。"
+        }
+      }
+    ]
+  },
+  {
+    "id": "friend-liang-proof-print",
+    "kind": "friend",
+    "group": "liang",
+    "label": "名字赶在机器开动前",
+    "description": "印刷机刚暖起来，换景的阿姨把自己写的名字送到铺里。那行空铅还在。",
+    "asset": "assets/deal-outing-comic-liang-proof-print.webp",
+    "price": 0,
+    "energy": 10,
+    "companionId": "liang",
+    "requires": {
+      "eventId": "friend-liang-proof",
+      "choiceId": "first"
+    },
+    "companionLines": {
+      "liang": "她不是来晚了。她回家找了副眼镜，想把自己的名字写端正一点。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "拿试印单给她过目",
+        "price": 0,
+        "energy": 10,
+        "text": "阿姨圈出名字中间的「秀」。梁佳音换了铅字，第二张没再印成「季」。",
+        "companionLines": {
+          "liang": "差了这一撇，台上谢的是另一个人。还好让她看了。"
+        }
+      },
+      {
+        "id": "second",
+        "label": "等墨干了留一张给她",
+        "price": 0,
+        "energy": 10,
+        "text": "纸晾干才折。阿姨把印着名字的那面朝外，插在工具箱盖的透明夹层里。",
+        "companionLines": {
+          "liang": "下次谁借她的扳手，先得看一眼她叫什么。"
+        }
+      }
+    ]
+  },
+  {
+    "id": "friend-liang-proof-voice",
+    "kind": "friend",
+    "group": "liang",
+    "label": "谢幕前那段九秒录音",
+    "description": "印刷铺隔壁开始走台。上回录的九秒留言，在音箱里听起来比手机里更近。",
+    "asset": "assets/deal-outing-comic-liang-proof-voice.webp",
+    "price": 0,
+    "energy": 10,
+    "companionId": "liang",
+    "requires": {
+      "eventId": "friend-liang-proof",
+      "choiceId": "second"
+    },
+    "companionLines": {
+      "liang": "你听最后，她说的是「梯子撤了」，不是「谢谢大家」。九秒钟说的全是她的活。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "放给本人再确认",
+        "price": 0,
+        "energy": 10,
+        "text": "阿姨听完，要求保留最后那阵笑，说那是扶梯子的搭档。梁佳音没剪。",
+        "companionLines": {
+          "liang": "九秒就九秒。两个人一起出的力，声音也一起留下。"
+        }
+      },
+      {
+        "id": "second",
+        "label": "陪她到台侧亲口报幕",
+        "price": 0,
+        "energy": 10,
+        "text": "她最后不想放录音，站在幕布边自己报了两个人的名字。你们把手机收回兜里。",
+        "companionLines": {
+          "liang": "这遍比录的短。我倒觉得这遍最好。"
+        }
+      }
+    ]
+  },
+  {
+    "id": "friend-tao-radio",
+    "kind": "friend",
+    "group": "tao",
+    "label": "广播站那盘「晚班」",
+    "description": "社区广播站在清柜子。陶乐认出一盘写着「晚班」的磁带，隔着玻璃跟值班员比了个暂停。",
+    "asset": "assets/deal-outing-comic-tao-radio.webp",
+    "price": 0,
+    "energy": 10,
+    "companionId": "tao",
+    "companionLines": {
+      "tao": "先别扔。我妈从前下夜班就听这个，我一直想知道结尾那声咳嗽是谁的。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "趁直播间空着打个电话",
+        "price": 0,
+        "energy": 10,
+        "text": "值班员替他接了老听众热线。陶乐报出旧节目的名字，电话那头忽然有人接话。",
+        "companionLines": {
+          "tao": "我就知道还有人记得。刚才拨之前，手心都出汗了。"
+        }
+      },
+      {
+        "id": "second",
+        "label": "借机器听听磁带末尾",
+        "price": 0,
+        "energy": 10,
+        "text": "磁带倒到头又往回挪了半截。咳嗽之前，左声道还有钥匙轻轻碰玻璃的声音。",
+        "companionLines": {
+          "tao": "别把那声当杂音消掉。我小时候就是听见这个，才知道节目要完。"
+        }
+      }
+    ]
+  },
+  {
+    "id": "friend-tao-radio-call",
+    "kind": "friend",
+    "group": "tao",
+    "label": "热线另一头带来的保温杯",
+    "description": "上次接热线的夜班司机捧着保温杯来了。他没当过播音员，却知道每晚是谁来敲玻璃。",
+    "asset": "assets/deal-outing-comic-tao-radio-call.webp",
+    "price": 0,
+    "energy": 10,
+    "companionId": "tao",
+    "requires": {
+      "eventId": "friend-tao-radio",
+      "choiceId": "first"
+    },
+    "companionLines": {
+      "tao": "师傅你先坐。我以为谜底是一位大歌星，您怎么还把当年的杯子带来了。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "听司机把接班口令说一遍",
+        "price": 0,
+        "energy": 10,
+        "text": "司机用指节敲两下杯盖，说接班的人总站在主播看不见的那边，只好咳一声。",
+        "companionLines": {
+          "tao": "原来是提醒她该喝口水。我妈倒拿这声当下班铃用了。"
+        }
+      },
+      {
+        "id": "second",
+        "label": "把话筒留给司机",
+        "price": 0,
+        "energy": 10,
+        "text": "司机对着话筒问老听众到家没有，问完没等回答，习惯性地拧紧了杯盖。",
+        "companionLines": {
+          "tao": "你听，咔嗒。今晚又多了个听得出他是谁的声音。"
+        }
+      }
+    ]
+  },
+  {
+    "id": "friend-tao-radio-tape",
+    "kind": "friend",
+    "group": "tao",
+    "label": "磁带盒背面的交班表",
+    "description": "陶乐拆开松了的磁带盒。一张对折的交班表从盒底滑出来，名字旁边全是画出来的小杯子。",
+    "asset": "assets/deal-outing-comic-tao-radio-tape.webp",
+    "price": 0,
+    "energy": 10,
+    "companionId": "tao",
+    "requires": {
+      "eventId": "friend-tao-radio",
+      "choiceId": "second"
+    },
+    "companionLines": {
+      "tao": "原来这盘不是拿来播的。是他们自己录着玩，轮到谁接班谁画一个杯子。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "把交班表照原样折回去",
+        "price": 0,
+        "energy": 10,
+        "text": "折痕刚好避开最后一个杯子。陶乐录了一段自己念日期的声音，没有覆盖原带。",
+        "companionLines": {
+          "tao": "以后我也老了，还能听听自己今天念错了几回。"
+        }
+      },
+      {
+        "id": "second",
+        "label": "听完最后一小段空白",
+        "price": 0,
+        "energy": 10,
+        "text": "谁也没按停。十来秒后远处有人喊「钥匙别忘了」，接着才是录音机按键弹起的声音。",
+        "companionLines": {
+          "tao": "幸亏没掐掉。正经节目做不出这么贴心的片尾。"
+        }
+      }
+    ]
+  },
+  {
+    "id": "friend-xu-map",
+    "kind": "friend",
+    "group": "xu",
+    "label": "渡口那张少画一段的图",
+    "description": "旧渡口售票亭贴着一张手绘坡道图。一位坐轮椅的女乘客指着图问，绕过卖票窗口以后怎么走。",
+    "asset": "assets/deal-outing-comic-xu-map.webp",
+    "price": 0,
+    "energy": 10,
+    "companionId": "xu",
+    "companionLines": {
+      "xu": "图画到窗边就停了，人又不能在这儿凭空上船。咱们问她，是想自己找路还是想有人带。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "陪她从坡口走一遍",
+        "price": 0,
+        "energy": 10,
+        "text": "你们跟在她侧后方走完一趟。真正难找的是最后那个转角，堆起来的空筐挡住了箭头。",
+        "companionLines": {
+          "xu": "别只补一支箭头。咱们蹲下来看看，她从这个高度能看见什么。"
+        }
+      },
+      {
+        "id": "second",
+        "label": "问蓝搪瓷铃能不能用",
+        "price": 0,
+        "energy": 10,
+        "text": "乘客够到了系铃的绳，却没听见回音。许明珊绕进亭里，发现系绳缠在窗钩上。",
+        "companionLines": {
+          "xu": "幸亏是她自己试。换我站着拉一下，恐怕还说这铃挺好。"
+        }
+      }
+    ]
+  },
+  {
+    "id": "friend-xu-map-walk",
+    "kind": "friend",
+    "group": "xu",
+    "label": "从坐着的高度看指路牌",
+    "description": "许明珊带着新画的最后一段坡道图回来。乘客停在上次那个拐角，手指点在一块矮栏板上。",
+    "asset": "assets/deal-outing-comic-xu-map-walk.webp",
+    "price": 0,
+    "energy": 10,
+    "companionId": "xu",
+    "requires": {
+      "eventId": "friend-xu-map",
+      "choiceId": "first"
+    },
+    "companionLines": {
+      "xu": "把牌子挂那儿，她没拐过来就看得见。比贴在我们眼皮底下好。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "请她对着新图自己走",
+        "price": 0,
+        "energy": 10,
+        "text": "你们留在后面。她没问一次路就到了跳板前，回过头用手指了指图上的终点。",
+        "companionLines": {
+          "xu": "这回不用谁解释了。咱们退开，别把新牌子又给挡了。"
+        }
+      },
+      {
+        "id": "second",
+        "label": "替换被空筐遮住的旧牌",
+        "price": 0,
+        "energy": 10,
+        "text": "工作人员把空筐收进仓里。旧牌翻过来当了新图的底板，原来的螺丝孔一个没浪费。",
+        "companionLines": {
+          "xu": "我刚才只想重画。她说挪开筐才管用，还是天天走这儿的人清楚。"
+        }
+      }
+    ]
+  },
+  {
+    "id": "friend-xu-map-bell",
+    "kind": "friend",
+    "group": "xu",
+    "label": "售票亭里有人应声",
+    "description": "铃绳理顺了，售票员却说里屋隔着扇门未必听见。许明珊请那位女乘客在想试的时候拉一下。",
+    "asset": "assets/deal-outing-comic-xu-map-bell.webp",
+    "price": 0,
+    "energy": 10,
+    "companionId": "xu",
+    "requires": {
+      "eventId": "friend-xu-map",
+      "choiceId": "second"
+    },
+    "companionLines": {
+      "xu": "咱们别盯着人家数一二三。平常来坐船的人，哪知道什么时候轮到售票员竖耳朵。"
+    },
+    "choices": [
+      {
+        "id": "first",
+        "label": "留在里屋听铃",
+        "price": 0,
+        "energy": 10,
+        "text": "隔着门只听见一下轻响。售票员把常坐的椅子移到窗边，第二次在乘客松手前就应了声。",
+        "companionLines": {
+          "xu": "好，她要的不是更大的动静，是知道这里真的有人。"
+        }
+      },
+      {
+        "id": "second",
+        "label": "给亭外也留一句回话",
+        "price": 0,
+        "energy": 10,
+        "text": "售票员推开半扇窗喊「听见啦」。乘客说这三个字比铃声好用，笑着把绳递给下一位。",
+        "companionLines": {
+          "xu": "那就留半扇窗。图上不用解释这个，人一来就听到了。"
+        }
+      }
+    ]
+  }
+];

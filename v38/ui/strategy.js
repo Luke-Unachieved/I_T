@@ -1,6 +1,7 @@
 import { netAssets } from '../engine/game.js';
 import { ACHIEVEMENTS, biography, ipoProgress, nationalRank, ventureProgress } from '../engine/strategy.js';
-import { count, esc, yuan } from './shell.js';
+import { count, esc, milestoneGallery, yuan } from './shell.js';
+import { imageFrame } from './media.js';
 
 const stages = [
   { id: 'private', label: '独立经营' },
@@ -20,11 +21,6 @@ function badge(label, status = '') {
 
 function stat(label, value) {
   return `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`;
-}
-
-function image(path, className) {
-  return typeof path === 'string' && /^assets\/[\w.-]+\.(?:webp|png|jpe?g|svg)$/i.test(path)
-    ? `<img class="${className}" src="${esc(path)}" alt="" loading="lazy" decoding="async">` : '';
 }
 
 function goalMeasure(label, actual, threshold, format, limit = false) {
@@ -67,13 +63,28 @@ function singletonInvestment(venture, option) {
     ${option.reason && !ongoing ? `<p class="trade-note">${esc(option.reason)}</p>` : ''}`;
 }
 
-function targetedInvestment(venture) {
+function unavailableInvestment(venture, cash) {
+  const unfinished = venture.options.filter(option => option.nextCost != null);
+  if (!unfinished.length) return '所有项目均已升满。';
+  const unlocked = unfinished.filter(option => !option.condition);
+  const messages = [];
+  if (unlocked.length) {
+    const minimum = Math.min(...unlocked.map(option => option.nextCost));
+    messages.push(`当前现金不足，投入至少需要 ${yuan(minimum)}，还差 ${yuan(minimum - cash)}。`);
+  }
+  if (unfinished.some(option => option.condition)) {
+    messages.push('尚未开拓的海外市场，请先在「市场」分区开拓。');
+  }
+  return messages.join('');
+}
+
+function targetedInvestment(venture, cash) {
   const available = venture.options.some(option => option.available && option.nextCost != null);
   const form = available ? `<form class="venture-form" data-form="invest-venture"><input type="hidden" name="id" value="${esc(venture.id)}"><label class="form-field">
       <span>${venture.id === 'factory' ? '商品品类' : '市场'}</span><select name="target" required>
       ${venture.options.map(option => `<option value="${esc(option.target)}"${option.available && option.nextCost != null ? '' : ' disabled'}>${esc(optionCaption(option))}</option>`).join('')}
       </select></label><button type="submit" class="button secondary">投入或升级</button></form>`
-    : `<p class="trade-note">${venture.options.every(option => option.nextCost == null) ? '所有项目均已升满。' : '目前没有符合条件的投入。'}</p>`;
+    : `<p class="trade-note">${esc(unavailableInvestment(venture, cash))}</p>`;
   return `${form}
     <details><summary>查看各项进度与条件</summary><ul class="growth-checklist">${venture.options.map(option => `<li><span aria-hidden="true">${option.level ? '✓' : '◇'}</span><span>${esc(optionCaption(option))}${option.reason && option.nextCost != null ? ` · ${esc(option.reason)}` : ''}</span></li>`).join('')}</ul></details>`;
 }
@@ -83,16 +94,17 @@ function venturesSection(state) {
     `<div class="growth-cards strategy-cards">${ventureProgress(state).map(venture => {
       const single = !venture.options.some(option => option.target != null);
       const warehouse = venture.id === 'warehouse' && venture.options[0]?.level;
-      return `<article class="growth-card venture-card">${image(venture.asset, 'venture-image')}<h3>${esc(venture.label)}</h3><p class="muted">${esc(venture.description)}</p>
+      return `<article class="growth-card venture-card">${imageFrame(venture.asset, { className: 'venture-image', fallback: '产业插画暂时无法显示', retry: true })}<h3>${esc(venture.label)}</h3><p class="muted">${esc(venture.description)}</p>
         <p class="trade-note">每级每周维护 ${yuan(venture.upkeep)}</p>
-        ${single ? singletonInvestment(venture, venture.options[0]) : targetedInvestment(venture)}
+        ${single ? singletonInvestment(venture, venture.options[0]) : targetedInvestment(venture, state.cash)}
         ${warehouse ? '<div><button type="button" class="button quiet" data-ui="page" data-page="orders">去订单页采购库存 →</button></div>' : ''}</article>`;
     }).join('')}</div>`);
 }
 
 function listingAction(action, index, activeIndex) {
   const finished = index < activeIndex;
-  const status = finished ? badge('已完成', 'positive') : action.available ? badge('可以办理', 'positive') : badge(action.current ? '待达条件' : '等待上一步', 'pending');
+  const prerequisite = index === 1 ? '先引入战略投资' : '先完成股份制改造';
+  const status = finished ? badge('已完成', 'positive') : action.available ? badge('可以办理', 'positive') : badge(action.current ? '待达条件' : prerequisite, 'pending');
   return `<article class="growth-card"><header class="growth-card-heading"><h3>${esc(action.label)}</h3>${status}</header>
     ${!finished ? `<ul class="growth-checklist">${action.requirements.map(requirement => `<li class="${requirement.met ? 'positive' : ''}"><span aria-hidden="true">${requirement.met ? '✓' : '◇'}</span><span><span class="visually-hidden">${requirement.met ? '已满足：' : '未满足：'}</span>${esc(requirement.text)}</span></li>`).join('')}</ul>
     <div class="toolbar"><button type="button" class="button ${action.available ? 'primary' : 'secondary'}" data-action="${esc(action.id)}"${action.available ? '' : ' disabled'}>
@@ -115,6 +127,7 @@ function chronicleDate(week) {
 
 function recordSection(state) {
   const earned = new Set(state.achievements);
+  const gallery = milestoneGallery(earned);
   const achievements = ACHIEVEMENTS.map(item => {
     const won = earned.has(item.id);
     return `<article class="growth-card achievement"><header class="growth-card-heading"><h3>${esc(item.label)}</h3>${badge(won ? '已获得' : '未解锁', won ? 'positive' : '')}</header><p class="muted">${esc(item.description)}</p></article>`;
@@ -123,12 +136,14 @@ function recordSection(state) {
   const chronicle = history.length ? `<ol class="activity-list strategy-timeline">${history.map(event => `<li>${badge(chronicleDate(event.week))}<p>${esc(event.text)}</p></li>`).join('')}</ol>` : '<p class="empty-state">重要经营节点会收录进这里。</p>';
   const story = biography(state);
   return section('company-record', '成就与企业记事', '查看里程碑和历程，留一份公司的经营传记。',
-    `<details class="strategy-details"><summary>成就　${count(earned.size)} / ${count(ACHIEVEMENTS.length)}</summary><div class="growth-cards achievement-cards">${achievements}</div></details>
+    `${gallery}<details class="strategy-details"><summary>成就　${count(earned.size)} / ${count(ACHIEVEMENTS.length)}</summary><div class="growth-cards achievement-cards">${achievements}</div></details>
      <details class="strategy-details"><summary>企业大事记　${count(history.length)} 条</summary>${chronicle}</details>
      <details class="strategy-details"><summary>企业传记</summary><div class="biography">${story.length ? story.map(paragraph => `<p>${esc(paragraph)}</p>`).join('') : '<p class="muted">公司刚起步，传记会随经营历程增长。</p>'}</div></details>`);
 }
 
-export function strategyPanel(state) {
-  return `<nav class="growth-shortcuts toolbar" aria-label="公司长线经营"><a class="button quiet" href="#board-goals">年度目标</a><a class="button quiet" href="#ventures">产业链</a><a class="button quiet" href="#listing">估值上市</a><a class="button quiet" href="#company-record">成就记事</a></nav>
-    ${boardSection(state)}${venturesSection(state)}${listingSection(state)}${recordSection(state)}`;
-}
+export const strategySections = {
+  'board-goals': boardSection,
+  ventures: venturesSection,
+  listing: listingSection,
+  'company-record': recordSection,
+};

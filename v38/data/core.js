@@ -46,7 +46,7 @@ function product(id, name, category, unit, asset, brief, stock, factory) {
 }
 
 const regularProducts = rows.map(([id, name, category, unit, stockName, factoryName, ...values]) =>
-  product(id, name, category, unit, `assets/deal-market-thumb-${id}.webp`, values.at(-1),
+  product(id, name, category, unit, id === 'carafe' ? 'assets/deal-market-thumb-carafe.webp' : `assets/v38-product-thumb-${id}.webp`, values.at(-1),
     source(stockName, ...values.slice(0, 6)), source(factoryName, ...values.slice(6, 12))));
 
 const openingProducts = [

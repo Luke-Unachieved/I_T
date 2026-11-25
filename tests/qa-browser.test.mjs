@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { launchBrowser } from './helpers/chromium.mjs';
 import { currentState, dismissDecisions, loadScenario } from './helpers/scenarios.mjs';
+import { SAVE_KEY } from '../v38/ui/save.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const enabled = process.env.V38_BROWSER === '1';
@@ -101,6 +102,90 @@ test('E01/E10: real double banking submits once, corrected Chinese forms remain 
   } finally { await browser.close(); }
 });
 
+test('rapid modal submission cannot tap the weekly controls underneath on a phone', options, async () => {
+  const browser = await launchBrowser(root);
+  try {
+    const page = await browser.page({ width: 390, height: 844, mobile: true });
+    await page.goto();
+    await page.waitFor(present('[data-form="new-game"]'));
+    await page.fill('[data-form="new-game"] [name="name"]', '报价重复点击验收');
+    await page.evaluate(`(()=>{const choice=document.querySelector('[name=difficulty]');choice.value='hard';choice.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+    await page.click('[data-form="new-game"] button[type="submit"]');
+    await page.click('[data-ui="skip-tutorial"]');
+    await page.click('nav [data-ui="page"][data-page="inquiries"]');
+    await page.click('[data-ui="quote-open"]');
+    await page.evaluate(`document.querySelector('dialog input[name=ratio]').focus()`);
+    await key(page, 'Home', 'Home', 36);
+    await page.click('dialog [data-ui="close-dialog"]');
+    await page.click('[data-ui="quote-open"]');
+    await page.goto();
+    await page.waitFor(present('[data-ui="resume-save"]'));
+    await page.click('[data-ui="resume-save"]');
+    await page.waitFor(present('dialog[open] [data-form="quote"]'));
+    const stored = () => page.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SAVE_KEY)})).state`);
+    const before = await stored();
+    const point = await page.evaluate(`(()=>{const button=document.querySelector('dialog [data-form=quote] [type=submit]');button.scrollIntoView({block:'center',behavior:'instant'});const r=button.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()`);
+    await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', ...point, button: 'left', clickCount: 1 });
+    await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', ...point, button: 'left', clickCount: 1 });
+    await page.waitFor('!document.querySelector("dialog").open');
+    const behind = await page.evaluate(`document.elementFromPoint(${point.x},${point.y})?.closest('button')?.dataset.action`);
+    assert.ok(['end-week', 'advance-four'].includes(behind), `Fixture must expose a weekly control underneath the submit button, got ${behind}`);
+    await pause(60);
+    await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', ...point, button: 'left', clickCount: 2 });
+    await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', ...point, button: 'left', clickCount: 2 });
+    const after = await stored();
+    assert.equal(after.week, before.week, 'Second tap must not accidentally advance the week');
+    assert.equal(after.cash, before.cash);
+    assert.equal(after.bids.length, 1);
+    await page.evaluate(`document.querySelector('[data-action=end-week]').focus()`);
+    await key(page, ' ', 'Space', 32);
+    await page.waitFor('document.querySelector("dialog[open] #modal-title")?.textContent.includes("本周小结")');
+    assert.equal((await stored()).week, before.week + 1, 'Keyboard activation remains available immediately');
+    assert.deepEqual(page.errors, []);
+  } finally { await browser.close(); }
+});
+
+test('a repeated phone withdrawal cannot remove the next pending quotation', options, async () => {
+  const browser = await launchBrowser(root, { scenarios: true });
+  try {
+    const page = await browser.page({ width: 390, height: 844, mobile: true });
+    await page.goto();
+    await page.waitFor(present('[data-form="new-game"]'));
+    await loadScenario(page, `game=>{const state=game.newGame({name:'撤回报价重复点击验收',assistant:'fang',seed:381});state.tutorial.done=true;return state;}`);
+    await page.click('nav [data-ui="page"][data-page="inquiries"]');
+    for (let count = 0; count < 3; count++) {
+      const id = await page.evaluate(`Array.from(document.querySelectorAll('[data-ui=quote-open]')).find(button=>button.innerText.trim()==='算价')?.dataset.id`);
+      assert.ok(id);
+      await page.click(`[data-ui="quote-open"][data-id="${id}"]`);
+      await page.evaluate(`document.querySelector('dialog input[name=ratio]').focus()`);
+      await key(page, 'Home', 'Home', 36);
+      await page.click('dialog [data-form="quote"] button[type="submit"]');
+      await page.waitFor('!document.querySelector("dialog").open');
+      await pause(420);
+    }
+    const before = await currentState(page);
+    assert.equal(before.bids.length, 3);
+    const first = before.bids[0].inquiryId, second = before.bids[1].inquiryId;
+    const point = await page.evaluate(`(()=>{const button=document.querySelector('[data-action=withdraw-bid][data-id="${first}"]');button.scrollIntoView({block:'center',behavior:'instant'});const r=button.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()`);
+    await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', ...point, button: 'left', clickCount: 1 });
+    await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', ...point, button: 'left', clickCount: 1 });
+    const behind = await page.evaluate(`document.elementFromPoint(${point.x},${point.y})?.closest('button')?.dataset.id`);
+    assert.equal(behind, second, 'Fixture must expose the next quote at the same screen point');
+    await pause(60);
+    await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', ...point, button: 'left', clickCount: 2 });
+    await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', ...point, button: 'left', clickCount: 2 });
+    const after = await currentState(page);
+    assert.deepEqual(after.bids.map(bid=>bid.inquiryId), before.bids.slice(1).map(bid=>bid.inquiryId));
+    assert.equal(after.cash, before.cash);
+    const deliberate = await page.evaluate(`(()=>{const r=document.querySelector('[data-action=withdraw-bid][data-id="${second}"]').getBoundingClientRect();return {x:r.left+8,y:r.y+r.height/2}})()`);
+    assert.ok(Math.hypot(deliberate.x-point.x,deliberate.y-point.y)>8);
+    await page.send('Input.dispatchMouseEvent', { type: 'mousePressed', ...deliberate, button: 'left', clickCount: 1 });
+    await page.send('Input.dispatchMouseEvent', { type: 'mouseReleased', ...deliberate, button: 'left', clickCount: 1 });
+    assert.deepEqual((await currentState(page)).bids.map(bid=>bid.inquiryId), [before.bids[2].inquiryId]);
+    assert.deepEqual(page.errors, []);
+  } finally { await browser.close(); }
+});
+
 test('E02: tutorial next and ESC always return to a usable current target', options, async () => {
   const browser = await launchBrowser(root);
   try {
@@ -123,21 +208,129 @@ test('E02: tutorial next and ESC always return to a usable current target', opti
   } finally { await browser.close(); }
 });
 
-test('E04: no-save boundary is visible before play and when leaving, without promising recovery', options, async () => {
-  const browser = await launchBrowser(root);
+test('E04: auto-save restores a pending quote, weekly summary and pending event, and reopening preserves progress', options, async () => {
+  const browser = await launchBrowser(root, { scenarios: true });
   try {
     const page = await browser.page();
     await page.goto();
     await page.waitFor(present('[data-session-warning="opening"]'));
-    assert.match(await page.evaluate('document.querySelector("[data-session-warning=opening]").innerText'), /刷新.*关闭[\s\S]*(结束|重新|重开)|不保存/);
-    await page.fill('[name="name"]', '会话边界验收');
+    assert.match(await page.evaluate('document.querySelector("[data-session-warning=opening]").innerText'), /自动存档.*继续经营/);
+    await page.fill('[name="name"]', '自动存档验收');
     await page.click('[data-form="new-game"] button[type="submit"]');
     await page.waitFor(present('#page-title'));
+    await page.click('[data-ui="page"][data-page="inquiries"]');
+    await page.click('[data-ui="quote-open"]');
+    await page.evaluate('(()=>{const e=document.querySelector("dialog input[name=ratio]");e.value="80";e.dispatchEvent(new Event("input",{bubbles:true}));})()');
+    const quoting = await currentState(page);
+    const resume = async () => {
+      await page.goto();
+      await page.waitFor(present('[data-ui="resume-save"]'));
+      await page.click('[data-ui="resume-save"]');
+      await page.waitFor(present('#page-title'));
+    };
+    await resume();
+    assert.deepEqual(await currentState(page), quoting);
+    assert.equal(await page.evaluate('document.querySelector("dialog[open] input[name=ratio]").value'), '80');
+    await page.click('dialog [data-form="quote"] button[type="submit"]');
+    await page.click('[data-action="end-week"]');
+    const settled = await currentState(page);
+    assert.equal(settled.week, 2);
+    assert.ok(settled.orders.length > 0);
+    await resume();
+    assert.deepEqual(await currentState(page), settled);
+    assert.match(await page.evaluate('document.querySelector("dialog[open]").innerText'), /本周小结/);
+    await dismissDecisions(page);
+    await loadScenario(page, `(game)=>{const s=game.newGame({name:'自动存档验收',seed:381});s.tutorial.done=true;s.events.push({id:'pending-demo',type:'ipo-celebration',title:'上市成功',text:'继续经营',choices:[{id:'continue',label:'继续经营'}]});return s;}`);
+    await page.click('[data-ui="show-event"]');
+    await key(page, 'Escape', 'Escape', 27);
+    const pending = await currentState(page);
+    await resume();
+    assert.deepEqual(await currentState(page), pending);
+    assert.match(await page.evaluate('document.querySelector("dialog[open]").innerText'), /上市成功/);
+    await dismissDecisions(page);
     await page.click('[data-ui="page"][data-page="offwork"]');
-    assert.match(await page.evaluate('document.querySelector("[data-session-warning=leaving]").innerText'), /刷新.*关闭[\s\S]*(结束|重新|重开)|不保存/);
-    await page.send('Page.reload');
+    assert.match(await page.evaluate('document.querySelector("[data-session-warning=leaving]").innerText'), /自动保存.*继续经营/);
+    assert.match(await page.evaluate('document.querySelector("[data-save-indicator]").innerText'), /已自动存档/);
+    const original = await currentState(page);
+    const opened = await browser.page();
+    await opened.goto();
+    await opened.waitFor(present('[data-ui="resume-save"]'));
+    await opened.click('[data-ui="resume-save"]');
+    await opened.waitFor(present('#page-title'));
+    assert.deepEqual(await currentState(opened), original);
+    assert.equal(await opened.evaluate('document.querySelector("#page-title").textContent'), '下班');
+    await opened.click('[data-ui="request-restart"]');
+    await opened.click('dialog [data-ui="close-dialog"]');
+    assert.deepEqual(await currentState(opened), original);
+    await opened.click('[data-ui="request-restart"]');
+    await opened.click('dialog [data-ui="restart"]');
+    await opened.waitFor(present('[data-form="new-game"]'));
+    assert.equal((await opened.evaluate(`JSON.parse(localStorage.getItem(${JSON.stringify(SAVE_KEY)})).state.company.name`)), original.company.name);
+    await opened.fill('[name="name"]', '新的独立工作室');
+    await opened.click('[data-form="new-game"] button[type="submit"]');
+    assert.equal((await currentState(opened)).company.name, '新的独立工作室');
+    assert.equal((await currentState(opened)).week, 1);
+    assert.deepEqual(opened.errors, []);
+  } finally { await browser.close(); }
+});
+
+test('save recovery: damaged records stay intact, failed writes can retry and a stale tab never overwrites a newer save', options, async () => {
+  const browser = await launchBrowser(root, { scenarios: true });
+  const keyName = JSON.stringify(SAVE_KEY);
+  const read = `localStorage.getItem(${keyName})`;
+  try {
+    const page = await browser.page();
+    await page.goto();
     await page.waitFor(present('[data-form="new-game"]'));
-    assert.equal(await page.evaluate('document.querySelector("[name=name]").value'), '');
+    await page.evaluate("localStorage.setItem('trade-tycoon:deal-room:v1','经典工作室存档');localStorage.setItem('trade-tycoon:data:v2','旧版存档')");
+    const blocked = await page.send('Page.addScriptToEvaluateOnNewDocument', {
+      source: `(()=>{const get=Storage.prototype.getItem;window.restoreRead=()=>{Storage.prototype.getItem=get};Storage.prototype.getItem=function(k){if(k===${keyName})throw new DOMException('denied','SecurityError');return get.call(this,k)}})()`,
+    });
+    await page.goto();
+    await page.waitFor(present('[data-ui="reread-save"]'));
+    assert.match(await page.evaluate(body), /无法访问存档/);
+    await page.evaluate('window.restoreRead()');
+    await page.send('Page.removeScriptToEvaluateOnNewDocument', { identifier: blocked.identifier });
+    await page.click('[data-ui="reread-save"]');
+    await page.waitFor(present('[data-form="new-game"]'));
+    await page.evaluate(`localStorage.setItem(${keyName}, '破损记录')`);
+    await page.goto();
+    await page.waitFor(present('[data-ui="reread-save"]'));
+    assert.match(await page.evaluate(body), /存档无法读取/);
+    assert.equal(await page.evaluate(read), '破损记录');
+    await page.click('[data-ui="prepare-new-game"]');
+    await page.click('[data-ui="cancel-new-game"]');
+    assert.equal(await page.evaluate(read), '破损记录');
+    await page.click('[data-ui="prepare-new-game"]');
+    await page.click('[data-ui="confirm-new-game"]');
+    await page.evaluate(`(()=>{const write=Storage.prototype.setItem;window.restoreStorage=()=>{Storage.prototype.setItem=write};Storage.prototype.setItem=function(k,v){if(k===${keyName})throw new DOMException('full','QuotaExceededError');return write.call(this,k,v)}})()`);
+    await page.fill('[name="name"]', '存档恢复验收');
+    await page.click('[data-form="new-game"] button[type="submit"]');
+    await page.waitFor(present('[data-save-warning]:not([hidden])'));
+    assert.match(await page.evaluate(body), /自动存档失败/);
+    assert.equal(await page.evaluate(read), '破损记录');
+    await page.evaluate('window.restoreStorage()');
+    await page.click('[data-save-warning]:not([hidden]) [data-ui="retry-save"]');
+    assert.equal(await page.evaluate(present('[data-save-warning]:not([hidden])')), false);
+    const old = await page.evaluate(read);
+    assert.equal(JSON.parse(old).state.company.name, '存档恢复验收');
+    const newer = await browser.page();
+    await newer.goto();
+    await newer.waitFor(present('[data-ui="resume-save"]'));
+    await newer.click('[data-ui="resume-save"]');
+    await newer.click('[data-ui="page"][data-page="company"]');
+    await newer.fill('[data-form="borrow"] [name="amount"]', '5000');
+    await newer.click('[data-form="borrow"] button[type="submit"]');
+    const latest = await newer.evaluate(read);
+    assert.equal(JSON.parse(latest).state.loan, 5000);
+    await page.click('[data-ui="page"][data-page="inquiries"]');
+    await page.waitFor(present('[data-save-warning]:not([hidden])'));
+    assert.match(await page.evaluate(body), /其他页面.*更新/);
+    assert.equal(await page.evaluate(read), latest);
+    assert.equal(await page.evaluate("localStorage.getItem('trade-tycoon:deal-room:v1')"), '经典工作室存档');
+    assert.equal(await page.evaluate("localStorage.getItem('trade-tycoon:data:v2')"), '旧版存档');
+    assert.deepEqual(page.errors, []);
+    assert.deepEqual(newer.errors, []);
   } finally { await browser.close(); }
 });
 
@@ -259,5 +452,32 @@ test('E09/E12: cash risk sign, quote draft, list anchor and fresh-dialog scroll 
     const warning = await page.evaluate(`(()=>{const e=document.querySelector('dialog [data-tour=cash-forecast]');return {text:e.innerText,negative:e.classList.contains('negative')}})()`);
     assert.ok(warning.negative);
     assert.match(warning.text, /还差|缺口|不足/);
+  } finally { await browser.close(); }
+});
+
+test('event illustration failure reserves its frame, retries, and leaves the decision usable', options, async () => {
+  const browser = await launchBrowser(root, { scenarios: true });
+  try {
+    const page = await browser.page({ width: 390, height: 844, mobile: true });
+    await page.goto();
+    await page.waitFor(present('[data-form="new-game"]'));
+    await page.send('Network.enable');
+    await page.send('Network.setBlockedURLs', { urls: ['*v38-event-materials.webp*'] });
+    await loadScenario(page, `(game)=>{const s=game.newGame({name:'事件插画验收',seed:381});s.tutorial.done=true;s.events=[{id:'test-materials',type:'trade-event',code:'materials',title:'供应商调价通知',text:'原料商通知近期将涨价。',comic:'assets/v38-event-materials.webp',choices:[{id:'reserve',label:'锁定采购价',cost:700,policy:{weeks:5,materialDelta:-12}},{id:'open',label:'按现价采购',macro:{materials:7}}]}];return s;}`);
+    await page.click('[data-ui="show-event"]');
+    await page.waitFor(present('dialog .event-comic[data-media-state="error"]'));
+    const before = await page.evaluate('document.querySelector("dialog .event-comic").getBoundingClientRect().height');
+    assert.ok(before > 100);
+    assert.match(await page.evaluate('document.querySelector("dialog .event-comic").innerText'), /插画暂时无法显示/);
+    assert.ok(await page.evaluate(present('dialog [data-action="resolve-event"][data-choice="open"]:not(:disabled)')));
+    await page.send('Network.setBlockedURLs', { urls: [] });
+    await page.click('dialog .event-comic [data-media-retry]');
+    await page.waitFor('document.querySelector("dialog .event-comic img").naturalWidth > 0');
+    const after = await page.evaluate('document.querySelector("dialog .event-comic").getBoundingClientRect().height');
+    assert.equal(after, before);
+    await page.screenshot('/tmp/v38-event-image-retry.png');
+    await page.click('dialog [data-action="resolve-event"][data-choice="open"]');
+    assert.equal((await currentState(page)).events.length, 0);
+    assert.deepEqual(page.errors, []);
   } finally { await browser.close(); }
 });

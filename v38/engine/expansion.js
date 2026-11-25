@@ -21,11 +21,15 @@ function adviserStaff(adviser, index) {
 
 function candidatePool(s, week = s.week) {
   const originals = ASSISTANTS.map(adviserStaff).filter(person => !s.staff.some(employee => employee.id === person.id));
-  const talent = Array.from({ length: 4 }, (_, i) => {
+  const occupied = new Set(s.staff.map(employee => employee.name));
+  const available = Array.from({ length: talentNames.length }, (_, offset) => (week + offset) % talentNames.length)
+    .filter(index => !occupied.has(talentNames[index]));
+  const talent = available.slice(0, 4).map((talentIndex, i) => {
     const role = Object.keys(STAFF_ROLES)[i % 3];
     const ability = 3 + Math.floor(random(s) * 7);
     return {
-      id: `candidate-${week}-${i}`, name: talentNames[(week + i) % talentNames.length], role, ability,
+      id: `candidate-${week}-${i}`, name: talentNames[talentIndex], role, ability,
+      portrait: `assets/v38-staff-${String(talentIndex + 1).padStart(2, '0')}.webp`,
       salary: STAFF_ROLES[role].salary + 35 * (ability - 5),
       commission: STAFF_ROLES[role].commission, trait: choose(s, skillTags[role]),
     };
@@ -121,7 +125,8 @@ export function growthAction(s, action, ops) {
   switch (action.type) {
     case 'hire': {
       const person = s.candidates.find(item => item.id === id);
-      if (!person || s.staff.some(item => item.id === id)) return result('这位候选人已离开人才市场。');
+      if (!person) return result('这位候选人已离开人才市场。');
+      if (s.staff.some(item => item.id === id || item.name === person.name)) return result('这位候选人已在公司任职。');
       if (s.staff.length >= 18) return result('当前办公室最多容纳 18 位员工。');
       if (s.cash < person.salary) return result('现金不足以支付首周工资。');
       s.staff.push(person);
@@ -132,6 +137,7 @@ export function growthAction(s, action, ops) {
     case 'dismiss-staff': {
       const person = s.staff.find(item => item.id === id);
       if (!person) return result('员工已离开公司。');
+      if (person.id === s.assistant) return result('创业搭档将一直协助经营，不能解聘。');
       if (s.orders.some(order => order.staffId === id && activeOrder(order)) || s.bids.some(bid => bid.staffId === id)) {
         return result('请等这位员工的报价或在途订单处理完毕。');
       }
@@ -235,8 +241,15 @@ function retainStaff(s, ops, projecting) {
     (s.history.slice(-4).every(row => row.profit < 0) || item.salary < STAFF_ROLES[item.role].salary * 0.55));
   if (!person || random(s) > 0.6 || projecting) return;
   const raise = Math.max(Math.round(person.salary * 1.25), STAFF_ROLES[person.role].salary);
-  offerEvent(s, ops, 'staff-poach', { title: `${person.name}收到同行邀请`, text: `对方给的工资更高。${person.name}愿意留下，但希望周薪调整至 ¥${raise}。`,
-    staffId: person.id, raise, choices: [{ id: 'retain', label: `加薪至 ¥${raise} / 周` }, { id: 'release', label: '接受离职' }] });
+  const founder = person.id === s.assistant;
+  offerEvent(s, ops, 'staff-poach', {
+    title: founder ? `${person.name}提出调薪` : `${person.name}收到同行邀请`,
+    text: founder ? `${person.name}希望将周薪调整至 ¥${raise}，可现在调整或等经营情况好转再议。` : `对方给的工资更高。${person.name}愿意留下，但希望周薪调整至 ¥${raise}。`,
+    staffId: person.id, raise, choices: [
+      { id: 'retain', label: `加薪至 ¥${raise} / 周` },
+      founder ? { id: 'defer', label: '暂缓调薪' } : { id: 'release', label: '接受离职' },
+    ],
+  });
 }
 
 function targetFor(s, flow, kind) {
@@ -264,13 +277,13 @@ function randomEvent(s, flow, ops, projecting) {
     .reduce((best, person) => Math.max(best, person.ability), 0) * 0.07) return;
   s.lastTradeEvent = template.id;
   if (projecting) return;
-  const { id, text, title, choices, when } = template;
+  const { id, text, title, choices, when, comic, comicAlt } = template;
   offerEvent(s, ops, 'trade-event', { code: id, title, text, choices,
     orderId: ['production', 'overseas-transit', 'delivery'].includes(when) ? target.id : null,
     invoiceId: ['invoice', 'foreign-invoice'].includes(when) ? target.id : null,
     market: when === 'global' ? target : target.market,
     productId: when === 'stock' ? target.productId : null,
-    comic: when === 'delivery' ? clientComic(target.buyer, 'repeat') : null });
+    comic: comic ?? (when === 'delivery' ? clientComic(target.buyer, 'repeat') : null), comicAlt });
 }
 
 function keyClients(s, flow, ops, projecting) {
@@ -359,7 +372,7 @@ export function decisionInfo(s, event) {
     } else if (invoice && openInvoice(invoice) && (choice.invoiceDelay || choice.collection)) {
       impact.paymentWeek = invoice.dueWeek + (choice.invoiceDelay ?? 0);
       if (choice.invoiceDelay) details.push(`应收改到第 ${impact.paymentWeek} 周到期。`);
-      if (choice.collection) details.push(`回款判定的按时概率上调 ${Math.round(choice.collection * 100)} 个百分点，上限不变。`);
+      if (choice.collection) details.push(`这笔货款按期收回的机会最多增加 ${Math.round(choice.collection * 100)} 个百分点。`);
     }
     if (choice.rep) {
       impact.reputation = clamp(s.company.rep + choice.rep, 0, 100) - s.company.rep;
@@ -371,7 +384,7 @@ export function decisionInfo(s, event) {
       const index = (s.macro.materials ?? 100) + tradePolicy(s, market).materialDelta;
       impact.materialSavingPer10k = (Math.max(40, index) - Math.max(40, index + materialDelta)) * 100;
       impact.untilWeek = s.week + weeks - 1;
-      details.push(`第 ${s.week} 至 ${impact.untilWeek} 周的新工厂报价，采购成本指数降低 ${-materialDelta} 点。以基准采购价每 ${money(10000)} 计，按当前指数约省 ${money(impact.materialSavingPer10k)}（自有产线另计）。`);
+      details.push(`第 ${s.week} 至 ${impact.untilWeek} 周的新工厂采购报价可享原料优惠，原料价格指数下调 ${-materialDelta} 点。按当前行情，每 ${money(10000)} 的基础采购价预计少付 ${money(impact.materialSavingPer10k)}。实际节省额会随原料行情和自有产线折扣变化。`);
     }
     if (event.code === 'supplier-demo' && choice.id === 'pass') details.push('不支出现金，工厂报价按现有条件。');
     if (stock && choice.clearance) {
@@ -445,6 +458,9 @@ export function growthEvent(s, event, id, ops) {
     if (id === 'retain') {
       person.salary = event.raise;
       ops.log('staff', `${person.name}决定留在公司。`);
+    } else if (person.id === s.assistant) {
+      if (id !== 'defer') return result('创业搭档将继续协助经营，请选择调薪安排。');
+      ops.log('staff', `${person.name}继续协助经营，后续再议调薪。`);
     } else {
       s.staff = s.staff.filter(item => item.id !== person.id);
       ops.log('staff', `${person.name}离职，手头订单由公司接手。`);

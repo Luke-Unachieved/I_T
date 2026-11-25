@@ -241,7 +241,7 @@ export function quote(state, inquiry, options = {}) {
   if (staff?.error) return staff;
   const product = Object.hasOwn(PRODUCT_BY_ID, inquiry.productId) && PRODUCT_BY_ID[inquiry.productId];
   const quantity = inquiry.quantity;
-  if (!product || !Number.isSafeInteger(quantity) || quantity < 1) return { error: '询盘中的商品或数量无效。' };
+  if (!product || !Number.isSafeInteger(quantity) || quantity < 1) return { error: '这条询盘的商品或数量有误，请先选择其他询盘。' };
   const industry = tradeIndustry(state, product.category, market.id);
   if (branded && !industry.brandLevel) return { error: '先投入并注册自有品牌，才能自主定价。' };
   const warehouseLocal = overseas && industry.overseasLevel > 0;

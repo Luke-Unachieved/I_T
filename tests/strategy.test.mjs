@@ -176,7 +176,7 @@ test('IPO enforces three real funding stages and allows continued operation afte
   state = apply(state, { type: 'ipo' });
   assert.equal(state.listing.stage, 'public');
   assert.ok(state.achievements.includes('ipo'));
-  assert.ok(state.events.some(item => item.type === 'ipo-celebration'));
+  assert.equal(state.events.find(item => item.type === 'ipo-celebration')?.comic, 'assets/v38-milestone-ipo.webp');
   assert.ok(act(state, { type: 'ipo' }).error);
   assert.match(biography(state).join(''), /完成上市/);
   const continued = week(state);
@@ -194,6 +194,34 @@ test('achievement catalog and company chronicle are distinct, finite and based o
   assert.ok(state.achievements.includes('won'));
   assert.ok(state.chronicle.some(item => item.type === 'founded'));
   assert.match(biography(state).join(''), /2026 年成立/);
+});
+
+test('million-order and first-export artwork unlock exactly once with real weekly results', () => {
+  let state = fresh();
+  state.cash = 3000000;
+  state.company.rep = 88;
+  state.year.deliveries = 10;
+  state = apply(state, { type: 'buy-cert', id: 'export' });
+  state = apply(state, { type: 'open-market', id: 'se-asia' });
+  state.week = 4;
+  state.inquiries = generateInquiries(state);
+  const inquiry = state.inquiries.find(item => item.market === 'se-asia');
+  inquiry.quantity *= Math.ceil(1300000 / (inquiry.quantity * inquiry.targetPrice * .8 * state.macro.usd));
+  inquiry.terms = 3;
+  state = apply(state, { type: 'bid', inquiryId: inquiry.id, source: 'stock', ratio: 80 });
+  state = week(state);
+  assert.ok(state.orders[0].total >= 1000000);
+  assert.deepEqual(state.summary.illustratedMilestones, ['landmark']);
+  const milestones = [...state.summary.illustratedMilestones];
+  for (let i = 0; i < 12 && !state.orders[0].deliveredWeek; i++) {
+    state = week(state);
+    milestones.push(...(state.summary.illustratedMilestones ?? []));
+  }
+  assert.ok(state.orders[0].deliveredWeek);
+  assert.deepEqual(milestones, ['landmark', 'export-shipment']);
+  assert.deepEqual(state.summary.illustratedMilestones, ['export-shipment']);
+  state = week(state);
+  assert.equal(state.summary.illustratedMilestones, undefined);
 });
 
 test('a property remains a real asset, mortgage adds credit without cash, and collateral cannot be double-used', () => {
@@ -244,7 +272,8 @@ test('fast advancement consumes more energy, low energy affects quotes and one p
   assert.ok(act(tired, { type: 'outing', id: 'flower-market' }).error);
 });
 
-test('all life and industry illustrations reuse existing local assets', async () => {
-  for (const group of Object.values(LIFE_CATALOG)) for (const item of group) await access(new URL(`../${item.asset}`, import.meta.url));
+test('all life, industry and milestone illustrations reference local assets', async () => {
+  for (const group of Object.values(LIFE_CATALOG)) for (const item of group) if (item.asset) await access(new URL(`../${item.asset}`, import.meta.url));
   for (const venture of ventureProgress(fresh())) await access(new URL(`../${venture.asset}`, import.meta.url));
+  for (const milestone of ACHIEVEMENTS.filter(item => item.asset)) await access(new URL(`../${milestone.asset}`, import.meta.url));
 });
