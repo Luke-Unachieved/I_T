@@ -666,7 +666,7 @@ function preparationAdvice(state, ui, local) {
   const nextAction = page(next.page, next.label, next.tab);
   if (index === 1 && ui.page === 'office') {
     const { lowest, baselineFloor, reserve } = estimates(state);
-    return { ...note('从报价看到资金周转', `已有报价并不等于成交。未来 12 周若没有新单，最低现金约为 ${cash(baselineFloor)}；若目前报价全部中单，预测最低 ${cash(lowest.hypothetical)}。建议留出 ${cash(reserve)} 周转资金。接下来认识现金不足时的备用授信。`, nextAction), nextAction: { ui: 'coach-focus-forecast', label: '向下查看预测图 ↓', quiet: true }, preparation: true };
+    return { ...note('从报价看到资金周转', `已有报价并不等于成交。未来 12 周若没有新单，最低现金约为 ${cash(baselineFloor)}；若目前报价全部中单，预测最低 ${cash(lowest.hypothetical)}。建议留出 ${cash(reserve)} 周转资金。接下来认识现金不足时的备用授信。`, nextAction), nextAction: { ui: 'coach-focus-forecast', label: '向下查看预测图 ↓' }, preparation: true };
   }
   if (index === 2 && introMatches(ui, preparation[1])) {
     if (local?.action) return { ...local, nextAction, preparation: true };
@@ -719,7 +719,7 @@ function introductionAdvice(state,ui,local) {
       // A genuine current development opportunity must remain actionable on
       // its page. Teach what the page is for and let this real decision take
       // precedence, with the tour still available without any purchase.
-      return {...note(lesson.title,`${lesson.text.split('。')[0]}。${local.title}。${local.text}`,local.action),nextAction:{...action,quiet:true},...progress};
+      return {...note(lesson.title,`${lesson.text.split('。')[0]}。${local.title}。${local.text}`,local.action),nextAction:action,...progress};
     }
     return {...note(lesson.title,lesson.text,action),...progress};
   }
@@ -848,7 +848,7 @@ function quietWeek(state,ui,quoted) {
   const text=`${quoted.text} 当前没有其他建议立即办理的经营事项。${deferred}${rested?'本周已安排过休息，仍可浏览生活内容，或直接结算。':'可以去下班娱乐，也可以直接结束本周。'}`;
   if (ui.page==='offwork') {
     if(rested)return {...note('本周已安排休息',`${deferred}本周活动已经结算，可以继续浏览生活内容，或者到页面底部结束本周。`,settle(ui.page)),quietWeek:true};
-    return {...note('本周暂时没有其他经营事项',`${deferred}可以看看旅行和约朋友的活动，免费的也能休息，不要求消费。想继续经营时，到页面底部结束本周。`,{ui:'coach-leisure-menu',label:'看看娱乐项目'}),nextAction:{...settle(ui.page),quiet:true},quietWeek:true};
+    return {...note('本周暂时没有其他经营事项',`${deferred}可以看看旅行和约朋友的活动，免费的也能休息，不要求消费。想继续经营时，到页面底部结束本周。`,{ui:'coach-leisure-menu',label:'看看娱乐项目'}),nextAction:settle(ui.page),quietWeek:true};
   }
   return {...note(quoted.title,text,{ui:'coach-leisure-menu',page:'offwork',label:rested?'去下班看看':'去下班娱乐'}),nextAction:settle(ui.page),quietWeek:true};
 }
@@ -900,10 +900,10 @@ function actionButton(action) {
   return `<button type="button" class="button ${action.quiet ? 'quiet' : 'coach-action'}" data-ui="${action.ui}"${action.page ? ` data-page="${action.page}"` : ''}${action.tab ? ` data-coach-tab="${action.tab}"` : ''}${action.id != null ? ` data-id="${esc(action.id)}"` : ''}${action.choice ? ` data-choice="${esc(action.choice)}"` : ''}${action.action ? ` data-coach-action="${esc(action.action)}"` : ''}${action.form ? ` data-coach-form="${esc(action.form)}"` : ''}${Number.isSafeInteger(action.amount) ? ` data-coach-amount="${action.amount}"` : ''}>${esc(action.label)}</button>`;
 }
 
-function card(state, advice, { extra = '', preview = false, progress = false, overview = false, introProgress = null } = {}) {
+function card(state, advice, { extra = '', preview = false, progress = false, overview = false, introProgress = null, equal = false } = {}) {
   if (!advice) return '';
   const person = ASSISTANTS.find(item => item.id === state.assistant) ?? ASSISTANTS[0];
-  return `<aside class="coach-card" aria-label="助理带教"${preview ? ' data-quote-preview="coach" tabindex="-1"' : ''}>
+  return `<aside class="coach-card" aria-label="助理带教"${equal?' data-coach-equal="true"':''}${preview ? ' data-quote-preview="coach" tabindex="-1"' : ''}>
     <span class="portrait headshot coach-portrait" data-assistant-id="${esc(person.id)}" aria-hidden="true" style="background-image:url('${esc(person.portrait)}')"></span>
     <div class="coach-copy"><small class="coach-label">${esc(person.name)}的带教建议${Number.isInteger(introProgress)?`（认识游戏 ${introProgress}/${coachTourIds.length}）`:overview ? '（发展总览）' : progress ? `（入门 ${state.tutorial.step + 1}/5）` : ''}</small><h3>${esc(advice.title)}</h3><p>${esc(advice.text)}</p>
     ${advice.action || advice.nextAction || extra ? `<div class="coach-actions">${actionButton(advice.action)}${actionButton(advice.nextAction)}${extra}</div>` : ''}</div></aside>`;
@@ -914,7 +914,7 @@ export function pageCoach(state, ui) {
   const step = !state.tutorial.done && [0,1,3].includes(state.tutorial.step);
   const advice = pageAdvice(state, ui);
   const extra = advice?.preparation ? (advice.nextAction?.ui === 'coach-skip-prep' ? '' : actionButton(skipPreparation())) : advice?.introduction ? '<button type="button" class="button quiet" data-ui="coach-skip-intro">跳过介绍</button>' : step ? '<button type="button" class="button quiet" data-ui="skip-tutorial">跳过基础流程提示</button>' : '';
-  return card(state, advice, { extra, progress: step, overview: ui.page === 'company' && ui.developmentOverview, introProgress:advice?.introduction?advice.introProgress:null });
+  return card(state, advice, { extra, progress: step, overview: ui.page === 'company' && ui.developmentOverview, introProgress:advice?.introduction?advice.introProgress:null, equal:Boolean(advice?.quietWeek&&advice?.nextAction) });
 }
 
 function manualQuoteAdvice(state,inquiry,model,selected) {
@@ -929,7 +929,7 @@ function manualQuoteAdvice(state,inquiry,model,selected) {
   const details=`你的方案预计中单率 ${percent(draft.probability)}，订单利润 ${cash(draft.profit)}，若本周报价全部成交，预计最低余额 ${cash(floor)}。${tradeoff}`;
   const review={ui:'coach-review-submit',label:'保留我的方案，查看提交 ↓'};
   const safe=draft.profit>0&&draft.probability>0&&floor>=estimates(state).reserve;
-  if (safe) return {...note('你的报价方案可保留',`${details}${!selected?' 单笔可盈利，但仍要留意整周经营安排。':' 仍保留必要资金，可以维持你的选择。'}`,review),nextAction:apply?{...apply,quiet:true}:null};
+  if (safe) return {...note('你的报价方案可保留',`${details}${!selected?' 单笔可盈利，但仍要留意整周经营安排。':' 仍保留必要资金，可以维持你的选择。'}`,review),nextAction:apply};
   const risk=draft.probability<=0?'当前价格没有中单机会。':draft.profit<=0?'即使成交也没有正利润。':`最低现金低于建议预留 ${cash(estimates(state).reserve)}，会挤占周转。`;
   return {...note('你的改动有经营风险',`${details} ${risk} 仍由你决定是否提交。`,apply??review),nextAction:apply?{...review,quiet:true}:null};
 }

@@ -208,6 +208,7 @@ export function shell(state, ui, content, extraIndicators = '') {
       ${state.difficulty !== 'casual' ? tutorialNote(state, false, ui.page) : ''}
       <div class="page-content">${content}</div>
       ${ui.page === 'offwork' ? weekControls(state) : ''}
+      ${ui.page === 'offwork' && (!ui.lifeApp || ui.lifeApp === 'home') ? restartPanel(ui.saveStatus) : ''}
     </main>
   </div>`;
 }
@@ -307,7 +308,7 @@ export function forecastPanel(rows, state, coachPrep = 0) {
   return `<section class="panel forecast-panel" data-tour="cash-forecast"><header class="panel-heading"><div><h2>未来 12 周现金预测</h2><p>按手头已接订单及收支推算，不计以后新报价。${showHypothesis ? '另外展示当前已提交报价全部中单的情况。' : ''}</p></div></header>
     <div class="forecast-scenarios">${projections.map(projection => projectionSummary(projection, finalWeek)).join('')}</div>
     ${balanceChart(rows, projections)}
-    ${coachPrep === 1 && state?.difficulty === 'casual' && state.bids.length && !state.orders.length && !state.events.length && state.cash >= 0 && rows.every(row => row.hypothetical >= 0) ? '<div class="toolbar"><button type="button" class="button secondary" data-ui="page" data-page="company" data-coach-tab="finance">认识备用资金与授信 →</button></div>' : ''}
+    ${coachPrep === 1 && state?.difficulty === 'casual' && state.bids.length && !state.orders.length && !state.events.length && state.cash >= 0 && rows.every(row => row.hypothetical >= 0) ? '<div class="toolbar"><button type="button" class="button coach-action" data-ui="page" data-page="company" data-coach-tab="finance">认识备用资金与授信 →</button></div>' : ''}
     ${flowChart(rows)}
     <details class="forecast-details"><summary>查看逐周明细</summary>${table(['周次', '现金流入', '支出', '周末现金', ...(showHypothesis ? ['若全中单'] : [])], rows.map(row => [weekLabel(row.week), yuan(row.inflow), yuan(row.outflow), yuan(row.cash), ...(showHypothesis ? [yuan(hypothetical(row))] : [])]))}</details>
     ${state ? fundingSchedule(state, finalWeek) : ''}
@@ -410,8 +411,8 @@ function recentTrends(history) {
   }).join('')}</div>`;
 }
 
-export function offworkPage(state, extra = '', saveStatus = 'ready') {
-  return `${extra}<section class="panel"><header class="panel-heading"><h2>离开本局</h2></header><p class="session-warning" data-session-warning="leaving">经营进度自动保存到当前浏览器，刷新或关页后可以继续经营。</p><p class="muted" data-save-indicator role="status">${saveStatus === 'ready' ? '已自动存档' : '当前进度尚未存档'}</p><button type="button" class="button quiet" data-ui="request-restart">重新开局</button></section>`;
+function restartPanel(saveStatus = 'ready') {
+  return `<section class="panel restart-panel" aria-labelledby="restart-title"><header class="panel-heading"><h2 id="restart-title">重新开局</h2></header><p>从第 1 周开始新的一局。创建新工作室后，当前存档会被覆盖。</p><p class="session-warning" data-session-warning="leaving">刷新或关闭网页无需重新开局，经营进度自动保存，回来可以继续经营。</p><p class="muted" data-save-indicator role="status">${saveStatus === 'ready' ? '已自动存档' : '当前进度尚未存档'}</p><div class="toolbar"><button type="button" class="button danger" data-ui="request-restart">重新开局</button></div></section>`;
 }
 
 const cashLabels = {
@@ -572,7 +573,7 @@ function eventContent(state, event, notice) {
   const recommendation = eventCoach(state, event, choices);
   const celebration = event.type === 'ipo-celebration';
   const comic = imageFrame(event.comic, { className: 'event-comic', alt: event.comicAlt ?? '经营场景插画', fallback: '插画暂时无法显示', retry: true });
-  const button = (choice, description = '') => `<button type="button" class="button ${celebration || recommendation?.id === choice.id ? 'primary' : 'secondary'}" data-action="resolve-event" data-id="${esc(event.id)}" data-choice="${esc(choice.id)}"${description}${choice.disabled ? ' disabled' : ''}>${esc(choice.label)}${recommendation?.id === choice.id ? '（助理推荐）' : ''}</button>`;
+  const button = (choice, description = '') => `<button type="button" class="button ${recommendation?.id === choice.id ? 'primary coach-action' : celebration ? 'primary' : 'secondary'}" data-action="resolve-event" data-id="${esc(event.id)}" data-choice="${esc(choice.id)}"${description}${choice.disabled ? ' disabled' : ''}>${esc(choice.label)}${recommendation?.id === choice.id ? '（助理推荐）' : ''}</button>`;
   const explained = choices.some(choice => choice.details.length);
   const decisionList = explained ? `<ul class="decision-choices" aria-label="处理方式">${choices.map((choice, i) => {
     const descriptionId = `decision-option-${i + 1}`;
@@ -600,11 +601,11 @@ export function dialogContent(state, ui, quote) {
     const receiptView = state.difficulty === 'casual' && !wonFirstOrder ? firstPayment ? 'paid' : firstDelivery ? 'pending' : '' : '';
     return `${summaryContent(state, basicGuide, wonFirstOrder)}<footer class="dialog-footer">
       <button type="button" class="button ${wonFirstOrder || receiptView ? 'secondary' : 'primary'}" data-ui="close-dialog">继续经营</button>
-      ${wonFirstOrder ? '<button type="button" class="button primary" data-ui="view-first-order">查看订单</button>' : receiptView ? `<button type="button" class="button primary" data-ui="view-order-receivables" data-receipt-view="${receiptView}">${receiptView === 'paid' ? '查看回款记录' : '查看交货后的应收款'}</button>` : ''}
+      ${wonFirstOrder ? `<button type="button" class="button primary${state.difficulty === 'casual' ? ' coach-action' : ''}" data-ui="view-first-order">查看订单</button>` : receiptView ? `<button type="button" class="button primary coach-action" data-ui="view-order-receivables" data-receipt-view="${receiptView}">${receiptView === 'paid' ? '查看回款记录' : '查看交货后的应收款'}</button>` : ''}
     </footer>`;
   }
   if (ui.dialog === 'event' && state.events.length) return eventContent(state, state.events[0], ui.notice);
   if (ui.dialog === 'bankruptcy') return `<header class="dialog-header"><div><p class="eyebrow">${weekLabel(state.week - 1)} · 本局结束</p><h2 id="modal-title" tabindex="-1">公司破产</h2></div></header><div class="dialog-body"><p>连续两周资金为负，授信已无法覆盖到期支出。</p><p>期末现金 <strong class="negative">${yuan(state.cash)}</strong></p></div><footer class="dialog-footer"><button type="button" class="button primary" data-ui="restart">重新开局</button></footer>`;
-  if (ui.dialog === 'restart') return '<header class="dialog-header"><h2 id="modal-title" tabindex="-1">重新开局？</h2></header><div class="dialog-body"><p data-session-warning="restart">创立新的工作室后，将覆盖本机原有的存档。</p></div><footer class="dialog-footer"><button type="button" class="button secondary" data-ui="close-dialog">继续本局</button><button type="button" class="button primary" data-ui="restart">重新开局</button></footer>';
+  if (ui.dialog === 'restart') return '<header class="dialog-header"><h2 id="modal-title" tabindex="-1">确认重新开局？</h2></header><div class="dialog-body"><p data-session-warning="restart">将返回开局设置，从第 1 周重新经营。创建新的工作室后，将覆盖当前存档。</p></div><footer class="dialog-footer"><button type="button" class="button secondary" data-ui="close-dialog">继续本局</button><button type="button" class="button danger" data-ui="restart">重新开局</button></footer>';
   return '';
 }

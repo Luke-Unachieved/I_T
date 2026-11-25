@@ -55,6 +55,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   outline: 2px solid var(--ws-mark-bright);
   outline-offset: 3px;
 }
+/* Programmatic focus announces the next page or record to assistive
+   technology. Only interactive controls or an explicit guide target get a ring. */
+[tabindex="-1"]:not(.tutorial-target):not(:is(button, input, select, textarea, summary, a, [contenteditable], [role="button"], [role="link"], [role="tab"], [role="checkbox"], [role="radio"], [role="menuitem"])):focus-visible { outline: none; }
 button, .button {
   display: inline-flex;
   align-items: center;
@@ -72,16 +75,16 @@ button, .button {
   text-decoration: none;
 }
 button:not(:disabled):hover, .button:hover { background: #342e24; border-color: #79684e; }
-button.primary, .button.primary, .primary-button {
+button.quiet, .button.quiet { background: transparent; color: var(--ws-secondary); border-color: transparent; }
+button.quiet:not(:disabled):hover, .button.quiet:hover { background: var(--ws-raised); color: var(--ws-type); }
+button.danger, .button.danger { color: var(--ws-danger-text); border-color: #79503d; }
+button.primary, .button.primary, .primary-button, button.coach-action, .button.coach-action {
   color: var(--ws-ink);
   background: var(--ws-mark);
   border-color: var(--ws-mark);
   font-weight: 760;
 }
-button.primary:not(:disabled):hover, .button.primary:hover, .primary-button:not(:disabled):hover { background: var(--ws-mark-bright); }
-button.quiet, .button.quiet { background: transparent; color: var(--ws-secondary); border-color: transparent; }
-button.quiet:not(:disabled):hover, .button.quiet:hover { background: var(--ws-raised); color: var(--ws-type); }
-button.danger, .button.danger { color: var(--ws-danger-text); border-color: #79503d; }
+button.primary:not(:disabled):hover, .button.primary:hover, .primary-button:not(:disabled):hover, button.coach-action:not(:disabled):hover, .button.coach-action:hover { background: var(--ws-mark-bright); border-color: var(--ws-mark-bright); color: var(--ws-ink); }
 input:not([type=radio], [type=checkbox], [type=range]), select, textarea {
   min-width: 0;
   max-width: 100%;
@@ -185,6 +188,8 @@ input[type=range] { width: 100%; min-height: 44px; margin: 0; }
 .week-controls-copy p { color: var(--ws-secondary); font-size: .86rem; }
 .week-controls-actions { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: .5rem; min-width: 0; }
 .week-controls :is(button, .button) { width: 100%; min-width: 0; min-height: 46px; }
+.restart-panel { margin-top: var(--space); display: grid; gap: .46rem; }
+.restart-panel .session-warning { color: var(--ws-secondary); font-size: .86rem; }
 .workspace { min-width: 0; width: min(100%, 105rem); margin-inline: auto; padding: var(--gutter); }
 .page-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .75rem; align-items: center; margin-bottom: 1.05rem; }
 .page-header > * { min-width: 0; }
@@ -641,7 +646,8 @@ dialog.dialog::backdrop { background: #0b0907bf; }
 }
 .summary-scroll > [data-tour=week-summary] { margin: 0 .85rem .75rem; }
 .summary-scroll > [data-tour=week-summary]:empty { display: none; }
-.tutorial-target { outline: 2px solid var(--ws-guide); outline-offset: 3px; box-shadow: 0 0 0 5px #91b9e629; }
+.tutorial-target { outline: 2px solid var(--ws-mark-bright); outline-offset: 3px; box-shadow: 0 0 0 5px #cdb88b35; }
+.tutorial-target:is(.forecast-scenarios, .quote-risk, table, label, .life-app-tile) { outline-offset: -2px; box-shadow: none; }
 .tutorial, .tutorial-card, .tutorial-banner, .tutorial-tip {
   display: flex;
   align-items: center;
@@ -969,7 +975,6 @@ dialog.dialog::backdrop { background: #0b0907bf; }
 .coach-copy p { font-size: .87rem; color: var(--ws-secondary); line-height: 1.5; overflow-wrap: anywhere; }
 .coach-actions { display: flex; align-items: flex-start; flex-wrap: wrap; gap: .35rem; margin-top: .15rem; }
 .coach-actions .button { max-width: 100%; white-space: normal; text-align: left; }
-.coach-action { color: var(--ws-mark-bright); border-color: var(--ws-mark); background: #453923; }
 .workspace > .coach-card { margin-bottom: var(--space); }
 .dialog-body > .coach-card { margin-block: .7rem; }
 .quote-dialog > .coach-card { padding: .65rem; margin: .75rem clamp(.8rem, 2.2vw, 1.24rem) 0; }

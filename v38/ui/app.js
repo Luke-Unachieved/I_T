@@ -3,7 +3,7 @@ import { quote } from '../engine/quotes.js';
 import { inquiriesPage, orderDisclosureIds, ordersPage, quoteDialog, stockPurchasePreview } from './trade.js';
 import { growthSections } from './growth.js';
 import { defaultLifeCollapsed, eraIllustration, lifeAppForOuting, lifeAppIds, lifeDisclosureIds, lifePanel, officeFeatures, optionDescription, scenarioFields } from './life-view.js';
-import { companyPage, developmentTabs, dialogContent, esc, officePage, offworkPage, opening, saveWarning, saveWarningMessage, shell, tourTarget, yuan } from './shell.js';
+import { companyPage, developmentTabs, dialogContent, esc, officePage, opening, saveWarning, saveWarningMessage, shell, yuan } from './shell.js';
 import { strategySections } from './strategy.js';
 import { readSave, SAVE_KEY, writeSave } from './save.js';
 import { coachDeclinedRecord, coachIntroIndex, coachPrepIndex, coachQuoteFilters, coachReviewRecord, coachTourRecord, finishCoachTour, pageCoach, quoteRecommendation, recordCoachDecline, recordCoachReview, recordCoachVisit } from './coaching.js';
@@ -46,10 +46,7 @@ const pageViews = {
   inquiries: inquiriesPage,
   orders: ordersPage,
   company: (current, model) => companyPage(current, model.developmentTab, developmentViews[model.developmentTab]?.(current)),
-  offwork: (current, model) => {
-    const life = lifePanel(current, model.lifeCollapsed, model.lifeApp);
-    return model.lifeApp === 'home' ? offworkPage(current, life, model.saveStatus) : life;
-  },
+  offwork: (current, model) => lifePanel(current, model.lifeCollapsed, model.lifeApp),
 };
 const notices = {
   bid: '报价已提交，本周结算时会收到客户回复。', 'withdraw-bid': '已撤回报价。',
@@ -70,7 +67,6 @@ function render() {
     mount.innerHTML = shell(state, ui, view(state, ui));
   }
   renderDialog();
-  highlightTutorial();
 }
 
 function renderDialog() {
@@ -86,6 +82,7 @@ function renderDialog() {
     }
     delete dialog.dataset.view;
     dialog.replaceChildren();
+    highlightTutorial();
     return;
   }
   const isQuote = ui.dialog === 'quote';
@@ -113,6 +110,7 @@ function renderDialog() {
   dialog.scrollTop = top;
   const summaryScroller = dialog.querySelector('.summary-scroll');
   if (summaryScroller) summaryScroller.scrollTop = summaryTop;
+  highlightTutorial();
 }
 
 function selectSummaryFeedback(kind) {
@@ -127,19 +125,38 @@ function selectSummaryFeedback(kind) {
   }
 }
 
-function highlightTutorial() {
-  mount.querySelector('.tutorial-target')?.classList.remove('tutorial-target');
-  dialog.querySelector('.tutorial-target')?.classList.remove('tutorial-target');
-  if (!state || state.tutorial.done) return;
-  if (state.tutorial.step===3&&!dialog.open) {
-    const route=mount.querySelector('[data-ui="coach-settlement"]');
-    if(state.difficulty==='casual'&&!route?.classList.contains('coach-action'))return;
-    (mount.querySelector('[data-tour="end-week"]')??route)?.classList.add('tutorial-target');
-    return;
+function setGuideTarget(target) {
+  for(const root of [mount,dialog])for(const previous of root.querySelectorAll('.tutorial-target'))previous.classList.remove('tutorial-target');
+  for(const item of Array.isArray(target)?target:[target]) {
+    if(!item||item.matches(':disabled')||item.closest('[hidden]')||!item.getClientRects().length)continue;
+    item.classList.add('tutorial-target');
   }
-  const target = tourTarget(state.tutorial.step);
-  const container = dialog.open ? dialog : mount;
-  container.querySelector(`[data-tour="${target}"]`)?.classList.add('tutorial-target');
+}
+
+function highlightTutorial() {
+  if(!state)return setGuideTarget(null);
+  let target;
+  if(state.difficulty==='casual') {
+    // Follow the real current recommendation, not a generic tour anchor on
+    // the first inquiry, an unrelated heading, or an entire summary.
+    if(dialog.open) {
+      if(ui.dialog==='quote')target=dialog.querySelector('.coach-card .coach-action:not(:disabled)');
+      if(ui.dialog==='event')target=dialog.querySelector('[data-action="resolve-event"].coach-action:not(:disabled),[data-action="resolve-event"].primary:not(:disabled)');
+      if(ui.dialog==='summary')target=dialog.querySelector('[data-ui="view-first-order"]:not(:disabled),[data-ui="view-order-receivables"]:not(:disabled)')??(!state.tutorial.done?dialog.querySelector('[data-ui="close-dialog"].primary:not(:disabled)'):null);
+    }else {
+      const coach=mount.querySelector('.workspace > .coach-card:not([data-coach-equal])');
+      target=coach?.querySelector('.coach-action:not(:disabled)');
+    }
+    return setGuideTarget(target);
+  }
+  if(!state.tutorial.done) switch(state.tutorial.step) {
+    case 0: if(!dialog.open)target=mount.querySelector('.nav [data-page="inquiries"]:not(:disabled)');break;
+    case 1: if(!dialog.open)target=mount.querySelector('button[data-tour="quote"]:not(:disabled)');break;
+    case 2: if(dialog.open&&ui.dialog==='quote')target=dialog.querySelector('[data-tour="cash-forecast"]');break;
+    case 3: if(!dialog.open)target=mount.querySelector('.week-controls [data-action="end-week"]:not(:disabled),.week-controls [data-ui="show-event"]:not(:disabled)')??mount.querySelector('[data-ui="coach-settlement"]:not(:disabled)');break;
+    case 4: if(dialog.open&&ui.dialog==='summary')target=dialog.querySelector('[data-ui="finish-tutorial"]:not(:disabled)');break;
+  }
+  setGuideTarget(target);
 }
 
 function advanceTutorial(step, done = false) {
@@ -454,7 +471,6 @@ function openQuote(button) {
   if (state.tutorial.step < 2) advanceTutorial(2);
   saveProgress();
   renderDialog();
-  highlightTutorial();
 }
 
 function refreshQuote(updatePriceControl = false) {
@@ -477,7 +493,20 @@ function applyRecommendedQuote() {
   ui.quote = { ...ui.quote, ...recommendation.config };
   saveProgress();
   renderDialog();
-  dialog.querySelector('[data-quote-preview="coach"]')?.focus({ preventScroll: true });
+  dialog.querySelector('[data-quote-preview="coach"] .coach-action:not(:disabled)')?.focus({ preventScroll: true });
+}
+
+// A genuine confirmation control reached through assistant guidance uses the
+// same warm action color, without recoloring unrelated manual choices.
+function markCoachConfirmation(button) {
+  if (state?.difficulty!=='casual') return;
+  for(const root of [mount,dialog]) for(const previous of root.querySelectorAll('[data-coach-confirmation]')) {
+    previous.classList.remove('coach-action');
+    delete previous.dataset.coachConfirmation;
+  }
+  if(!button||button.disabled||button.tagName!=='BUTTON'||button.classList.contains('coach-action'))return;
+  button.classList.add('coach-action');
+  button.dataset.coachConfirmation='';
 }
 
 function revealCoachTarget(control) {
@@ -509,6 +538,8 @@ function revealCoachTarget(control) {
   revealParentDetails(target);
   const section=target.closest('details[data-order-disclosure]')?.dataset.orderDisclosure;
   if (section && recordCoachReview(state,ui,section)) {saveProgress();refreshPageCoach();}
+  markCoachConfirmation(targetForm?.querySelector('button[type="submit"]')??target);
+  setGuideTarget(target);
   target.focus({ preventScroll: true });
   target.scrollIntoView({ block: 'center' });
 }
@@ -519,12 +550,15 @@ function refreshPageCoach() {
   const next=document.createElement('template');
   next.innerHTML=pageCoach(state,ui);
   if (next.content.firstElementChild) previous.replaceWith(next.content.firstElementChild);
+  highlightTutorial();
 }
 
 function reviewRecommendedQuote() {
   if (ui.dialog !== 'quote') return;
   const submit = dialog.querySelector('form[data-form="quote"] button[type="submit"]');
   if (!submit || submit.disabled) return;
+  markCoachConfirmation(submit);
+  setGuideTarget(submit);
   submit.focus({ preventScroll: true });
   submit.scrollIntoView({ block: 'center' });
 }
@@ -535,6 +569,7 @@ function focusCashForecast() {
   forecast.tabIndex = -1;
   forecast.focus({ preventScroll: true });
   forecast.scrollIntoView({ block: 'start', behavior: 'instant' });
+  if(state.difficulty==='casual')setGuideTarget(mount.querySelector('.forecast-panel .forecast-scenarios'));
 }
 
 function reviewNextLink(container) {
@@ -559,7 +594,7 @@ function reviewCashForecast() {
   focusCashForecast();
 }
 
-function reviewOrderSection(id) {
+function reviewOrderSection(id,guided=false) {
   if (!orderDisclosureIds.includes(id)) return;
   revealOrderSections([id]);
   recordCoachReview(state,ui,id);
@@ -567,7 +602,12 @@ function reviewOrderSection(id) {
   const section=mount.querySelector(`#${id}`);
   reviewNextLink(section?.querySelector('.order-section-body'));
   section?.scrollIntoView({block:'start',behavior:'instant'});
-  section?.querySelector('summary')?.focus({preventScroll:true});
+  if(guided&&state.difficulty==='casual') {
+    const records=section?.querySelector('.order-section-body table');
+    if(records){records.tabIndex=-1;records.focus({preventScroll:true});}
+    else section?.querySelector('summary')?.focus({preventScroll:true});
+    setGuideTarget(records);
+  }else section?.querySelector('summary')?.focus({preventScroll:true});
 }
 
 function revealRecommendedOuting(control) {
@@ -580,6 +620,8 @@ function revealRecommendedOuting(control) {
   if (!choice) return;
   revealParentDetails(choice);
   choice.checked = true;
+  markCoachConfirmation(outing.querySelector('button[type="submit"]'));
+  setGuideTarget(choice.closest('label')??choice);
   choice.focus({ preventScroll: true });
   choice.scrollIntoView({ block: 'center' });
 }
@@ -627,12 +669,15 @@ function showLeisureMenu() {
   const first=menu?.querySelector('[data-ui="life-app"][data-id="trips"]')??mount.querySelector('[data-life-app-page="trips"] .outing-grid summary,[data-life-app-page="friends"] .life-grid summary,[data-life-app-page="friends"] details summary');
   (menu??first)?.scrollIntoView({block:'start',behavior:'instant'});
   first?.focus({preventScroll:true});
+  if(state.difficulty==='casual')setGuideTarget(menu?[...menu.querySelectorAll('[data-ui="life-app"][data-id="trips"],[data-ui="life-app"][data-id="friends"]')]:first);
 }
 
 function showSettlement() {
   if(ui.page!=='offwork'){ui.lifeApp='home';selectPage('offwork');}
   const footer=mount.querySelector('.week-controls');
   const target=footer?.querySelector('[data-action="end-week"]:not(:disabled),[data-ui="show-event"]:not(:disabled)');
+  markCoachConfirmation(target);
+  if(state.difficulty==='casual'||!state.tutorial.done&&state.tutorial.step===3)setGuideTarget(target);
   (target??footer)?.scrollIntoView({block:'center',behavior:'instant'});
   target?.focus({preventScroll:true});
 }
@@ -771,7 +816,7 @@ function click(event) {
         revealOrderSections(directed.split(' '));
       }
       if (control.dataset.page === 'office' && control.dataset.coachTab === 'cash-forecast') {reviewCashForecast();break;}
-      if (directOrder) {reviewOrderSection(directOrder);break;}
+      if (directOrder) {reviewOrderSection(directOrder,control.classList.contains('coach-action'));break;}
       selectPage(control.dataset.page);
       break;
     }
@@ -785,7 +830,7 @@ function click(event) {
     case 'coach-all-inquiries':
       if (ui.page === 'inquiries') { ui.filters.category = ''; ui.filters.availability = 'all'; saveProgress(); render(); }
       break;
-    case 'coach-review-orders': reviewOrderSection(control.dataset.id); break;
+    case 'coach-review-orders': reviewOrderSection(control.dataset.id,true); break;
     case 'coach-review-cash': reviewCashForecast(); break;
     case 'coach-review-next': {
       const coach=mount.querySelector('.workspace > .coach-card');
@@ -793,6 +838,8 @@ function click(event) {
       coach?.scrollIntoView({block:'start',behavior:'instant'});
       next?.focus({preventScroll:true});
       next?.scrollIntoView({block:'nearest',behavior:'instant'});
+      markCoachConfirmation(null);
+      highlightTutorial();
       break;
     }
     case 'coach-defer-task':

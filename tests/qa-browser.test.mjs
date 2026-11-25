@@ -273,6 +273,10 @@ test('E04: auto-save restores a pending quote, weekly summary and pending event,
     assert.match(await page.evaluate('document.querySelector("dialog[open]").innerText'), /上市成功/);
     await dismissDecisions(page);
     await page.click('[data-ui="page"][data-page="offwork"]');
+    assert.ok(await page.evaluate(present('.workspace > #week-controls + .restart-panel:last-child')));
+    assert.match(await page.evaluate('document.querySelector(".restart-panel h2").innerText'), /^重新开局$/);
+    assert.match(await page.evaluate('document.querySelector(".restart-panel").innerText'), /当前存档会被覆盖/);
+    assert.equal(await page.evaluate('document.querySelector(".restart-panel [data-ui=request-restart]").innerText'), '重新开局');
     assert.match(await page.evaluate('document.querySelector("[data-session-warning=leaving]").innerText'), /自动保存.*继续经营/);
     assert.match(await page.evaluate('document.querySelector("[data-save-indicator]").innerText'), /已自动存档/);
     const original = await currentState(page);
@@ -284,6 +288,7 @@ test('E04: auto-save restores a pending quote, weekly summary and pending event,
     assert.deepEqual(await currentState(opened), original);
     assert.equal(await opened.evaluate('document.querySelector("#page-title").textContent'), '下班');
     await opened.click('[data-ui="request-restart"]');
+    assert.match(await opened.evaluate('document.querySelector("dialog[open]").innerText'), /确认重新开局.*从第 1 周重新经营.*覆盖当前存档/s);
     await opened.click('dialog [data-ui="close-dialog"]');
     assert.deepEqual(await currentState(opened), original);
     await opened.click('[data-ui="request-restart"]');
@@ -438,7 +443,7 @@ test('E07/E08: 320px summary opens on results and long company names wrap away f
       await noOverflow(page, tab);
     }
     await enterSettlement(page);
-    assert.ok(await page.evaluate(present('.workspace > #week-controls:last-child')));
+    assert.ok(await page.evaluate(present('.workspace > #week-controls + .restart-panel:last-child')));
     for (const action of ['advance-four', 'end-week']) {
       assert.ok(await page.evaluate(`(() => {const button=document.querySelector('#week-controls [data-action="${action}"]');button.scrollIntoView({block:'center',behavior:'instant'});const rect=button.getBoundingClientRect();return rect.width>=44&&rect.height>=44&&rect.top>=0&&rect.bottom<=innerHeight&&button.contains(document.elementFromPoint(rect.x+rect.width/2,rect.y+rect.height/2))&&!button.disabled;})()`), `Footer ${action} must be accessible at 320px`);
     }

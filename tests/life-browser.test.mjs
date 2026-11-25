@@ -36,9 +36,11 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844,
       await checkWidth(page);
       const firstScreen = await page.evaluate(`(()=>{
         const footer=document.querySelector('.week-controls'),content=document.querySelector('.workspace > .page-content'),r=footer.getBoundingClientRect();
-        return {lastChild:footer===document.querySelector('.workspace').lastElementChild,position:getComputedStyle(footer).position,contentBottom:content.getBoundingClientRect().bottom,footerTop:r.top,footerBottom:r.bottom,navTop:document.querySelector('.nav').getBoundingClientRect().top};
+        const restart=document.querySelector('.restart-panel');
+        return {lastChild:footer.nextElementSibling===restart&&restart===document.querySelector('.workspace').lastElementChild,restartTop:restart.getBoundingClientRect().top,restartCount:document.querySelectorAll('[data-ui=request-restart]').length,position:getComputedStyle(footer).position,contentBottom:content.getBoundingClientRect().bottom,footerTop:r.top,footerBottom:r.bottom,navTop:document.querySelector('.nav').getBoundingClientRect().top};
       })()`);
       assert.ok(firstScreen.lastChild && firstScreen.contentBottom <= firstScreen.footerTop+1, JSON.stringify(firstScreen));
+      assert.ok(firstScreen.restartTop>=firstScreen.footerBottom&&firstScreen.restartCount===1, 'the clearly separate restart panel is below settlement');
       assert.ok(!['fixed', 'sticky'].includes(firstScreen.position), JSON.stringify(firstScreen));
       if (viewport.mobile) assert.ok(firstScreen.footerBottom > firstScreen.navTop, 'the footer is below the initial life content');
       await page.screenshot(`/tmp/v38-life-app-${viewport.width}-home.png`);

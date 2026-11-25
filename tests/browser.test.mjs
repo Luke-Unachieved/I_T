@@ -23,7 +23,7 @@ async function checkWeekControls(page, id) {
     return;
   }
   assert.deepEqual(controls.sort(), ['advance-four', 'end-week']);
-  assert.ok(await page.evaluate(present('.workspace > #week-controls:last-child')));
+  assert.ok(await page.evaluate(present('.workspace > #week-controls + .restart-panel:last-child, .workspace > #week-controls:last-child')));
   for (const action of controls) {
     const layout = await page.evaluate(`(() => {
       const button = document.querySelector('#week-controls [data-action="${action}"]');
