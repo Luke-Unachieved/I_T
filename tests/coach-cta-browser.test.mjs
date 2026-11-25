@@ -102,6 +102,7 @@ for(const viewport of viewports){
     await tap(page,'dialog form[data-form=quote] button[type=submit]');
     const submitted=await currentState(page);assert.equal(submitted.bids.length,1);
     // No artificial wait between the confirmed action and a different CTA.
+    await c(page,'[data-ui=coach-start-learning]');
     await c(page,'[data-page=office][data-coach-tab=cash-forecast]');
     await visibleTarget(page,'.forecast-panel h2');
     assert.deepEqual(await currentState(page),submitted);

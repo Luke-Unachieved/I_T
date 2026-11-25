@@ -71,6 +71,10 @@ async function startFreshFirstOrder(page) {
   assert.ok((await saved(page)).state.orders.length>=1);
   await page.click('dialog [data-ui=view-first-order]');
   assert.equal((await saved(page)).view.page,'orders');
+  assert.equal((await saved(page)).view.coachLearning,false);
+  assert.deepEqual((await saved(page)).view.coachTour.visited,[],'viewing actual first order is not an automatic lesson');
+  await clickCoach(page,'[data-ui=coach-start-learning]');
+  assert.equal((await saved(page)).view.coachLearning,true);
 }
 
 async function checkDevelopmentVisit(page, key, viewport, baseline) {
@@ -148,6 +152,7 @@ for (const viewport of [{width:390,height:844,mobile:true},{width:320,height:568
       assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`),/精力|休息|娱乐/);
       await clickCoach(page,'[data-ui=coach-finish-intro]');
       assert.equal((await saved(page)).view.coachTour.active,null);
+      assert.equal((await saved(page)).view.coachLearning,false);
       assert.deepEqual((await saved(page)).state,baseline);
       await nav(page,'office');
       assert.equal(await page.evaluate(exists(`${coach} [data-ui=coach-skip-intro]`)),false,'completed tour does not repeat on another page');
@@ -174,11 +179,18 @@ const firstOrderFixture = extra => `game=>{
   return s;
 }`;
 
-async function loadFirstOrder(page,extra='',firstPage='office') {
+async function loadFirstOrder(page,extra='',firstPage='office',learning='begin') {
   await page.goto();
   await page.waitFor(exists('[data-form=new-game]'));
   await loadScenario(page,firstOrderFixture(extra));
   await nav(page,firstPage);
+  if(learning==='begin')await clickCoach(page,'[data-ui=coach-start-learning]');
+  if(learning==='interrupted'){
+    // Seed a previously chosen learning session that is already interrupted
+    // by a genuine pending task; no lesson should be counted prematurely.
+    await page.evaluate(`(()=>{const record=${storage};record.view.coachLearning=true;localStorage.setItem(${JSON.stringify(SAVE_KEY)},JSON.stringify(record));})()`);
+    await restartFromSave(page);
+  }
 }
 
 test('skipping the development introduction never invents visits, expenses or repeated guidance', {skip:!enabled,timeout:120_000}, async()=>{
@@ -191,6 +203,7 @@ test('skipping the development introduction never invents visits, expenses or re
     await clickCoach(page,'[data-ui=coach-skip-intro]');
     const after=await saved(page);
     assert.equal(after.view.coachTour.skipped,true);
+    assert.equal(after.view.coachLearning,false);
     assert.deepEqual(after.view.coachTour.visited,before.view.coachTour.visited,'skipping must not fake unviewed sections');
     assert.deepEqual(after.state,before.state);
     await page.click('[data-ui=development-tab][data-id=markets]');
@@ -206,17 +219,59 @@ test('skipping the development introduction never invents visits, expenses or re
   }finally{await browser.close();}
 });
 
+test('ordinary business does not force a development tour; explicit learning can pause and resume without changing the company', {skip:!enabled,timeout:120_000}, async()=>{
+  const browser=await launchBrowser(root,{scenarios:true});
+  try{
+    const page=await browser.page({width:320,height:568,mobile:true});
+    await loadFirstOrder(page,'','orders','none');
+    const before=await saved(page);
+    assert.equal(before.view.coachLearning,false);
+    assert.deepEqual(before.view.coachTour.visited,[]);
+    assert.equal(await page.evaluate(exists(`${coach} [data-coach-intro-next]`)),false);
+    assert.ok(await page.evaluate(exists(`${coach} [data-ui=coach-start-learning]`)));
+    // Merely opening finance or a different page to operate the company is
+    // not counted as a tutorial visit and does not make the coach impose one.
+    await nav(page,'company');await page.click('[data-ui=development-tab][data-id=finance]');
+    assert.deepEqual((await saved(page)).view.coachTour.visited,[]);
+    assert.equal(await page.evaluate(exists(`${coach} [data-coach-intro-next]`)),false);
+    await nav(page,'orders');
+    await clickCoach(page,'[data-ui=coach-start-learning]');
+    assert.equal((await saved(page)).view.coachLearning,true);
+    assert.deepEqual((await saved(page)).view.coachTour.visited,['orders']);
+    await clickCoach(page,'[data-page=company][data-coach-tab=finance]');
+    assert.deepEqual((await saved(page)).view.coachTour.visited,['orders','finance']);
+    await clickCoach(page,'[data-ui=coach-pause-learning]');
+    const paused=await saved(page);
+    assert.equal(paused.view.coachLearning,false);
+    assert.equal(paused.view.coachTour.skipped,false);
+    assert.deepEqual(paused.view.coachTour.visited,['orders','finance']);
+    assert.equal(await page.evaluate(exists(`${coach} [data-coach-intro-next]`)),false);
+    assert.deepEqual(paused.state,before.state);
+    await restartFromSave(page);
+    assert.equal((await saved(page)).view.coachLearning,false);
+    await nav(page,'office');
+    assert.equal(await page.evaluate(exists(`${coach} [data-coach-intro-next]`)),false);
+    await clickCoach(page,'[data-ui=coach-start-learning]');
+    await clickCoach(page,'[data-page=company][data-coach-tab=team]');
+    assert.deepEqual((await saved(page)).view.coachTour.visited,['orders','finance','team']);
+    assert.deepEqual((await saved(page)).state,before.state);
+    assert.deepEqual(page.errors,[]);
+  }finally{await browser.close();}
+});
+
 test('an active save with the completed old four-step introduction only introduces the new development sections', {skip:!enabled,timeout:120_000}, async()=>{
   const browser=await launchBrowser(root,{scenarios:true});
   try{
     const page=await browser.page({width:390,height:844,mobile:true});
-    await loadFirstOrder(page);
+    await loadFirstOrder(page,'','office','none');
     const baseline=(await saved(page)).state;
-    await page.evaluate(`(()=>{const record=${storage};delete record.view.coachTour;record.view.coachIntro=4;record.view.coachPrep=3;localStorage.setItem(${JSON.stringify(SAVE_KEY)},JSON.stringify(record));})()`);
+    await page.evaluate(`(()=>{const record=${storage};delete record.view.coachTour;delete record.view.coachLearning;record.view.coachIntro=4;record.view.coachPrep=3;localStorage.setItem(${JSON.stringify(SAVE_KEY)},JSON.stringify(record));})()`);
     await restartFromSave(page);
     const migrated=(await saved(page)).view.coachTour;
     assert.deepEqual([...migrated.visited].sort(),['orders','finance','team','offwork'].sort());
     assert.equal(migrated.skipped,false);
+    assert.equal((await saved(page)).view.coachLearning,false,'old save does not automatically start the new lessons');
+    await clickCoach(page,'[data-ui=coach-start-learning]');
     const seen=new Set(migrated.visited);
     for(let step=0;step<development.length;step++){
       const next=await page.evaluate(`document.querySelector('${guideSelector}')?.dataset.coachTab??null`);
@@ -247,7 +302,7 @@ test('cash urgency takes precedence over an unfinished introduction and only tau
       const purchase=game.act(s,{type:'buy-property',id:'city-flat'});
       if(purchase.error)throw Error(purchase.error);s=purchase.state;
       s.cash=-2000;s.creditLine=game.creditLimit(s);
-    `);
+    `,'office','interrupted');
     const urgent=await saved(page);
     assert.ok(urgent.state.creditLine>10000);
     assert.deepEqual(urgent.view.coachTour.visited,[]);
@@ -290,7 +345,7 @@ test('an actual pending weekly decision interrupts teaching, then the visited ta
         s=progressed.state;s.summary=null;
       }
       if(!s.events.length)throw Error('missing actual decision');
-    `);
+    `,'office','none');
     const pending=await saved(page);
     assert.ok(pending.state.events.length);
     assert.ok(await page.evaluate(exists(`${coach} [data-ui=show-event]`)));
@@ -299,8 +354,15 @@ test('an actual pending weekly decision interrupts teaching, then the visited ta
     assert.equal((await saved(page)).view.developmentTab,'markets');
     assert.deepEqual((await saved(page)).view.coachTour.visited,[]);
     assert.ok(await page.evaluate(exists(`${coach} [data-ui=show-event]`)));
-    await clickCoach(page,'[data-ui=show-event]');
+    // Restore the already chosen learning mode on the tab where the pending
+    // decision interrupted it. The real save restore opens the event modal
+    // immediately; navigation under that modal is intentionally unavailable.
+    await page.evaluate(`(()=>{const record=${storage};record.view.coachLearning=true;localStorage.setItem(${JSON.stringify(SAVE_KEY)},JSON.stringify(record));})()`);
+    await restartFromSave(page);
     await page.waitFor(exists('dialog[open] [data-action=resolve-event]'));
+    assert.equal((await saved(page)).view.coachLearning,true);
+    assert.equal((await saved(page)).view.developmentTab,'markets');
+    assert.deepEqual((await saved(page)).view.coachTour.visited,[]);
     assert.deepEqual((await saved(page)).state,pending.state,'opening the event cannot resolve itself');
     const choice='dialog[open] [data-action=resolve-event][data-choice=pass]';
     assert.ok(await page.evaluate(exists(choice)),'fixture uses the actual supplier invitation and its no-cost alternative');

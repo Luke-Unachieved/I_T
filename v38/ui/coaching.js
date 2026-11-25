@@ -74,7 +74,11 @@ export function finishCoachTour(ui,skip=false) {
 const reviewIds = ['orders-delivery','orders-receivables','orders-funding','orders-inventory','cash'];
 export function coachReviewRecord(value) {
   if (!value || typeof value !== 'object') return {};
-  return Object.fromEntries(reviewIds.filter(id=>Number.isInteger(value[id]?.week) && typeof value[id]?.signature==='string' && /^[a-z0-9]+$/.test(value[id].signature)).map(id=>[id,{week:value[id].week,signature:value[id].signature}]));
+  return Object.fromEntries(reviewIds.filter(id=>Number.isInteger(value[id]?.week) && typeof value[id]?.signature==='string' && /^[a-z0-9]+$/.test(value[id].signature)).map(id=>{
+    const {week,signature,balance,floor,reserve}=value[id];
+    const snapshot=id==='cash'&&[balance,floor,reserve].every(Number.isFinite)?{balance,floor,reserve}:{};
+    return [id,{week,signature,...snapshot}];
+  }));
 }
 
 function checkpoint(rows) {
@@ -106,9 +110,34 @@ function reviewSignatures(state) {
   return result;
 }
 
+function cashReviewSnapshot(state) {
+  const {lowest,baselineFloor,reserve}=estimates(state);
+  return {balance:state.cash,floor:Math.min(lowest.hypothetical,baselineFloor),reserve};
+}
+
+// A checked forecast is not a checked balance forever. Compare material
+// changes against the actual last acknowledged amounts, rather than resetting
+// the checkpoint for every meal, click or insignificant rounding difference.
+function cashReviewNeeded(state,ui,signature) {
+  const prior=ui.coachReview?.cash;
+  if(!prior)return Boolean(signature);
+  if(prior.signature!==(signature||'cash'))return true;
+  if(![prior.balance,prior.floor,prior.reserve].every(Number.isFinite))return Boolean(signature);
+  const next=cashReviewSnapshot(state);
+  const material=(a,b)=>Math.abs(a-b)>=Math.max(1000,Math.min(5000,Math.abs(a)*.10));
+  return material(prior.balance,next.balance)||material(prior.floor,next.floor)||
+    material(prior.floor-prior.reserve,next.floor-next.reserve)||
+    (prior.floor<prior.reserve)!==(next.floor<next.reserve);
+}
+
 export function recordCoachReview(state,ui,id) {
   if (!easy(state) || !reviewIds.includes(id)) return false;
   const signature=reviewSignatures(state)[id];
+  if(id==='cash'){
+    if(!cashReviewNeeded(state,ui,signature))return false;
+    ui.coachReview={...coachReviewRecord(ui.coachReview),cash:{week:state.week,signature:signature||'cash',...cashReviewSnapshot(state)}};
+    return true;
+  }
   if (!signature || ui.coachReview?.[id]?.signature===signature) return false;
   ui.coachReview={...coachReviewRecord(ui.coachReview),[id]:{week:state.week,signature}};
   return true;
@@ -136,11 +165,12 @@ export function coachQuoteFilters(state,ui) {
 const declinedTask=(state,ui,key)=>coachDeclinedRecord(ui.coachDeclined,state.week).tasks.includes(key);
 
 export function recordCoachVisit(state, ui) {
-  if (!easy(state)) return false;
+  if (!easy(state) || ui.coachLearning !== true) return false;
   if (!state.orders.length) {
     const index = coachPrepIndex(ui.coachPrep);
     if (!state.bids.length || !introMatches(ui, preparation[index])) return false;
     ui.coachPrep = index + 1;
+    if (ui.coachPrep >= preparation.length) ui.coachLearning=false;
     return true;
   }
   const tour=coachTourRecord(ui.coachTour,ui.coachIntro);
@@ -386,6 +416,60 @@ function teamBenefit(state, candidate, growth) {
   return relevant.length >= 12 ? { benefit,basis:`最近 12 周有 ${relevant.length} 笔中单率不足 90% 的合同；扣除业务提成后，估算每周增加收益 ${cash(benefit)}。` } : null;
 }
 
+// The first operations employee can be a necessary, independently valuable
+// prerequisite for a proven export expansion even when direct wage savings
+// alone would not pay for the role. Validate the entire staged path against
+// actual delivered business, actual engine actions and working-capital safety.
+function auditHiringPlan(state,growth) {
+  if(state.staff.some(person=>person.role==='operations')||state.company.certs.includes('audit'))return null;
+  if(!state.company.certs.includes('export'))return {reason:'验厂认证需要先取得进出口经营权，目前还不必为下一阶段提前招聘。'};
+  const audit=certProgress(state,netAssets(state)).find(item=>item.id==='audit');
+  if(!audit||audit.requirements.filter(item=>!item.met).length!==1)return {reason:'验厂认证除跟单员外，还有其他申请条件未达到，先积累经营业绩。'};
+  const overseas=growth.delivered.filter(order=>order.market!=='domestic'&&order.profit>0);
+  if(overseas.length<6)return {reason:`最近 12 周盈利的海外交付有 ${overseas.length} 笔，至少积累 6 笔再考虑为验厂认证招聘跟单员。`};
+  const lastExpansion=state.log.find(row=>row.type==='market')?.week??-Infinity;
+  if(state.company.markets.length>1&&state.week-lastExpansion<12)return {reason:'最近才开拓海外市场，先让现有市场的业务稳定下来，再准备下一阶段认证。'};
+  const targets=marketProgress(state).filter(market=>market.cert==='audit'&&!market.opened&&marketFits(growth,market))
+    .sort((a,b)=>(a.referralBuyer?a.referralFee:a.fee)-(b.referralBuyer?b.referralFee:b.fee));
+  if(!targets.length)return {reason:'目前还没有与下一阶段市场相匹配的足够盈利订单，不急于为验厂认证增加固定工资。'};
+  const people=state.candidates.filter(person=>person.role==='operations'&&!state.staff.some(staff=>staff.id===person.id||staff.name===person.name))
+    .sort((a,b)=>a.salary-b.salary||b.ability-a.ability);
+  if(!people.length)return {reason:'当前人才市场没有合适的跟单员，可等下一批候选人。'};
+  const target=targets[0];
+  const cheapest=people[0].salary*12+audit.fee+(target.referralBuyer?target.referralFee:target.fee);
+  if(!growth.ready||state.staff.length>=18)return {reason:'准备验厂认证和下一阶段市场时，还需稳定盈利、无贷款并留出人手与周转空间。'};
+  for(const candidate of people) {
+    const payroll=candidate.salary*12;
+    const reserve=growth.reserve+candidate.salary*4;
+    for(const market of targets) {
+      const fee=market.referralBuyer?market.referralFee:market.fee;
+      const total=payroll+audit.fee+fee;
+      if(growth.average<candidate.salary*2||!growth.canFund(total)||growth.capacity<total+candidate.salary*4)continue;
+      // Only disposable states are advanced here. These three separate real
+      // operations must all be affordable even at today's cash/fees; coaching
+      // still recommends only the first hire and reevaluates later stages.
+      const hired=act(state,{type:'hire',id:candidate.id});
+      if(hired.error)continue;
+      const qualified=certProgress(hired.state,netAssets(hired.state)).find(item=>item.id==='audit');
+      if(!qualified?.available)continue;
+      const certified=act(hired.state,{type:'buy-cert',id:'audit'});
+      if(certified.error)continue;
+      const targetAfter=marketProgress(certified.state).find(item=>item.id===market.id);
+      const marketAction=targetAfter?.canRefer?'referral':targetAfter?.canPay?'open-market':null;
+      if(!targetAfter?.eligible||!marketAction)continue;
+      const opened=act(certified.state,{type:marketAction,id:market.id});
+      if(opened.error)continue;
+      const rows=[...forecast(opened.state),...plannerForecast(opened.state)];
+      const minimum=Math.min(opened.state.cash,...rows.flatMap(row=>[row.cash,row.hypothetical]));
+      if(!Number.isFinite(minimum)||minimum<reserve||rows.some(row=>row.financing>0))continue;
+      return {candidate,stagedUnlock:'audit-market',stageCost:total,advice:note(`建议聘用${candidate.name}（跟单员）`,
+        `最近 12 周已有 ${overseas.length} 笔盈利海外交付，${market.name}也有相符的盈利品类。验厂认证只差在职跟单员；招聘可以开启认证和后续市场。周薪 ${cash(candidate.salary)}，预留 12 周工资 ${cash(payroll)}、认证费 ${cash(audit.fee)}、市场费 ${cash(fee)}，合计 ${cash(total)}。即使提前预留这些费用，预测最低余额 ${cash(minimum)}，保留经营资金 ${cash(reserve)}。先招聘，后续认证与市场仍分别判断，不保证新增订单。`,
+        focus('hire',candidate.id,'查看推荐跟单员'))};
+    }
+  }
+  return {reason:`已经有验厂认证的业务基础，但招聘、认证和市场费用至少需 ${cash(cheapest)}，目前还不能在保留报价资金的前提下稳妥承担全部安排。`};
+}
+
 function teamPlan(state) {
   const estimate = estimates(state);
   if (estimate.teamPlan) return estimate.teamPlan;
@@ -403,12 +487,20 @@ function teamPlan(state) {
     const minimum = Math.min(...simulated.map(row=>Math.min(row.cash,row.hypothetical)));
     if (minimum>=reserve) {selected={candidate,demand,minimum,reserve,payroll};break;}
   }
+  const staged=auditHiringPlan(state,growth);
+  let direct;
   if (selected) {
     const {candidate,demand,minimum,reserve,payroll}=selected;
-    estimate.teamPlan={candidate,expectedWeeklyBenefit:demand.benefit,advice:note(`建议聘用${candidate.name}（${STAFF_ROLES[candidate.role].label}）`,`${demand.basis} 预计收益高于周薪 ${cash(candidate.salary)}。新增 12 周工资 ${cash(payroll)} 后，预测最低余额 ${cash(minimum)}，保留后续报价周转 ${cash(reserve)}。`,focus('hire',candidate.id,'查看推荐候选人'))};
+    direct={candidate,expectedWeeklyBenefit:demand.benefit,advice:note(`建议聘用${candidate.name}（${STAFF_ROLES[candidate.role].label}）`,`${demand.basis} 预计收益高于周薪 ${cash(candidate.salary)}。新增 12 周工资 ${cash(payroll)} 后，预测最低余额 ${cash(minimum)}，保留后续报价周转 ${cash(reserve)}。`,focus('hire',candidate.id,'查看推荐候选人'))};
+  }
+  if(staged?.candidate) {
+    estimate.teamPlan={...staged,alternative:direct?.candidate.id!==staged.candidate.id?direct:null};
+  }else if(direct){
+    estimate.teamPlan=direct;
   } else {
     const reason = growth.spent ? '本周已经增加过人员或办理发展投入，先让新安排产生实际效果。' : !growth.stable ? '近 12 周还没有实现持续盈利，先稳定订单收益。' : state.loan>0 ? '先处理贷款，暂不增加长期固定支出。' : !candidates.length ? '没有实际业务瓶颈能证明新岗位预计带来的收益足以覆盖工资和提成。' : '新增工资会挤占未来报价的周转资金。';
-    estimate.teamPlan={advice:noAction(`暂缓聘用。${reason} 日后需求明朗、收益覆盖岗位成本，且未来 12 周最低余额保留后续报价资金，再考虑招聘。`)};
+    const stageWaiting=growth.stable&&!growth.spent&&state.loan===0&&growth.orders.length>=12&&staged?.reason;
+    estimate.teamPlan={advice:noAction(stageWaiting?`暂缓聘用。${stageWaiting}`:`暂缓聘用。${reason} 日后需求明朗、收益覆盖岗位成本，且未来 12 周最低余额保留后续报价资金，再考虑招聘。`)};
   }
   return estimate.teamPlan;
 }
@@ -526,9 +618,9 @@ function listingCandidate(state,growth) {
   return {current,basis:`当前正常授信和现金限制后续报价。模拟引资后，本周可多报 ${after.steps.length-before.steps.length} 笔，考虑成交机会和回款风险，预计收益增加 ${cash(added)}；预计引入 ${cash(current.cashIn)}，创始人持股降至 82%，仍需考虑长期股权代价。`};
 }
 
-function developmentPlan(state) {
+function developmentCandidates(state) {
   const estimate = estimates(state);
-  if (estimate.developmentPlan) return estimate.developmentPlan;
+  if (estimate.developmentCandidates) return estimate.developmentCandidates;
   const growth = growthReadiness(state);
   const candidates = ventureCandidates(state);
   // A partial real payment is a complete voluntary decision for this week.
@@ -538,7 +630,7 @@ function developmentPlan(state) {
     candidates.push({ tab: 'finance', action: { type: 'repay', amount }, strategicValue: 82, advice: note('有闲置现金时优先还款', `建议偿还 ${cash(amount)}，仍保留经营周转资金，减少每周利息。`, form('repay', '查看并核对还款', amount)) });
   }
   const team = teamPlan(state);
-  if (team.candidate) candidates.push({ tab:'team',action:{type:'hire',id:team.candidate.id},longTermEvidence:true,expectedWeeklyBenefit:team.expectedWeeklyBenefit,strategicValue:72,advice:team.advice });
+  for(const option of [team,team.alternative].filter(item=>item?.candidate)) candidates.push({tab:'team',action:{type:'hire',id:option.candidate.id},longTermEvidence:!option.stagedUnlock,expectedWeeklyBenefit:option.expectedWeeklyBenefit,stagedUnlock:option.stagedUnlock,stageCost:option.stageCost,strategicValue:option.stagedUnlock?78:72,advice:option.advice});
   const markets=marketProgress(state);
   const overseas= growth.delivered.filter(order=>order.market!=='domestic' && order.profit>0);
   for (const cert of certProgress(state, netAssets(state)).filter(item => item.available)) {
@@ -559,11 +651,29 @@ function developmentPlan(state) {
   }
   const equity=listingCandidate(state,growth);
   if (equity) candidates.push({tab:'listing',action:{type:equity.current.id},longTermUnlock:equity.current.id==='restructure',strategicValue:90,advice:note(`当前可办理${equity.current.label}`,equity.basis,focus(equity.current.id,'','查看申请条件'))});
-  estimate.developmentPlan = planDevelopment(state, candidates, { reserve: growth.reserve });
-  return estimate.developmentPlan;
+  estimate.developmentCandidates = candidates;
+  return candidates;
 }
 
 function growthTaskKey(choice) {return `growth:${choice.action.type}:${choice.action.id ?? ''}:${choice.action.target ?? ''}`;}
+
+function developmentPlan(state,ui={},tab=null) {
+  // A deferral is a preference for this task, not a reason to stop evaluating
+  // other useful choices. Likewise, an explicitly opened section deserves its
+  // own bounded shortlist, not the leftovers of an unrelated global ranking.
+  const estimate=estimates(state);
+  const candidates=developmentCandidates(state).filter(item=>!tab||item.tab===tab);
+  const deferred=candidates.filter(item=>declinedTask(state,ui,growthTaskKey(item)));
+  const excluded=[...new Set(deferred.map(growthTaskKey))].sort();
+  const key=JSON.stringify([tab,excluded]);
+  estimate.developmentPlans??=new Map();
+  if(!estimate.developmentPlans.has(key)){
+    const available=candidates.filter(item=>!excluded.includes(growthTaskKey(item)));
+    estimate.developmentPlans.set(key,{...planDevelopment(state,available,{reserve:growthReadiness(state).reserve}),deferred});
+  }
+  return estimate.developmentPlans.get(key);
+}
+
 function repaidThisWeek(state) {return state.period?.cashBreakdown?.outflow?.repayment ?? 0;}
 function improvementAdvice(choice) {
   if (!choice) return null;
@@ -578,10 +688,10 @@ function developmentAdvice(state, tab, ui = {}) {
     const urgent = cashEmergency(state, { page: 'company', developmentTab: 'finance' });
     if (urgent) return urgent.action?.form === 'borrow' ? urgent : noAction('本页暂不建议新增或归还贷款。' + urgent.text);
   }
-  const options=developmentPriorities.some(([id])=>id===tab)?developmentPlan(state).choices.filter(item=>item.tab===tab):[];
-  const choice=options.find(item=>!declinedTask(state,ui,growthTaskKey(item)));
+  const plan=developmentPriorities.some(([id])=>id===tab)?developmentPlan(state,ui,tab):null;
+  const choice=plan?.choices[0];
   if (choice) return improvementAdvice(choice);
-  const deferred=options.find(item=>declinedTask(state,ui,growthTaskKey(item)));
+  const deferred=plan?.deferred[0];
   if(deferred)return noAction(`你本周选择暂缓${deferred.advice.title.replace(/^建议|^下一步：|^当前可办理/,'')}，该事项并未完成，仍可自行办理。`);
   if (tab === 'finance') {
     const repaid=repaidThisWeek(state);
@@ -590,7 +700,9 @@ function developmentAdvice(state, tab, ui = {}) {
   }
   if (tab === 'team') {
     const team = teamPlan(state);
-    return team.candidate ? noAction('暂缓聘用。把现有订单和待揭晓报价也计入后，新增工资后的现金不适合本周招聘。') : team.advice;
+    if(!team.candidate)return team.advice;
+    const rejection=plan?.rejected.find(item=>item.candidate.action?.type==='hire'&&item.candidate.action.id===team.candidate.id);
+    return noAction(`暂缓聘用。${rejection?.reason??'把现有订单和待揭晓报价也计入后，本周暂不适合招聘。'}`);
   }
   if (tab === 'certifications') {
     const next = certProgress(state, netAssets(state)).find(item => !item.owned);
@@ -752,7 +864,7 @@ const developmentPriorities = [
 function bestDevelopmentImprovement(state,ui={}) {
   // Compare actual before/after cash, recurring expenses and future runway for
   // all presently justified actions rather than giving one fixed tab priority.
-  const next = developmentPlan(state).choices.find(item=>!declinedTask(state,ui,growthTaskKey(item)));
+  const next = developmentPlan(state,ui).choices[0];
   const label = developmentPriorities.find(([tab]) => tab === next?.tab)?.[1];
   return next ? { ...improvementAdvice(next), action: ui.page==='company'&&!ui.developmentOverview&&ui.developmentTab===next.tab?next.advice.action:page('company', `查看${label}建议`, next.tab) } : null;
 }
@@ -832,20 +944,45 @@ function cashEmergency(state, ui) {
   return note('暂停新增支出', '现在没有可立即弥补缺口的回款、授信或可用库存。暂缓报价、招聘和投资。继续周结算可能使资金链进一步恶化，请先核对已有订单的预计回款。');
 }
 
+function cashReviewAdvice(state,ui) {
+  const prior=ui.coachReview?.cash,current=cashReviewSnapshot(state);
+  const action={ui:'coach-review-cash',label:'查看现金预测'};
+  if(prior&&[prior.balance,prior.floor].every(Number.isFinite)){
+    return note('重新核对现金预测',`从上次核对到现在，未来最低余额由 ${cash(prior.floor)} 变为 ${cash(current.floor)}。先核对最新资金安排，再决定新的支出或报价。`,action);
+  }
+  return note('核对新增现金承诺','手头资金、报价、合同或回款安排有所变化。看一下未来 12 周现金趋势，确认资金能撑到回款。',action);
+}
+
+// Only a material new funding decision warrants interrupting the next useful
+// business action. Routine scheduled order progress is informative, not a
+// mandatory tour. Pure quote edits don't repeatedly send the player away.
+function materialCashReview(state,ui) {
+  const prior=ui.coachReview?.cash;
+  if(!prior||![prior.balance,prior.floor,prior.reserve].every(Number.isFinite)||!cashReviewNeeded(state,ui,reviewSignatures(state).cash))return null;
+  const current=cashReviewSnapshot(state);
+  const threshold=Math.max(1000,Math.min(5000,Math.abs(prior.balance)*.10));
+  const actualSpend=prior.week===state.week&&Math.abs(current.balance-prior.balance)>=threshold;
+  const newTightness=prior.floor>=prior.reserve&&current.floor<current.reserve;
+  if(actualSpend||newTightness)return cashReviewAdvice(state,ui);
+  return null;
+}
+
 function pendingReview(state,ui) {
   const signatures=reviewSignatures(state);
   const descriptions={
-    'orders-delivery':['核对交付进展','本周有尚未查阅的订单或交付变化，先核对交期和预计回款，无需重复办理已经完成的操作。','查看订单进展'],
-    'orders-receivables':['核对应收与回款变化','有新的应收、回款状态或到期安排需要了解；正常账期不用催款。','查看回款进展'],
-    'orders-funding':['核对预计到账款','新增或变化的退税、理赔已进入现金预测，核对预计到账周即可。','查看退税与理赔'],
-    'orders-inventory':['核对库存变化','手头有新的或变化的库存，核对数量和用途，不必为了操作额外采购。','查看库存'],
-    cash:['核对新增现金承诺','报价、合同或回款安排有所变化。看一下未来 12 周现金趋势，确认资金能撑到回款。','查看现金预测'],
+    'orders-delivery':['核对交付进展','本周有尚未查阅的订单或交付变化，核对交期和预计回款即可。','查看订单进展'],
+    'orders-receivables':['核对应收与回款变化','有新的应收、回款状态或到期安排；正常账期不用催款。','查看回款进展'],
+    'orders-funding':['核对预计到账款','新增或变化的退税、理赔已进入现金预测。','查看退税与理赔'],
+    'orders-inventory':['核对库存变化','手头库存有变化，可以核对数量和用途。','查看库存'],
   };
   for (const id of reviewIds) {
-    if (!signatures[id]||signatures[id]===ui.coachReview?.[id]?.signature) continue;
+    if(id==='cash') {
+      if(cashReviewNeeded(state,ui,signatures.cash))return cashReviewAdvice(state,ui);
+      continue;
+    }
+    if(!signatures[id]||signatures[id]===ui.coachReview?.[id]?.signature)continue;
     const [title,text,label]=descriptions[id];
-    const action=id==='cash'?{ui:'coach-review-cash',label}:{ui:'coach-review-orders',id,label};
-    return note(title,text,action);
+    return note(title,text,{ui:'coach-review-orders',id,label});
   }
   return null;
 }
@@ -865,35 +1002,52 @@ function quietWeek(state,ui,quoted) {
 function attachOnward(local,next) {
   if (!local || !next) return next??local;
   const reason=next.quietWeek?'暂无其他建议立即办理的事项；你仍可自行选择娱乐、继续处理或结算。':`${next.title}：${next.text.split('。')[0]}。`;
-  return {...local,text:`${local.text} ${reason}`,action:next.action,nextAction:next.nextAction,quietWeek:next.quietWeek};
+  return {...local,text:`${local.text} ${reason}`,action:next.action,nextAction:next.nextAction,additionalActions:next.additionalActions,quietWeek:next.quietWeek};
 }
 
 // Replan on every state change and identical rules on every page. The current
 // page only controls where a task's button points and its local explanation.
 function weeklyAction(state,ui,local) {
+  const rest=restTask(state,ui);
+  if(rest&&state.energy<50)return rest;
   const growth=ui.coachDeferredWeek===state.week?null:bestDevelopmentImprovement(state,ui);
   if (growth) return growth;
-  const rest=restTask(state,ui);
   if (rest) return rest;
   const quoted=inquiryAdvice(state,coachQuoteFilters(state,ui),ui.page==='inquiries');
   if (quoted.action.command!=='end-week') return quoted;
-  return pendingReview(state,ui)??quietWeek(state,ui,quoted);
+  const quiet=quietWeek(state,ui,quoted);
+  const review=pendingReview(state,ui);
+  // Reviewing ordinary scheduled progress remains available without forcing a
+  // succession of read-only page visits before the player can settle.
+  return review?{...quiet,text:`${quiet.text} ${review.title}也可以稍后查看。`,additionalActions:[{...review.action,label:`${review.action.label}（可选）`,quiet:true}]}:quiet;
 }
 
 function pageAdvice(state, ui) {
   if (state.bankrupt) return null;
-  if (state.events.length) return note('先处理本周待定事项','助理会在事项内比较结果并推荐处理方式，解决后才能继续周结算。',{ui:'show-event',label:'查看待定事项'});
+  if (state.events.length) return {...note('先处理本周待定事项','助理会在事项内比较结果并推荐处理方式，解决后才能继续周结算。',{ui:'show-event',label:'查看待定事项'}),urgent:true};
   const emergency=cashEmergency(state,ui);
-  if (emergency) return emergency;
+  if (emergency) return {...emergency,urgent:true};
   const order=orderTask(state,ui);
-  if (order) return order;
+  if (order) return {...order,urgent:true};
+  const recheck=materialCashReview(state,ui);
+  // On a deliberately selected development tab answer that business question,
+  // unless liquidity has actually become unsafe; elsewhere alert the player
+  // to a material change before committing more resources.
+  const localDevelopment=ui.page==='company'&&!ui.developmentOverview;
+  if(recheck&&(!localDevelopment||cashReviewSnapshot(state).floor<cashReviewSnapshot(state).reserve))return {...recheck,urgent:true};
 
   const local=ui.page==='company'?(ui.developmentOverview?developmentOverviewAdvice(state,ui):developmentAdvice(state,ui.developmentTab,ui)):
     ui.page==='orders'?orderStatusAdvice(state,ui):ui.page==='offwork'?offworkStatusAdvice(state):null;
-  const prep=preparationAdvice(state,ui,local);
-  if (prep) return prep;
-  const orientation=introductionAdvice(state,ui,local);
-  if (orientation?.introduction) return orientation;
+  // Learning is a separate, voluntary activity. Ordinary coaching follows
+  // actual current work, even when some educational pages remain unvisited.
+  // A player who explicitly asks to learn can still work through every lesson,
+  // and urgent decisions above always take precedence.
+  if (ui.coachLearning === true) {
+    const prep=preparationAdvice(state,ui,local);
+    if (prep) return prep;
+    const orientation=introductionAdvice(state,ui,local);
+    if (orientation?.introduction) return orientation;
+  }
   if (ui.page==='company' && local?.action) return local;
   const next=weeklyAction(state,ui,local);
   // When the player intentionally enters a local section, preserve its own
@@ -923,7 +1077,15 @@ export function pageCoach(state, ui) {
   if (!easy(state)) return '';
   const step = !state.tutorial.done && [0,1,3].includes(state.tutorial.step);
   const advice = pageAdvice(state, ui);
-  const extra = advice?.preparation ? (advice.nextAction?.ui === 'coach-skip-prep' ? '' : actionButton(skipPreparation())) : advice?.introduction ? '<button type="button" class="button quiet" data-ui="coach-skip-intro">跳过介绍</button>' : step ? '<button type="button" class="button quiet" data-ui="skip-tutorial">跳过基础流程提示</button>' : '';
+  let extra = advice?.preparation ? (advice.nextAction?.ui === 'coach-skip-prep' ? '' : actionButton(skipPreparation())) : advice?.introduction ? '<button type="button" class="button quiet" data-ui="coach-skip-intro">跳过介绍</button>' : step ? '<button type="button" class="button quiet" data-ui="skip-tutorial">跳过基础流程提示</button>' : '';
+  const tour=coachTourRecord(ui.coachTour,ui.coachIntro);
+  const canLearn=state.orders.length ? !tour.skipped&&(tour.visited.length<coachTourIds.length||tour.active) : state.bids.length&&coachPrepIndex(ui.coachPrep)<preparation.length;
+  if (ui.coachLearning===true && (advice?.preparation||advice?.introduction)) {
+    extra+='<button type="button" class="button quiet" data-ui="coach-pause-learning">先继续经营</button>';
+  } else if (ui.coachLearning!==true && canLearn && advice && !advice.urgent && (state.orders.length ? ['office','orders','company'].includes(ui.page) : ['office','inquiries'].includes(ui.page))) {
+    const label=state.orders.length?'认识游戏功能（可选）':'了解报价与资金（可选）';
+    extra+=`<button type="button" class="button quiet" data-ui="coach-start-learning">${label}</button>`;
+  }
   return card(state, advice, { extra, progress: step, overview: ui.page === 'company' && ui.developmentOverview, introProgress:advice?.introduction?advice.introProgress:null, equal:Boolean(advice?.quietWeek&&advice?.nextAction) });
 }
 

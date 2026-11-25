@@ -77,6 +77,15 @@ function longerTermAllowance(choice, after) {
   }
   if (choice.longTermEvidence && ['open-market', 'referral'].includes(choice.action.type)) return choice.upfront * .7 + tolerance;
   if (choice.longTermEvidence && choice.action.type === 'invest-venture') return choice.upfront * .35 + tolerance;
+  if (choice.action.type==='hire'&&choice.stagedUnlock==='audit-market'&&Number.isFinite(choice.stageCost)&&choice.stageCost>0) {
+    // The coach has already checked the actual hire → certification → market
+    // sequence and its combined fees plus payroll against both forecasts.
+    // The short business rollout cannot apply the still-unowned certificate,
+    // so permit at most the known four weeks of salary (not speculative sales
+    // or the whole staged cost). All liquidity/debt vetoes remain in force.
+    const member=after.staff.find(person=>person.id===choice.action.id);
+    if(member?.role==='operations'&&member.salary>0&&choice.stageCost>=member.salary*12)return member.salary*4+tolerance;
+  }
   if (choice.longTermEvidence && choice.action.type === 'hire') {
     const wage = after.staff.find(person => person.id === choice.action.id)?.salary ?? 0;
     // History-based marginal role benefit can exceed the limited future-bid
@@ -178,7 +187,10 @@ export function planDevelopment(state, candidates, { reserve = 0 } = {}) {
   const deferred = multiweekProjection(state, state, null, prudentialReserve);
   const baselineDebt = maximumNewDebt(deferred, state.loan);
   const accepted = [];
-  for (const choice of choices.slice(0, MAX_ROLLOUT_CANDIDATES)) {
+  const shortlist=choices.slice(0,MAX_ROLLOUT_CANDIDATES);
+  const stagedHire=choices.find(choice=>choice.action.type==='hire'&&choice.stagedUnlock==='audit-market');
+  if(stagedHire&&!shortlist.includes(stagedHire))shortlist[shortlist.length-1]=stagedHire;
+  for (const choice of shortlist) {
     const after = successors.get(choice);
     const rollout = multiweekProjection(state, after, choice.action, prudentialReserve);
     const delta = rollout.score - deferred.score;
@@ -198,7 +210,7 @@ export function planDevelopment(state, candidates, { reserve = 0 } = {}) {
       rolloutOperatingProfitDelta: rollout.averageOperatingProfit - deferred.averageOperatingProfit,
       rolloutMinCash: rollout.minCash, rolloutFutureBids: rollout.futureBids });
   }
-  for (const choice of choices.slice(MAX_ROLLOUT_CANDIDATES)) reject(choice, '有更值得先比较的安全候选，本次先保留这项选择。');
+  for (const choice of choices.filter(choice=>!shortlist.includes(choice))) reject(choice, '有更值得先比较的安全候选，本次先保留这项选择。');
   accepted.sort((a, b) => b.score - a.score || b.scenarioFloor - a.scenarioFloor || a.upfront - b.upfront);
   return { baseline, choices: accepted, rejected, defer: {
     rolloutScore: deferred.score, rolloutHorizon: deferred.horizon, rolloutScenarios: deferred.scenarioCount,

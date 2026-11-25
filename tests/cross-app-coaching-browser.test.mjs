@@ -76,12 +76,17 @@ test('real Chromium 390px simple mode: chat inbox, draft/reload/withdraw, first 
     await page.waitFor(`${snapshot}.state.bids.length===0`);
     await openSuggestedQuote(page);
     await submitSuggestedQuote(page);
-    assert.ok(await page.evaluate(visible(`${coach} [data-page="office"]`)), 'first bid should prompt a meaningful page visit, not force settlement');
+    assert.ok(await page.evaluate(visible(`${coach} [data-ui="coach-start-learning"]`)), 'the first quote offers voluntary learning');
+    assert.equal((await saved(page)).view.coachLearning,false,'ordinary advice must not start a forced page tour');
+    assert.equal((await saved(page)).view.coachPrep,0);
+    assert.ok(await page.evaluate(visible(`${coach} [data-ui="quote-open"]`)), 'the next real feasible quote is still available');
     await page.click('.nav [data-page=offwork]');
     await page.click('.week-controls [data-action="end-week"]'); // Player may choose to settle voluntarily with one quote.
     await page.waitFor(visible('dialog[open] [data-ui="view-first-order"]'));
     assert.equal((await saved(page)).state.week, 2);
     await page.click('dialog [data-ui="view-first-order"]');
+    await page.click(`${coach} [data-ui="coach-start-learning"]`);
+    assert.equal((await saved(page)).view.coachLearning,true);
     await page.click(`${coach} [data-coach-tab="finance"]`);
     await page.click(`${coach} [data-coach-tab="team"]`);
     assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`), /暂缓聘用/);

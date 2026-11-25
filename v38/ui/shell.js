@@ -581,10 +581,10 @@ function eventContent(state, event, notice) {
     return `<li class="decision-option">${button(choice, details ? ` aria-describedby="${descriptionId}"` : '')}${details}</li>`;
   }).join('')}</ul>` : '';
   return `<header class="dialog-header"><div><p class="eyebrow">${celebration ? '企业里程碑' : '需要决定'}</p><h2 id="modal-title" tabindex="-1">${esc(event.title)}</h2></div></header>
-    <div class="dialog-body">${comic}<p>${esc(event.text ?? event.description)}</p>
+    <div class="dialog-body event-body">${comic}<p>${esc(event.text ?? event.description)}</p>
     ${context.length ? `<ul class="decision-context" aria-label="涉及业务">${context.map(line => `<li>${esc(line)}</li>`).join('')}</ul>` : ''}
     ${notice ? `<p role="alert" class="notice negative">${esc(notice)}</p>` : ''}${recommendation?.html ?? ''}${decisionList}</div>
-    ${explained ? '' : `<footer class="dialog-footer">${choices.map(choice => button(choice)).join('')}</footer>`}`;
+    ${explained ? '' : `<footer class="dialog-footer event-options">${choices.map(choice => button(choice)).join('')}</footer>`}`;
 }
 
 export function dialogContent(state, ui, quote) {

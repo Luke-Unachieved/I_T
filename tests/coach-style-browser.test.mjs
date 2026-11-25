@@ -84,6 +84,8 @@ for(const viewport of [{width:320,height:568,mobile:true},{width:390,height:844,
       await page.click('dialog form[data-form=quote] button[type=submit]');
       assert.equal((await currentState(page)).bids.length,1);
 
+      await assertQuiet(page,`${coach} [data-ui=coach-start-learning]`,reference,quietReference);
+      await c('[data-ui=coach-start-learning]');
       await assertCoach(page,`${coach} [data-page=office][data-coach-tab=cash-forecast]`,reference);
       await assertGuide(page,`${coach} [data-page=office][data-coach-tab=cash-forecast]`);
       await assertQuiet(page,`${coach} [data-ui=coach-skip-prep]`,reference,quietReference);
@@ -112,6 +114,7 @@ for(const viewport of [{width:320,height:568,mobile:true},{width:390,height:844,
       await assertCoach(page,'dialog [data-ui=view-first-order]',reference);
       await assertGuide(page,'dialog [data-ui=view-first-order]');
       await page.click('dialog [data-ui=view-first-order]');
+      await c('[data-ui=coach-start-learning]');
       await assertCoach(page,`${coach} [data-page=company][data-coach-tab=finance]`,reference);
       await c('[data-page=company][data-coach-tab=finance]');
       await assertCoach(page,`${coach} [data-page=company][data-coach-tab=team]`,reference);
@@ -170,14 +173,13 @@ for(const viewport of [{width:320,height:568,mobile:true},{width:390,height:844,
       await loadScenario(page,orderFixture);await nav('office');
       await page.evaluate(`(()=>{const record=JSON.parse(localStorage.getItem(${JSON.stringify(SAVE_KEY)}));record.view.coachTour={version:2,visited:[],active:null,skipped:true};record.view.coachIntro=4;record.view.coachPrep=3;localStorage.setItem(${JSON.stringify(SAVE_KEY)},JSON.stringify(record));})()`);
       await page.send('Page.reload');await page.waitFor(exists('[data-ui=resume-save]'));await page.click('[data-ui=resume-save]');
-      await assertCoach(page,`${coach} [data-ui=coach-review-orders]`,reference);
+      await assertQuiet(page,`${coach} [data-ui=coach-review-orders]`,reference,quietReference);
       await c('[data-ui=coach-review-orders]');
       await assertGuide(page,'#orders-delivery .order-section-body table');
       await assertCoach(page,'[data-ui=coach-review-next]',reference);
       await page.click('[data-ui=coach-review-next]');
       assert.ok(await page.evaluate(`document.activeElement.matches('${coach} .coach-action')`));
-      await assertGuide(page,`${coach} [data-ui=coach-review-cash]`);
-      await assertCoach(page,`${coach} [data-ui=coach-review-cash]`,reference);
+      await assertQuiet(page,`${coach} [data-ui=coach-review-cash]`,reference,quietReference);
       await c('[data-ui=coach-review-cash]');
       await assertCoach(page,'.forecast-panel [data-ui=coach-review-next]',reference);
       await assertGuide(page,'.forecast-panel .forecast-scenarios');

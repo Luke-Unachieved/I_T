@@ -166,7 +166,13 @@ test('simple coaching prioritizes actionable finances and rest, can settle with 
   const inquiry = state.inquiries.find(item => quoteRecommendation(state, item));
   const recommended = quoteRecommendation(state, inquiry);
   const submitted = act(state, { type: 'bid', inquiryId: inquiry.id, ...recommended.config }).state;
-  const prep = {page:'inquiries', coachPrep:0};
+  const ordinary={page:'inquiries',coachPrep:0};
+  const ordinaryAdvice=pageCoach(submitted,ordinary);
+  assert.match(ordinaryAdvice,/data-ui="quote-open"/,'ordinary operating advice recommends the next real feasible action');
+  assert.match(ordinaryAdvice,/data-ui="coach-start-learning"/,'learning is available only as an explicit choice');
+  assert.doesNotMatch(ordinaryAdvice,/data-coach-tab="cash-forecast"/,'ordinary business does not force an educational page switch');
+  assert.equal(recordCoachVisit(submitted,{...ordinary,page:'office'}),false);
+  const prep = {page:'inquiries', coachPrep:0,coachLearning:true};
   assert.match(pageCoach(submitted, prep), /首笔报价.*data-page="office" data-coach-tab="cash-forecast"/s);
   assert.match(pageCoach(submitted, prep), /data-ui="coach-skip-prep"/);
   prep.page = 'office'; assert.ok(recordCoachVisit(submitted, prep));
@@ -200,7 +206,7 @@ test('simple coaching prioritizes actionable finances and rest, can settle with 
   }
   assert.equal(filled.bids.length, 3);
   const completed={page:'inquiries',coachPrep:3};
-  assert.match(pageCoach(filled,completed),/核对新增现金承诺.*data-ui="coach-review-cash"/s);
+  assert.match(pageCoach(filled,completed),/三个报价位已用完.*data-ui="coach-settlement".*data-ui="coach-review-cash"/s,'routine cash review is optional alongside actual settlement');
   assert.equal(recordCoachReview(filled,completed,'cash'),true);
   assert.equal(recordCoachReview(filled,completed,'cash'),false);
   assert.match(pageCoach(filled,completed), /三个报价位已用完.*data-page="offwork".*data-ui="coach-settlement"/s);
@@ -342,12 +348,20 @@ for (const viewport of [{ width: 320, height: 568, mobile: true }, { width: 390,
       assert.equal(location.visible,true);
       await page.click('dialog form[data-form="quote"] button[type="submit"]');
       assert.equal((await currentState(page)).bids.length, 1);
+      assert.equal(await page.evaluate('document.activeElement.dataset.ui'), 'quote-open');
+      await page.click(`${coach} [data-ui="coach-start-learning"]`);
       assert.equal(await page.evaluate('document.activeElement.dataset.page'), 'office');
       assert.equal(await page.evaluate('Boolean(document.querySelector("[data-tour=end-week].tutorial-target"))'), false);
       await page.click(`${coach} [data-page="office"][data-coach-tab="cash-forecast"]`);
       assert.equal(await page.evaluate('document.activeElement.matches(".forecast-panel h2")'), true);
       assert.match(await page.evaluate('document.querySelector(".forecast-panel").innerText'), /已提交报价全部中单/);
       await page.screenshot(`/tmp/v38-coach-first-bid-cash-${viewport.width}.png`);
+      const beforePause=await currentState(page);
+      await page.click(`${coach} [data-ui="coach-pause-learning"]`);
+      assert.equal(await page.evaluate(present('.forecast-panel [data-coach-tab="finance"]')),false,'paused learning removes the otherwise distracting inline lesson');
+      assert.deepEqual(await currentState(page),beforePause);
+      await page.click(`${coach} [data-ui="coach-start-learning"]`);
+      assert.equal(await page.evaluate(present('.forecast-panel [data-coach-tab="finance"]')),true);
       await page.click('.forecast-panel [data-coach-tab="finance"]');
       assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`), /备用资金.*无需借款/s);
       assert.equal((await currentState(page)).loan, 0);
@@ -379,6 +393,7 @@ for (const viewport of [{ width: 320, height: 568, mobile: true }, { width: 390,
       assert.ok((await currentState(page)).orders.length > 0);
       await page.click('dialog [data-ui="view-first-order"]');
       assert.match(await page.evaluate('document.querySelector("#page-title").innerText'), /订单/);
+      await page.click(`${coach} [data-ui="coach-start-learning"]`);
       await page.click(`${coach} [data-coach-tab="finance"]`);
       await page.waitFor(present(`${coach} [data-coach-tab="team"]`));
       await page.click(`${coach} [data-coach-tab="team"]`);
@@ -400,7 +415,6 @@ for (const viewport of [{ width: 320, height: 568, mobile: true }, { width: 390,
       if (await page.evaluate(present('dialog [data-ui="coach-apply-quote"]'))) await page.click('dialog [data-ui="coach-apply-quote"]');
       await page.click('dialog [data-ui="coach-review-submit"]');
       await page.click('dialog form[data-form="quote"] button[type="submit"]');
-      await page.click(`${coach} [data-ui="coach-skip-prep"]`);
       await page.click(`${coach} [data-ui="coach-review-cash"]`);
       await page.click('.forecast-panel [data-ui="coach-review-next"]');
       assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`),/不必为了用完报价位.*其余询盘暂时没有/s);
@@ -426,6 +440,9 @@ test('real Chromium generic development gives overview, active and targeted tabs
     assert.ok(await page.evaluate(present(`${coach} [data-coach-tab="team"]`)));
     await page.screenshot('/tmp/v38-coach-development-overview-390.png');
     await page.click(`${coach} [data-coach-tab="team"]`);
+    assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`), /建议聘用/);
+    assert.doesNotMatch(await page.evaluate(`document.querySelector('${coach}').innerText`), /认识团队/);
+    await page.click(`${coach} [data-ui="coach-start-learning"]`);
     assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`), /认识团队.*业务员.*建议聘用/s);
     assert.ok(await page.evaluate(present(`${coach} [data-coach-action="hire"]`)));
     assert.ok(await page.evaluate(present(`${coach} [data-ui="page"][data-page="orders"]`)), 'the optional introduction can continue without hiring');

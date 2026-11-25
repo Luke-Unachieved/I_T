@@ -35,6 +35,17 @@ async function reload(page){
   await page.send('Page.reload');await page.waitFor(exists('[data-ui=resume-save]'));await page.click('[data-ui=resume-save]');
 }
 
+async function beginLearning(page){
+  // A pending genuine optional order task outranks the optional learning
+  // mode. Deliberately defer it if necessary, then explicitly ask to learn.
+  for(let n=0;n<6&&!await page.evaluate(exists(`${coach} [data-ui=coach-start-learning]`));n++){
+    if(!await page.evaluate(exists(`${coach} [data-ui=coach-defer-task]`)))break;
+    await c(page,'[data-ui=coach-defer-task]');
+  }
+  await c(page,'[data-ui=coach-start-learning]');
+  assert.equal((await saved(page)).view.coachLearning,true);
+}
+
 async function startActualCompany(page,seed){
   await page.goto();await page.waitFor(exists('[data-form=new-game]'));
   // Only seed the ordinary opening random draw. Every quote, settlement and
@@ -155,6 +166,9 @@ for(const [seed,viewport] of [[17,{width:320,height:568,mobile:true}],[2026,{wid
       const page=await browser.page(viewport);
       await startActualCompany(page,seed);
       await firstContractThroughCoach(page);
+      assert.equal((await saved(page)).view.coachLearning,false);
+      assert.deepEqual((await saved(page)).view.coachTour.visited,[]);
+      await beginLearning(page);
       const seen=new Set();
       // New seed routes include an intentional out-of-order/manual visit.
       await observeLesson(page,seen);
@@ -179,6 +193,7 @@ for(const [viewport,repay] of [[{width:320,height:568,mobile:true},false],[{widt
       const page=await browser.page(viewport);
       await page.goto();await page.waitFor(exists('[data-form=new-game]'));
       await loadScenario(page,loanFixture);await nav(page,'orders');
+      await beginLearning(page);
       const original=(await saved(page)).state,seen=new Set();
       await observeLesson(page,seen);
       assert.deepEqual([...seen],['orders']);
@@ -253,6 +268,10 @@ test('an actual overdue customer blocks teaching without falsely recording tabs,
     await loadScenario(page,`game=>{let s=game.newGame({difficulty:'casual',seed:381});s=game.act(s,{type:'bid',inquiryId:'w1-1',source:'stock',ratio:80}).state;for(let n=0;n<3;n++){s=game.act(s,{type:'end-week'}).state;s.summary=null;s.events=[];}const invoice=s.receivables[0];invoice.status='overdue';invoice.originalDueWeek=s.week-1;invoice.dueWeek=s.week+3;s.cash=150000;s.creditLine=game.creditLimit(s);s.inquiries=[];s.tutorial.done=true;return s;}`);
     const before=(await currentState(page)),invoice=before.receivables.find(item=>item.status==='overdue');
     await nav(page,'company');
+    // A player who already opted into learning before the payment became
+    // overdue should continue learning after the real urgent work is done.
+    await page.evaluate(`(()=>{const record=${storage};record.view.coachLearning=true;localStorage.setItem(${JSON.stringify(SAVE_KEY)},JSON.stringify(record));})()`);
+    await reload(page);
     for(const tab of ['team','listing','markets']){
       await page.click(`[data-ui=development-tab][data-id="${tab}"]`);
       assert.deepEqual((await saved(page)).view.coachTour.visited,[]);

@@ -34,7 +34,7 @@ function freshUi() {
     page: 'office', dialog: '', quoteId: '', quote: {}, quoteDefault: {}, quoteOrigin: null,
     quoteDrafts: new Map(), quoteDraftRestored: false, bankGuard: new Map(), actionGesture: null,
     filters: { category: '', availability: 'all' }, notice: '', tutorialStep: 0, showMacro: false,
-    saveStatus: 'ready', developmentTab: 'finance', developmentOverview: false, lifeApp: 'home', lifeCollapsed: [...defaultLifeCollapsed], ordersCollapsed: [], coachPrep: 0, coachIntro: 0, coachTour:coachTourRecord(null), coachDeferredWeek: 0, coachReview:{}, coachDeclined:null,
+    saveStatus: 'ready', developmentTab: 'finance', developmentOverview: false, lifeApp: 'home', lifeCollapsed: [...defaultLifeCollapsed], ordersCollapsed: [], coachPrep: 0, coachIntro: 0, coachLearning: false, coachTour:coachTourRecord(null), coachDeferredWeek: 0, coachReview:{}, coachDeclined:null,
   };
 }
 
@@ -42,7 +42,7 @@ const developmentViews = { ...growthSections, ...strategySections };
 const validDevelopmentTab = id => developmentTabs.some(([key]) => key === id);
 
 const pageViews = {
-  office: (current, model) => officePage(current, { ...officeFeatures(current), coachPrep: model.coachPrep }),
+  office: (current, model) => officePage(current, { ...officeFeatures(current), coachPrep: model.coachLearning ? model.coachPrep : 0 }),
   inquiries: inquiriesPage,
   orders: ordersPage,
   company: (current, model) => companyPage(current, model.developmentTab, developmentViews[model.developmentTab]?.(current)),
@@ -177,7 +177,7 @@ function savedView() {
   ui.quoteDrafts = new Map([...ui.quoteDrafts].filter(([id]) => active.has(id)));
   return {
     page: ui.page, filters: ui.filters, showMacro: ui.showMacro, developmentTab: ui.developmentTab, developmentOverview: ui.developmentOverview, lifeApp: ui.lifeApp, lifeCollapsed: ui.lifeCollapsed, lifeDisclosureVersion, ordersCollapsed: ui.ordersCollapsed,
-    coachPrep: coachPrepIndex(ui.coachPrep), coachIntro: coachIntroIndex(ui.coachIntro), coachTour:coachTourRecord(ui.coachTour,ui.coachIntro), coachDeferredWeek: ui.coachDeferredWeek, coachReview:coachReviewRecord(ui.coachReview), coachDeclined:coachDeclinedRecord(ui.coachDeclined,state.week),
+    coachLearning: ui.coachLearning === true, coachPrep: coachPrepIndex(ui.coachPrep), coachIntro: coachIntroIndex(ui.coachIntro), coachTour:coachTourRecord(ui.coachTour,ui.coachIntro), coachDeferredWeek: ui.coachDeferredWeek, coachReview:coachReviewRecord(ui.coachReview), coachDeclined:coachDeclinedRecord(ui.coachDeclined,state.week),
     drafts: [...ui.quoteDrafts],
     quote: ui.dialog === 'quote' && active.has(ui.quoteId) ? { id: ui.quoteId, proposal: ui.quote } : null,
   };
@@ -245,6 +245,7 @@ function resumeSaved() {
     if (Object.hasOwn(pageViews, view.page)) ui.page = view.page;
     if (validDevelopmentTab(view.developmentTab)) ui.developmentTab = view.developmentTab;
     ui.developmentOverview = view.developmentOverview === true;
+    ui.coachLearning = view.coachLearning === true;
     ui.coachPrep = coachPrepIndex(view.coachPrep);
     ui.coachIntro = coachIntroIndex(view.coachIntro);
     ui.coachTour = coachTourRecord(view.coachTour,ui.coachIntro);
@@ -795,7 +796,7 @@ function performGuarded(action, trigger, pointer) {
   return accepted;
 }
 
-const coachNavigation = new Set(['coach-target','coach-apply-quote','coach-review-submit','coach-select-outing','coach-all-inquiries','coach-review-orders','coach-review-cash','coach-review-next','coach-focus-forecast','coach-leisure-menu','coach-settlement','coach-finish-intro']);
+const coachNavigation = new Set(['coach-target','coach-apply-quote','coach-review-submit','coach-select-outing','coach-all-inquiries','coach-review-orders','coach-review-cash','coach-review-next','coach-focus-forecast','coach-leisure-menu','coach-settlement','coach-finish-intro','coach-start-learning','coach-pause-learning']);
 
 function assistantNavigation(control) {
   if (!control || control.disabled || control.dataset.action) return false;
@@ -919,9 +920,22 @@ function click(event) {
     case 'coach-defer-growth':
       if (state.difficulty === 'casual') { ui.coachDeferredWeek = state.week; selectPage('inquiries'); }
       break;
+    case 'coach-start-learning':
+    case 'coach-pause-learning':
+      if (state.difficulty === 'casual') {
+        ui.coachLearning = control.dataset.ui === 'coach-start-learning';
+        if (ui.coachLearning) recordCoachVisit(state,ui);
+        saveProgress();
+        render();
+        const next=mount.querySelector('.workspace > .coach-card .coach-action');
+        next?.focus({preventScroll:true});
+        next?.scrollIntoView({block:'nearest',behavior:'instant'});
+      }
+      break;
     case 'coach-skip-intro':
     case 'coach-finish-intro':
       if (state.difficulty === 'casual') {
+        ui.coachLearning=false;
         finishCoachTour(ui,control.dataset.ui==='coach-skip-intro');
         saveProgress();
         render();
@@ -931,7 +945,7 @@ function click(event) {
       }
       break;
     case 'coach-skip-prep':
-      if (state.difficulty === 'casual') { ui.coachPrep = coachPrepIndex(3); selectPage('inquiries'); }
+      if (state.difficulty === 'casual') { ui.coachLearning=false; ui.coachPrep = coachPrepIndex(3); selectPage('inquiries'); }
       break;
     case 'coach-focus-forecast': reviewCashForecast(); break;
     case 'development-tab': selectDevelopmentTab(control.dataset.id); break;
