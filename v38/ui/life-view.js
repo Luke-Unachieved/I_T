@@ -17,7 +17,7 @@ export function optionDescription(type, id) {
 export function eraIllustration(id = choices.era.defaultId) {
   const era = ERAS.find(item => item.id === id);
   if (!era) return '';
-  return imageFrame(era.art, { className: 'era-art', alt: `${era.year} 年 · ${era.label}`, fallback: '时代插画暂时无法显示' });
+  return imageFrame(era.art, { className: 'era-art', alt: `${era.year} 年 · ${era.label}`, fallback: '插画未能加载，请重试', lazy: false, retry: true, autoRetry: 2 });
 }
 
 export function scenarioFields() {
