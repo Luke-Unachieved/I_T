@@ -1,0 +1,99 @@
+/* V38 buyer inbox and quote conversation. Inquiry-only selectors preserve the rest of the trade UI. */
+.inquiry-app .inquiry-inbox > .trade-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .12rem .55rem; }
+.inquiry-app .inquiry-inbox .inquiry-guidance { grid-column: 1 / -1; }
+.inquiry-app .inquiry-inbox h2 { display: flex; align-items: center; gap: .5rem; }
+.inquiry-app .inquiry-inbox-count { display: inline-grid; place-items: center; min-width: 1.6rem; padding-inline: .3rem; min-height: 1.6rem; border-radius: .45rem; background: #3d3221; color: var(--ws-mark-bright); font-size: .81rem; font-variant-numeric: tabular-nums; }
+.inquiry-app .inquiry-inbox .inquiry-sent-link { display: inline-flex; align-items: center; min-height: 44px; text-decoration: none; }
+.inquiry-app .inquiry-inbox .inquiry-sent-link:hover { color: var(--ws-mark-bright); border-color: var(--ws-mark); }
+.inquiry-app .inquiry-threads, .inquiry-app .inquiry-sent-list { border: 1px solid var(--ws-rule); border-radius: .64rem; background: var(--ws-well); }
+.inquiry-app .inquiry-thread { position: relative; display: grid; grid-template-columns: minmax(0, 1.18fr) minmax(13rem, 1fr) minmax(9.5rem, .66fr); align-items: start; gap: .95rem; min-width: 0; padding: .95rem; overflow-wrap: anywhere; }
+.inquiry-app .inquiry-thread + .inquiry-thread, .inquiry-app .inquiry-sent-quote + .inquiry-sent-quote { border-top: 1px solid var(--ws-rule); }
+.inquiry-app .inquiry-thread:first-child { border-radius: .62rem .62rem 0 0; }
+.inquiry-app .inquiry-thread:last-child { border-radius: 0 0 .62rem .62rem; }
+.inquiry-app .inquiry-thread:only-child { border-radius: .62rem; }
+.inquiry-app .inquiry-thread:has(.inquiry-thread-open):hover { background: #e4ce9b09; }
+.inquiry-app .inquiry-thread-contact, .inquiry-app .inquiry-sent-contact, .quote-dialog .inquiry-conversation-contact { display: flex; align-items: flex-start; gap: .62rem; min-width: 0; }
+.inquiry-app .inquiry-thread-contact .buyer-avatar, .quote-dialog .inquiry-conversation-contact .buyer-avatar { width: 3.15rem; height: 3.15rem; border: 1px solid var(--ws-line-warm); }
+.inquiry-app .inquiry-thread-message, .inquiry-app .inquiry-sent-contact > div, .quote-dialog .inquiry-conversation-contact > div { min-width: 0; overflow-wrap: anywhere; }
+.inquiry-app .inquiry-thread-name, .quote-dialog .inquiry-thread-name { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .4rem; }
+.inquiry-app .inquiry-thread-name > strong, .quote-dialog .inquiry-thread-name > strong { font-size: 1rem; color: var(--ws-type); }
+.inquiry-app .inquiry-thread-meta, .inquiry-app .inquiry-thread-state small, .inquiry-app .inquiry-thread-terms small, .inquiry-app .inquiry-product-copy small, .inquiry-app .inquiry-sent-contact small, .inquiry-app .inquiry-sent-message small, .quote-dialog .inquiry-conversation-contact small { display: block; font-size: .76rem; line-height: 1.45; color: var(--ws-secondary); }
+.inquiry-app .inquiry-thread-preview { margin-block: .38rem; padding: .43rem .56rem; background: #302a21; border-radius: .13rem .54rem .54rem .54rem; font-size: .88rem; color: var(--ws-type); line-height: 1.52; }
+.inquiry-app .inquiry-thread-flags { display: flex; flex-wrap: wrap; gap: .22rem .28rem; margin-top: .42rem; }
+.inquiry-app .inquiry-thread .inquiry-product { display: flex; align-items: center; gap: .64rem; min-width: 0; align-self: center; }
+.inquiry-app .inquiry-thread .inquiry-product-copy { display: grid; align-content: center; gap: .15rem; min-width: 0; }
+.inquiry-app .inquiry-thread .inquiry-product-copy > strong:first-child { line-height: 1.4; }
+.inquiry-app .inquiry-thread .inquiry-product-copy > span { color: var(--ws-type); font-size: .83rem; }
+.inquiry-app .inquiry-thread .inquiry-target-price { color: var(--ws-mark-bright); font-size: .93rem; line-height: 1.45; font-variant-numeric: tabular-nums; }
+.inquiry-app .inquiry-thread-end { display: grid; justify-items: start; align-content: start; gap: .38rem; min-width: 0; }
+.inquiry-app .inquiry-thread-state { display: flex; align-items: center; flex-wrap: wrap; gap: .22rem .37rem; }
+.inquiry-app .inquiry-thread-terms { display: grid; gap: .13rem; font-size: .86rem; line-height: 1.43; }
+.inquiry-app .inquiry-thread .inquiry-thread-open { position: static; justify-self: end; min-width: 4.5rem; padding-inline: .78rem; white-space: nowrap; }
+/* Extend this existing quote-open control over its own thread only; retains keyboard, tutorial and return-focus behavior. */
+.inquiry-app .inquiry-thread .inquiry-thread-open::before { content: ''; position: absolute; z-index: 1; inset: 0; border-radius: inherit; }
+.inquiry-app .inquiry-thread .inquiry-thread-open:focus-visible::before { outline: 2px solid var(--ws-guide); outline-offset: -2px; }
+.inquiry-app .inquiry-inbox > .trade-note { margin-top: .6rem; }
+.inquiry-app .inquiry-outbox { scroll-margin-top: var(--gutter); }
+.inquiry-app .inquiry-sent-quote { display: grid; grid-template-columns: minmax(8rem, .8fr) minmax(0, 1.6fr) auto; gap: .75rem; align-items: center; padding: .75rem; min-width: 0; overflow-wrap: anywhere; }
+.inquiry-app .inquiry-sent-contact > div { display: grid; gap: .2rem; justify-items: start; }
+.inquiry-app .inquiry-sent-message { display: grid; gap: .3rem; min-width: 0; padding: .58rem .72rem; background: #332c21; border-radius: .68rem .68rem .14rem .68rem; }
+.inquiry-app .inquiry-sent-price { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: .25rem .6rem; }
+.inquiry-app .inquiry-sent-price > span { color: var(--ws-secondary); font-size: .82rem; }
+.inquiry-app .inquiry-sent-price > strong { color: var(--ws-mark-bright); }
+.inquiry-app .inquiry-sent-actions { display: grid; justify-items: end; gap: .35rem; }
+.inquiry-app .inquiry-sent-actions > button { min-width: 4rem; }
+
+.quote-dialog .inquiry-conversation { align-content: start; gap: .7rem; }
+.quote-dialog .inquiry-conversation-contact { align-items: center; }
+.quote-dialog .inquiry-conversation .inquiry-message-bubble { margin: 0 0 0 .08rem; padding: .68rem .82rem; border-radius: .15rem .72rem .72rem .72rem; background: #342d24; color: var(--ws-type); line-height: 1.62; overflow-wrap: anywhere; }
+.quote-dialog .inquiry-request-attachment { display: grid; gap: .62rem; min-width: 0; padding: .62rem; background: var(--ws-well); border-radius: .5rem; }
+.quote-dialog .inquiry-request-attachment .media-frame.quote-product-image { justify-self: center; }
+.quote-dialog .inquiry-attachment-copy { display: flex; flex-wrap: wrap; column-gap: .35rem; row-gap: .22rem; align-items: baseline; }
+.quote-dialog .inquiry-attachment-copy > strong { font-size: 1rem; }
+.quote-dialog .inquiry-attachment-copy > :is(small, span:not(.badge)) { flex-basis: 100%; }
+.quote-dialog .inquiry-attachment-copy > small { color: var(--ws-secondary); }
+.quote-dialog .inquiry-attachment-copy > span:not(.badge) { font-size: .85rem; }
+.quote-dialog .inquiry-attachment-copy > span > strong { color: var(--ws-mark-bright); }
+.quote-dialog .inquiry-message-facts { display: grid; gap: .3rem; margin: 0; padding-top: .58rem; border-top: 1px solid var(--ws-rule); font-size: .82rem; overflow-wrap: anywhere; }
+.quote-dialog .inquiry-message-facts > div { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .25rem .5rem; align-items: baseline; }
+.quote-dialog .inquiry-message-facts dt { color: var(--ws-secondary); }
+.quote-dialog .inquiry-message-facts dd { margin: 0; text-align: right; }
+.quote-dialog .inquiry-reply .inquiry-reply-title { font-size: 1rem; color: var(--ws-mark-bright); padding-bottom: .4rem; border-bottom: 1px solid var(--ws-rule); }
+
+@media (min-width: 1280px) {
+  .inquiry-app .inquiry-thread-end { grid-template-columns: minmax(0, 1fr) auto; align-items: end; }
+  .inquiry-app .inquiry-thread-state { grid-column: 1 / -1; }
+  .inquiry-app .inquiry-thread-terms { grid-column: 1; }
+  .inquiry-app .inquiry-thread .inquiry-thread-open { grid-column: 2; align-self: end; }
+}
+@media (min-width: 761px) and (max-width: 1180px) {
+  .inquiry-app .inquiry-thread { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: .7rem .9rem; }
+  .inquiry-app .inquiry-thread-contact { grid-column: 1 / -1; }
+  .inquiry-app .inquiry-thread .inquiry-product { align-self: center; }
+}
+@media (max-width: 760px) {
+  .inquiry-app .inquiry-inbox .trade-header { gap: .42rem; }
+  
+  .inquiry-app .inquiry-inbox .trade-filters > label { flex: 1 1 6rem; min-width: 0; }
+  .inquiry-app .inquiry-inbox .trade-filters select { max-width: 100%; min-width: 0; }
+  .inquiry-app .inquiry-thread { grid-template-columns: minmax(0, 1fr); gap: .56rem; padding: .72rem; }
+  .inquiry-app .inquiry-thread-contact .buyer-avatar { width: 2.7rem; height: 2.7rem; }
+  .inquiry-app .inquiry-thread-preview { margin-block: .32rem; padding: .36rem .5rem; }
+  .inquiry-app .inquiry-thread .inquiry-product { gap: .62rem; }
+  .inquiry-app .inquiry-thread .inquiry-product .product-thumb { --thumb-width: clamp(7.5rem, 37vw, 9rem); }
+  .inquiry-app .inquiry-thread-end { grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: .35rem; }
+  .inquiry-app .inquiry-thread-state { grid-column: 1 / -1; }
+  .inquiry-app .inquiry-thread-terms { grid-column: 1; }
+  .inquiry-app .inquiry-thread .inquiry-thread-open { grid-column: 2; align-self: end; }
+  .inquiry-app .inquiry-sent-quote { grid-template-columns: minmax(0,1fr) auto; gap: .45rem; padding: .65rem; }
+  .inquiry-app .inquiry-sent-contact { grid-column: 1; }
+  .inquiry-app .inquiry-sent-actions { grid-column: 2; grid-row: 1; align-self: start; }
+  .inquiry-app .inquiry-sent-message { grid-column: 1 / -1; }
+  .quote-dialog .inquiry-reply .inquiry-reply-title { margin-top: .12rem; }
+}
+@media (max-width: 350px) {
+  .inquiry-app .inquiry-thread { padding: .57rem; }
+  .inquiry-app .inquiry-thread .inquiry-product .product-thumb { --thumb-width: 6.8rem; }
+  .inquiry-app .inquiry-thread .inquiry-product { gap: .47rem; }
+  .inquiry-app .inquiry-thread .inquiry-product-copy > strong { font-size: .9rem; }
+}

@@ -27,6 +27,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 320, height: 568,
       await page.waitFor('Boolean(document.querySelector("[data-form=new-game]"))');
       await loadScenario(page, `(game)=>{let s=game.newGame({name:'高速点击验收',assistant:'fang',seed:381});s.cash=6000000;s.company.rep=88;s.company.certs=['export','audit','supplier'];s.company.markets=['domestic','se-asia'];s.creditLine=game.creditLimit(s);s.tutorial.done=true;s=game.act(s,{type:'buy-property',id:'studio-room'}).state;s=game.act(s,{type:'invest-venture',id:'warehouse'}).state;return s;}`);
       await page.click('[data-ui="page"][data-page="offwork"]');
+      await page.click('[data-ui="life-app"][data-id="property"]');
       const before = await currentState(page);
       await doubleClickAtSamePoint(page, '[data-action="sell-property"][data-id="studio-room"]');
       let state = await currentState(page);

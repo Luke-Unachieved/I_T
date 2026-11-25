@@ -116,11 +116,14 @@ function productCell(name, category, asset, flags = []) {
     ${flags.length ? `<small class="trade-flags">${flags.join(' ')}</small>` : ''}</span></div>`;
 }
 
-function inquiryTable(rows, state) {
-  const headers = ['商品', '买家与信用', '数量', '目标单价', '交货与报价期限', '付款条件', '竞争', '操作'];
+function inquiryMessage(inquiry) {
+  return inquiry.buyer.line || `需要采购 ${number(inquiry.quantity)} ${inquiry.unit} ${inquiry.productName}。`;
+}
+
+function inquiryInbox(rows, state) {
   const bids = new Set(state.bids.map(bid => bid.inquiryId));
   let hasTutorialAnchor = false;
-  return table('本周询盘', headers, rows.map(({ inquiry, canQuote }) => {
+  return `<div class="inquiry-threads" role="list" aria-label="本周客户来信">${rows.map(({ inquiry, canQuote }) => {
     const { buyer } = inquiry;
     const alreadyBid = bids.has(inquiry.id);
     const full = state.bids.length >= 3;
@@ -129,17 +132,26 @@ function inquiryTable(rows, state) {
     const flags = [inquiry.tutorial && badge('开场客户'), marketName(inquiry),
       inquiry.landmark ? badge('地标订单', 'pending') : inquiry.framework && badge('年度框架'),
       inquiry.repeat && badge('熟客复购'), inquiry.brandDemand && badge('偏好品牌'), inquiry.localRestock && badge('海外仓补货')].filter(Boolean);
-    const quotesAction = alreadyBid ? badge('已报价', 'pending') : `<button type="button" class="button${tour ? ' primary' : ''}"
-      data-ui="quote-open" data-id="${escapeHtml(inquiry.id)}" ${tour}>${canQuote && !full ? '算价' : '查看条款'}</button>`;
-    return `<tr role="row" data-inquiry-id="${escapeHtml(inquiry.id)}">${cell('商品', productCell(inquiry.productName, inquiry.category, productIndex.get(inquiry.productId)?.asset ?? inquiry.asset, flags), 'inquiry-product')}
-      ${cell('买家与信用', `<div class="trade-product buyer-identity">${buyerPortrait(buyer)}<span><strong>${escapeHtml(buyer.name)}</strong> ${badge(buyer.credit)}<small>${escapeHtml(buyer.type)}</small></span></div>`)}
-      ${cell('数量', `${number(inquiry.quantity)} ${escapeHtml(inquiry.unit)}`, 'number')}
-      ${cell('目标单价', unitPrice(inquiry.targetPrice, inquiry.currency, inquiry.unit), 'number')}
-      ${cell('交货与报价期限', `交货期限 ${week(inquiry.dueWeek)}<small>最晚${week(inquiry.expiresWeek)}结束前报价</small>`)}
-      ${cell('付款条件', `${number(inquiry.depositRate)}% 定金<small>${inquiry.terms ? `账期 ${number(inquiry.terms)} 周` : '交货当周应付'}</small>`)}
-      ${cell('竞争', `${number(inquiry.rivals.length)} 家<small>${inquiry.rivals.slice(0, 2).map(rival => escapeHtml(rival.name)).join('、')}</small>`)}
-      ${cell('操作', quotesAction, 'trade-actions')}</tr>`;
-  }), 'inquiry-sheet');
+    const actionLabel = canQuote && !full ? '算价' : '查看条款';
+    const quotesAction = alreadyBid ? '' : `<button type="button" class="button inquiry-thread-open${tour ? ' primary' : ''}"
+      data-ui="quote-open" data-id="${escapeHtml(inquiry.id)}" ${tour} aria-label="${escapeHtml(`${actionLabel}：${buyer.name}的${inquiry.productName}询盘`)}">${actionLabel}</button>`;
+    const status = alreadyBid ? badge('已报价', 'positive') : full ? badge('报价位已满', 'pending') : canQuote ? badge('待报价', 'pending') : badge('暂不可报');
+    const art = imageFrame(productIndex.get(inquiry.productId)?.asset ?? inquiry.asset, { className: 'product-thumb', fallback: '无图', alt: inquiry.productName });
+    return `<article role="listitem" class="inquiry-thread${alreadyBid ? ' inquiry-thread-sent' : ''}" data-inquiry-id="${escapeHtml(inquiry.id)}">
+      <div class="inquiry-thread-contact">${buyerPortrait(buyer)}<div class="inquiry-thread-message">
+        <div class="inquiry-thread-name"><strong>${escapeHtml(buyer.name)}</strong>${buyer.credit ? badge(buyer.credit) : ''}</div>
+        <small class="inquiry-thread-meta">${escapeHtml(buyer.type)} · ${week(inquiry.week)}来信</small>
+        <p class="inquiry-thread-preview">${escapeHtml(inquiryMessage(inquiry))}</p>
+        ${flags.length ? `<div class="inquiry-thread-flags">${flags.join(' ')}</div>` : ''}
+      </div></div>
+      <div class="inquiry-product trade-product">${art}<div class="inquiry-product-copy"><strong>${escapeHtml(inquiry.productName)}</strong>
+        <small>${escapeHtml(inquiry.category)}</small><span>${number(inquiry.quantity)} ${escapeHtml(inquiry.unit)}</span>
+        <small>目标单价</small><strong class="inquiry-target-price">${unitPrice(inquiry.targetPrice, inquiry.currency, inquiry.unit)}</strong></div></div>
+      <div class="inquiry-thread-end"><div class="inquiry-thread-state">${status}<small>${number(inquiry.rivals.length)} 家同行竞争</small></div>
+        <div class="inquiry-thread-terms"><span>${week(inquiry.dueWeek)}交货</span>
+          <small>${week(inquiry.expiresWeek)}结束前报价</small><small>${number(inquiry.depositRate)}% 定金${inquiry.terms ? `，账期 ${number(inquiry.terms)} 周` : '，交货付尾款'}</small></div>${quotesAction}</div>
+    </article>`;
+  }).join('')}</div>`;
 }
 
 function marketName(inquiry) {
@@ -147,17 +159,17 @@ function marketName(inquiry) {
   return badge(MARKET_BY_ID[inquiry.market]?.name ?? inquiry.market);
 }
 
-function bidTable(state) {
-  const headers = ['询盘', '货源', '报价', '中单率', '垫资峰值', '操作'];
-  return table('已提交报价', headers, state.bids.map(bid => {
+function sentQuotes(state) {
+  return `<div class="inquiry-sent-list" role="list" aria-label="已提交报价">${state.bids.map(bid => {
     const inquiry = state.inquiries.find(item => item.id === bid.inquiryId);
     const product = productIndex.get(bid.productId);
-    const label = inquiry ? `${inquiry.productName} · ${inquiry.buyer.name}` : product?.name;
-    return `<tr role="row">${cell('询盘', `${escapeHtml(label || '待揭晓报价')}${marketName(inquiry ?? bid)}${bid.branded ? badge('自有品牌') : ''}`)}${cell('货源', `${escapeHtml(sources[bid.source]?.name ?? bid.source)}${bid.financing && bid.financing !== 'standard' ? `<small>${escapeHtml(FINANCING[bid.financing]?.label)}</small>` : ''}`)}
-      ${cell('报价', `${unitPrice(bid.unitPrice, bid.currency, inquiry?.unit ?? product?.unit)}<small>总货款 ${money(bid.foreignTotal ?? bid.total, bid.currency)}</small>`, 'number')}
-      ${cell('中单率', percent(bid.probability), 'number')}${cell('垫资峰值', money(bid.workingCapital ?? bid.upfront), 'number')}
-      ${cell('操作', button('withdraw-bid', bid.inquiryId, '撤回'), 'trade-actions')}</tr>`;
-  }));
+    return `<article class="inquiry-sent-quote" role="listitem">
+      <div class="inquiry-sent-contact">${buyerPortrait(inquiry?.buyer ?? bid.buyer)}<div><strong>${escapeHtml(inquiry?.buyer.name ?? '客户')}</strong><small>${escapeHtml(inquiry?.productName ?? product?.name ?? '待揭晓报价')}</small>${marketName(inquiry ?? bid)}${bid.branded ? badge('自有品牌') : ''}</div></div>
+      <div class="inquiry-sent-message"><div class="inquiry-sent-price"><span>我的报价</span><strong>${unitPrice(bid.unitPrice, bid.currency, inquiry?.unit ?? product?.unit)}</strong></div>
+        <small>总货款 ${money(bid.foreignTotal ?? bid.total, bid.currency)} · ${escapeHtml(sources[bid.source]?.name ?? bid.source)}${bid.financing && bid.financing !== 'standard' ? `（${escapeHtml(FINANCING[bid.financing]?.label)}）` : ''}</small>
+        <small>预计中单率 ${percent(bid.probability)}，垫资峰值 ${money(bid.workingCapital ?? bid.upfront)}</small></div>
+      <div class="inquiry-sent-actions">${badge('已提交', 'positive')}${button('withdraw-bid', bid.inquiryId, '撤回')}</div></article>`;
+  }).join('')}</div>`;
 }
 
 export function inquiriesPage(state, ui) {
@@ -166,10 +178,11 @@ export function inquiriesPage(state, ui) {
   const rows = state.inquiries.map(inquiry => ({ inquiry, canQuote: eligible(state, inquiry) }))
     .filter(({ inquiry, canQuote }) => (!category || category === 'all' || inquiry.category === category) &&
       (availability !== 'available' || (canQuote && !submitted.has(inquiry.id) && state.bids.length < 3)));
-  return `<div class="trade-stack">
-    <section class="panel" data-tour="inquiries"><header class="trade-header"><div>
-      <h2>本周询盘</h2><p class="trade-note">结合交期和可用资金挑选询盘。报价在本周结束时开结果。</p></div>
-      ${badge(`已用报价位 ${state.bids.length} / 3`, 'pending')}
+  return `<div class="trade-stack inquiry-app">
+    <section class="panel inquiry-inbox" data-tour="inquiries"><header class="trade-header">
+      <h2>客户来信 <span class="inquiry-inbox-count">${rows.length}</span></h2>
+      <a class="badge pending inquiry-sent-link" href="#inquiry-sent">已用报价位 ${state.bids.length} / 3</a>
+      <p class="trade-note inquiry-guidance">点开来信算价并回复，周末统一开结果。</p>
     </header>
     <div class="trade-filters">
       <label>报价状态<select data-ui="inquiry-filter" name="availability">
@@ -181,10 +194,11 @@ export function inquiriesPage(state, ui) {
         ${CATEGORIES.map(name => `<option value="${escapeHtml(name)}"${name === category ? ' selected' : ''}>${escapeHtml(name)}</option>`).join('')}
       </select></label>
     </div>
-    ${rows.length ? inquiryTable(rows, state) : empty('没有符合筛选条件的询盘。可选择全部询盘查看本周信息。')}
+    ${rows.length ? inquiryInbox(rows, state) : empty('没有符合筛选条件的询盘。可选择全部询盘查看本周信息。')}
     <p class="trade-note">买家信用从 AAA 到 B，等级越高，通常越能按时付款。</p>
     </section>
-    ${panel('已提交报价', state.bids.length ? bidTable(state) : empty('本周还没有提交报价。'), '<span class="trade-note">结算前可撤回</span>')}
+    <section id="inquiry-sent" class="panel inquiry-outbox"><header class="trade-header"><h2>已提交报价</h2><span class="trade-note">结算前可撤回</span></header>
+    ${state.bids.length ? sentQuotes(state) : empty('本周还没有提交报价。')}</section>
   </div>`;
 }
 
@@ -348,21 +362,26 @@ export function ordersPage(state, ui = {}) {
 function quoteArtwork(inquiry) {
   const { buyer } = inquiry;
   const portrait = buyerPortrait(buyer);
-  const product = imageFrame(productIndex.get(inquiry.productId)?.asset ?? inquiry.asset, { className: 'quote-product-image', fallback: '商品图片未加载' });
+  const product = imageFrame(productIndex.get(inquiry.productId)?.asset ?? inquiry.asset, { className: 'quote-product-image', fallback: '商品图片未加载', alt: inquiry.productName });
   const comic = buyer.comic ? imageFrame(buyer.comic, {
     className: 'buyer-comic', alt: `${buyer.name}的询盘来信漫画`, fallback: '来信漫画未加载', retry: true,
   }) : '';
-  return `<aside class="buyer-art" aria-label="买家与商品">
-    <div class="trade-product">${portrait}<span>
-      <strong>${escapeHtml(buyer.name)}</strong>${buyer.credit ? ` ${badge(`信用 ${buyer.credit}`)}` : ''}<small>${escapeHtml(buyer.type)}</small></span></div>
-    ${buyer.line ? `<blockquote>${escapeHtml(buyer.line)}</blockquote>` : ''}
-    ${product}
-    <p><strong>${escapeHtml(inquiry.productName)}</strong> · ${number(inquiry.quantity)} ${escapeHtml(inquiry.unit)}</p>
-    ${marketName(inquiry)}
+  return `<aside class="buyer-art inquiry-conversation" aria-label="客户来信与商品">
+    <header class="inquiry-conversation-contact">${portrait}<div>
+      <div class="inquiry-thread-name"><strong>${escapeHtml(buyer.name)}</strong>${buyer.credit ? badge(`信用 ${buyer.credit}`) : ''}</div>
+      <small>${escapeHtml(buyer.type)} · ${week(inquiry.week)}来信</small></div></header>
+    <p class="inquiry-message-bubble">${escapeHtml(inquiryMessage(inquiry))}</p>
+    <section class="inquiry-request-attachment" aria-label="采购商品">
+      ${product}<div class="inquiry-attachment-copy"><strong>${escapeHtml(inquiry.productName)}</strong>${marketName(inquiry)}
+      <small>${number(inquiry.quantity)} ${escapeHtml(inquiry.unit)} · ${escapeHtml(inquiry.category)}</small>
+      <span>目标单价 <strong>${unitPrice(inquiry.targetPrice, inquiry.currency, inquiry.unit)}</strong></span></div>
+      <dl class="inquiry-message-facts"><div><dt>交货期限</dt><dd>${week(inquiry.dueWeek)}</dd></div>
+        <div><dt>报价截止</dt><dd>${week(inquiry.expiresWeek)}结束前</dd></div>
+        <div><dt>付款条件</dt><dd>定金 ${number(inquiry.depositRate)}%，${inquiry.terms ? `基本账期 ${number(inquiry.terms)} 周` : '交货当周应付'}</dd></div>
+        <div><dt>信誉要求</dt><dd>${inquiry.minRep ? `公司信誉 ${number(inquiry.minRep)} 以上` : '无'}</dd></div>
+        ${inquiry.cert ? `<div><dt>所需认证</dt><dd>${escapeHtml(CERTIFICATION_BY_ID[inquiry.cert]?.name ?? inquiry.cert)}</dd></div>` : ''}
+      </dl></section>
     ${comic ? `<details><summary>查看来信漫画</summary>${comic}</details>` : ''}
-    <p class="trade-note">要求${week(inquiry.dueWeek)}交货。最晚${week(inquiry.expiresWeek)}结束前提交报价。</p>
-    <p class="trade-note">定金 ${number(inquiry.depositRate)}% · ${inquiry.terms ? `基本账期 ${number(inquiry.terms)} 周` : '交货当周应付'} · ${inquiry.minRep ? `要求公司信誉 ${number(inquiry.minRep)} 以上` : '无信誉要求'}。</p>
-    ${inquiry.cert ? `<p class="trade-note">所需认证：${escapeHtml(CERTIFICATION_BY_ID[inquiry.cert]?.name ?? inquiry.cert)}</p>` : ''}
     <p class="trade-note">${inquiry.rivals.length} 家同行参与${inquiry.rivals.length ? `，包括 ${inquiry.rivals.slice(0, 2).map(rival => `${escapeHtml(rival.name)}（${escapeHtml(rival.style)}）`).join('、')}` : ''}。</p>
   </aside>`;
 }
@@ -462,12 +481,12 @@ export function quoteDialog(state, ui) {
   const proposal = quote(state, inquiry, { ...model, source: selected.source, ratio, extraTerms, branded, brandUnitPrice });
   const alreadyBid = state.bids.some(bid => bid.inquiryId === inquiry.id);
   const disabled = proposal.error || alreadyBid || state.bids.length >= 3;
-  return `<header class="trade-header"><div><h2 id="quote-title" tabindex="-1">算价与报价</h2><p class="trade-note">${escapeHtml(inquiry.buyer.name)} · ${escapeHtml(inquiry.productName)}</p>
+  return `<header class="trade-header"><div><h2 id="quote-title" tabindex="-1">${escapeHtml(inquiry.buyer.name)}的询盘</h2><p class="trade-note">${escapeHtml(inquiry.productName)}（算价与报价）</p>
     ${ui.quoteDraftRestored ? '<small class="trade-note">已恢复这条询盘的未提交报价。</small>' : ''}</div>${close}</header>
     ${quoteCoach(state, inquiry, model)}
     <div class="quote-grid">${quoteArtwork(inquiry)}
-      <form class="quote-controls" data-form="quote" data-id="${escapeHtml(inquiry.id)}">
-        <fieldset><legend>货源</legend><div class="source-options">${sourcesAvailable.map(({ source, proposal: option }) => {
+      <form class="quote-controls inquiry-reply" data-form="quote" data-id="${escapeHtml(inquiry.id)}">
+        <h3 class="inquiry-reply-title">我的报价</h3><fieldset><legend>货源</legend><div class="source-options">${sourcesAvailable.map(({ source, proposal: option }) => {
           const selectedAttr = selected.source === source ? ' checked' : '';
           const disabledAttr = option.error ? ' disabled' : '';
           const hint = option.error ?? `${sources[source].hint} 采购 ${money(option.cost)} · 周期 ${number(Math.max(1, option.productionWeeks + option.shippingWeeks))} 周`;

@@ -2,7 +2,7 @@ import { act, newGame } from '../engine/game.js';
 import { quote } from '../engine/quotes.js';
 import { inquiriesPage, orderDisclosureIds, ordersPage, quoteDialog, stockPurchasePreview } from './trade.js';
 import { growthSections } from './growth.js';
-import { defaultLifeCollapsed, eraIllustration, lifeDisclosureIds, lifePanel, officeFeatures, optionDescription, scenarioFields } from './life-view.js';
+import { defaultLifeCollapsed, eraIllustration, lifeAppForOuting, lifeAppIds, lifeDisclosureIds, lifePanel, officeFeatures, optionDescription, scenarioFields } from './life-view.js';
 import { companyPage, developmentTabs, dialogContent, esc, officePage, offworkPage, opening, saveWarning, saveWarningMessage, shell, tourTarget, yuan } from './shell.js';
 import { strategySections } from './strategy.js';
 import { readSave, SAVE_KEY, writeSave } from './save.js';
@@ -34,7 +34,7 @@ function freshUi() {
     page: 'office', dialog: '', quoteId: '', quote: {}, quoteDefault: {}, quoteOrigin: null,
     quoteDrafts: new Map(), quoteDraftRestored: false, bankGuard: new Map(), actionGesture: null,
     filters: { category: '', availability: 'all' }, notice: '', tutorialStep: 0, showMacro: false,
-    saveStatus: 'ready', developmentTab: 'finance', developmentOverview: false, lifeCollapsed: [...defaultLifeCollapsed], ordersCollapsed: [], coachIntro: 0, coachDeferredWeek: 0,
+    saveStatus: 'ready', developmentTab: 'finance', developmentOverview: false, lifeApp: 'home', lifeCollapsed: [...defaultLifeCollapsed], ordersCollapsed: [], coachIntro: 0, coachDeferredWeek: 0,
   };
 }
 
@@ -46,7 +46,10 @@ const pageViews = {
   inquiries: inquiriesPage,
   orders: ordersPage,
   company: (current, model) => companyPage(current, model.developmentTab, developmentViews[model.developmentTab]?.(current)),
-  offwork: (current, model) => offworkPage(current, lifePanel(current, model.lifeCollapsed), model.saveStatus),
+  offwork: (current, model) => {
+    const life = lifePanel(current, model.lifeCollapsed, model.lifeApp);
+    return model.lifeApp === 'home' ? offworkPage(current, life, model.saveStatus) : life;
+  },
 };
 const notices = {
   bid: '报价已提交，本周末开结果。', 'withdraw-bid': '已撤回报价。',
@@ -136,7 +139,7 @@ function savedView() {
   const active = new Set(state.inquiries.filter(inquiry => !state.bids.some(bid => bid.inquiryId === inquiry.id)).map(inquiry => inquiry.id));
   ui.quoteDrafts = new Map([...ui.quoteDrafts].filter(([id]) => active.has(id)));
   return {
-    page: ui.page, filters: ui.filters, showMacro: ui.showMacro, developmentTab: ui.developmentTab, developmentOverview: ui.developmentOverview, lifeCollapsed: ui.lifeCollapsed, lifeDisclosureVersion, ordersCollapsed: ui.ordersCollapsed,
+    page: ui.page, filters: ui.filters, showMacro: ui.showMacro, developmentTab: ui.developmentTab, developmentOverview: ui.developmentOverview, lifeApp: ui.lifeApp, lifeCollapsed: ui.lifeCollapsed, lifeDisclosureVersion, ordersCollapsed: ui.ordersCollapsed,
     coachIntro: coachIntroIndex(ui.coachIntro), coachDeferredWeek: ui.coachDeferredWeek,
     drafts: [...ui.quoteDrafts],
     quote: ui.dialog === 'quote' && active.has(ui.quoteId) ? { id: ui.quoteId, proposal: ui.quote } : null,
@@ -204,6 +207,7 @@ function resumeSaved() {
     ui.developmentOverview = view.developmentOverview === true;
     ui.coachIntro = coachIntroIndex(view.coachIntro);
     if (Number.isInteger(view.coachDeferredWeek)) ui.coachDeferredWeek = view.coachDeferredWeek;
+    if (lifeAppIds.includes(view.lifeApp)) ui.lifeApp = view.lifeApp;
     if (Array.isArray(view.lifeCollapsed)) {
       ui.lifeCollapsed = lifeDisclosureIds.filter(id =>
         view.lifeCollapsed.includes(id) || (view.lifeDisclosureVersion !== lifeDisclosureVersion && defaultLifeCollapsed.includes(id)));
@@ -426,6 +430,12 @@ function applyRecommendedQuote() {
 
 function revealCoachTarget(control) {
   const { coachAction, coachForm, id, choice } = control.dataset;
+  if (ui.page === 'offwork') {
+    const app = coachAction === 'outing' ? lifeAppForOuting(id)
+      : ['buy-property', 'sell-property', 'mortgage', 'unmortgage'].includes(coachAction) ? 'property'
+      : ['buy-car', 'sell-car'].includes(coachAction) ? 'car' : null;
+    if (app) selectLifeApp(app, false);
+  }
   const targetForm = coachForm && [...mount.querySelectorAll('form[data-form]')].find(item => item.dataset.form === coachForm && (!id || item.elements.id?.value === id));
   if (targetForm && choice) {
     const selector = targetForm.elements.target;
@@ -451,6 +461,9 @@ function reviewRecommendedQuote() {
 
 function revealRecommendedOuting(control) {
   if (ui.page !== 'offwork') return;
+  const app = lifeAppForOuting(control.dataset.id);
+  if (!app) return;
+  selectLifeApp(app, false);
   const outing = [...mount.querySelectorAll('form[data-form="outing"]')].find(item => item.dataset.outingId === control.dataset.id);
   const choice = outing && [...outing.querySelectorAll('input[name="choiceId"]')].find(item => item.value === control.dataset.choice && !item.disabled);
   if (!choice) return;
@@ -482,6 +495,18 @@ function selectDevelopmentTab(id) {
   render();
   mount.querySelector(`[data-ui="development-tab"][data-id="${id}"]`)?.focus({ preventScroll: true });
   window.scrollTo(0, 0);
+}
+
+function selectLifeApp(app, focus = true) {
+  if (ui.page !== 'offwork' || !lifeAppIds.includes(app) || ui.lifeApp === app) return;
+  ui.lifeApp = app;
+  ui.notice = '';
+  saveProgress();
+  render();
+  if (focus) {
+    mount.querySelector('#life-app-title')?.focus({ preventScroll: true });
+    window.scrollTo(0, 0);
+  }
 }
 
 function revealOrderSections(ids) {
@@ -608,6 +633,7 @@ function click(event) {
         if (targeted) ui.developmentTab = control.dataset.coachTab;
         ui.developmentOverview = !targeted;
       }
+      if (control.dataset.page === 'offwork') ui.lifeApp = 'home';
       const directOrder = control.dataset.page === 'orders' && control.dataset.orderSections;
       if (control.dataset.page === 'orders') {
         const directed = directOrder || control.dataset.coachTab || (control.classList.contains('coach-action') ? 'orders-delivery' : '');
@@ -621,6 +647,7 @@ function click(event) {
       }
       break;
     }
+    case 'life-app': selectLifeApp(control.dataset.id); break;
     case 'coach-target': revealCoachTarget(control); break;
     case 'coach-apply-quote': applyRecommendedQuote(); break;
     case 'coach-review-submit': reviewRecommendedQuote(); break;

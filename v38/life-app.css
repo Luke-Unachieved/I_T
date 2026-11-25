@@ -1,0 +1,171 @@
+/* A warm home scene and actual life-app launchers, separate from the catalog routes. */
+.life-app-home {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space);
+  min-width: 0;
+}
+.life-app-home .life-app-home-scene,
+.life-app-home .life-app-menu {
+  display: grid;
+  align-content: start;
+  min-width: 0;
+  gap: .75rem;
+}
+.life-app-home .life-app-room.media-frame {
+  width: 100%;
+  aspect-ratio: var(--media-ratio, 1.5);
+  border: 0;
+  border-radius: var(--panel-radius);
+}
+.life-app-home .life-app-room.media-frame > img {
+  object-fit: contain;
+}
+.life-app-home .life-app-room-caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+.life-app-home .life-app-room-caption h2 {
+  font-size: 1.22rem;
+  font-weight: 740;
+}
+.life-app-home .life-app-room-caption small {
+  color: var(--ws-secondary);
+}
+.life-app-home .life-energy,
+.life-app-page .life-energy {
+  margin-bottom: 0;
+}
+.life-app-home .life-app-rest-launcher {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  text-align: left;
+  padding: .7rem .9rem;
+  border-radius: .65rem;
+}
+.life-app-rest-launcher strong, .life-app-rest-launcher small {
+  display: block;
+}
+.life-app-rest-launcher strong { font-size: 1.05rem; }
+.life-app-rest-launcher small { opacity: .82; }
+.life-app-rest-launcher > span:last-child {
+  font-size: 1.55rem;
+  line-height: 1;
+}
+.life-app-home .life-app-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .65rem;
+}
+.life-app-home button.life-app-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: start;
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  gap: 0;
+  border-radius: .65rem;
+  border: 1px solid var(--ws-line-warm);
+  background: var(--ws-well);
+  text-align: left;
+  overflow: hidden;
+}
+.life-app-home button.life-app-tile:hover {
+  border-color: var(--ws-mark-bright);
+  background: var(--ws-raised);
+}
+.life-app-home .life-app-tile-art.media-frame {
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  aspect-ratio: 3 / 2;
+}
+.life-app-home .life-app-tile-art.media-frame > img {
+  object-fit: contain;
+}
+.life-app-home .life-app-tile-copy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  gap: .35rem;
+  min-width: 0;
+  padding: .65rem .65rem .75rem;
+}
+.life-app-tile-copy > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.life-app-tile-copy strong, .life-app-tile-copy small {
+  display: block;
+}
+.life-app-tile-copy strong {
+  color: var(--ws-type);
+  font-size: 1.08rem;
+  font-weight: 740;
+}
+.life-app-tile-copy small {
+  margin-top: .15rem;
+  color: var(--ws-secondary);
+  font-size: .77rem;
+}
+.life-app-chevron {
+  color: var(--ws-mark);
+  flex: none;
+  font-size: 1.25rem;
+}
+.life-app-home > .outing-note {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.life-app-page {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: var(--space);
+}
+.life-app-page .life-app-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .7rem 1.15rem;
+}
+.life-app-page .life-app-header h2 {
+  font-size: 1.28rem;
+  margin-bottom: .14rem;
+}
+.life-app-page .life-app-header p {
+  color: var(--ws-secondary);
+  overflow-wrap: anywhere;
+}
+.life-app-page .life-app-back {
+  flex: none;
+  justify-content: flex-start;
+  border-color: var(--ws-line-warm);
+}
+.life-app-page .life-friend-groups > .life-catalog-group {
+  padding: .55rem .7rem;
+  border: 1px solid var(--ws-line-warm);
+  border-radius: .55rem;
+  background: var(--ws-card);
+}
+.life-app-page .life-friend-groups > .life-catalog-group[open] > summary {
+  margin-bottom: .35rem;
+}
+@media (max-width: 1000px) {
+  .life-app-home { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 480px) {
+  .life-app-home .life-app-grid { gap: .48rem; }
+  .life-app-home .life-app-tile-copy { padding: .48rem; gap: .2rem; }
+  .life-app-tile-copy strong { font-size: 1rem; }
+  .life-app-tile-copy small { font-size: .74rem; }
+  .life-app-page .life-app-header { display: grid; justify-items: start; gap: .45rem; }
+}

@@ -1,3 +1,6 @@
+@import url('./inquiry-app.css');
+@import url('./life-app.css');
+
 :root {
   color-scheme: dark;
   --ws-canvas: #141311;

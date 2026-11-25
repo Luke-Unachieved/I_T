@@ -84,10 +84,6 @@ function catalogueItem(item, controls, label = '') {
   </article>`;
 }
 
-function panel(id, title, description, content, collapsed) {
-  return `<details id="${id}" class="panel life-section" data-life-disclosure="${id}"${collapsed.includes(id) ? '' : ' open'}><summary><span class="life-section-title">${title}</span><small>${description}</small></summary><div class="life-section-body">${content}</div></details>`;
-}
-
 function propertyCards(state) {
   return LIFE_CATALOG.properties.map(item => {
     const owned = state.life.properties.find(property => property.id === item.id);
@@ -154,8 +150,14 @@ const friendGroups = [
   ...OUTING_COMPANIONS.map(person => [person.id, `与${person.name}的片段`]),
 ];
 
-export const lifeDisclosureIds = ['life-rest', 'life-quick', 'life-travel', 'life-friends', ...friendGroups.map(([key]) => `life-friends-${key}`), 'life-property', 'life-car'];
-export const defaultLifeCollapsed = lifeDisclosureIds.filter(id => !['life-rest', 'life-property', 'life-car'].includes(id));
+export const lifeDisclosureIds = friendGroups.map(([key]) => `life-friends-${key}`);
+export const defaultLifeCollapsed = [...lifeDisclosureIds];
+export const lifeAppIds = ['home', 'rest', 'trips', 'friends', 'property', 'car'];
+
+export function lifeAppForOuting(id) {
+  const kind = LIFE_CATALOG.outings.find(item => item.id === id)?.kind;
+  return kind === 'quick' ? 'rest' : kind === 'trip' ? 'trips' : kind === 'friend' ? 'friends' : null;
+}
 
 function activityDetails(id, label, content, collapsed) {
   return `<details id="${id}" class="life-catalog-group" data-life-disclosure="${id}"${collapsed.includes(id) ? '' : ' open'}><summary>${esc(label)}</summary>${content}</details>`;
@@ -166,14 +168,12 @@ function activityGroup(id, label, items, state, collapsed) {
   return activityDetails(id, `${label} · ${count(items.length)} 项`, `<div class="life-grid outing-grid">${items.map(item => detailedOutingCard(state, item)).join('')}</div>`, collapsed);
 }
 
-function extendedOutings(state, collapsed) {
-  const travel = LIFE_CATALOG.outings.filter(item => item.kind === 'trip');
+function friendOutings(state, collapsed) {
   const friends = LIFE_CATALOG.outings.filter(item => item.kind === 'friend');
   const open = friends.filter(item => !outingLockHint(state, item)).length;
-  return `${activityGroup('life-travel', '旅行目的地', travel, state, collapsed)}
-    ${activityDetails('life-friends', `约朋友 · ${count(friends.length)} 项（${count(open)} 项已开放）`, `${open < friends.length ? `<p class="muted">另外 ${count(friends.length - open)} 段故事，和朋友相处后会陆续遇到。</p>` : ''}<div class="life-friend-groups">
+  return `${open < friends.length ? `<p class="muted">另外 ${count(friends.length - open)} 段故事，和朋友相处后会陆续遇到。</p>` : ''}<div class="life-friend-groups">
       ${friendGroups.map(([key, label]) => activityGroup(`life-friends-${key}`, label, friends.filter(item => item.group === key), state, collapsed)).join('')}
-    </div>`, collapsed)}`;
+    </div>`;
 }
 
 const outingScenes = {
@@ -196,12 +196,79 @@ function outingResult(recent) {
     ${recent.restored ? `<p class="positive">精力 +${count(recent.restored)}</p>` : '<p>精力已满。</p>'}</article>`;
 }
 
-export function lifePanel(state, collapsed = defaultLifeCollapsed) {
+function energyPanel(state) {
+  return `<div class="life-energy"><div><label for="life-energy">精力 ${count(state.energy)} / 100</label><progress id="life-energy" max="100" value="${state.energy}"></progress></div><p>${state.life.lastBreakWeek === state.week ? '本周已经安排过休息。' : state.energy < 35 ? '精力偏低，出门走走可以恢复。' : '每周可以休息一次，恢复精力。'}</p></div>`;
+}
+
+const residenceScenes = {
+  'studio-room': 'assets/deal-afterwork-original-room.webp',
+  'city-flat': 'assets/deal-property-home-flat.webp',
+  'harbor-home': 'assets/deal-property-home-harbor.webp',
+  'city-loft': 'assets/v38-home-loft.webp',
+  'hill-villa': 'assets/deal-property-home-villa.webp',
+  'city-tower': 'assets/deal-property-home-tower.webp',
+  'river-duplex': 'assets/v38-home-river-duplex.webp',
+  'seaside-estate': 'assets/v38-home-seaside-estate.webp',
+};
+
+function appLauncher(id, label, description, asset) {
+  return `<button type="button" class="button life-app-tile" data-ui="life-app" data-id="${id}">
+    ${imageFrame(asset, { className: 'life-app-tile-art', alt: '', fallback: '图片暂未加载' })}
+    <span class="life-app-tile-copy"><span><strong>${label}</strong><small>${esc(description)}</small></span><span class="life-app-chevron" aria-hidden="true">›</span></span>
+  </button>`;
+}
+
+function lifeHome(state) {
+  const lastOwned = state.life.properties.at(-1);
+  const residence = LIFE_CATALOG.properties.find(item => item.id === lastOwned?.id);
+  const room = residenceScenes[residence?.id] ?? residenceScenes['studio-room'];
+  const friends = LIFE_CATALOG.outings.filter(item => item.kind === 'friend');
+  const unlocked = friends.filter(item => !outingLockHint(state, item)).length;
+  const tripCount = LIFE_CATALOG.outings.filter(item => item.kind === 'trip').length;
+  const quickCount = LIFE_CATALOG.outings.filter(item => item.kind === 'quick').length;
+  return `<section class="life-app-home" data-life-app-page="home">
+    <div class="life-app-home-scene">
+      ${imageFrame(room, { className: 'life-app-room', alt: residence?.label ?? '下班后的港边起居室', fallback: '房间插画暂未加载', lazy: false, retry: true })}
+      <div class="life-app-room-caption"><h2 id="life-app-title" tabindex="-1">${residence ? esc(residence.label) : '回家'}</h2>${residence ? '<small>最近购置的房产</small>' : ''}</div>
+      ${energyPanel(state)}
+    </div>
+    <nav class="life-app-menu" aria-label="下班去处">
+      <button type="button" class="button primary life-app-rest-launcher" data-ui="life-app" data-id="rest"><span><strong>周末休息</strong><small>${count(quickCount)} 种轻松安排</small></span><span aria-hidden="true">›</span></button>
+      <div class="life-app-grid">
+        ${appLauncher('trips', '旅行', `${count(tripCount)} 个目的地`, 'assets/deal-outing-result-night-bus-rear-window.webp')}
+        ${appLauncher('friends', '约朋友', `${count(friends.length)} 项活动，${count(unlocked)} 项已开放`, 'assets/deal-outing-reel-river-bench.webp')}
+        ${appLauncher('property', '房产', `${count(LIFE_CATALOG.properties.length)} 种房产，已持有 ${count(state.life.properties.length)} 处`, 'assets/deal-property-home-harbor.webp')}
+        ${appLauncher('car', '车行', `${count(LIFE_CATALOG.cars.length)} 款车型，已持有 ${count(state.life.cars.length)} 辆`, 'assets/deal-car-wagon.webp')}
+      </div>
+    </nav>
+    ${outingResult(state.life.latestOuting)}
+  </section>`;
+}
+
+function lifeAppPage(id, title, description, content) {
+  return `<section class="life-app-page" data-life-app-page="${id}">
+    <header class="life-app-header"><button type="button" class="button life-app-back" data-ui="life-app" data-id="home">← 返回下班</button>
+      <div><h2 id="life-app-title" tabindex="-1">${title}</h2><p>${esc(description)}</p></div></header>
+    ${content}
+  </section>`;
+}
+
+export function lifePanel(state, collapsed = defaultLifeCollapsed, app = 'home') {
   if (!state.life) return '';
-  const energy = `<div class="life-energy"><div><label for="life-energy">精力 ${count(state.energy)} / 100</label><progress id="life-energy" max="100" value="${state.energy}"></progress></div><p>${state.energy < 35 ? '精力偏低，本周报价的中单率略降。出门走走可以恢复。' : '连周经营会消耗精力；旅行或约朋友可以恢复。'}</p></div>`;
-  const last = outingResult(state.life.latestOuting);
-  const quick = activityDetails('life-quick', '周末快速安排 · 3 项', `<div class="life-grid">${quickOutingCards(state)}</div>`, collapsed);
-  return `${panel('life-rest', '旅行与好友', '每周可以休息一次，恢复精力。', `${energy}${last}${quick}${extendedOutings(state, collapsed)}`, collapsed)}
-    ${panel('life-property', '房产', `生活资产 ${yuan(lifeAssets(state))}。房产抵押当前增加授信 ${yuan(collateral(state))}。`, `<div class="life-grid">${propertyCards(state)}</div>`, collapsed)}
-    ${panel('life-car', '车行', '买喜欢的车，手头吃紧时也可以卖掉。', `<div class="life-grid">${carCards(state)}</div>`, collapsed)}`;
+  const recent = state.life.latestOuting;
+  const last = lifeAppForOuting(recent?.id) === app ? outingResult(recent) : '';
+  switch (app) {
+    case 'rest':
+      return lifeAppPage(app, '周末休息', '选一种轻松的活动，恢复精力。', `${energyPanel(state)}${last}<div class="life-grid">${quickOutingCards(state)}</div>`);
+    case 'trips':
+      return lifeAppPage(app, '旅行', '挑个目的地，和朋友一起，也可以独自出发。', `${energyPanel(state)}${last}<div class="life-grid outing-grid">${LIFE_CATALOG.outings.filter(item => item.kind === 'trip').map(item => detailedOutingCard(state, item)).join('')}</div>`);
+    case 'friends':
+      return lifeAppPage(app, '约朋友', '约朋友相聚，留下一些共同的回忆。', `${energyPanel(state)}${last}${friendOutings(state, collapsed)}`);
+    case 'property':
+      return lifeAppPage(app, '房产', `生活资产 ${yuan(lifeAssets(state))}。房产抵押当前增加授信 ${yuan(collateral(state))}。`, `<div class="life-grid">${propertyCards(state)}</div>`);
+    case 'car':
+      return lifeAppPage(app, '车行', '买喜欢的车，手头吃紧时也可以卖掉。', `<div class="life-grid">${carCards(state)}</div>`);
+    default:
+      return lifeHome(state);
+  }
 }
