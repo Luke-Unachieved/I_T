@@ -262,6 +262,8 @@ test('full life media failures keep choices and holdings usable, and retry recov
     await page.click('[data-outing-id="trip-night-train"] button[type="submit"]');
     const tripState = await currentState(page);
     assert.equal(tripState.life.latestOuting.id, 'trip-night-train');
+    assert.ok(tripState.life.latestOuting.dialogue);
+    assert.equal(await page.evaluate('document.querySelector("#latest-outing > blockquote").innerText'), `${tripState.life.latestOuting.companionName}：“${tripState.life.latestOuting.dialogue}”`);
     const latestArt = '#latest-outing > .outing-art';
     await page.waitFor(`document.querySelector(${JSON.stringify(latestArt)}).dataset.mediaState==='error'`);
     await page.send('Network.setBlockedURLs', { urls: [homeArt] });

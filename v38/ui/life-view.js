@@ -3,6 +3,7 @@ import { OUTING_COMPANIONS } from '../data/outing-catalog.js';
 import { collateral, LIFE_CATALOG, lifeAssets, outingLockHint } from '../engine/life.js';
 import { count, esc, yuan } from './shell.js';
 import { imageFrame } from './media.js';
+import { quotedSpeech } from './dialogue.js';
 
 const choices = {
   era: { label: '时代剧本', rows: ERAS, defaultId: '2026' },
@@ -196,8 +197,8 @@ function outingResult(recent) {
   const text = outingScenes[recent.id] ?? recent.text ?? '你给自己留出了一点休息的时间。';
   const art = recent.choiceId ? recent.asset : recent.asset ?? outing?.asset;
   const price = Number.isSafeInteger(recent.price) ? recent.price : outing?.price;
-  const speech = recent.dialogue ? `<blockquote><strong>${esc(recent.companionName)}：</strong>${esc(recent.dialogue)}</blockquote>` : '';
-  const extra = recent.epilogue ? `<details class="outing-memory"><summary>${esc(recent.epilogue.title)}</summary>${media(recent.epilogue.asset, 'outing-art', recent.epilogue.alt)}<p>${esc(recent.epilogue.text)}</p>${recent.epilogue.dialogue ? `<blockquote><strong>${esc(recent.companionName)}：</strong>${esc(recent.epilogue.dialogue)}</blockquote>` : ''}</details>` : '';
+  const speech = recent.dialogue ? `<blockquote><strong>${esc(recent.companionName)}：</strong>${esc(quotedSpeech(recent.dialogue))}</blockquote>` : '';
+  const extra = recent.epilogue ? `<details class="outing-memory"><summary>${esc(recent.epilogue.title)}</summary>${media(recent.epilogue.asset, 'outing-art', recent.epilogue.alt)}<p>${esc(recent.epilogue.text)}</p>${recent.epilogue.dialogue ? `<blockquote><strong>${esc(recent.companionName)}：</strong>${esc(quotedSpeech(recent.epilogue.dialogue))}</blockquote>` : ''}</details>` : '';
   return `<article class="outing-note" id="latest-outing">${media(art, 'outing-art')}
     <h3 tabindex="-1">${esc(recent.label ?? outing?.label ?? '最近一次休息')}</h3>${recent.companionName ? `<p>${esc(recent.companionName)}${recent.choiceLabel ? ` · ${esc(recent.choiceLabel)}` : ''}</p>` : ''}<p>${esc(text)}</p>${speech}${extra}
     ${Number.isSafeInteger(price) ? `<p>支出 ${yuan(price)}${Number.isSafeInteger(recent.week) ? ` · 第 ${count(recent.week)} 周` : ''}</p>` : ''}

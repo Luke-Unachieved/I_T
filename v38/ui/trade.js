@@ -5,6 +5,7 @@ import { quote } from '../engine/quotes.js';
 import { stockPurchaseQuote } from '../engine/strategy.js';
 import { receivableValue } from '../engine/treasury.js';
 import { imageFrame } from './media.js';
+import { quotedSpeech } from './dialogue.js';
 import { buyerPortrait } from './buyer-portrait.js';
 import { quoteCoach } from './coaching.js';
 
@@ -117,7 +118,8 @@ function productCell(name, category, asset, flags = []) {
 }
 
 function inquiryMessage(inquiry) {
-  return inquiry.buyer.line || `需要采购 ${number(inquiry.quantity)} ${inquiry.unit} ${inquiry.productName}。`;
+  const line = String(inquiry.buyer.line ?? '').trim() || `需要采购 ${number(inquiry.quantity)} ${inquiry.unit} ${inquiry.productName}。`;
+  return quotedSpeech(line);
 }
 
 function inquiryInbox(rows, state) {

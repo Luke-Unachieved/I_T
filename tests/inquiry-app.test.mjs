@@ -31,7 +31,8 @@ for (const viewport of [{width:320,height:568,mobile:true},{width:390,height:844
       const row=`.inquiry-thread[data-inquiry-id=${JSON.stringify(id)}]`;
       const inquiry=before.inquiries.find(item=>item.id===id);
       assert.ok(inquiry);
-      assert.equal(await page.evaluate(`document.querySelector('${row} .inquiry-thread-preview').innerText`),inquiry.buyer.line);
+      assert.equal(await page.evaluate(`document.querySelector('${row} .inquiry-thread-preview').innerText`),`“${inquiry.buyer.line}”`);
+      assert.ok(await page.evaluate('Array.from(document.querySelectorAll(".inquiry-thread-preview")).every(e=>e.innerText.startsWith("“")&&e.innerText.endsWith("”"))'));
       assert.ok(await page.evaluate(present(`${row} .buyer-avatar`)));
       assert.match(await page.evaluate(`document.querySelector('${row}').innerText`),new RegExp(inquiry.productName));
       await settleImage(page,`${row} .product-thumb`);
@@ -41,7 +42,7 @@ for (const viewport of [{width:320,height:568,mobile:true},{width:390,height:844
       await page.click(`${row} .inquiry-thread-preview`);
       await page.waitFor(present('dialog[open] [data-form="quote"]'));
       assert.equal(await page.evaluate('document.querySelector("dialog form[data-form=quote]").dataset.id'),id);
-      assert.equal(await page.evaluate('document.querySelector("dialog .inquiry-message-bubble").innerText'),inquiry.buyer.line);
+      assert.equal(await page.evaluate('document.querySelector("dialog .inquiry-message-bubble").innerText'),`“${inquiry.buyer.line}”`);
       await settleImage(page,'dialog .quote-product-image');
       await noOverflow(page);
       await page.screenshot(`/tmp/v38-inquiry-app-${viewport.width}-thread.png`);
