@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { launchBrowser } from './helpers/chromium.mjs';
 import { currentState, loadScenario } from './helpers/scenarios.mjs';
 import { SAVE_KEY } from '../v38/ui/save.js';
+import { quotedSpeech } from '../v38/ui/dialogue.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const enabled = process.env.V38_BROWSER === '1';
@@ -312,3 +313,102 @@ test('full life media failures keep choices and holdings usable, and retry recov
     assert.deepEqual(page.errors.filter(message => !/(ERR_BLOCKED_BY_CLIENT|Failed to load resource)/.test(message)), []);
   } finally { await browser.close(); }
 });
+
+for(const viewport of [{width:320,height:568,mobile:true},{width:390,height:844,mobile:true}]) {
+  test(`confirmed travel and friend choices reveal the matching comic, dialogue and epilogue without extra clicks at ${viewport.width}px`,{skip:!enabled,timeout:120000},async()=>{
+    const browser=await launchBrowser(root,{scenarios:true});
+    try {
+      const page=await browser.page(viewport);
+      await page.goto();
+      await page.waitFor(present('[data-form=new-game]'));
+      const fresh=`game=>{const s=game.newGame({seed:381,difficulty:'normal',assistant:'fang'});s.energy=10;s.cash=50000;s.tutorial.done=true;return s;}`;
+      const launch=async app=>{await loadScenario(page,fresh);await page.click('.nav [data-page=offwork]');await page.click(`[data-ui=life-app][data-id=${app}]`);};
+      const resume=async()=>{await page.send('Page.reload');await page.waitFor(present('[data-ui=resume-save]'));await page.click('[data-ui=resume-save]');};
+      const resultVisible=async(selector,asset)=>{
+        await page.waitFor(`document.querySelector(${JSON.stringify(selector)})?.naturalWidth>0`);
+        const result=await page.evaluate(`(()=>{const image=document.querySelector(${JSON.stringify(selector)}),r=image.getBoundingClientRect();return {src:image.getAttribute('src'),shown:r.width>0&&r.height>0&&!image.closest('details:not([open])'),width:r.width,top:r.top,bottom:r.bottom};})()`);
+        assert.equal(result.src,asset);
+        assert.ok(result.shown&&result.width>=200,JSON.stringify(result));
+        return result;
+      };
+      const main='#latest-outing > .outing-art img';
+      const memory='#latest-outing .outing-memory';
+      await launch('trips');
+      assert.equal(await page.evaluate('document.querySelectorAll("details.outing-card[open]").length'),0);
+      assert.equal(await page.evaluate(present('#latest-outing')),false);
+      const before=await currentState(page);
+      await page.click('[data-life-id=trip-night-train] > summary');
+      const form='form[data-outing-id=trip-night-train]';
+      await page.evaluate(`document.querySelector('${form} select[name=companionId]').focus()`);
+      for(const [key,code] of [['Home',36],['ArrowDown',40],['ArrowDown',40]]){
+        await page.send('Input.dispatchKeyEvent',{type:'rawKeyDown',key,code:key,windowsVirtualKeyCode:code});
+        await page.send('Input.dispatchKeyEvent',{type:'keyUp',key,code:key,windowsVirtualKeyCode:code});
+      }
+      assert.equal(await page.evaluate(`document.querySelector('${form} select[name=companionId]').value`),'liang');
+      await page.click(`${form} label:has(input[value=breakfast])`);
+      assert.equal(await page.evaluate(`document.querySelector('${form} input[name=choiceId]:checked').value`),'breakfast');
+      assert.deepEqual(await currentState(page),before,'choosing a branch is not a purchase');
+      assert.equal(await page.evaluate(present('#latest-outing')),false);
+      assert.equal(await page.evaluate(present('img[src="assets/deal-outing-night-train-breakfast.webp"]')),false,'the unconfirmed branch has no result image');
+      await page.click(`${form} button[type=submit]`);
+      const travel=await currentState(page),latest=travel.life.latestOuting;
+      assert.equal(latest.choiceId,'breakfast');
+      assert.equal(travel.cash,before.cash-latest.price);
+      assert.equal(travel.energy,before.energy+latest.restored);
+      assert.equal(latest.companionName,'梁佳音');
+      assert.equal(latest.epilogue.asset,'assets/deal-trip-extra-train-bowl.webp');
+      const primary=await resultVisible(main,'assets/deal-outing-night-train-breakfast.webp');
+      assert.ok(primary.top>=-1&&primary.bottom<=viewport.height-40,JSON.stringify(primary));
+      const toastBottom=await page.evaluate('document.querySelector(".action-feedback")?.getBoundingClientRect().bottom??0');
+      assert.ok(primary.top>=toastBottom+4,'the immediate confirmation notice must not cover the chosen artwork');
+      assert.ok(await page.evaluate(`document.querySelector('${memory}').open`),'additional comic is initially open, not another click');
+      await resultVisible(`${memory} img`,latest.epilogue.asset);
+      const copy=await page.evaluate(`document.querySelector('${memory}').innerText`);
+      assert.ok(copy.includes(latest.epilogue.title)&&copy.includes(latest.epilogue.text)&&copy.includes(quotedSpeech(latest.epilogue.dialogue)),copy);
+      assert.ok((await page.evaluate('document.querySelector("#latest-outing > blockquote").innerText')).includes(quotedSpeech(latest.dialogue)));
+      assert.equal(await page.evaluate(present('#latest-outing img[src*="train-wake"]')),false);
+      assert.equal(await page.evaluate(present('#latest-outing img[src*="train-buoy"]')),false);
+      await page.screenshot(`/tmp/v38-life-result-travel-${viewport.width}.png`);
+      await page.evaluate(`document.querySelector('${memory}').scrollIntoView({block:'center',behavior:'instant'})`);
+      await page.screenshot(`/tmp/v38-life-result-epilogue-${viewport.width}.png`);
+      await checkWidth(page);
+      await resume();
+      assert.deepEqual(await currentState(page),travel);
+      assert.ok(await page.evaluate(`document.querySelector('${memory}').open`));
+      await resultVisible(`${memory} img`,latest.epilogue.asset);
+      await page.click('[data-ui=life-app][data-id=home]');
+      assert.ok(await page.evaluate(`document.querySelector('${memory}').open`),'returning home also exposes the same finished trip');
+
+      // Most friend episodes have one scene comic rather than a separate
+      // image for each branch; keep that original scene and the chosen text.
+      await launch('friends');
+      assert.equal(await page.evaluate('document.querySelectorAll("[data-life-disclosure][open]").length'),0);
+      assert.equal(await page.evaluate(present('#latest-outing')),false);
+      const beforeFriend=await currentState(page);
+      await page.click('#life-friends-fang > summary');
+      await page.click('[data-life-id=friend-fang-stool] > summary');
+      const friendForm='form[data-outing-id=friend-fang-stool]';
+      await page.click(`${friendForm} label:has(input[value=second])`);
+      assert.deepEqual(await currentState(page),beforeFriend);
+      assert.equal(await page.evaluate(present('#latest-outing')),false);
+      await page.click(`${friendForm} button[type=submit]`);
+      const friend=await currentState(page),memoryResult=friend.life.latestOuting;
+      assert.equal(memoryResult.choiceId,'second');
+      assert.equal(memoryResult.asset,null,'the activity has only a shared scene, not an invented branch illustration');
+      assert.equal(friend.cash,beforeFriend.cash-memoryResult.price);
+      const friendArt=await resultVisible(main,'assets/deal-outing-comic-fang-stool.webp');
+      const friendToast=await page.evaluate('document.querySelector(".action-feedback")?.getBoundingClientRect().bottom??0');
+      assert.ok(friendArt.top>=friendToast+4,'the confirmation notice must not cover the friend scene');
+      assert.ok((await page.evaluate('document.querySelector("#latest-outing").innerText')).includes(memoryResult.text));
+      assert.ok((await page.evaluate('document.querySelector("#latest-outing > blockquote").innerText')).includes(quotedSpeech(memoryResult.dialogue)));
+      assert.equal(await page.evaluate(present(memory)),false);
+      assert.equal(await page.evaluate('document.querySelectorAll("details.outing-card[open]").length'),0);
+      await page.screenshot(`/tmp/v38-life-result-friend-${viewport.width}.png`);
+      await checkWidth(page);
+      await resume();
+      assert.deepEqual(await currentState(page),friend);
+      await resultVisible(main,'assets/deal-outing-comic-fang-stool.webp');
+      assert.deepEqual(page.errors,[]);
+    }finally{await browser.close();}
+  });
+}

@@ -42,13 +42,19 @@ test('two rapidly tapped consecutive decisions never auto-resolve the second, an
   const browser=await launchBrowser(root,{scenarios:true});
   try{
     const page=await browser.page({width:390,height:844,mobile:true});
+    // Delay delivery of genuine Worker results so both consecutive decisions
+    // have the same pending advice geometry during the actual rapid taps.
+    // Waiting for a new plan here would exceed the 400 ms gesture guard and
+    // would no longer test an accidental touch on the newly exposed choice.
+    await page.send('Page.addScriptToEvaluateOnNewDocument',{source:`(()=>{const NativeWorker=window.Worker;window.Worker=class extends NativeWorker {addEventListener(type,listener,options){return type==='message'?super.addEventListener(type,event=>setTimeout(()=>listener.call(this,event),900),options):super.addEventListener(type,listener,options);}};})()`});
     await page.goto();await page.waitFor(exists('[data-form=new-game]'));
     // Two independently queued buyer requests use the same actual event
     // definition and operate on a real awarded contract. Their identical
     // labels/positions reproduce the no-response seen in the live 16-week run.
     await loadScenario(page,`async game=>{const {TRADE_EVENTS}=await import('/v38/data/events.js');let s=game.newGame({difficulty:'casual',seed:381});s=game.act(s,{type:'bid',inquiryId:s.inquiries[0].id,source:'stock',ratio:80}).state;s=game.act(s,{type:'end-week'}).state;s.summary=null;s.cash=120000;s.inquiries=[];s.events=['first','second'].map(id=>({...TRADE_EVENTS.find(item=>item.id==='add-order'),id,code:'add-order',type:'trade-event',orderId:s.orders[0].id}));s.tutorial.done=true;return s;}`);
-    await page.click(`${coach} [data-ui=show-event]`);
-    const selector='dialog [data-action=resolve-event].coach-action';
+    await page.click(`${coach} [data-ui=show-event]`,{waitForCoach:false});
+    assert.ok(await page.evaluate(exists('dialog [data-coach-pending]')));
+    const selector='dialog [data-action=resolve-event][data-choice=accept]';
     const point=await pointFor(page,selector);
     await tap(page,point);
     assert.equal(await page.evaluate(`document.elementFromPoint(${point.x},${point.y})?.closest('button')?.dataset.id`),'second','actual next event button is at the same point');
@@ -58,6 +64,7 @@ test('two rapidly tapped consecutive decisions never auto-resolve the second, an
     assert.deepEqual(feedback,{text:'上一项已处理，请稍候再确认这一项。',role:'status',hitSafe:true,visible:true});
     await page.screenshot('/tmp/v38-rapid-event-feedback-390.png');
     await pause(450);
+    await page.coachReady();
     await page.click(selector);
     assert.deepEqual((await currentState(page)).events,[]);
     assert.equal(await page.evaluate(exists('dialog .gesture-feedback')),false);
@@ -79,12 +86,15 @@ test('a newly exposed assistant navigation accepts an immediate same-position se
     // Replay the identical state. The real invoice button and the following
     // finance recommendation overlap on a small screen after guided scrolling.
     await prepare();
-    const point=await page.evaluate(`(()=>{const b=document.querySelector('[data-action=collect]');let r=b.getBoundingClientRect();scrollBy(0,r.y+r.height/2-${future.y+future.height/2});r=b.getBoundingClientRect();const left=Math.max(r.left,${future.left}),right=Math.min(r.right,${future.right});const top=Math.max(r.top,${future.top}),bottom=Math.min(r.bottom,${future.bottom});if(right<=left||bottom<=top)throw Error('expected actual control overlap');return{x:(left+right)/2,y:(top+bottom)/2};})()`);
+    assert.ok(future.top>=0&&future.bottom<=await page.evaluate('document.querySelector(".nav").getBoundingClientRect().top'),'fresh finance recommendation is actually visible after the preceding operation');
+    const point=await page.evaluate(`(()=>{const b=document.querySelector('[data-action=collect]');let r=b.getBoundingClientRect();scrollBy(0,r.y+r.height/2-(${future.y+future.height/2}));r=b.getBoundingClientRect();const left=Math.max(r.left,${future.left}),right=Math.min(r.right,${future.right});const top=Math.max(r.top,${future.top}),bottom=Math.min(r.bottom,${future.bottom});if(right<=left||bottom<=top)throw Error('expected actual control overlap');return{x:(left+right)/2,y:(top+bottom)/2};})()`);
     await tap(page,point);
+    await page.coachReady();
     assert.equal(await page.evaluate(`document.elementFromPoint(${point.x},${point.y})?.closest('button')?.dataset.page`),'company');
     const collected=await currentState(page);
     assert.ok(collected.receivables.some(item=>item.reminderWeek===collected.week));
     await tap(page,point);
+    await page.coachReady();
     assert.ok(await page.evaluate(exists('.nav [data-page=company][aria-current=page]')),'distinct assistant navigation must not be ignored');
     assert.deepEqual(await currentState(page),collected,'the navigation never performs the proposed repayment');
     assert.equal(await page.evaluate(exists('.gesture-feedback')),false);

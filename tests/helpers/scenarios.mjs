@@ -1,5 +1,8 @@
-export async function loadScenario(page, expression) {
-  await page.evaluate(`(async()=>{const app=await import('/v38/ui/app.js');const game=await import('/v38/engine/game.js');const quotes=await import('/v38/engine/quotes.js');const state=await (${expression})(game,quotes);app.__scenarioForTest(state);})()`);
+export async function loadScenario(page, expression, { firstViews } = {}) {
+  // Controlled operating fixtures model an older save whose existing sections
+  // are familiar; first-time milestones can explicitly request an empty list.
+  await page.evaluate(`(async()=>{const app=await import('/v38/ui/app.js');const game=await import('/v38/engine/game.js');const quotes=await import('/v38/engine/quotes.js');const state=await (${expression})(game,quotes);app.__scenarioForTest(state,${JSON.stringify(firstViews)});})()`);
+  await page.coachReady();
 }
 
 export async function currentState(page) {

@@ -81,6 +81,12 @@ async function firstContractThroughCoach(page){
     }
     const record=await saved(page);
     if(record.state.orders.length){
+      // An event immediately following a first-order summary can defer the
+      // actual ledger visit. Take that real primary data view before counting
+      // the order lesson, rather than merely entering the parent page.
+      if(await page.evaluate(exists(`${coach} .coach-action[data-first-view]`))){
+        await c(page,'.coach-action[data-first-view]');continue;
+      }
       if(record.view.page!=='orders')await nav(page,'orders');
       return record.state.week;
     }

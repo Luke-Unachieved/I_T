@@ -3,10 +3,12 @@ import { quote } from '../engine/quotes.js';
 import { inquiriesPage, orderDisclosureIds, ordersPage, quoteDialog, stockPurchasePreview } from './trade.js';
 import { growthSections } from './growth.js';
 import { defaultLifeCollapsed, eraIllustration, lifeAppForOuting, lifeAppIds, lifeDisclosureIds, lifePanel, officeFeatures, optionDescription, scenarioFields } from './life-view.js';
-import { companyPage, developmentTabs, dialogContent, esc, officePage, opening, saveWarning, saveWarningMessage, shell, yuan } from './shell.js';
+import { assistantFor, companyPage, developmentTabs, dialogContent, esc, officePage, opening, saveWarning, saveWarningMessage, shell, yuan } from './shell.js';
 import { strategySections } from './strategy.js';
 import { readSave, SAVE_KEY, writeSave } from './save.js';
-import { coachDeclinedRecord, coachIntroIndex, coachPrepIndex, coachQuoteFilters, coachReviewRecord, coachTourRecord, finishCoachTour, pageCoach, quoteRecommendation, recordCoachDecline, recordCoachReview, recordCoachVisit } from './coaching.js';
+import { coachDeclinedRecord, coachFirstViewRecord, coachIntroIndex, coachPrepIndex, coachQuoteFilters, coachReviewRecord, coachTourRecord, finishCoachTour, firstCoachView, recordCoachDecline, recordCoachReview, recordCoachVisit } from './coaching.js';
+
+import { CoachPlanning } from './coach-planning.js';
 
 const mount = document.querySelector('#v38-root');
 const dialog = document.createElement('dialog');
@@ -24,6 +26,9 @@ let focusAfterDialog;
 let dialogPointer;
 let dismissedPointer;
 let formPointer;
+let quoteAdoptGesture;
+let pendingCoachFocus;
+const coachPlanning = new CoachPlanning();
 let ui = freshUi();
 let stored = readSave();
 let openingMode = stored.status === 'empty' ? 'form' : 'saved';
@@ -34,7 +39,7 @@ function freshUi() {
     page: 'office', dialog: '', quoteId: '', quote: {}, quoteDefault: {}, quoteOrigin: null,
     quoteDrafts: new Map(), quoteDraftRestored: false, bankGuard: new Map(), actionGesture: null,
     filters: { category: '', availability: 'all' }, notice: '', tutorialStep: 0, showMacro: false,
-    saveStatus: 'ready', developmentTab: 'finance', developmentOverview: false, lifeApp: 'home', lifeCollapsed: [...defaultLifeCollapsed], ordersCollapsed: [], coachPrep: 0, coachIntro: 0, coachLearning: false, coachTour:coachTourRecord(null), coachDeferredWeek: 0, coachReview:{}, coachDeclined:null,
+    saveStatus: 'ready', developmentTab: 'finance', developmentOverview: false, lifeApp: 'home', lifeCollapsed: [...defaultLifeCollapsed], ordersCollapsed: [], coachPrep: 0, coachIntro: 0, coachLearning: false, coachTour:coachTourRecord(null), coachDeferredWeek: 0, coachReview:{}, coachFirstViews:[], coachDeclined:null,
   };
 }
 
@@ -42,7 +47,7 @@ const developmentViews = { ...growthSections, ...strategySections };
 const validDevelopmentTab = id => developmentTabs.some(([key]) => key === id);
 
 const pageViews = {
-  office: (current, model) => officePage(current, { ...officeFeatures(current), coachPrep: model.coachLearning ? model.coachPrep : 0 }),
+  office: (current, model) => officePage(current, { ...officeFeatures(current), coachPrep: model.coachLearning&&model.coachFirstViews.includes('cash') ? model.coachPrep : 0 }),
   inquiries: inquiriesPage,
   orders: ordersPage,
   company: (current, model) => companyPage(current, model.developmentTab, developmentViews[model.developmentTab]?.(current)),
@@ -58,18 +63,160 @@ const notices = {
   unmortgage: '已解除房产抵押。', 'buy-car': '已买入车辆。', 'sell-car': '卖车款已到账。', outing: '已结束这次活动。',
 };
 
+
+// Use only the view fields the pure coach actually reads. Capture a snapshot
+// rather than handing the worker mutable draft/review records.
+function pagePlanPayload() {
+  const keys = ['page','developmentTab','developmentOverview','coachLearning','coachIntro','coachPrep','coachTour','coachDeferredWeek','coachReview','coachFirstViews','coachDeclined','filters'];
+  return { ui: structuredClone(Object.fromEntries(keys.map(key => [key, ui[key]]))) };
+}
+function quotePlanPayload() {
+  return structuredClone({ inquiryId: ui.quoteId, model: ui.quote, initial: ui.quoteDefault, filter: coachQuoteFilters(state,ui) });
+}
+function eventPlanPayload() { return { eventId: state.events[0]?.id }; }
+
+function planningCard(kind, status) {
+  const person = assistantFor(state.assistant);
+  const quoteCard = kind === 'quote' ? ' data-quote-preview="coach"' : '';
+  const pending = status === 'pending';
+  return `<aside class="coach-card coach-planning" aria-label="助理带教" tabindex="-1"${quoteCard}${pending ? ' data-coach-pending aria-busy="true"' : ' data-coach-error'}>
+    <span class="portrait headshot coach-portrait" data-assistant-id="${esc(person.id)}" aria-hidden="true" style="background-image:url('${esc(person.portrait)}')"></span>
+    <div class="coach-copy"><small class="coach-label">${esc(person.name)}的带教建议</small><h3>${pending ? '助理正在规划…' : '助理暂未完成规划'}</h3><p role="status">${pending ? '正在比较当前资金、业务和未来几周的安排。你可以继续浏览或自行操作。' : '暂时无法更新建议。你可以自行操作，也可重新尝试。'}</p>${pending ? '' : `<div class="coach-actions"><button type="button" class="button quiet" data-ui="coach-retry" data-id="${kind}">重新规划</button></div>`}</div></aside>`;
+}
+
+const pageCoachTarget = () => mount.querySelector('.workspace > .coach-card .coach-action:not(:disabled),.workspace > .coach-card[data-coach-pending],.workspace > .coach-card [data-ui="coach-retry"]');
+function focusPageCoachTarget(target, block = 'center') {
+  if (!target) return false;
+  target.focus({preventScroll:true});
+  if(block)target.scrollIntoView({block,behavior:'instant'});
+  pendingCoachFocus=target.hasAttribute('data-coach-pending')?{element:target,x:window.scrollX,y:window.scrollY}:null;
+  return true;
+}
+
+// Replace only the advice/preview block, never the whole page, a working form
+// or the decision buttons. Preserve any actual chart/table/form being reviewed.
+function replacePlanBlock(previous, html, scroller = null) {
+  if (!previous) return null;
+  const active = document.activeElement;
+  const hadFocus = previous.contains(active);
+  const ownsPendingFocus = pendingCoachFocus?.element === previous;
+  const stillWantsNext = ownsPendingFocus && hadFocus && Math.abs(window.scrollX-pendingCoachFocus.x)<3 && Math.abs(window.scrollY-pendingCoachFocus.y)<3;
+  if(ownsPendingFocus)pendingCoachFocus=null;
+  const guide = (scroller ?? mount).querySelector('.tutorial-target');
+  const preserveGuide = guide && !previous.contains(guide) && guide.isConnected;
+  const top = previous.getBoundingClientRect().top;
+  const height = previous.getBoundingClientRect().height;
+  const scrollBefore = scroller?.scrollTop ?? window.scrollY;
+  const template = document.createElement('template');
+  template.innerHTML = html;
+  const next = template.content.firstElementChild;
+  if (next) previous.replaceWith(next); else previous.remove();
+  // If reading lower in the page, keep the visible content from jumping when
+  // the placeholder and final recommendation have different heights.
+  const boundary = scroller?.getBoundingClientRect().top ?? 0;
+  if (top + height < boundary) {
+    const delta = (next?.getBoundingClientRect().height ?? 0) - height;
+    if (scroller) scroller.scrollTop = scrollBefore + delta; else window.scrollTo({top:scrollBefore+delta,behavior:'instant'});
+  }
+  if (hadFocus && next && (!ownsPendingFocus || stillWantsNext)) {
+    const target=next.querySelector('.coach-action:not(:disabled)')??next.querySelector('button:not(:disabled)')??next;
+    // Only reveal the fresh CTA if the player still owns the same pending
+    // card and has not moved away to inspect something else in the meantime.
+    if(stillWantsNext&&!scroller&&!dialog.open)focusPageCoachTarget(target);
+    else target.focus({preventScroll:true});
+  }
+  if (!preserveGuide && (scroller || !dialog.open)) highlightTutorial();
+  return next;
+}
+
+function currentPlan(kind, payload, callback, options = {}) {
+  const current = state;
+  const key = coachPlanning.key(kind, payload);
+  return coachPlanning.request(state, kind, payload, value => {
+    if (state !== current) return;
+    const live = kind === 'page' ? pagePlanPayload() : kind === 'quote' && ui.dialog === 'quote' ? quotePlanPayload() : kind === 'event' && ui.dialog === 'event' ? eventPlanPayload() : null;
+    if (!live || coachPlanning.key(kind, live) !== key) return;
+    callback(value);
+  }, options);
+}
+
+function pagePlanning({ retry = false } = {}) {
+  if (state.difficulty !== 'casual') return '';
+  const payload = pagePlanPayload();
+  // The page behind a dialog can use a cached card; defer any new work until
+  // it becomes visible again, so the current quote/decision gets priority.
+  const value = ui.dialog ? coachPlanning.lookup(state,'page',payload) : currentPlan('page',payload,value => {
+    const previous=mount.querySelector('.workspace > .coach-card');
+    if (previous) replacePlanBlock(previous, value.status === 'ready' ? value.result.html : planningCard('page',value.status));
+  },{retry});
+  return value.status === 'ready' ? value.result.html : planningCard('page',value.status);
+}
+
+function quotePlanning({ delay = 0, retry = false } = {}) {
+  if (state.difficulty !== 'casual') return undefined;
+  const payload=quotePlanPayload();
+  const value=currentPlan('quote',payload,value=>{
+    if (ui.dialog !== 'quote') return;
+    const ready = value.status === 'ready';
+    const coach=dialog.querySelector('[data-quote-preview="coach"]');
+    if (coach) replacePlanBlock(coach, ready ? value.result.html : planningCard('quote',value.status),dialog);
+    const numbers=dialog.querySelector('[data-quote-preview="numbers"]');
+    if (numbers && ready) numbers.innerHTML=value.result.numbersHtml;
+    if (numbers && !ready) {
+      const risk=numbers.querySelector('[data-quote-forecast-pending]');
+      if(risk) risk.textContent='现金预测暂未完成，可使用上方「重新规划」重试；请谨慎决定是否提交。';
+    }
+  },{delay,retry});
+  return value.status === 'ready' ? value.result : { html: planningCard('quote',value.status), status:value.status };
+}
+
+function eventPlanning({ retry = false } = {}) {
+  if (state.difficulty !== 'casual') return undefined;
+  const payload=eventPlanPayload();
+  const value=currentPlan('event',payload,value=>{
+    if (ui.dialog !== 'event') return;
+    const box=dialog.querySelector('[data-event-coach]');
+    if(!box)return;
+    const recommendation=value.status==='ready'?value.result.recommendation:null;
+    box.toggleAttribute('data-coach-pending',false);
+    box.toggleAttribute('data-coach-error',value.status==='error');
+    box.removeAttribute('aria-busy');
+    const top=box.getBoundingClientRect().top;
+    const height=box.getBoundingClientRect().height;
+    const beforeScroll=dialog.scrollTop;
+    box.innerHTML=value.status==='ready'?(recommendation?.html??''):planningCard('event','error');
+    // Update labels in place, so a player choosing independently while the
+    // comparison runs never finds their button replaced or another selected.
+    for(const button of dialog.querySelectorAll('button[data-action="resolve-event"]')) {
+      const selected=recommendation?.id===button.dataset.choice;
+      const celebration=state.events[0]?.type==='ipo-celebration';
+      button.classList.toggle('coach-action',selected);
+      button.classList.toggle('primary',selected||celebration);
+      button.classList.toggle('secondary',!selected&&!celebration);
+      button.textContent=button.textContent.replace(/（助理推荐）$/,'')+(selected?'（助理推荐）':'');
+    }
+    if(top+height < dialog.getBoundingClientRect().top) dialog.scrollTop=beforeScroll+box.getBoundingClientRect().height-height;
+    if(!dialog.querySelector('.tutorial-target:not([data-action="resolve-event"])'))highlightTutorial();
+  },{retry});
+  return value.status==='ready'?{status:'ready',recommendation:value.result.recommendation}:{status:value.status,html:planningCard('event',value.status)};
+}
+
 function render() {
+  coachPlanning.select(state);
   if (!state) {
     mount.innerHTML = opening(ui.notice, scenarioFields(), stored, openingMode);
   } else {
     ui.tutorialStep = state.tutorial.done ? -1 : state.tutorial.step;
     const view = pageViews[ui.page];
-    mount.innerHTML = shell(state, ui, view(state, ui));
+    mount.innerHTML = shell(state, ui, view(state, ui), '', pagePlanning());
   }
   renderDialog();
 }
 
 function renderDialog() {
+  coachPlanning.select(state);
+  if (ui.dialog !== 'quote') coachPlanning.discard('quote');
+  if (ui.dialog !== 'event') coachPlanning.discard('event');
   if (!state || !ui.dialog) {
     if (dialog.open) {
       dismissedPointer = dialogPointer && { ...dialogPointer, at: performance.now() };
@@ -96,7 +243,7 @@ function renderDialog() {
   const headingId = isQuote ? 'quote-title' : 'modal-title';
   dialog.dataset.view = view;
   dialog.setAttribute('aria-labelledby', headingId);
-  dialog.innerHTML = `${ui.notice && isQuote ? `<p class="notice negative" id="dialog-notice" role="alert">${esc(ui.notice)}</p>` : '<span id="dialog-notice" hidden></span>'}${saveWarning(ui.saveStatus)}${dialogContent(state, ui, isQuote ? quoteDialog(state, ui) : '')}`;
+  dialog.innerHTML = `${ui.notice && isQuote ? `<p class="notice negative" id="dialog-notice" role="alert">${esc(ui.notice)}</p>` : '<span id="dialog-notice" hidden></span>'}${saveWarning(ui.saveStatus)}${dialogContent(state, ui, isQuote ? quoteDialog(state, ui, quotePlanning()) : '', ui.dialog === 'event' ? eventPlanning() : undefined)}`;
   const heading = dialog.querySelector(`#${headingId}`);
   if (heading) {
     heading.tabIndex = -1;
@@ -177,7 +324,7 @@ function savedView() {
   ui.quoteDrafts = new Map([...ui.quoteDrafts].filter(([id]) => active.has(id)));
   return {
     page: ui.page, filters: ui.filters, showMacro: ui.showMacro, developmentTab: ui.developmentTab, developmentOverview: ui.developmentOverview, lifeApp: ui.lifeApp, lifeCollapsed: ui.lifeCollapsed, lifeDisclosureVersion, ordersCollapsed: ui.ordersCollapsed,
-    coachLearning: ui.coachLearning === true, coachPrep: coachPrepIndex(ui.coachPrep), coachIntro: coachIntroIndex(ui.coachIntro), coachTour:coachTourRecord(ui.coachTour,ui.coachIntro), coachDeferredWeek: ui.coachDeferredWeek, coachReview:coachReviewRecord(ui.coachReview), coachDeclined:coachDeclinedRecord(ui.coachDeclined,state.week),
+    coachLearning: ui.coachLearning === true, coachPrep: coachPrepIndex(ui.coachPrep), coachIntro: coachIntroIndex(ui.coachIntro), coachTour:coachTourRecord(ui.coachTour,ui.coachIntro), coachDeferredWeek: ui.coachDeferredWeek, coachReview:coachReviewRecord(ui.coachReview), coachFirstViews:coachFirstViewRecord(ui.coachFirstViews,state,ui), coachDeclined:coachDeclinedRecord(ui.coachDeclined,state.week),
     drafts: [...ui.quoteDrafts],
     quote: ui.dialog === 'quote' && active.has(ui.quoteId) ? { id: ui.quoteId, proposal: ui.quote } : null,
   };
@@ -250,6 +397,7 @@ function resumeSaved() {
     ui.coachIntro = coachIntroIndex(view.coachIntro);
     ui.coachTour = coachTourRecord(view.coachTour,ui.coachIntro);
     ui.coachReview = coachReviewRecord(view.coachReview);
+    ui.coachFirstViews = coachFirstViewRecord(view.coachFirstViews,state,view);
     ui.coachDeclined = coachDeclinedRecord(view.coachDeclined,state.week);
     if (Number.isInteger(view.coachDeferredWeek)) ui.coachDeferredWeek = view.coachDeferredWeek;
     if (lifeAppIds.includes(view.lifeApp)) ui.lifeApp = view.lifeApp;
@@ -347,9 +495,8 @@ function perform(action, trigger, onError) {
     if (result) {reviewNextLink(result);const helper=result.querySelector('.coach-review-return');if(helper)result.append(helper);}
   } else if (!ui.dialog) {
     const guided=state.difficulty==='casual'&&['withdraw-bid','expedite','collect','sue','factor','liquidate','purchase-stock','borrow','repay','hire','dismiss-staff','buy-cert','open-market','referral','exhibit','invest-venture','strategic-investment','restructure','ipo','resolve-event'].includes(action.type);
-    const next=guided&&mount.querySelector('.workspace > .coach-card .coach-action');
-    if (next) {next.focus({preventScroll:true});next.scrollIntoView({block:'center',behavior:'instant'});}
-    else restoreFocus(focusKey(trigger));
+    const next=guided&&pageCoachTarget();
+    if(!focusPageCoachTarget(next))restoreFocus(focusKey(trigger));
   }
   return true;
 }
@@ -426,7 +573,6 @@ function dismissDialog({ weeklyTarget = false, viewOrders = false, receiptView =
     if (viewOrders) {
       ui.page = 'orders';
       revealOrderSections([receiptView ? 'orders-receivables' : 'orders-delivery']);
-      recordCoachReview(state,ui,receiptView?'orders-receivables':'orders-delivery');
       focusAfterDialog = undefined;
     }
   } else {
@@ -439,30 +585,13 @@ function dismissDialog({ weeklyTarget = false, viewOrders = false, receiptView =
   if (!ui.dialog) {
     if (wasQuote) returnFromQuote(weeklyTarget);
     else if (viewOrders) {
-      const receiptSection = receiptView ? mount.querySelector('#orders-receivables') : null;
-      const recent = receiptView === 'paid' ? receiptSection?.querySelector('details:has(table[aria-label="最近回款"])') : null;
-      if (recent) recent.open = true;
-      if (recent) {
-        // The paid record may be far below the main assistant card. Keep
-        // the return directly beside its actual expanded record.
-        const heading=recent.querySelector('summary');
-        reviewNextLink(recent);
-        const helper=recent.querySelector('.coach-review-return');
-        if (heading&&helper) heading.after(helper);
-      } else if (receiptSection) reviewNextLink(receiptSection.querySelector('.order-section-body'));
-      const target = (recent || receiptSection)?.querySelector('summary') || mount.querySelector('#page-title');
-      const records=state.difficulty==='casual'&&receiptSection?(recent??receiptSection).querySelector('table'):null;
-      if(records&&!records.closest('details:not([open])')) {
-        records.tabIndex=-1;records.focus({preventScroll:true});setGuideTarget(records);
-      }else target?.focus({ preventScroll: true });
-      if (receiptSection) target?.scrollIntoView({ block: 'center', behavior: 'instant' });
+      if(state.difficulty==='casual')reviewDisplayedOrderSection(receiptView?'orders-receivables':'orders-delivery',true,receiptView==='paid'?'receivables-paid':receiptView==='pending'?'receivables-open':undefined);
+      else mount.querySelector('#page-title')?.focus({preventScroll:true});
     }
     else {
       const afterSettlement=focusAfterDialog?.action==='end-week'||focusAfterDialog?.action==='advance-four';
-      const next=afterSettlement&&state.difficulty==='casual'?mount.querySelector('.workspace > .coach-card .coach-action'):null;
-      const target=next??focusTarget(focusAfterDialog)??mount.querySelector('#page-title');
-      target?.focus({preventScroll:true});
-      if(next)next.scrollIntoView({block:'center',behavior:'instant'});
+      const next=afterSettlement&&state.difficulty==='casual'?pageCoachTarget():null;
+      if(!focusPageCoachTarget(next))(focusTarget(focusAfterDialog)??mount.querySelector('#page-title'))?.focus({preventScroll:true});
     }
     focusAfterDialog = undefined;
   }
@@ -473,6 +602,7 @@ function openQuote(button) {
   if (!inquiry) return;
   const proposal = quoteDefaults(inquiry);
   const draft = ui.quoteDrafts.get(inquiry.id);
+  quoteAdoptGesture=null;
   ui.quoteId = inquiry.id;
   ui.quoteDefault = proposal;
   ui.quote = { ...proposal, ...draft };
@@ -490,7 +620,7 @@ function openQuote(button) {
 
 function refreshQuote(updatePriceControl = false) {
   const next = document.createElement('template');
-  next.innerHTML = quoteDialog(state, ui);
+  next.innerHTML = quoteDialog(state, ui, quotePlanning({delay:100}));
   for (const output of dialog.querySelectorAll('[data-quote-preview]')) {
     const key = output.dataset.quotePreview;
     if (key === 'price-control' && !updatePriceControl) continue;
@@ -500,21 +630,26 @@ function refreshQuote(updatePriceControl = false) {
   highlightTutorial();
 }
 
-function applyRecommendedQuote() {
+function applyRecommendedQuote(pointer) {
   if (state.difficulty !== 'casual' || ui.dialog !== 'quote') return;
   const inquiry = state.inquiries.find(item => item.id === ui.quoteId);
-  const recommendation = quoteRecommendation(state, inquiry, coachQuoteFilters(state,ui));
+  const value = coachPlanning.lookup(state,'quote',quotePlanPayload());
+  const recommendation = value.status==='ready' ? value.result.recommendation : null;
   const proposed=recommendation&&quote(state,inquiry,recommendation.config);
-  if (!recommendation || proposed.error) {
-    ui.notice='当前助理方案已无法采用，请核对这条询盘或返回询盘页重新选择。';
+  if (!recommendation || proposed.error || !value.result.adopted) {
+    ui.notice='当前助理方案已无法采用，请等待重新规划或核对这条询盘。';
     renderDialog();
     dialog.scrollTop=0;
     return;
   }
   ui.notice='';
   ui.quote = { ...ui.quote, ...recommendation.config };
+  // Use the receipt and figures that the worker calculated for this exact
+  // configuration. No full search, stale advice, or optimistic auto-submit.
+  coachPlanning.seed(state,'quote',quotePlanPayload(),value.result.adopted);
   saveProgress();
   renderDialog();
+  quoteAdoptGesture=pointer?{x:pointer.clientX,y:pointer.clientY,at:performance.now()}:null;
   // An edited draft can have a taller explanation than the adopted plan.
   // Retaining its prior scroll offset then hides the entire new receipt
   // behind the sticky buyer header. Return to the newly adopted plan and
@@ -582,9 +717,9 @@ function refreshPageCoach() {
   const previous=mount.querySelector('.workspace > .coach-card');
   if (!previous || state.difficulty!=='casual') return;
   const next=document.createElement('template');
-  next.innerHTML=pageCoach(state,ui);
-  if (next.content.firstElementChild) previous.replaceWith(next.content.firstElementChild);
-  highlightTutorial();
+  next.innerHTML=pagePlanning();
+  if (next.content.firstElementChild) replacePlanBlock(previous,next.innerHTML);
+  else previous.remove();
 }
 
 function reviewRecommendedQuote() {
@@ -598,52 +733,71 @@ function reviewRecommendedQuote() {
 }
 
 function focusCashForecast() {
-  const forecast = mount.querySelector('.forecast-panel h2');
+  const forecast = mount.querySelector('.forecast-panel .forecast-chart-balance');
   if (ui.page !== 'office' || !forecast) return;
   forecast.tabIndex = -1;
   forecast.focus({ preventScroll: true });
-  forecast.scrollIntoView({ block: 'start', behavior: 'instant' });
-  if(state.difficulty==='casual')setGuideTarget(mount.querySelector('.forecast-panel .forecast-scenarios'));
+  forecast.scrollIntoView({ block: 'center', behavior: 'instant' });
+  if(state.difficulty==='casual')setGuideTarget(forecast);
 }
 
 function reviewNextLink(container) {
-  if (state.difficulty!=='casual'||!container||container.querySelector('[data-ui="coach-review-next"]')||!mount.querySelector('.workspace > .coach-card .coach-action')) return;
+  if (state.difficulty!=='casual'||!container||container.querySelector('[data-ui="coach-review-next"]')||!mount.querySelector('.workspace > .coach-card :is(.coach-action,[data-ui=coach-retry]),.workspace > .coach-card[data-coach-pending]')) return;
   const link=document.createElement('button');
   link.type='button';link.className='button coach-action';link.dataset.ui='coach-review-next';link.textContent='下一项助理安排 ↑';
   const toolbar=document.createElement('div');toolbar.className='toolbar coach-review-return';toolbar.append(link);
   container.prepend(toolbar);
+  return toolbar;
 }
 
 function reviewCashForecast() {
-  const changed=recordCoachReview(state,ui,'cash');
   if (ui.page!=='office') selectPage('office');
-  else if (changed) {saveProgress();refreshPageCoach();}
+  if(!mount.querySelector('.forecast-panel .forecast-chart-balance'))return;
+  const changed=recordCoachReview(state,ui,'cash');
+  const visited=recordCoachVisit(state,ui);
+  if(changed||visited){saveProgress();render();}
   const panel=mount.querySelector('.forecast-panel');
-  const heading=panel?.querySelector('.panel-heading');
-  if (panel && heading && state.difficulty==='casual') {
-    reviewNextLink(panel);
-    const helper=panel.querySelector('.coach-review-return');
-    if (helper) heading.after(helper);
+  const chart=panel?.querySelector('.forecast-chart-balance');
+  if(panel&&chart&&state.difficulty==='casual'&&!panel.querySelector('[data-coach-tab="finance"]')){
+    const helper=reviewNextLink(panel);
+    if(helper)chart.after(helper);
   }
   focusCashForecast();
 }
 
-function reviewOrderSection(id,guided=false) {
+function reviewOrderSection(id,guided=false,firstKind) {
   if (!orderDisclosureIds.includes(id)) return;
   revealOrderSections([id]);
-  recordCoachReview(state,ui,id);
   selectPage('orders');
+  reviewDisplayedOrderSection(id,guided,firstKind);
+}
+
+function reviewDisplayedOrderSection(id,guided=false,firstKind) {
   const section=mount.querySelector(`#${id}`);
-  reviewNextLink(section?.querySelector('.order-section-body'));
   if(guided&&state.difficulty==='casual') {
     const tables=[...section?.querySelectorAll('.order-section-body table')??[]];
-    const records=tables.find(table=>!table.closest('details:not([open])'))??tables[0];
+    const milestone=firstKind??firstCoachView(state,ui,id)?.firstView;
+    const matching=milestone==='receivables-paid'?tables.find(table=>table.getAttribute('aria-label')==='最近回款'):milestone==='receivables-open'?tables.find(table=>table.getAttribute('aria-label')==='未结应收账款'):null;
+    const records=matching??tables.find(table=>!table.closest('details:not([open])'))??tables[0];
     // Recently completed orders or paid invoices can be the only records in
     // this section, nested inside a second collapsed disclosure. Open that
     // disclosure before focusing its table; a hidden table cannot be reviewed.
-    if(records){revealParentDetails(records);records.tabIndex=-1;records.focus({preventScroll:true});}
+    if(records){
+      revealParentDetails(records);
+      const kind=id==='orders-receivables'?(records.getAttribute('aria-label')==='最近回款'?'receivables-paid':'receivables-open'):undefined;
+      const changed=recordCoachReview(state,ui,id,kind);
+      const visited=recordCoachVisit(state,ui);
+      if(changed||visited){saveProgress();refreshPageCoach();}
+      const wrapper=records.closest('.table-wrap');
+      const helper=reviewNextLink(wrapper?.parentElement??section.querySelector('.order-section-body'));
+      if(wrapper&&helper)wrapper.before(helper);
+      records.tabIndex=-1;records.focus({preventScroll:true});
+      (helper??records).scrollIntoView({block:'start',behavior:'instant'});
+      window.scrollBy({top:-12,behavior:'instant'});
+    }
     else section?.querySelector('summary')?.focus({preventScroll:true});
     setGuideTarget(records);
+    if(records)return;
   }else section?.querySelector('summary')?.focus({preventScroll:true});
   section?.scrollIntoView({block:'start',behavior:'instant'});
 }
@@ -796,7 +950,7 @@ function performGuarded(action, trigger, pointer) {
   return accepted;
 }
 
-const coachNavigation = new Set(['coach-target','coach-apply-quote','coach-review-submit','coach-select-outing','coach-all-inquiries','coach-review-orders','coach-review-cash','coach-review-next','coach-focus-forecast','coach-leisure-menu','coach-settlement','coach-finish-intro','coach-start-learning','coach-pause-learning']);
+const coachNavigation = new Set(['coach-target','coach-apply-quote','coach-review-submit','coach-select-outing','coach-all-inquiries','coach-review-orders','coach-review-cash','coach-review-next','coach-focus-forecast','coach-leisure-menu','coach-settlement','coach-finish-intro','coach-start-learning','coach-pause-learning','coach-retry','event-show-options']);
 
 function assistantNavigation(control) {
   if (!control || control.disabled || control.dataset.action) return false;
@@ -821,6 +975,8 @@ function repeatedGestureFeedback(root,control) {
 function click(event) {
   const control = event.target.closest('button[data-ui],button[data-action]');
   const submitter = event.target.closest('button[type="submit"]');
+  if(ui.dialog==='quote'&&quoteAdoptGesture&&event.detail>0&&performance.now()-quoteAdoptGesture.at<450&&Math.hypot(event.clientX-quoteAdoptGesture.x,event.clientY-quoteAdoptGesture.y)<=8&&control?.dataset.ui!=='coach-apply-quote') { quoteAdoptGesture.at=performance.now(); event.preventDefault(); return; }
+  if(ui.dialog==='quote'&&event.detail>0)quoteAdoptGesture=null;
   // Navigation/review can never submit an economic action. Let the player
   // immediately follow a newly exposed assistant route, even if the previous
   // action positioned it under the old gesture, while guarding all real
@@ -891,20 +1047,28 @@ function click(event) {
     case 'coach-leisure-menu': showLeisureMenu(); break;
     case 'coach-settlement': showSettlement(); break;
     case 'coach-target': revealCoachTarget(control); break;
-    case 'coach-apply-quote': applyRecommendedQuote(); break;
+    case 'coach-apply-quote': applyRecommendedQuote(pointer); break;
+    case 'coach-retry': {
+      if(control.dataset.id==='quote'&&ui.dialog==='quote'){quotePlanning({retry:true});renderDialog();}
+      else if(control.dataset.id==='event'&&ui.dialog==='event'){eventPlanning({retry:true});renderDialog();}
+      else if(control.dataset.id==='page'&&!ui.dialog){pagePlanning({retry:true});refreshPageCoach();}
+      break;
+    }
+    case 'event-show-options': {
+      const target=dialog.querySelector('#event-choice-list');target?.scrollIntoView({block:'start',behavior:'instant'});target?.querySelector('button:not(:disabled)')?.focus({preventScroll:true});break;
+    }
     case 'coach-review-submit': reviewRecommendedQuote(); break;
     case 'coach-select-outing': revealRecommendedOuting(control); break;
     case 'coach-all-inquiries':
       if (ui.page === 'inquiries') { ui.filters.category = ''; ui.filters.availability = 'all'; saveProgress(); render(); }
       break;
-    case 'coach-review-orders': reviewOrderSection(control.dataset.id,true); break;
+    case 'coach-review-orders': reviewOrderSection(control.dataset.id,true,control.dataset.firstView); break;
     case 'coach-review-cash': reviewCashForecast(); break;
     case 'coach-review-next': {
       const coach=mount.querySelector('.workspace > .coach-card');
-      const next=coach?.querySelector('.coach-action');
+      const next=pageCoachTarget()??coach;
       coach?.scrollIntoView({block:'start',behavior:'instant'});
-      next?.focus({preventScroll:true});
-      next?.scrollIntoView({block:'nearest',behavior:'instant'});
+      focusPageCoachTarget(next,'nearest');
       markCoachConfirmation(null);
       highlightTutorial();
       break;
@@ -914,7 +1078,7 @@ function click(event) {
       if (recordCoachDecline(state,ui,control.dataset.ui==='coach-defer-task'?'tasks':'inquiries',control.dataset.id)) {
         recordCoachVisit(state,ui);
         ui.notice=control.dataset.ui==='coach-skip-inquiry'?'这条询盘本周先略过，助理会重新安排。':'这项本周暂缓，仍可自行办理。';
-        saveProgress();render();mount.querySelector('.workspace > .coach-card .coach-action')?.focus({preventScroll:true});
+        saveProgress();render();focusPageCoachTarget(pageCoachTarget(), 'nearest');
       }
       break;
     case 'coach-defer-growth':
@@ -927,9 +1091,7 @@ function click(event) {
         if (ui.coachLearning) recordCoachVisit(state,ui);
         saveProgress();
         render();
-        const next=mount.querySelector('.workspace > .coach-card .coach-action');
-        next?.focus({preventScroll:true});
-        next?.scrollIntoView({block:'nearest',behavior:'instant'});
+        focusPageCoachTarget(pageCoachTarget(),'nearest');
       }
       break;
     case 'coach-skip-intro':
@@ -939,9 +1101,7 @@ function click(event) {
         finishCoachTour(ui,control.dataset.ui==='coach-skip-intro');
         saveProgress();
         render();
-        const next=mount.querySelector('.workspace > .coach-card .coach-action');
-        next?.focus({preventScroll:true});
-        next?.scrollIntoView({block:'nearest',behavior:'instant'});
+        focusPageCoachTarget(pageCoachTarget(),'nearest');
       }
       break;
     case 'coach-skip-prep':
@@ -1072,11 +1232,10 @@ function submit(event) {
     proposal.brandUnitPrice = Number(proposal.brandUnitPrice);
     const submitted = perform({ type: 'bid', inquiryId: ui.quoteId, ...proposal });
     if (submitted) {
-      const next = state.difficulty === 'casual' && mount.querySelector('.coach-card .coach-action');
+      const next = state.difficulty === 'casual' && pageCoachTarget();
       if (next) {
         ui.quoteOrigin = null;
-        next.focus({ preventScroll: true });
-        next.scrollIntoView({ block: 'center', behavior: 'instant' });
+        focusPageCoachTarget(next);
       } else returnFromQuote(!state.tutorial.done && state.tutorial.step === 3);
     }
     return;
@@ -1087,6 +1246,7 @@ function submit(event) {
 function input(event) {
   if (event.isTrusted) {
     ui.actionGesture = null;
+    quoteAdoptGesture = null;
     formPointer = undefined;
   }
   const control = event.target;

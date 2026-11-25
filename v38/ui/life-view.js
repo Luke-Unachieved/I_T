@@ -195,11 +195,15 @@ function outingResult(recent) {
   if (!recent) return '';
   const outing = LIFE_CATALOG.outings.find(item => item.id === recent.id);
   const text = outingScenes[recent.id] ?? recent.text ?? '你给自己留出了一点休息的时间。';
-  const art = recent.choiceId ? recent.asset : recent.asset ?? outing?.asset;
+  // Use the actual selected branch's artwork where one exists. A friend
+  // scene without a separate branch illustration keeps its original activity
+  // scene, not an image borrowed from the unchosen option.
+  const art = recent.asset ?? outing?.asset;
+  const resultMedia = (src, alt) => imageFrame(src, {className:'outing-art',alt,fallback:'插画暂未加载',lazy:false,retry:true});
   const price = Number.isSafeInteger(recent.price) ? recent.price : outing?.price;
   const speech = recent.dialogue ? `<blockquote><strong>${esc(recent.companionName)}：</strong>${esc(quotedSpeech(recent.dialogue))}</blockquote>` : '';
-  const extra = recent.epilogue ? `<details class="outing-memory"><summary>${esc(recent.epilogue.title)}</summary>${media(recent.epilogue.asset, 'outing-art', recent.epilogue.alt)}<p>${esc(recent.epilogue.text)}</p>${recent.epilogue.dialogue ? `<blockquote><strong>${esc(recent.companionName)}：</strong>${esc(quotedSpeech(recent.epilogue.dialogue))}</blockquote>` : ''}</details>` : '';
-  return `<article class="outing-note" id="latest-outing">${media(art, 'outing-art')}
+  const extra = recent.epilogue ? `<details class="outing-memory" open><summary>${esc(recent.epilogue.title)}</summary>${resultMedia(recent.epilogue.asset, recent.epilogue.alt)}<p>${esc(recent.epilogue.text)}</p>${recent.epilogue.dialogue ? `<blockquote><strong>${esc(recent.companionName)}：</strong>${esc(quotedSpeech(recent.epilogue.dialogue))}</blockquote>` : ''}</details>` : '';
+  return `<article class="outing-note" id="latest-outing">${resultMedia(art,recent.asset&&recent.choiceLabel?`${recent.choiceLabel}的场景`:`${recent.label??outing?.label??'这次出行'}的活动场景`)}
     <h3 tabindex="-1">${esc(recent.label ?? outing?.label ?? '最近一次休息')}</h3>${recent.companionName ? `<p>${esc(recent.companionName)}${recent.choiceLabel ? ` · ${esc(recent.choiceLabel)}` : ''}</p>` : ''}<p>${esc(text)}</p>${speech}${extra}
     ${Number.isSafeInteger(price) ? `<p>支出 ${yuan(price)}${Number.isSafeInteger(recent.week) ? ` · 第 ${count(recent.week)} 周` : ''}</p>` : ''}
     ${recent.restored ? `<p class="positive">精力 +${count(recent.restored)}</p>` : '<p>精力已满。</p>'}</article>`;

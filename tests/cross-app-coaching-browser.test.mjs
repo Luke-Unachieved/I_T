@@ -42,6 +42,14 @@ async function closeDecisions(page) {
   throw new Error('Too many consecutive decisions.');
 }
 
+async function reviewFirstRecords(page) {
+  for(let i=0;i<6&&await page.evaluate(visible(`${coach} .coach-action[data-first-view]`));i++){
+    const before=(await saved(page)).state;
+    await page.click(`${coach} .coach-action[data-first-view]`);
+    assert.deepEqual((await saved(page)).state,before,'viewing the first actual ledger never performs a business action');
+  }
+}
+
 test('real Chromium 390px simple mode: chat inbox, draft/reload/withdraw, first order and coach-selected leisure app', { skip: !enabled, timeout: 120_000 }, async () => {
   const browser = await launchBrowser(root);
   try {
@@ -78,8 +86,11 @@ test('real Chromium 390px simple mode: chat inbox, draft/reload/withdraw, first 
     await submitSuggestedQuote(page);
     assert.equal((await saved(page)).view.coachLearning,true,'a genuinely new simple game begins the one-time teaching round');
     assert.equal((await saved(page)).view.coachPrep,0);
-    assert.ok(await page.evaluate(visible(`${coach} [data-page="office"][data-coach-tab="cash-forecast"]`)), 'first-round teaching introduces the meaning of a submitted quote');
-    assert.ok(await page.evaluate(visible(`${coach} [data-ui="coach-pause-learning"]`)), 'the player can pause teaching and continue actual business');
+    assert.ok(await page.evaluate(visible(`${coach} [data-ui="coach-review-cash"]`)), 'the first actual cash forecast is the primary recommendation');
+    assert.equal(await page.evaluate(visible(`${coach} [data-ui="coach-pause-learning"]`)),false,'an independent data view is not a no-op pause');
+    await page.click(`${coach} [data-ui="coach-review-cash"]`);
+    assert.ok((await saved(page)).view.coachFirstViews.includes('cash'));
+    assert.ok(await page.evaluate(visible(`${coach} [data-ui="coach-pause-learning"]`)), 'the player may pause the following educational steps');
     await page.click('.nav [data-page=offwork]');
     await page.click('.week-controls [data-action="end-week"]'); // Player may choose to settle voluntarily with one quote.
     await page.waitFor(visible('dialog[open] [data-ui="view-first-order"]'));
@@ -107,6 +118,8 @@ test('real Chromium 390px simple mode: chat inbox, draft/reload/withdraw, first 
     for (let cycle = 0; cycle < 5 && (await saved(page)).state.energy >= 85; cycle++) {
       await page.click('.week-controls [data-action="advance-four"]');
       await closeDecisions(page);
+      await reviewFirstRecords(page);
+      if((await saved(page)).view.page!=='offwork')await page.click('.nav [data-page=offwork]');
     }
     const before = (await saved(page)).state;
     assert.ok(before.energy < 85);

@@ -29,6 +29,7 @@ async function tap(page,selector,{double=false}={}){
     await page.send('Input.dispatchMouseEvent',{type:'mousePressed',...xy,button:'left',clickCount});
     await page.send('Input.dispatchMouseEvent',{type:'mouseReleased',...xy,button:'left',clickCount});
   }
+  await page.coachReady();
 }
 const c=(page,selector,options)=>tap(page,`${coach} ${selector}`,options);
 const nav=(page,id)=>tap(page,`.nav [data-page="${id}"]`);
@@ -56,6 +57,7 @@ async function arrow(page,key,code){
   await page.evaluate('document.querySelector("dialog input[name=ratio]").focus()');
   await page.send('Input.dispatchKeyEvent',{type:'rawKeyDown',key,code:key,windowsVirtualKeyCode:code});
   await page.send('Input.dispatchKeyEvent',{type:'keyUp',key,code:key,windowsVirtualKeyCode:code});
+  await page.coachReady();
 }
 
 for(const viewport of viewports){
@@ -66,6 +68,7 @@ for(const viewport of viewports){
     const absent=await page.evaluate(`[...document.querySelector('select[name=category]').options].map(o=>o.value).find(x=>x&&!${JSON.stringify(categories)}.includes(x))`);
     assert.ok(absent);
     await page.evaluate(`(()=>{const el=document.querySelector('select[name=category]');el.value=${JSON.stringify(absent)};el.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+    await page.coachReady();
     assert.equal(await page.evaluate('document.querySelectorAll("article[data-inquiry-id]").length'),0);
     await c(page,'[data-ui=coach-all-inquiries]');
     assert.equal((await saved(page)).view.filters.category,'');
@@ -102,10 +105,10 @@ for(const viewport of viewports){
     await tap(page,'dialog form[data-form=quote] button[type=submit]');
     const submitted=await currentState(page);assert.equal(submitted.bids.length,1);
     // No artificial wait between the confirmed action and a different CTA.
-    await c(page,'[data-ui=coach-start-learning]');
-    await c(page,'[data-page=office][data-coach-tab=cash-forecast]');
-    await visibleTarget(page,'.forecast-panel h2');
+    await c(page,'[data-ui=coach-review-cash]');
+    await visibleTarget(page,'.forecast-panel .forecast-chart-balance');
     assert.deepEqual(await currentState(page),submitted);
+    await c(page,'[data-ui=coach-start-learning]');
     await tap(page,'.forecast-panel [data-ui=page][data-coach-tab=finance]');
     assert.equal((await saved(page)).view.developmentTab,'finance');
     assert.deepEqual(await currentState(page),submitted);

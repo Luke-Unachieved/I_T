@@ -189,7 +189,7 @@ function tutorialNote(state, inDialog = false, page = '') {
   </div></aside>`;
 }
 
-export function shell(state, ui, content, extraIndicators = '') {
+export function shell(state, ui, content, extraIndicators = '', coachHtml) {
   const [, title] = pages.find(([key]) => key === ui.page) ?? pages[0];
   const overview = ui.page === 'office';
   return `<div class="app-shell">
@@ -203,7 +203,7 @@ export function shell(state, ui, content, extraIndicators = '') {
       <div class="app-notices" aria-live="polite" aria-atomic="true">${state.cash < 0 && !state.bankrupt ? `<div class="notice negative" role="alert"><strong>资金链告急</strong><p>还差 ${yuan(-state.cash)}。可以到订单页清仓，或到发展页的「财务」借款。连续两周资金为负会破产。</p></div>` : ''}${state.events.length ? `<p class="notice">有 ${count(state.events.length)} 件事需要你决定。<button type="button" class="button quiet" data-ui="show-event">查看事项</button></p>` : ''}</div>
       ${ui.notice ? `<p class="notice action-feedback" role="status">${esc(ui.notice)}</p>` : ''}
       ${saveWarning(ui.saveStatus)}
-      ${state.difficulty === 'casual' ? pageCoach(state, ui) : ''}
+      ${state.difficulty === 'casual' ? coachHtml ?? pageCoach(state, ui) : ''}
       ${overview ? `${indicators(state)}${macroIndicators(state, ui)}` : ''}${extraIndicators}
       ${state.difficulty !== 'casual' ? tutorialNote(state, false, ui.page) : ''}
       <div class="page-content">${content}</div>
@@ -568,26 +568,26 @@ function annualGoalResult(goal) {
   ${goal.met ? `<p class="positive">全部达成。现金 +${yuan(goal.bonusCash)}，信誉 +${count(goal.bonusRep)}。</p>` : '<p>本年度的部分目标还未达成。</p>'}`;
 }
 
-function eventContent(state, event, notice) {
+function eventContent(state, event, notice, planning) {
   const { context, choices } = decisionInfo(state, event);
-  const recommendation = eventCoach(state, event, choices);
+  const recommendation = planning ? planning.recommendation : eventCoach(state, event, choices);
   const celebration = event.type === 'ipo-celebration';
   const comic = imageFrame(event.comic, { className: 'event-comic', alt: event.comicAlt ?? '经营场景插画', fallback: '插画暂时无法显示', retry: true });
   const button = (choice, description = '') => `<button type="button" class="button ${recommendation?.id === choice.id ? 'primary coach-action' : celebration ? 'primary' : 'secondary'}" data-action="resolve-event" data-id="${esc(event.id)}" data-choice="${esc(choice.id)}"${description}${choice.disabled ? ' disabled' : ''}>${esc(choice.label)}${recommendation?.id === choice.id ? '（助理推荐）' : ''}</button>`;
   const explained = choices.some(choice => choice.details.length);
-  const decisionList = explained ? `<ul class="decision-choices" aria-label="处理方式">${choices.map((choice, i) => {
+  const decisionList = explained ? `<ul id="event-choice-list" class="decision-choices" aria-label="处理方式">${choices.map((choice, i) => {
     const descriptionId = `decision-option-${i + 1}`;
     const details = choice.details.length ? `<ul class="decision-detail" id="${descriptionId}">${choice.details.map(line => `<li>${esc(line)}</li>`).join('')}</ul>` : '';
     return `<li class="decision-option">${button(choice, details ? ` aria-describedby="${descriptionId}"` : '')}${details}</li>`;
   }).join('')}</ul>` : '';
-  return `<header class="dialog-header"><div><p class="eyebrow">${celebration ? '企业里程碑' : '需要决定'}</p><h2 id="modal-title" tabindex="-1">${esc(event.title)}</h2></div></header>
+  return `<header class="dialog-header event-dialog-header"><div><p class="eyebrow">${celebration ? '企业里程碑' : '需要决定'}</p><h2 id="modal-title" tabindex="-1">${esc(event.title)}</h2></div><button type="button" class="button event-choice-jump" data-ui="event-show-options" aria-controls="event-choice-list">查看处理方式 ↓</button></header>
     <div class="dialog-body event-body">${comic}<p>${esc(event.text ?? event.description)}</p>
     ${context.length ? `<ul class="decision-context" aria-label="涉及业务">${context.map(line => `<li>${esc(line)}</li>`).join('')}</ul>` : ''}
-    ${notice ? `<p role="alert" class="notice negative">${esc(notice)}</p>` : ''}${recommendation?.html ?? ''}${decisionList}</div>
-    ${explained ? '' : `<footer class="dialog-footer event-options">${choices.map(choice => button(choice)).join('')}</footer>`}`;
+    ${notice ? `<p role="alert" class="notice negative">${esc(notice)}</p>` : ''}${planning ? `<div data-event-coach${planning.status==='pending' ? ' data-coach-pending aria-busy="true"' : planning.status==='error' ? ' data-coach-error' : ''}>${planning.html ?? recommendation?.html ?? ''}</div>` : recommendation?.html ?? ''}${decisionList}</div>
+    ${explained ? '' : `<footer id="event-choice-list" class="dialog-footer event-options">${choices.map(choice => button(choice)).join('')}</footer>`}`;
 }
 
-export function dialogContent(state, ui, quote) {
+export function dialogContent(state, ui, quote, planning) {
   const basicGuide = state.difficulty === 'casual' ? '' : tutorialNote(state, true);
   if (ui.dialog === 'quote') return `${quote}${basicGuide}`;
   if (ui.dialog === 'summary' && state.summary) {
@@ -604,7 +604,7 @@ export function dialogContent(state, ui, quote) {
       ${wonFirstOrder ? `<button type="button" class="button primary${state.difficulty === 'casual' ? ' coach-action' : ''}" data-ui="view-first-order">查看订单</button>` : receiptView ? `<button type="button" class="button primary coach-action" data-ui="view-order-receivables" data-receipt-view="${receiptView}">${receiptView === 'paid' ? '查看回款记录' : '查看交货后的应收款'}</button>` : ''}
     </footer>`;
   }
-  if (ui.dialog === 'event' && state.events.length) return eventContent(state, state.events[0], ui.notice);
+  if (ui.dialog === 'event' && state.events.length) return eventContent(state, state.events[0], ui.notice, planning);
   if (ui.dialog === 'bankruptcy') return `<header class="dialog-header"><div><p class="eyebrow">${weekLabel(state.week - 1)} · 本局结束</p><h2 id="modal-title" tabindex="-1">公司破产</h2></div></header><div class="dialog-body"><p>连续两周资金为负，授信已无法覆盖到期支出。</p><p>期末现金 <strong class="negative">${yuan(state.cash)}</strong></p></div><footer class="dialog-footer"><button type="button" class="button primary" data-ui="restart">重新开局</button></footer>`;
   if (ui.dialog === 'restart') return '<header class="dialog-header"><h2 id="modal-title" tabindex="-1">确认重新开局？</h2></header><div class="dialog-body"><p data-session-warning="restart">将返回开局设置，从第 1 周重新经营。创建新的工作室后，将覆盖当前存档。</p></div><footer class="dialog-footer"><button type="button" class="button secondary" data-ui="close-dialog">继续本局</button><button type="button" class="button danger" data-ui="restart">重新开局</button></footer>';
   return '';

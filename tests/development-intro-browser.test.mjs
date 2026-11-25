@@ -64,6 +64,8 @@ async function startFreshFirstOrder(page) {
   assert.equal((await saved(page)).state.bids.length,1);
   assert.equal((await saved(page)).state.bids[0].inquiryId,'w1-7');
   assert.equal((await saved(page)).state.bids[0].ratio,93);
+  await clickCoach(page,'[data-ui=coach-review-cash]');
+  assert.ok((await saved(page)).view.coachFirstViews.includes('cash'));
   await nav(page,'offwork');
   await page.click('.week-controls [data-action=end-week]');
   await page.waitFor(exists('dialog[open] [data-ui=view-first-order]'));
@@ -94,7 +96,7 @@ async function checkDevelopmentVisit(page, key, viewport, baseline) {
   assert.ok(advice.includes(label),`${label} needs an actual introduction, not another page's generic advice: ${advice}`);
   assert.match(advice,concept,`${label} must explain a real player-facing concept`);
   assert.doesNotMatch(advice,/undefined|NaN|\[object Object\]/);
-  assert.ok(await page.evaluate(exists(`${coach} [data-ui=coach-skip-intro]`)),'tour remains optional during development');
+  assert.ok(await page.evaluate(exists(`${coach} [data-ui=coach-pause-learning]`)),'lessons may be paused during development');
   await page.evaluate(`document.querySelector('${coach}').scrollIntoView({block:'start'})`);
   await page.screenshot(`/tmp/v38-development-intro-${viewport.width}-${id}.png`);
   return advice;
@@ -191,23 +193,23 @@ async function loadFirstOrder(page,extra='',firstPage='office',learning='begin')
   }
 }
 
-test('skipping the development introduction never invents visits, expenses or repeated guidance', {skip:!enabled,timeout:120_000}, async()=>{
+test('pausing the development introduction never invents visits, expenses or repeated guidance', {skip:!enabled,timeout:120_000}, async()=>{
   const browser=await launchBrowser(root,{scenarios:true});
   try{
     const page=await browser.page({width:320,height:568,mobile:true});
     await loadFirstOrder(page,'','orders');
     await clickCoach(page,'[data-page=company][data-coach-tab=finance]');
     const before=await saved(page);
-    await clickCoach(page,'[data-ui=coach-skip-intro]');
+    await clickCoach(page,'[data-ui=coach-pause-learning]');
     const after=await saved(page);
-    assert.equal(after.view.coachTour.skipped,true);
+    assert.equal(after.view.coachTour.skipped,false);
     assert.equal(after.view.coachLearning,false);
     assert.deepEqual(after.view.coachTour.visited,before.view.coachTour.visited,'skipping must not fake unviewed sections');
     assert.deepEqual(after.state,before.state);
     await page.click('[data-ui=development-tab][data-id=markets]');
     assert.equal(await page.evaluate(exists(`${coach} [data-ui=coach-skip-intro]`)),false);
     await restartFromSave(page);
-    assert.equal((await saved(page)).view.coachTour.skipped,true);
+    assert.equal((await saved(page)).view.coachTour.skipped,false);
     assert.deepEqual((await saved(page)).view.coachTour.visited,before.view.coachTour.visited);
     await nav(page,'office');
     assert.equal(await page.evaluate(exists(`${coach} [data-ui=coach-skip-intro]`)),false);

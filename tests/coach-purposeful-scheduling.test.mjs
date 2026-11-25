@@ -24,7 +24,7 @@ async function actualQuote(page){
 }
 
 for(const viewport of [{width:320,height:568,mobile:true},{width:390,height:844,mobile:true}]){
-  test(`first-round learning can pause and ordinary coaching pursues actual business without forced educational detours at ${viewport.width}px`,{skip:!enabled,timeout:120_000},async()=>{
+  test(`first real business views guide once, broad lessons can pause, and ordinary coaching avoids educational detours at ${viewport.width}px`,{skip:!enabled,timeout:120_000},async()=>{
     const browser=await launchBrowser(root);
     try{
       const page=await browser.page(viewport);
@@ -36,19 +36,40 @@ for(const viewport of [{width:320,height:568,mobile:true},{width:390,height:844,
       await c(page,'[data-page=inquiries]');await c(page,'[data-ui=quote-open]');await actualQuote(page);
       const first=await saved(page);
       assert.equal(first.state.bids.length,1);assert.equal(first.view.coachLearning,true);assert.equal(first.view.coachPrep,0);
-      assert.ok(await page.evaluate(exists(`${coach} .coach-action[data-coach-tab=cash-forecast]`)), 'the very first quote introduces its funding implications once');
+      assert.deepEqual(first.view.coachFirstViews,[]);
+      const firstCash=`${coach} .coach-action[data-ui=coach-review-cash]`;
+      await page.waitFor(exists(firstCash));
+      assert.equal(await page.evaluate(exists(`${coach} [data-ui=coach-pause-learning],${coach} [data-ui=coach-skip-prep]`)),false,'first real cash view cannot be skipped as an optional broad lesson');
+      // Merely navigating to the office, or refreshing it, cannot pretend the
+      // player has reviewed the actual chart. The first view stays actionable.
+      await page.click('.nav [data-page=office]');
+      assert.deepEqual((await saved(page)).view.coachFirstViews,[]);
+      assert.equal((await saved(page)).view.coachPrep,0);
+      await page.waitFor(exists(firstCash));
+      await page.send('Page.reload');await page.waitFor(exists('[data-ui=resume-save]'));await page.click('[data-ui=resume-save]');
+      await page.waitFor(exists(firstCash));
+      assert.deepEqual((await saved(page)).view.coachFirstViews,[]);
+      await c(page,'[data-ui=coach-review-cash]');
+      assert.ok(await page.evaluate('document.activeElement.matches(".forecast-chart-balance")'), 'actual view focuses the real cash balance chart');
+      assert.deepEqual((await saved(page)).view.coachFirstViews,['cash']);
+      assert.equal((await saved(page)).view.coachPrep,1);
+      assert.ok(await page.evaluate(exists('.forecast-panel [data-coach-tab=finance]')),'the broader finance lesson is the next learning opportunity');
       await c(page,'[data-ui=coach-pause-learning]');assert.equal((await saved(page)).view.coachLearning,false);
-      assert.ok(await page.evaluate(exists(`${coach} .coach-action[data-ui=quote-open]`)), 'after pausing, continue a useful next bid rather than tour unrelated pages');
+      await page.waitFor(exists(`${coach} .coach-action[data-page=inquiries]`));
       assert.ok(await page.evaluate(exists(`${coach} [data-ui=coach-start-learning].quiet`)), 'learning remains explicitly available');
-      assert.equal(await page.evaluate(exists(`${coach} [data-coach-tab=cash-forecast]`)),false);
+      assert.equal(await page.evaluate(exists(`${coach} .coach-action[data-ui=coach-review-cash]`)),false,'after first real view, continue useful business instead of forcing another chart visit');
       await c(page,'[data-ui=coach-start-learning]');assert.equal((await saved(page)).view.coachLearning,true);
-      await c(page,'[data-page=office][data-coach-tab=cash-forecast]');assert.equal((await saved(page)).view.coachPrep,1);
+      await page.waitFor(exists('.forecast-panel [data-coach-tab=finance]'));
+      assert.deepEqual((await saved(page)).view.coachFirstViews,['cash']);
+      assert.equal((await saved(page)).view.coachPrep,1);
       await c(page,'[data-ui=coach-pause-learning]');assert.equal((await saved(page)).view.coachLearning,false);
       assert.equal(await page.evaluate(exists('.forecast-panel [data-coach-tab=finance]')),false,'paused learning cannot leave a forced lesson below the graph');
       assert.deepEqual((await saved(page)).state,first.state,'learning and pausing never change business');
       assert.ok(await page.evaluate(exists(`${coach} [data-page=inquiries]`)));
       await page.send('Page.reload');await page.waitFor(exists('[data-ui=resume-save]'));await page.click('[data-ui=resume-save]');
       assert.equal((await saved(page)).view.coachLearning,false);assert.equal((await saved(page)).view.coachPrep,1);
+      assert.deepEqual((await saved(page)).view.coachFirstViews,['cash']);
+      await page.waitFor(exists(`${coach} [data-page=inquiries]`));
       assert.ok(await page.evaluate(exists(`${coach} [data-page=inquiries]`)), 'refresh resumes business not a paused tour');
       await c(page,'[data-page=inquiries]');
       let additional=0;
@@ -65,13 +86,25 @@ for(const viewport of [{width:320,height:568,mobile:true},{width:390,height:844,
       assert.equal((await saved(page)).state.week,ready.state.week);
       await page.click('.week-controls [data-action=end-week]');
       assert.equal((await saved(page)).state.week,2);
-      if(await page.evaluate(exists('dialog [data-ui=view-first-order]')))await page.click('dialog [data-ui=view-first-order]');
-      else await page.click('dialog [data-ui=close-dialog]');
+      assert.ok(await page.evaluate(exists('dialog [data-ui=view-first-order].coach-action')),'first actual order offers a primary path to its real record');
+      // Closing the settlement is allowed, but it does not mark the actual
+      // contract as viewed. Even with broad lessons paused the next business
+      // guidance highlights the real order instead of replaying a page tour.
+      await page.click('dialog [data-ui=close-dialog]');
       while(await page.evaluate(exists('dialog [data-action=resolve-event]'))){
         const selector=await page.evaluate(exists('dialog [data-action=resolve-event].coach-action:not(:disabled)'))?'dialog [data-action=resolve-event].coach-action:not(:disabled)':'dialog [data-action=resolve-event]:not(:disabled)';await page.click(selector);
       }
+      assert.equal((await saved(page)).view.coachFirstViews.includes('orders-delivery'),false);
+      await page.click('.nav [data-page=orders]');
+      assert.equal((await saved(page)).view.coachFirstViews.includes('orders-delivery'),false,'opening the page alone does not acknowledge the record');
+      const firstOrder=`${coach} .coach-action[data-ui=coach-review-orders][data-first-view=orders-delivery]`;
+      await page.waitFor(exists(firstOrder));
+      assert.equal(await page.evaluate(exists(`${coach} [data-ui=coach-start-learning],${coach} [data-ui=coach-pause-learning]`)),false,'first contract review is distinct from optional broad lessons');
+      await page.click(firstOrder);
+      assert.ok(await page.evaluate('document.activeElement.matches("#orders-delivery table")'));
       const post=await saved(page);
       assert.ok(post.state.orders.length>0);assert.equal(post.view.coachLearning,false);assert.deepEqual(post.view.coachTour.visited,[]);
+      assert.ok(post.view.coachFirstViews.includes('orders-delivery'));
       assert.equal(await page.evaluate(exists(`${coach} [data-coach-intro-next]`)),false,'first contract does not require a 13-page checklist');
       await page.click('.nav [data-page=company]');
       assert.ok(await page.evaluate(exists(`${coach} [data-ui=coach-start-learning]`)), 'all lessons can still be started voluntarily');

@@ -284,6 +284,7 @@ input[type=range] { width: 100%; min-height: 44px; margin: 0; }
 .forecast-scenario dd { min-width: 0; margin-top: .1rem; overflow-wrap: anywhere; font-size: clamp(1.02rem, 1.7vw, 1.4rem); font-weight: 750; line-height: 1.24; }
 .forecast-scenario dd small { display: block; margin-top: .28rem; color: var(--ws-secondary); font-size: .77rem; font-weight: 500; }
 .forecast-chart { margin-top: .8rem; padding: .73rem; border: 1px solid var(--ws-rule); border-radius: .48rem; background: var(--ws-well); }
+.forecast-chart-balance + .toolbar { margin-top: .65rem; }
 .forecast-chart-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .15rem .65rem; margin-bottom: .55rem; }
 .forecast-chart-heading h3 { color: var(--ws-type); font-size: .95rem; }
 .forecast-chart-heading small { color: var(--ws-secondary); font-size: .77rem; }
@@ -621,6 +622,20 @@ dialog.dialog::backdrop { background: #0b0907bf; }
 .decision-detail { display: grid; gap: .25rem; min-width: 0; margin: 0; padding-inline-start: 1.15rem; color: var(--ws-secondary); font-size: .83rem; overflow-wrap: anywhere; }
 .event-options { gap: .75rem; }
 .event-options > button { min-width: 0; max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-wrap: pretty; }
+.event-dialog-header > .event-choice-jump { display: none; }
+@media (max-width: 760px), (max-height: 600px) {
+  .event-dialog-header { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .event-dialog-header > .event-choice-jump {
+    display: flex;
+    justify-self: start;
+    width: auto;
+    max-width: 100%;
+    margin-left: 0;
+    padding-inline: .8rem;
+    color: var(--ws-mark-bright);
+    border-color: var(--ws-line-warm);
+  }
+}
 .dialog-actions { justify-content: flex-end; }
 .quote-dialog > .trade-header { position: sticky; top: 0; z-index: 2; align-items: center; padding: .76rem clamp(.8rem, 2.2vw, 1.24rem); background: #242019; border-bottom: 1px solid var(--ws-rule); }
 .quote-dialog > .quote-grid, .quote-dialog > .notice { padding: .84rem clamp(.8rem, 2.2vw, 1.24rem); }
@@ -793,6 +808,7 @@ dialog.dialog::backdrop { background: #0b0907bf; }
 .life-energy label { color: var(--ws-mark-bright); font-weight: 700; }
 .life-energy p { color: var(--ws-secondary); }
 .outing-note { display: grid; gap: .4rem; margin-bottom: .7rem; padding: .6rem; border: 1px solid var(--ws-rule); border-radius: .55rem; background: var(--ws-well); }
+#latest-outing { scroll-margin-top: calc(max(.7rem, env(safe-area-inset-top, 0px)) + 3.2rem); }
 .outing-art { width: min(100%, 33rem, calc(var(--media-ratio, 1.5) * 19rem)); object-fit: contain; object-position: left center; border-radius: .37rem; }
 .media-frame.outing-art > img { object-fit: contain; object-position: left center; }
 :is(.life-section, .order-section) { scroll-margin-top: var(--gutter); }
@@ -833,6 +849,8 @@ dialog.dialog::backdrop { background: #0b0907bf; }
 .outing-choice small { display: block; margin-top: .18rem; }
 .outing-note blockquote { margin: .25rem 0; padding-left: .62rem; border-left: 2px solid var(--ws-line-warm); color: var(--ws-mark-bright); }
 .outing-memory { border-top: 1px solid var(--ws-rule); }
+.outing-memory > summary { font-weight: 700; }
+.outing-memory > :is(p, blockquote) { margin-top: .45rem; }
 .stock-purchase { margin-block: .68rem; padding: .63rem; border: 1px solid var(--ws-rule); border-radius: .55rem; background: var(--ws-well); }
 .stock-purchase-row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(6rem, .55fr) auto; align-items: end; gap: .47rem; }
 .stock-purchase-row label { display: grid; gap: .22rem; }
@@ -980,11 +998,61 @@ dialog.dialog::backdrop { background: #0b0907bf; }
 .coach-label { color: var(--ws-mark-bright); font-size: .78rem; }
 .coach-copy h3 { font-size: 1.02rem; line-height: 1.4; color: var(--ws-type); overflow-wrap: anywhere; }
 .coach-copy p { font-size: .87rem; color: var(--ws-secondary); line-height: 1.5; overflow-wrap: anywhere; }
-.coach-actions { display: flex; align-items: flex-start; flex-wrap: wrap; gap: .35rem; margin-top: .15rem; }
-.coach-actions .button { max-width: 100%; white-space: normal; text-align: left; }
+.coach-actions { display: flex; align-items: flex-start; flex-wrap: wrap; gap: .48rem; margin-top: .24rem; }
+.coach-actions .button { min-width: 44px; min-height: 44px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; text-align: center; }
+/* Optional assistant actions are real alternatives, not inline text links.
+   Keep them distinct from gold recommendations without restyling all quiet
+   controls elsewhere in the game. Include alternatives in coached events. */
+.coach-card .coach-actions .button.quiet:not(.coach-action),
+.coach-planning .button[data-ui="coach-retry"],
+dialog:has(.event-body .coach-card) :is(.decision-choices, .event-options) button.secondary:not(.coach-action) {
+  color: #eadfc8;
+  background: #3b3125;
+  border-color: #95805d;
+}
+.coach-card .coach-actions .button.quiet:not(.coach-action):not(:disabled):hover,
+.coach-planning .button[data-ui="coach-retry"]:not(:disabled):hover,
+dialog:has(.event-body .coach-card) :is(.decision-choices, .event-options) button.secondary:not(.coach-action):not(:disabled):hover {
+  color: var(--ws-type);
+  background: #4b3e2c;
+  border-color: var(--ws-mark);
+}
 .workspace > .coach-card { margin-bottom: var(--space); }
-.dialog-body > .coach-card { margin-block: .7rem; }
+.dialog-body > .coach-card, .dialog-body > [data-event-coach] > .coach-card { margin-block: .7rem; }
 .quote-dialog > .coach-card { padding: .65rem; margin: .75rem clamp(.8rem, 2.2vw, 1.24rem) 0; }
+/* An asynchronous recommendation stays in its normal slot, not over the
+   controls. Keep scrolling anchored to the player's actual content when a
+   compact pending card is exchanged for the more detailed result. */
+.workspace > .coach-card, .quote-dialog > .coach-card, [data-event-coach] { overflow-anchor: none; }
+.coach-card.coach-planning { min-block-size: 5.5rem; }
+.coach-planning[data-coach-pending] h3 { color: var(--ws-mark-bright); }
+.coach-planning[data-coach-pending] h3::before {
+  content: '';
+  display: inline-block;
+  width: .72em;
+  height: .72em;
+  margin-right: .42em;
+  border: 2px solid #95805d;
+  border-top-color: var(--ws-mark-bright);
+  border-radius: 50%;
+  vertical-align: -.03em;
+  animation: coach-planning-spin 1s linear infinite;
+}
+@keyframes coach-planning-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .coach-planning[data-coach-pending] h3::before { animation: none; }
+}
+.coach-planning[data-coach-error] h3 { color: var(--ws-pending); }
+.coach-planning .button[data-ui="coach-retry"] {
+  justify-self: start;
+  min-width: 44px;
+  max-width: 100%;
+  min-height: 44px;
+  margin-top: .24rem;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.quote-risk[data-quote-forecast-pending] { color: var(--ws-secondary); }
 @media (max-width: 760px) {
   .coach-card { grid-template-columns: 2.35rem minmax(0, 1fr); padding: .65rem .7rem; gap: .5rem; }
   .coach-card .coach-portrait { width: 2.35rem; height: 2.35rem; }

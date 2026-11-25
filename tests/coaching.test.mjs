@@ -166,16 +166,19 @@ test('simple coaching prioritizes actionable finances and rest, can settle with 
   const inquiry = state.inquiries.find(item => quoteRecommendation(state, item));
   const recommended = quoteRecommendation(state, inquiry);
   const submitted = act(state, { type: 'bid', inquiryId: inquiry.id, ...recommended.config }).state;
-  const ordinary={page:'inquiries',coachPrep:0};
+  const ordinary={page:'inquiries',coachPrep:0,coachFirstViews:[]};
   const ordinaryAdvice=pageCoach(submitted,ordinary);
-  assert.match(ordinaryAdvice,/data-ui="quote-open"/,'ordinary operating advice recommends the next real feasible action');
-  assert.match(ordinaryAdvice,/data-ui="coach-start-learning"/,'learning is available only as an explicit choice');
-  assert.doesNotMatch(ordinaryAdvice,/data-coach-tab="cash-forecast"/,'ordinary business does not force an educational page switch');
+  assert.match(ordinaryAdvice,/查看现金预测图.*|data-ui="coach-review-cash"/,'the first actual meaningful cash review precedes additional routine quotes even outside a tour');
+  assert.doesNotMatch(ordinaryAdvice,/data-ui="coach-pause-learning"|data-ui="coach-start-learning"/,'a real first data view is not a pauseable teaching loop');
   assert.equal(recordCoachVisit(submitted,{...ordinary,page:'office'}),false);
-  const prep = {page:'inquiries', coachPrep:0,coachLearning:true};
-  assert.match(pageCoach(submitted, prep), /首笔报价.*data-page="office" data-coach-tab="cash-forecast"/s);
-  assert.match(pageCoach(submitted, prep), /data-ui="coach-skip-prep"/);
-  prep.page = 'office'; assert.ok(recordCoachVisit(submitted, prep));
+  assert.ok(recordCoachReview(submitted,ordinary,'cash'));
+  assert.match(pageCoach(submitted,ordinary),/data-ui="quote-open"/,'only subsequent ordinary reviews are optional');
+  const prep = {page:'inquiries', coachPrep:0,coachLearning:true,coachFirstViews:[]};
+  assert.match(pageCoach(submitted, prep), /真实现金预测.*data-ui="coach-review-cash"/s);
+  assert.doesNotMatch(pageCoach(submitted,prep),/data-ui="coach-skip-prep"|data-ui="skip-tutorial"/);
+  prep.page = 'office'; assert.equal(recordCoachVisit(submitted,prep),false,'opening the page alone does not teach the forecast');
+  assert.ok(recordCoachReview(submitted,prep,'cash'));
+  assert.ok(recordCoachVisit(submitted, prep));
   assert.match(pageCoach(submitted, prep), /预测最低.*data-coach-tab="finance"/s);
   prep.page = 'company'; prep.developmentTab = 'finance'; assert.ok(recordCoachVisit(submitted, prep));
   assert.match(pageCoach(submitted, prep), /备用资金.*无需借款.*data-page="offwork"/s);
@@ -349,14 +352,15 @@ for (const viewport of [{ width: 320, height: 568, mobile: true }, { width: 390,
       assert.equal(location.visible,true);
       await page.click('dialog form[data-form="quote"] button[type="submit"]');
       assert.equal((await currentState(page)).bids.length, 1);
-      assert.equal(await page.evaluate('document.activeElement.dataset.ui'), 'quote-open');
-      await page.click(`${coach} [data-ui="coach-start-learning"]`);
-      assert.equal(await page.evaluate('document.activeElement.dataset.page'), 'office');
+      assert.equal(await page.evaluate('document.activeElement.dataset.ui'), 'coach-review-cash');
       assert.equal(await page.evaluate('Boolean(document.querySelector("[data-tour=end-week].tutorial-target"))'), false);
-      await page.click(`${coach} [data-page="office"][data-coach-tab="cash-forecast"]`);
-      assert.equal(await page.evaluate('document.activeElement.matches(".forecast-panel h2")'), true);
+      await page.click(`${coach} [data-ui="coach-review-cash"]`);
+      assert.equal(await page.evaluate('document.activeElement.matches(".forecast-panel .forecast-chart-balance")'), true);
       assert.match(await page.evaluate('document.querySelector(".forecast-panel").innerText'), /已提交报价全部中单/);
       await page.screenshot(`/tmp/v38-coach-first-bid-cash-${viewport.width}.png`);
+      // This fixture deliberately starts as a paused/older learner. The key
+      // data view still happens first, then the player may resume teaching.
+      await page.click(`${coach} [data-ui="coach-start-learning"]`);
       const beforePause=await currentState(page);
       await page.click(`${coach} [data-ui="coach-pause-learning"]`);
       assert.equal(await page.evaluate(present('.forecast-panel [data-coach-tab="finance"]')),false,'paused learning removes the otherwise distracting inline lesson');
@@ -451,7 +455,7 @@ test('real Chromium generic development gives overview, active and targeted tabs
     assert.ok(await page.evaluate(present(`${coach} [data-ui="page"][data-page="orders"]`)), 'the optional introduction can continue without hiring');
     await page.click('[data-ui="development-tab"][data-id="finance"]');
     assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`), /认识财务.*银行授信/s);
-    await page.click(`${coach} [data-ui="coach-skip-intro"]`);
+    await page.click(`${coach} [data-ui="coach-pause-learning"]`);
     assert.match(await page.evaluate(`document.querySelector('${coach}').innerText`), /本周不用操作/);
     assert.equal(await page.evaluate(present(`${coach} [data-coach-form],${coach} [data-coach-action]`)),false);
     assert.equal(await page.evaluate(`JSON.parse(localStorage.getItem('trade-tycoon:weekly:v38:v1')).view.developmentOverview`),false);

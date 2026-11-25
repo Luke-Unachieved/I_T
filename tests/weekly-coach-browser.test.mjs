@@ -120,6 +120,7 @@ for (const viewport of [{ width: 390, height: 844, mobile: true }, { width: 320,
       await page.evaluate('document.querySelector("dialog [name=ratio]").focus()');
       await page.send('Input.dispatchKeyEvent', { type:'rawKeyDown', key:'ArrowLeft', code:'ArrowLeft', windowsVirtualKeyCode:37 });
       await page.send('Input.dispatchKeyEvent', { type:'keyUp', key:'ArrowLeft', code:'ArrowLeft', windowsVirtualKeyCode:37 });
+      await page.coachReady();
       assert.equal(await page.evaluate('document.querySelector("dialog [name=ratio]").value'), '99');
       assert.equal(await page.evaluate('document.querySelector("dialog [name=source]:checked").value'), changedSource);
       const draftFeedback=await page.evaluate('document.querySelector("dialog [data-quote-preview=coach]").innerText');

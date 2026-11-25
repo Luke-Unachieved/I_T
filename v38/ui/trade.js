@@ -403,9 +403,9 @@ function quoteCashForecast(lowest, submitted) {
     <small>${assumption}${shortfall ? '提交前，请检查剩余授信和到期款。' : ''}</small></p>`;
 }
 
-function quoteNumbers(state, proposal, inquiry) {
+function quoteNumbers(state, proposal, inquiry, deferForecast = false) {
   if (proposal.error) return `<p class="quote-risk negative" role="status">${escapeHtml(proposal.error)}</p>`;
-  const cashFlow = forecast(state, proposal);
+  const cashFlow = deferForecast ? [] : forecast(state, proposal);
   const lowest = cashFlow.reduce((current, item) => !current || item.hypothetical < current.hypothetical ? item : current, null);
   const probability = Math.max(0, Math.min(100, Math.round(proposal.probability * 100)));
   const gross = proposal.total - proposal.cost - proposal.shipping;
@@ -435,7 +435,7 @@ function quoteNumbers(state, proposal, inquiry) {
     ${proposal.unitPrice > inquiry.targetPrice && !proposal.branded ? '<small class="negative">报价超过买家目标价，无法中单。</small>' : ''}
     ${proposal.branded ? `<small>自有品牌 ${number(proposal.brandLevel)} 级 · 由定价与品牌吸引力决定中单率。</small>` : ''}
     </div><dl class="money-list">${rows.map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('')}</dl>
-    ${quoteCashForecast(lowest, state.bids.length)}
+    ${deferForecast ? `<p class="quote-risk" data-quote-forecast-pending role="status">${deferForecast==='error'?'现金预测暂未完成，可使用上方「重新规划」重试；请谨慎决定是否提交。':'未来 12 周现金预测正在更新，请等待结果后核对周转资金。'}</p>` : quoteCashForecast(lowest, state.bids.length)}
     ${inquiry.currency && inquiry.currency !== 'CNY' ? '<p class="trade-note">货款以合同币种结算。毛利、垫资和现金预测按人民币列示，最终回款按到账周汇率折算。</p>' : ''}
     ${proposal.warehouseLocal ? '<p class="trade-note">本地海外仓直接交付，本单省去跨境船期。</p>' : ''}
     ${proposal.factoryLevel ? `<p class="trade-note">已计入 ${number(proposal.factoryLevel)} 级自有工厂的采购和排产优惠。</p>` : ''}</div>`;
@@ -472,11 +472,7 @@ function priceControl(inquiry, { branded, brandUnitPrice, ratio }) {
   return `<div data-quote-preview="price-control">${content}</div>`;
 }
 
-export function quoteDialog(state, ui) {
-  const inquiry = state.inquiries.find(item => item.id === ui.quoteId);
-  const close = '<button type="button" class="button" data-ui="close-dialog">关闭</button>';
-  if (!inquiry) return `<header class="trade-header"><h2 id="quote-title" tabindex="-1">询盘已结束</h2>${close}</header><p>返回询盘查看本周新机会。</p>`;
-  const model = ui.quote ?? {};
+function displayedQuote(state, inquiry, model) {
   const ratio = Number.isFinite(Number(model.ratio)) ? Math.max(80, Math.min(105, Math.round(Number(model.ratio)))) : 100;
   const extraTerms = Number(model.extraTerms) || 0;
   const canBrand = state.ventures?.brand > 0 && state.company.certs.includes('brand');
@@ -492,6 +488,21 @@ export function quoteDialog(state, ui) {
   }));
   const selected = sourcesAvailable.find(item => model.source === item.source) ?? sourcesAvailable[0];
   const proposal = quote(state, inquiry, { ...model, source: selected.source, ratio, extraTerms, branded, brandUnitPrice });
+  return { ratio, extraTerms, canBrand, branded, brandUnitPrice, sourcesAvailable, selected, proposal };
+}
+
+// Also used by the planning worker so the visible figures and actual form
+// proposal share precisely the same normalization.
+export function quotePreviewNumbers(state, inquiry, model) {
+  return quoteNumbers(state, displayedQuote(state, inquiry, model).proposal, inquiry);
+}
+
+export function quoteDialog(state, ui, planning) {
+  const inquiry = state.inquiries.find(item => item.id === ui.quoteId);
+  const close = '<button type="button" class="button" data-ui="close-dialog">关闭</button>';
+  if (!inquiry) return `<header class="trade-header"><h2 id="quote-title" tabindex="-1">询盘已结束</h2>${close}</header><p>返回客户来信查看本周新机会。</p>`;
+  const model = ui.quote ?? {};
+  const { ratio, extraTerms, canBrand, branded, brandUnitPrice, sourcesAvailable, selected, proposal } = displayedQuote(state, inquiry, model);
   const alreadyBid = state.bids.some(bid => bid.inquiryId === inquiry.id);
   const capacity=quoteCapacity(state);
   const full=state.bids.length>=capacity;
@@ -499,7 +510,7 @@ export function quoteDialog(state, ui) {
   const disabled = proposal.error || alreadyBid || full;
   return `<header class="trade-header"><div><h2 id="quote-title" tabindex="-1">${escapeHtml(inquiry.buyer.name)}的询盘</h2><p class="trade-note">${escapeHtml(inquiry.productName)}（算价与报价）</p>
     ${ui.quoteDraftRestored ? '<small class="trade-note">已恢复这条询盘的未提交报价。</small>' : ''}</div>${close}</header>
-    ${quoteCoach(state, inquiry, model, coachQuoteFilters(state,ui),ui.quoteDefault)}
+    ${planning ? planning.html : quoteCoach(state, inquiry, model, coachQuoteFilters(state,ui),ui.quoteDefault)}
     <div class="quote-grid">${quoteArtwork(inquiry)}
       <form class="quote-controls inquiry-reply" data-form="quote" data-id="${escapeHtml(inquiry.id)}">
         <h3 class="inquiry-reply-title">我的报价</h3><fieldset><legend>货源</legend><div class="source-options">${sourcesAvailable.map(({ source, proposal: option }) => {
@@ -515,7 +526,7 @@ export function quoteDialog(state, ui) {
           ${[0, 1, 2, 3, 4].map(terms => `<option value="${terms}"${terms === extraTerms ? ' selected' : ''}>${terms ? `延长 ${terms} 周` : '按买家原账期'}</option>`).join('')}
         </select><small>账期更长可能提高中单率，也会延后现金回流。</small></label>
         ${staffField(state, model)}${financingField(inquiry, model)}
-        <div data-quote-preview="numbers">${quoteNumbers(state, proposal, inquiry)}</div>
+        <div data-quote-preview="numbers">${planning?.numbersHtml ?? quoteNumbers(state, proposal, inquiry, planning?.status ?? Boolean(planning))}</div>
         <div class="dialog-actions" data-quote-preview="submit"><button class="button primary" type="submit"${disabled ? ' disabled' : ''}>提交报价</button>
           <small>${alreadyBid ? '这条询盘已经提交报价。' : full ? `${overCapacity?`已报价 ${number(state.bids.length)} 笔（当前能力 ${number(capacity)} 笔）。`:''}团队本周报价能力已满，已提交的报价仍然有效；可以结算前撤回。` : `本周已报价 ${number(state.bids.length)} / ${number(capacity)} 笔（团队报价能力）。确认全部中单也能周转，再提交本单；本周结算时查看结果。`}</small></div>
       </form>

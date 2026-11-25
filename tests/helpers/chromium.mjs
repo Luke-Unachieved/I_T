@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
+import { fileURLToPath } from 'node:url';
 
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.webp': 'image/webp', '.png': 'image/png', '.mp3': 'audio/mpeg' };
 
@@ -18,7 +19,7 @@ export async function launchBrowser(root, { scenarios = false } = {}) {
       let body = await readFile(filename);
       // This export exists only in this isolated test server's response. Production files
       // are never changed, and normal onboarding tests use the unmodified response.
-      if (scenarios && relative === 'v38/ui/app.js') body = Buffer.concat([body, Buffer.from('\nexport function __scenarioForTest(value){state=value;ui=freshUi();render();}\nexport function __stateForTest(){return structuredClone(state);}\n')]);
+      if (scenarios && relative === 'v38/ui/app.js') body = Buffer.concat([body, Buffer.from('\nexport function __scenarioForTest(value,firstViews){state=value;ui=freshUi();ui.coachFirstViews=coachFirstViewRecord(firstViews,value,{coachLearning:false});render();}\nexport function __stateForTest(){return structuredClone(state);}\n')]);
       res.writeHead(200, { 'content-type': mime[path.extname(filename)] || 'application/octet-stream' }).end(body);
     }
     catch { res.writeHead(404).end('Not found'); }
@@ -27,10 +28,13 @@ export async function launchBrowser(root, { scenarios = false } = {}) {
   await once(server, 'listening');
   const base = `http://127.0.0.1:${server.address().port}/`;
   const profile = await mkdtemp(path.join(tmpdir(), 'trade-v38-browser-'));
-  const chrome = spawn(process.env.CHROMIUM || '/usr/bin/chromium', [
+  const executable = process.env.CHROMIUM || '/usr/bin/chromium';
+  const args = [
     '--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu',
     '--remote-debugging-port=0', `--user-data-dir=${profile}`, 'about:blank',
-  ], { stdio: ['ignore', 'ignore', 'pipe'] });
+  ];
+  const reap = process.platform === 'linux';
+  const chrome = spawn(reap ? 'python3' : executable, reap ? [fileURLToPath(new URL('./chromium-launch.py', import.meta.url)), executable, ...args] : args, { stdio: ['ignore', 'ignore', 'pipe'] });
   let output = '';
   let endpoint;
   try {
@@ -45,7 +49,8 @@ export async function launchBrowser(root, { scenarios = false } = {}) {
       });
     });
   } catch (error) {
-    chrome.kill(); server.close(); await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); throw error;
+    if (chrome.pid && chrome.exitCode === null && chrome.signalCode === null) { const exited = once(chrome, 'exit'); chrome.kill(); await exited; }
+    server.close(); await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); throw error;
   }
   const pages = [];
   return {
@@ -99,12 +104,19 @@ export async function launchBrowser(root, { scenarios = false } = {}) {
           await send('Page.navigate', { url: new URL(relative, base).href });
           await page.waitFor('document.readyState === "complete"');
         },
-        async click(selector) {
+        async coachReady(timeout = 60_000) {
+          // Functional tests wait for the advice visible to the player, just as
+          // they wait for a page to load. Raw CDP inputs remain available for
+          // latency, concurrent-input and stale-response regressions.
+          await page.waitFor(`(()=>{const modal=document.querySelector('dialog[open]');const root=modal||document.querySelector('#v38-root');return !root?.querySelector('[data-coach-pending]');})()`,timeout);
+        },
+        async click(selector, { waitForCoach = true } = {}) {
           const target = await evaluate(`(() => {const e=document.querySelector(${JSON.stringify(selector)});if(!e)throw Error('Missing target '+${JSON.stringify(selector)});e.scrollIntoView({block:'center'});const r=e.getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2,disabled:e.disabled};})()`);
           if (target.disabled) throw new Error(`Target is disabled: ${selector}`);
           await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: target.x, y: target.y });
           await send('Input.dispatchMouseEvent', { type: 'mousePressed', x: target.x, y: target.y, button: 'left', clickCount: 1 });
           await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: target.x, y: target.y, button: 'left', clickCount: 1 });
+          if(waitForCoach)await page.coachReady();
         },
         async fill(selector, value) {
           await evaluate(`document.querySelector(${JSON.stringify(selector)}).focus()`);
@@ -125,7 +137,7 @@ export async function launchBrowser(root, { scenarios = false } = {}) {
     },
     async close() {
       for (const ws of pages) ws.close();
-      const exited = once(chrome, 'exit'); chrome.kill('SIGTERM'); await exited;
+      if (chrome.exitCode === null && chrome.signalCode === null) { const exited = once(chrome, 'exit'); chrome.kill('SIGTERM'); await exited; }
       await new Promise(resolve => server.close(resolve));
       await rm(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
     },

@@ -200,6 +200,7 @@ async function returnFromReceipt(page, selector) {
   // Tap the already-visible control at the player's actual screen coordinates.
   await page.send('Input.dispatchMouseEvent', { type:'mousePressed', x:target.x, y:target.y, button:'left', clickCount:1 });
   await page.send('Input.dispatchMouseEvent', { type:'mouseReleased', x:target.x, y:target.y, button:'left', clickCount:1 });
+  await page.coachReady();
   assert.ok(await page.evaluate(`(()=>{const button=document.activeElement,r=button.getBoundingClientRect();return button.matches('.workspace > .coach-card .coach-action')&&r.top>=0&&r.bottom<=document.querySelector('.nav').getBoundingClientRect().top&&document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('button')===button;})()`), 'Returning to the assistant must focus its next visible action');
   assert.deepEqual(await currentState(page), before, 'Review navigation must not perform a business action');
 }
