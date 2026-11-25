@@ -3,7 +3,7 @@
   "entryVersion": 38,
   "mode": "weekly-trade",
   "title": "再开一单就下班",
-  "sourceCommit": "03984d47a0003c92d421764514b5f968445e7df8",
+  "sourceCommit": "697b57c2fa6befbe4432211871dc744823b6b312",
   "entry": "index.html",
   "saveMode": "browser-local-storage",
   "sha256": "c964f884a99512af8021181deb576576cb66a661c7d604f2be5bf8765ee1dba9",
@@ -103,9 +103,9 @@
     "v38/engine/treasury.js": "55ce662e02f716006d9003db0d6f00d3f6827c621e5117420d83c66a3b2d4ffa",
     "v38/inquiry-app.css": "23910ff4d55eae6fa6bab6ac4229154df08ccae8220370cf0f8902b7fc01b0dd",
     "v38/life-app.css": "96c55572766f700c3322774a74de48c27b4bed2e9b8118eaea36c6b3a58a8924",
-    "v38/ui/app.js": "72d8f1ab6c695589ea4994ea27ee3a318808ec9ee7fd5c55b9b59c4b0891ae1b",
+    "v38/ui/app.js": "0f6aa01d00b50d08d9a521466ea88969371a5f2f22e5ab70fbc7a16552a16c9b",
     "v38/ui/buyer-portrait.js": "49567a2fd66ec853b8a7000037bb9814fc636bf985e47f07d2e49853e7ca405e",
-    "v38/ui/coaching.js": "bce6a7428fb6c3d88c520ef267d1f8f48cc008ee81c67d93e166416a4c50f4d2",
+    "v38/ui/coaching.js": "009245d2e5a87923b85b4230de84d35154b4bc88185943ee7a0e874a6f3fa2c1",
     "v38/ui/development-planner.js": "d3e07342ea8d428404cfaad6db2a82483bd185cc0ae0db2689468eacdb7dc690",
     "v38/ui/dialogue.js": "fc319f848f91a61b4ed2cd7d242e1ab3109b5cb4a7c825ca5c72222b55d32d73",
     "v38/ui/event-planner.js": "312dd66f6f021e035663a45eeb2f16641f1da528eb52e3b9d81c09c9e797cfb8",
@@ -115,10 +115,10 @@
     "v38/ui/quote-planner.js": "2e16a211df744ff38f58240cb67039532a927fcb05a708da4c50209fb390a01d",
     "v38/ui/rollout-planner.js": "76caeeb8966bf3b6adb0a961730bff1788980db8a00d6dce396cda3462c7f932",
     "v38/ui/save.js": "55befedbdda75f1da1c403d0c6c8b402c93502a658f53699da2d7d25bd873525",
-    "v38/ui/shell.js": "4a144996d280d14ce1145757e14a24121aba88ad514a4615d4e06cf96cb2bc97",
+    "v38/ui/shell.js": "5a2a915aa4c9ba866da1666302ff429d64e3b62836ef961799ecd7b12d4cf52b",
     "v38/ui/strategy.js": "6bcfd1a3b596831d8d104c18579af4cf0df924541ab900234f5b6e9ae2138a51",
     "v38/ui/trade.js": "e4d87a5440d25216f87022bc507f2edc73ea33927b35c1af36c36719f5f4f7ff",
-    "v38/v38.css": "2214fa0ce5ecba0bc9a5b77d6b608f47b894314e43cb43a6166b20f52f5a4385"
+    "v38/v38.css": "06d177651e0fd34663954daa694c685e71950c939d940242d861e0d44c02f864"
   },
   "classic": {
     "entryVersion": 37,
